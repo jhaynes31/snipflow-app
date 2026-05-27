@@ -1,0 +1,34 @@
+nohup: ignoring input
+Run `npx convex login` at any time to create an account and link this deployment.
+- Preparing Convex functions...
+
+Convex AI files are not installed. Run npx convex ai-files install to get started or npx convex ai-files disable to hide this message.
+[32m✔[39m 05:00:59 Convex functions ready! (603.84ms)
+- Preparing Convex functions...
+
+[32m✔[39m Added table indexes:
+  [+] users.by_stripe_customer   stripeCustomerId, _creationTime
+✔ 05:04:24 Convex functions ready! (1.7s)
+- Preparing Convex functions...
+
+[32m✔[39m 05:06:12 Convex functions ready! (744.23ms)
+- Preparing Convex functions...
+
+[32m✔[39m 05:09:04 Convex functions ready! (461.53ms)
+- Preparing Convex functions...
+
+[32m✔[39m 05:10:12 Convex functions ready! (426.92ms)
+- Preparing Convex functions...
+
+[32m✔[39m 05:13:19 Convex functions ready! (495.18ms)
+- Preparing Convex functions...
+
+[32m✔[39m Added table indexes:
+  [+] users.by_referral_code   referralCode, _creationTime
+✔ 05:35:06 Convex functions ready! (539.82ms)
+- Preparing Convex functions...
+
+[32m✔[39m 05:35:20 Convex functions ready! (411.07ms)
+- Preparing Convex functions...
+
+[32m✔[39m 05:35:59 Convex functions ready! (498.25ms)

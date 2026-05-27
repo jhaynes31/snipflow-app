@@ -1,0 +1,18 @@
+nohup: ignoring input
+
+> snipflow@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://169.254.0.21:3000
+- Environments: .env.local
+✓ Ready in 496ms
+⚠ Slow filesystem detected. The benchmark took 9762ms. If /home/team/shared/snipflow/.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+
+○ Compiling /blog ...
+ GET /blog 200 in 31.7s (next.js: 31.6s, application-code: 58ms)
+ GET /blog 200 in 44ms (next.js: 4ms, application-code: 40ms)
+ GET /blog 200 in 35.4s (next.js: 35.0s, application-code: 451ms)
+ GET / 200 in 903ms (next.js: 660ms, application-code: 244ms)

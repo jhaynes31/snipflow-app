@@ -1,0 +1,20 @@
+nohup: ignoring input
+
+> snipflow@0.1.0 dev
+> next dev --port 3000 --hostname 0.0.0.0
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+- Environments: .env.local
+✓ Ready in 388ms
+
+ GET /blog 200 in 1252ms (next.js: 582ms, application-code: 670ms)
+ GET /blog 200 in 57ms (next.js: 3ms, application-code: 54ms)
+ GET /blog 200 in 55ms (next.js: 2ms, application-code: 53ms)
+ GET /blog 200 in 124ms (next.js: 18ms, application-code: 106ms)
+ GET /blog 200 in 230ms (next.js: 16ms, application-code: 213ms)
+ GET / 200 in 259ms (next.js: 75ms, application-code: 184ms)
+ GET /blog/snipflow-blog-day-01 200 in 2.8s (next.js: 1090ms, application-code: 1714ms)
+ GET /blog/snipflow-blog-day-01 200 in 192ms (next.js: 37ms, application-code: 155ms)
+ GET / 200 in 484ms (next.js: 10ms, application-code: 474ms)
