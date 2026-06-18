@@ -17,6 +17,7 @@ export default defineSchema({
     referredBy: v.optional(v.id("users")),
     qualifiedReferrals: v.optional(v.number()), // Number of referrals who processed a video
     bonusPacks: v.optional(v.number()), // Extra packs earned from referrals
+    hasUsedFreeTrial: v.optional(v.boolean()),
   }).index("by_token", ["tokenIdentifier"])
     .index("by_stripe_customer", ["stripeCustomerId"])
     .index("by_referral_code", ["referralCode"]),
@@ -44,6 +45,7 @@ export default defineSchema({
     ),
     stripeSessionId: v.optional(v.string()),
     isPaid: v.boolean(),
+    isFreeTrial: v.optional(v.boolean()),
   }).index("by_user", ["userId"])
     .index("by_batch", ["batchId"]),
 

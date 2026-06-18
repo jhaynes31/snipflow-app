@@ -52,6 +52,7 @@ export const createContentPack = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     let isPaid = false;
+    let isFreeTrial = false;
     
     if (userId) {
       const user = await ctx.db.get(userId);
@@ -108,6 +109,11 @@ export const createContentPack = mutation({
         }
       } else if (user.plan === "lifetime") {
         isPaid = true;
+      } else if (!user.hasUsedFreeTrial) {
+        // First pack is free for new authenticated users
+        isPaid = true;
+        isFreeTrial = true;
+        await ctx.db.patch(userId, { hasUsedFreeTrial: true });
       }
     }
 
@@ -120,6 +126,7 @@ export const createContentPack = mutation({
       status: "processing",
       moments: [],
       isPaid: isPaid,
+      isFreeTrial: isFreeTrial,
     });
   },
 });

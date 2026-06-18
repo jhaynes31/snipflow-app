@@ -18,15 +18,18 @@ function AppContent() {
   const initialPackId = searchParams.get("id");
   const initialBatchId = searchParams.get("batchId");
   const success = searchParams.get("success");
+  const fromDemo = searchParams.get("from") === "demo";
 
   const [urls, setUrls] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [packId, setPackId] = useState<string | null>(initialPackId);
   const [batchId, setBatchId] = useState<string | null>(initialBatchId);
   const [isPaying, setIsPaying] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"lifetime" | "monthly">("lifetime");
   const [anonymousId, setAnonymousId] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "twitter", "tiktok", "carousel"]);
   const [twitterOnly, setTwitterOnly] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
@@ -54,10 +57,21 @@ function AppContent() {
   const allPaid = activePacks.every(p => p.isPaid);
 
   useEffect(() => {
-    if (allCompleted) {
+    if (allCompleted && isProcessing) {
       setIsProcessing(false);
+      posthog.capture('video_processing_completed', { packId, batchId, count: activePacks.length });
+      
+      // Auto-scroll to payment gate on completion
+      if (!allPaid) {
+        setTimeout(() => {
+          document.getElementById('payment-gate')?.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }, 1000);
+      }
     }
-  }, [allCompleted]);
+  }, [allCompleted, isProcessing, packId, batchId, activePacks.length, allPaid]);
 
   useEffect(() => {
     if (success === "true" && (packId || batchId)) {
@@ -69,7 +83,7 @@ function AppContent() {
           if (!p.isPaid) updatePack({ id: p._id, isPaid: true });
         });
       }
-      posthog.capture('payment_successful', { packId, batchId, plan: user?.plan });
+      posthog.capture('payment_completed', { packId, batchId, plan: user?.plan });
     }
   }, [success, packId, batchId, pack, batch, updatePack, user]);
 
@@ -87,7 +101,7 @@ function AppContent() {
     }
 
     setIsProcessing(true);
-    posthog.capture('batch_process_started', { count: urlList.length, type: 'youtube' });
+    posthog.capture('video_processing_started', { count: urlList.length, type: 'youtube' });
     
     try {
       const bId = await createBatch({ anonymousId: anonymousId || undefined });
@@ -130,7 +144,7 @@ function AppContent() {
     }
 
     setIsProcessing(true);
-    posthog.capture('batch_process_started', { count: files.length, type: 'upload' });
+    posthog.capture('video_processing_started', { count: files.length, type: 'upload' });
 
     try {
       const bId = await createBatch({ anonymousId: anonymousId || undefined });
@@ -165,7 +179,7 @@ function AppContent() {
 
   const handlePayment = async (planType: string = "one-time") => {
     setIsPaying(true);
-    posthog.capture('checkout_initiated', { planType, packId, batchId });
+    posthog.capture('payment_initiated', { planType, packId, batchId });
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
@@ -191,7 +205,16 @@ function AppContent() {
 
   const handleDownload = async () => {
     if (activePacks.length === 0) return;
-    posthog.capture('content_pack_downloaded', { packId, batchId });
+    
+    // Track free trial download
+    const isAnyFreeTrial = activePacks.some(p => p.isFreeTrial);
+    if (isAnyFreeTrial) {
+      posthog.capture('free_content_downloaded', { packId, batchId });
+      setShowUpsell(true);
+    } else {
+      posthog.capture('content_downloaded', { packId, batchId });
+    }
+
     const zip = new JSZip();
     
     activePacks.forEach((p, packIdx) => {
@@ -238,6 +261,26 @@ function AppContent() {
           <h1 className="text-3xl font-bold text-primary mb-2">Create Content Pack</h1>
           <p className="text-foreground/70">Paste YouTube URLs (one per line) or upload multiple MP4 files.</p>
         </div>
+
+        {fromDemo && (
+          <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg flex items-center gap-3 text-primary animate-in fade-in slide-in-from-top-4 duration-500">
+            <CheckCircle2 className="h-5 w-5" />
+            <div>
+              <p className="font-bold">Welcome from the Demo!</p>
+              <p className="text-sm opacity-90">Ready to see what SnipFlow can do with your own videos? Paste a link below to start.</p>
+            </div>
+          </div>
+        )}
+
+        {isAuthenticated && user && !user.hasUsedFreeTrial && (
+          <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg flex items-center gap-3 text-green-500 animate-in fade-in slide-in-from-top-4 duration-500">
+            <CheckCircle2 className="h-5 w-5" />
+            <div>
+              <p className="font-bold">First Pack Free Active!</p>
+              <p className="text-sm opacity-90">Your first generated content pack is completely free. No credit card required.</p>
+            </div>
+          </div>
+        )}
 
         {(!packId && !batchId || (pack?.status === "failed") || (batch?.status === "failed")) && (
           <div className="grid gap-6 md:grid-cols-2">
@@ -438,62 +481,135 @@ function AppContent() {
 
              <div className="flex flex-col items-center gap-4 pt-6">
                 {!allPaid ? (
-                  <div className="grid gap-6 md:grid-cols-2 w-full max-w-2xl mx-auto">
-                    <Card className="bg-card border-border flex flex-col">
-                      <CardHeader>
-                        <CardTitle className="text-xl">Lifetime Access</CardTitle>
-                        <CardDescription>Pay once, use forever</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                        <p className="text-3xl font-bold">$49</p>
-                        <Button 
-                          onClick={() => handlePayment("lifetime")} 
-                          disabled={isPaying} 
-                          className="w-full bg-background text-foreground border border-border hover:bg-muted"
-                        >
-                          {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                          Buy Lifetime
-                        </Button>
-                      </CardContent>
-                    </Card>
+                  <div id="payment-gate" className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
+                    <div className="flex items-center gap-2 p-1 bg-card border border-border rounded-lg">
+                      <Button 
+                        variant={billingCycle === "lifetime" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setBillingCycle("lifetime")}
+                        className="text-xs sm:text-sm"
+                      >
+                        One-time Access ($49)
+                      </Button>
+                      <Button 
+                        variant={billingCycle === "monthly" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setBillingCycle("monthly")}
+                        className="text-xs sm:text-sm"
+                      >
+                        Pro Monthly ($19)
+                      </Button>
+                    </div>
 
-                    <Card className="bg-background border-2 border-primary flex flex-col relative overflow-hidden">
-                      <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-2 py-0.5 text-xs font-bold">BEST VALUE</div>
-                      <CardHeader>
-                        <CardTitle className="text-xl">Pro Monthly</CardTitle>
-                        <CardDescription>5 packs per month</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                        <p className="text-3xl font-bold">$19<span className="text-sm text-foreground/60">/mo</span></p>
-                        <Button 
-                          onClick={() => handlePayment("monthly")} 
-                          disabled={isPaying} 
-                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                          {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                          Subscribe & Unlock
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    {billingCycle === "lifetime" ? (
+                      <Card className="bg-card border-border flex flex-col w-full">
+                        <CardHeader>
+                          <CardTitle className="text-xl">Lifetime Access</CardTitle>
+                          <CardDescription>Pay once, use forever</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                          <div className="space-y-2">
+                            <p className="text-3xl font-bold">$49</p>
+                            <ul className="text-sm text-foreground/70 space-y-1">
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Unlimited exports</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Lifetime storage</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Priority processing</li>
+                            </ul>
+                          </div>
+                          <Button 
+                            onClick={() => handlePayment("lifetime")} 
+                            disabled={isPaying} 
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                          >
+                            {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                            Buy Lifetime Access
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="bg-background border-2 border-primary flex flex-col relative overflow-hidden w-full">
+                        <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-2 py-0.5 text-xs font-bold">BEST VALUE</div>
+                        <CardHeader>
+                          <CardTitle className="text-xl">Pro Monthly</CardTitle>
+                          <CardDescription>Perfect for regular creators</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                          <div className="space-y-2">
+                            <p className="text-3xl font-bold">$19<span className="text-sm text-foreground/60">/mo</span></p>
+                            <ul className="text-sm text-foreground/70 space-y-1">
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> 5 content packs per month</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Access to all platforms</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Cancel anytime</li>
+                            </ul>
+                          </div>
+                          <Button 
+                            onClick={() => handlePayment("monthly")} 
+                            disabled={isPaying} 
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                          >
+                            {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                            Subscribe & Unlock
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
                       {anyProcessing && <p className="text-sm text-foreground/60">Waiting for all videos to complete before download...</p>}
-                      <Button 
-                        size="lg" 
-                        onClick={handleDownload} 
+                      <Button
+                        size="lg"
+                        onClick={handleDownload}
                         disabled={!allCompleted}
                         className="bg-primary text-primary-foreground hover:bg-primary/90"
                       >
                         <Download className="mr-2 h-5 w-5" />
                         Download Batch Content Pack (.zip)
                       </Button>
+
+                      {showUpsell && (
+                        <div className="mt-8 p-8 bg-primary/5 border-2 border-primary/20 rounded-2xl text-center max-w-lg animate-in zoom-in duration-500">
+                          <h3 className="text-2xl font-bold text-primary mb-2">Want more content like this?</h3>
+                          <p className="text-foreground/70 mb-6">
+                            Your first pack is on us! Unlock unlimited packs with Lifetime Access or get 5 packs/mo with Pro.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Button onClick={() => handlePayment("lifetime")} className="bg-primary text-primary-foreground">
+                              Lifetime Access ($49)
+                            </Button>
+                            <Button onClick={() => handlePayment("monthly")} variant="outline" className="border-primary text-primary">
+                              Pro Monthly ($19)
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 )}
-             </div>
+
           </div>
         )}
       </div>
+
+      {activePacks.length > 0 && !allPaid && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t border-border p-4 z-50 shadow-lg">
+          <div className="container mx-auto max-w-4xl flex items-center justify-between">
+            <div className="hidden sm:block">
+              <p className="text-sm font-bold text-primary">Unlock your Content Pack</p>
+              <p className="text-[10px] text-foreground/60">{activePacks.length} video(s) ready for download</p>
+            </div>
+            <div className="sm:hidden">
+              <p className="text-xs font-bold text-primary">{activePacks.length} Videos Ready</p>
+            </div>
+            <Button 
+              size="sm"
+              onClick={() => document.getElementById('payment-gate')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-primary text-primary-foreground text-xs sm:text-sm"
+            >
+              Unlock Now — {billingCycle === 'lifetime' ? '$49' : '$19'}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

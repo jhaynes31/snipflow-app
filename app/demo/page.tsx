@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Download, Video } from "lucide-react";
 import Link from "next/link";
 import JSZip from "jszip";
+import posthog from "posthog-js";
 
 const MOCK_MOMENTS = [
   {
@@ -85,8 +86,8 @@ export default function DemoPage() {
             <h1 className="text-3xl font-bold text-primary mb-2">SnipFlow Demo</h1>
             <p className="text-foreground/70">This is a sample output generated from a 45-minute webinar.</p>
           </div>
-          <Link href="/app">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Link href="/app?from=demo">
+            <Button onClick={() => posthog.capture('demo_to_app', { position: 'top' })} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Video className="mr-2 h-4 w-4" />
               Try with your video
             </Button>
@@ -151,9 +152,9 @@ export default function DemoPage() {
                     <Download className="mr-2 h-5 w-5" />
                     Download Sample ZIP
                 </Button>
-                <Link href="/app">
-                    <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                        Get Started — $49 One Time
+                <Link href="/app?from=demo">
+                    <Button onClick={() => posthog.capture('demo_to_app', { position: 'bottom' })} size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                        Get Started — from $19/mo
                     </Button>
                 </Link>
             </div>

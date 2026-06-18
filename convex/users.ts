@@ -96,3 +96,15 @@ export const incrementUsage = mutation({
     });
   },
 });
+
+export const useFreeTrial = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.hasUsedFreeTrial) return;
+    
+    await ctx.db.patch(args.userId, {
+      hasUsedFreeTrial: true,
+    });
+  },
+});
