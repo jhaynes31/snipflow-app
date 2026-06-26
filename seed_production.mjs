@@ -1,16 +1,14 @@
 import { ConvexHttpClient } from "convex/browser";
 import { readFileSync } from "fs";
-import { join } from "path";
 
-const convexUrl = "https://precious-hawk-617.convex.cloud";
+const convexUrl = "https://happy-otter-123.convex.cloud";
 const client = new ConvexHttpClient(convexUrl);
 
 async function seedBlogs() {
-  // Read the seed data
-  const seedDataPath = join(process.cwd(), "../content-calendar/seed_data.json");
+  const seedDataPath = "/home/team/shared/seed_data_all_45.json";
   const seedData = JSON.parse(readFileSync(seedDataPath, "utf-8"));
 
-  console.log(`Seeding ${seedData.length} blog posts...`);
+  console.log(`Seeding ${seedData.length} blog posts to PRODUCTION (${convexUrl})...`);
 
   let successCount = 0;
   let errorCount = 0;
@@ -25,10 +23,10 @@ async function seedBlogs() {
         author: "SnipFlow Team",
         publishedAt: new Date(post.pub_date).getTime(),
       });
-      console.log(`✓ Seeded: ${post.slug} (${post.day})`);
+      console.log(`✓ Seeded: ${post.slug} (Day ${post.day})`);
       successCount++;
     } catch (error) {
-      console.error(`✗ Error seeding ${post.slug}: ${error.message}`);
+      console.error(`✗ Error seeding ${post.slug}:`, error);
       errorCount++;
     }
   }

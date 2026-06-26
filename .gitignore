@@ -32,6 +32,23 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+ANTHROPIC_API_KEY
+DEEPGRAM_API_KEY
+GITHUB_PAT
+RESEND_API_KEY
+STRIPE_WEBHOOK_SECRET
+VERCEL_TOKEN
+
+# logs
+*.log
+
+# tests and scratch scripts
+test_*.mjs
+builder-*.log
+seed_output.log
+convex.log
+frontend.log
+build_output.log
 
 # vercel
 .vercel

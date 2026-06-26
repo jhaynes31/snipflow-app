@@ -1,13 +1,31 @@
 'use client'
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CheckCircle, ArrowRight, Video } from "lucide-react";
 import posthog from 'posthog-js'
 import { FAQSection } from "@/components/FAQSection";
 
 export default function Home() {
+  const [variant, setVariant] = useState<"control" | "A" | "B">("control");
+
+  useEffect(() => {
+    const variants: ("control" | "A" | "B")[] = ["control", "A", "B"];
+    const randomVariant = variants[Math.floor(Math.random() * variants.length)];
+    setVariant(randomVariant);
+  }, []);
+
   const trackCta = (ctaName: string) => {
-    posthog.capture('cta_clicked', { cta_name: ctaName });
+    posthog.capture('cta_clicked', { 
+      cta_name: ctaName,
+      ab_variant: variant 
+    });
+  };
+
+  const getHeroCtaText = () => {
+    if (variant === "A") return "Get Started — $49 One Time";
+    if (variant === "B") return "Repurpose Your First Video Free";
+    return "Get Started — from $19/mo";
   };
 
   return (
@@ -30,7 +48,7 @@ export default function Home() {
                   onClick={() => trackCta('hero_get_started')}
                   className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
-                  Get Started — from $19/mo
+                  {getHeroCtaText()}
                 </Link>
                 <Link
                   href="/demo"
@@ -189,11 +207,14 @@ export default function Home() {
           <Link className="text-xs hover:underline underline-offset-4" href="/refund-policy">
             Refund Policy
           </Link>
+          <Link className="text-xs hover:underline underline-offset-4" href="/terms">
+            Terms
+          </Link>
+          <Link className="text-xs hover:underline underline-offset-4" href="/privacy">
+            Privacy
+          </Link>
           <Link className="text-xs hover:underline underline-offset-4" href="/#faq">
             FAQ
-          </Link>
-          <Link className="text-xs hover:underline underline-offset-4" href="#">
-            Privacy
           </Link>
         </nav>
       </footer>

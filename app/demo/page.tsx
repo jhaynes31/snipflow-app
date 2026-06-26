@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Download, Video } from "lucide-react";
+import { CheckCircle2, Download, Video, ArrowRight, X } from "lucide-react";
 import Link from "next/link";
 import JSZip from "jszip";
 import posthog from "posthog-js";
@@ -57,6 +58,8 @@ const MOCK_MOMENTS = [
 ];
 
 export default function DemoPage() {
+  const [showModal, setShowModal] = useState(false);
+
   const handleDownloadDemo = async () => {
     const zip = new JSZip();
     
@@ -76,6 +79,9 @@ export default function DemoPage() {
     link.href = URL.createObjectURL(content);
     link.download = `snipflow-demo-content-pack.zip`;
     link.click();
+
+    // Trigger success modal after a short delay
+    setTimeout(() => setShowModal(true), 1000);
   };
 
   return (
@@ -160,6 +166,43 @@ export default function DemoPage() {
             </div>
         </div>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <Card className="w-full max-w-md bg-card border-2 border-primary shadow-2xl relative animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-foreground/40 hover:text-foreground transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <CardHeader className="text-center pt-8">
+              <div className="mx-auto w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle2 className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Sample Pack Ready!</CardTitle>
+              <CardDescription className="text-base mt-2">
+                You just saw how powerful SnipFlow is. Ready to try it with your own video?
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 pb-8">
+              <Link href="/app?from=demo" className="w-full">
+                <Button className="w-full bg-primary text-primary-foreground text-lg h-12 font-bold hover:bg-primary/90">
+                  Repurpose My First Video Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowModal(false)}
+                className="w-full text-foreground/60 hover:text-foreground"
+              >
+                Maybe later
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
