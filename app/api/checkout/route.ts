@@ -1,26 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 
-/**
- * Build a proper absolute URL from a path, ensuring scheme is always present.
- * Fixes Stripe's "Invalid URL: an explicit scheme" error.
- *
- * Priority:
- * 1. NEXT_PUBLIC_APP_URL if it already has http:// or https://
- * 2. Derive from the request's Host header (works on Vercel, localhost, etc.)
- * 3. Hardcoded fallback to snipflow-pearl.vercel.app
- */
-function buildAppUrl(req: Request, path: string): string {
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
-    return `${envUrl.replace(/\/+$/, '')}${path}`;
-  }
-  // Derive from the incoming request's Host header
-  const host = req.headers.get('host') || 'snipflow-pearl.vercel.app';
-  const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
-  return `${protocol}://${host}${path}`;
-}
-
 export async function POST(req: Request) {
   try {
     const { packId, batchId, userId, planType } = await req.json();
@@ -36,17 +16,24 @@ export async function POST(req: Request) {
       productDescription = '5 content packs per month + Dashboard access. Cancel anytime.';
     }
 
-    const successUrl = buildAppUrl(req, isSubscription
-      ? '/dashboard?success=true'
-      : batchId
-        ? `/app?batchId=${batchId}&success=true`
-        : `/app?id=${packId}&success=true`);
+    // Build absolute URLs with guaranteed https:// scheme.
+    // req.url always includes the scheme on Vercel (e.g., https://snipflow-pearl.vercel.app/api/checkout)
+    const origin = (() => {
+      const env = process.env.NEXT_PUBLIC_APP_URL;
+      if (env && (env.startsWith('http://') || env.startsWith('https://'))) {
+        return env.replace(/\/+$/, '');
+      }
+      // Derive from the incoming request URL — always has scheme on Vercel
+      try {
+        const u = new URL(req.url);
+        return `${u.protocol}//${u.host}`;
+      } catch {}
+      // Last resort — hardcoded fallback with proper scheme
+      return 'https://snipflow-pearl.vercel.app';
+    })();
 
-    const cancelUrl = buildAppUrl(req, isSubscription
-      ? '/app?canceled=true'
-      : batchId
-        ? `/app?batchId=${batchId}&canceled=true`
-        : `/app?id=${packId}&canceled=true`);
+    const successUrl = `${origin}${isSubscription ? '/dashboard?success=true' : batchId ? `/app?batchId=${batchId}&success=true` : `/app?id=${packId}&success=true`}`;
+    const cancelUrl = `${origin}${isSubscription ? '/app?canceled=true' : batchId ? `/app?batchId=${batchId}&canceled=true` : `/app?id=${packId}&canceled=true`}`;
 
     const line_items = [
       {
