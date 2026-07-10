@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Video, Youtube, Download, CheckCircle2, Lock, Upload, AlertCircle } from "lucide-react";
+import { Loader2, Video, Youtube, Download, CheckCircle2, Lock, Upload, AlertCircle, Star } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import JSZip from "jszip";
 import posthog from 'posthog-js';
@@ -25,7 +25,7 @@ function AppContent() {
   const [packId, setPackId] = useState<string | null>(initialPackId);
   const [batchId, setBatchId] = useState<string | null>(initialBatchId);
   const [isPaying, setIsPaying] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<"lifetime" | "monthly">("lifetime");
+  const [billingCycle, setBillingCycle] = useState<"lifetime" | "monthly">("monthly");
   const [anonymousId, setAnonymousId] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "twitter", "tiktok", "carousel"]);
   const [twitterOnly, setTwitterOnly] = useState(false);
@@ -114,13 +114,15 @@ function AppContent() {
           videoUrl: url,
           anonymousId: anonymousId || undefined,
           batchId: bId,
+          options: { twitterOnly },
         });
 
+        // Fire processing on the Next.js server (where yt-dlp is available)
         fetch("/api/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, packId: pId, options: { twitterOnly } }),
-        }).catch(console.error);
+          body: JSON.stringify({ packId: pId, videoUrl: url, options: { twitterOnly } }),
+        }).catch(err => console.error("Process API error:", err));
       }
       
       router.push(`/app?batchId=${bId}`);
@@ -263,21 +265,25 @@ function AppContent() {
         </div>
 
         {fromDemo && (
-          <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg flex items-center gap-3 text-primary animate-in fade-in slide-in-from-top-4 duration-500">
-            <CheckCircle2 className="h-5 w-5" />
-            <div>
-              <p className="font-bold">Welcome from the Demo!</p>
-              <p className="text-sm opacity-90">Ready to see what SnipFlow can do with your own videos? Paste a link below to start.</p>
+          <div className="bg-primary/10 border-2 border-primary/20 p-5 rounded-xl flex items-center gap-4 text-primary animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-base">Welcome from the Demo! 🎉</p>
+              <p className="text-sm opacity-90">Your first content pack is on the house. Paste a YouTube link below to try SnipFlow free.</p>
             </div>
           </div>
         )}
 
         {isAuthenticated && user && !user.hasUsedFreeTrial && (
-          <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg flex items-center gap-3 text-green-500 animate-in fade-in slide-in-from-top-4 duration-500">
-            <CheckCircle2 className="h-5 w-5" />
-            <div>
-              <p className="font-bold">First Pack Free Active!</p>
-              <p className="text-sm opacity-90">Your first generated content pack is completely free. No credit card required.</p>
+          <div className="bg-green-500/10 border-2 border-green-500/20 p-5 rounded-xl flex items-center gap-4 text-green-500 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-base">🎁 First Pack Free — No Credit Card Needed</p>
+              <p className="text-sm opacity-90">Your first content pack is on the house. Founding Member lifetime access is $49 for the first 20 customers — then $97.</p>
             </div>
           </div>
         )}
@@ -372,18 +378,36 @@ function AppContent() {
                 <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        <p className="font-medium text-primary">Processing batch... Keep this page open.</p>
+                        <div>
+                            <p className="font-medium text-primary">Processing batch...</p>
+                            <p className="text-xs text-foreground/60">You can safely close this page. We'll email you when it's ready.</p>
+                        </div>
                     </div>
-                    <span className="text-sm text-foreground/60">
-                        {activePacks.filter(p => p.status === "completed").length} / {activePacks.length} completed
-                    </span>
+                    <div className="text-right">
+                        <span className="text-sm font-medium text-primary">
+                            {activePacks.filter(p => p.status === "completed").length} / {activePacks.length} completed
+                        </span>
+                        <div className="mt-1 h-1.5 w-24 bg-primary/10 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-primary rounded-full transition-all duration-500"
+                                style={{ width: `${(activePacks.filter(p => p.status === "completed").length / activePacks.length) * 100}%` }}
+                            />
+                        </div>
+                    </div>
                 </div>
              )}
 
              {allCompleted && (
-                <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg flex items-center gap-3 text-green-500">
-                    <CheckCircle2 className="h-5 w-5" />
-                    <p className="font-medium">All videos in batch have been processed!</p>
+                <div className="bg-green-500/10 border-2 border-green-500/20 p-4 rounded-lg flex items-center gap-3 text-green-500">
+                    <CheckCircle2 className="h-6 w-6" />
+                    <div>
+                        <p className="font-medium text-base">✅ All videos processed successfully!</p>
+                        {!allPaid ? (
+                            <p className="text-sm opacity-80">Scroll down to unlock your content pack and download.</p>
+                        ) : (
+                            <p className="text-sm opacity-80">Your content is ready to download below.</p>
+                        )}
+                    </div>
                 </div>
              )}
 
@@ -418,7 +442,20 @@ function AppContent() {
                    <div key={p._id} className="space-y-4">
                         <div className="flex items-center gap-2">
                             <h2 className="text-xl font-bold">{p.videoTitle}</h2>
-                            {p.status === "processing" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                            {p.status !== "completed" && p.status !== "failed" && (
+                                <div className="flex items-center gap-2 text-sm text-primary/80">
+                                    {p.status === "downloading" ? <Download className="h-4 w-4 animate-pulse" /> :
+                                     p.status === "transcribing" ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                                     p.status === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                                     <Loader2 className="h-4 w-4 animate-spin" />}
+                                    <span className="capitalize">
+                                        {p.status === "downloading" ? "Downloading audio..." :
+                                         p.status === "transcribing" ? "Transcribing video..." :
+                                         p.status === "generating" ? "Generating content with AI..." :
+                                         p.status + "..."}
+                                    </span>
+                                </div>
+                            )}
                             {p.status === "completed" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
                             {p.status === "failed" && <AlertCircle className="h-4 w-4 text-red-500" />}
                         </div>
@@ -489,7 +526,7 @@ function AppContent() {
                         onClick={() => setBillingCycle("lifetime")}
                         className="text-xs sm:text-sm"
                       >
-                        One-time Access ($49)
+                        Founding Member — $49
                       </Button>
                       <Button 
                         variant={billingCycle === "monthly" ? "default" : "ghost"}
@@ -497,48 +534,59 @@ function AppContent() {
                         onClick={() => setBillingCycle("monthly")}
                         className="text-xs sm:text-sm"
                       >
-                        Pro Monthly ($19)
+                        Founder Tier — $19/mo
                       </Button>
                     </div>
 
                     {billingCycle === "lifetime" ? (
-                      <Card className="bg-card border-border flex flex-col w-full">
+                      <Card className="bg-background border-2 border-amber-500 flex flex-col w-full relative overflow-hidden">
+                        <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-3 py-1 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Star className="h-3 w-3" />
+                          Founding Member
+                        </div>
                         <CardHeader>
                           <CardTitle className="text-xl">Lifetime Access</CardTitle>
-                          <CardDescription>Pay once, use forever</CardDescription>
+                          <CardDescription className="text-xs text-amber-500 font-semibold">Limited — first 20 customers only. Price increases to $97.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col justify-between gap-4">
                           <div className="space-y-2">
-                            <p className="text-3xl font-bold">$49</p>
-                            <ul className="text-sm text-foreground/70 space-y-1">
-                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Unlimited exports</li>
-                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Lifetime storage</li>
-                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Priority processing</li>
+                            <div className="flex items-baseline gap-2">
+                              <p className="text-3xl font-bold">$49</p>
+                              <span className="text-foreground/60 line-through text-lg">$97</span>
+                              <span className="text-sm text-foreground/60 font-normal">one-time</span>
+                            </div>
+                            <p className="text-xs text-amber-500/80">Founding Member Price — expires after 20 sales</p>
+                            <ul className="text-sm text-foreground/70 space-y-1.5">
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-amber-500" /> Unlimited content packs — no caps</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-amber-500" /> Priority processing (2-3x faster)</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-amber-500" /> Lifetime storage &amp; dashboard access</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-amber-500" /> Never pay again</li>
                             </ul>
                           </div>
                           <Button 
                             onClick={() => handlePayment("lifetime")} 
                             disabled={isPaying} 
-                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                            className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-black hover:from-amber-600 hover:to-yellow-600 font-bold"
                           >
-                            {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                            Buy Lifetime Access
+                            {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
+                            Claim Founding Member Price — $49
                           </Button>
                         </CardContent>
                       </Card>
                     ) : (
                       <Card className="bg-background border-2 border-primary flex flex-col relative overflow-hidden w-full">
-                        <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-2 py-0.5 text-xs font-bold">BEST VALUE</div>
+                        <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-bold">BEST VALUE</div>
                         <CardHeader>
-                          <CardTitle className="text-xl">Pro Monthly</CardTitle>
-                          <CardDescription>Perfect for regular creators</CardDescription>
+                          <CardTitle className="text-xl">Founder Tier</CardTitle>
+                          <CardDescription className="text-sm">For creators who want to start small and scale.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col justify-between gap-4">
                           <div className="space-y-2">
-                            <p className="text-3xl font-bold">$19<span className="text-sm text-foreground/60">/mo</span></p>
-                            <ul className="text-sm text-foreground/70 space-y-1">
+                            <p className="text-3xl font-bold">$19<span className="text-sm text-foreground/60 font-normal">/month</span></p>
+                            <ul className="text-sm text-foreground/70 space-y-1.5">
                               <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> 5 content packs per month</li>
-                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Access to all platforms</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> LinkedIn, X, TikTok &amp; Carousel output</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Full dashboard with history</li>
                               <li className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> Cancel anytime</li>
                             </ul>
                           </div>
@@ -548,8 +596,9 @@ function AppContent() {
                             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                           >
                             {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                            Subscribe & Unlock
+                            Start Free Trial — $19/mo
                           </Button>
+                          <p className="text-[10px] text-foreground/40 text-center">First pack is free. Cancel before renewal, no charge.</p>
                         </CardContent>
                       </Card>
                     )}
@@ -592,21 +641,23 @@ function AppContent() {
       </div>
 
       {activePacks.length > 0 && !allPaid && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t border-border p-4 z-50 shadow-lg">
-          <div className="container mx-auto max-w-4xl flex items-center justify-between">
-            <div className="hidden sm:block">
-              <p className="text-sm font-bold text-primary">Unlock your Content Pack</p>
-              <p className="text-[10px] text-foreground/60">{activePacks.length} video(s) ready for download</p>
+        <div className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-md border-t-2 border-primary/20 p-4 z-50 shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="container mx-auto max-w-4xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex w-8 h-8 bg-primary/10 rounded-full items-center justify-center">
+                <Download className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-primary">Unlock your Content Pack</p>
+                <p className="text-[10px] text-foreground/60">{activePacks.length} video(s) processed — ready for download</p>
+              </div>
             </div>
-            <div className="sm:hidden">
-              <p className="text-xs font-bold text-primary">{activePacks.length} Videos Ready</p>
-            </div>
-            <Button 
-              size="sm"
-              onClick={() => document.getElementById('payment-gate')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-primary text-primary-foreground text-xs sm:text-sm"
+            <Button
+              size="default"
+              onClick={() => document.getElementById('payment-gate')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-bold px-6 shrink-0"
             >
-              Unlock Now — {billingCycle === 'lifetime' ? '$49' : '$19'}
+              Unlock & Download — {billingCycle === 'lifetime' ? '$49' : '$19/mo'}
             </Button>
           </div>
         </div>

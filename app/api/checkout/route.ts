@@ -1,51 +1,66 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 
+/**
+ * Build a proper absolute URL from a path, ensuring scheme is always present.
+ * Fixes Stripe's "Invalid URL: an explicit scheme" error.
+ *
+ * Priority:
+ * 1. NEXT_PUBLIC_APP_URL if it already has http:// or https://
+ * 2. Derive from the request's Host header (works on Vercel, localhost, etc.)
+ * 3. Hardcoded fallback to snipflow-pearl.vercel.app
+ */
+function buildAppUrl(req: Request, path: string): string {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+    return `${envUrl.replace(/\/+$/, '')}${path}`;
+  }
+  // Derive from the incoming request's Host header
+  const host = req.headers.get('host') || 'snipflow-pearl.vercel.app';
+  const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+  return `${protocol}://${host}${path}`;
+}
+
 export async function POST(req: Request) {
   try {
     const { packId, batchId, userId, planType } = await req.json();
 
     const isSubscription = planType === 'monthly';
-    
-    const successUrl = isSubscription 
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`
-      : batchId 
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/app?batchId=${batchId}&success=true`
-        : `${process.env.NEXT_PUBLIC_APP_URL}/app?id=${packId}&success=true`;
+    let unitAmount = 4900; // $49 - Founding Member price
+    let productName = 'SnipFlow Lifetime Access';
+    let productDescription = 'Unlimited content packs + priority processing. Founding Member Price ($49) — first 20 customers only. Normally $97.';
 
-    const cancelUrl = isSubscription
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/app?canceled=true`
+    if (isSubscription) {
+      unitAmount = 1900; // $19/mo
+      productName = 'SnipFlow Founder Tier';
+      productDescription = '5 content packs per month + Dashboard access. Cancel anytime.';
+    }
+
+    const successUrl = buildAppUrl(req, isSubscription
+      ? '/dashboard?success=true'
       : batchId
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/app?batchId=${batchId}&canceled=true`
-        : `${process.env.NEXT_PUBLIC_APP_URL}/app?id=${packId}&canceled=true`;
+        ? `/app?batchId=${batchId}&success=true`
+        : `/app?id=${packId}&success=true`);
 
-    const line_items = isSubscription ? [
+    const cancelUrl = buildAppUrl(req, isSubscription
+      ? '/app?canceled=true'
+      : batchId
+        ? `/app?batchId=${batchId}&canceled=true`
+        : `/app?id=${packId}&canceled=true`);
+
+    const line_items = [
       {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'SnipFlow Pro Plan',
-            description: '5 content packs per month + Dashboard access.',
+            name: productName,
+            description: productDescription,
           },
-          unit_amount: 1900,
-          recurring: {
-            interval: 'month' as const,
-          },
+          unit_amount: unitAmount,
+          ...(isSubscription ? { recurring: { interval: 'month' as const } } : {}),
         },
         quantity: 1,
       }
-    ] : [
-      {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: 'SnipFlow Content Pack',
-            description: 'Professional social media content generated from your video.',
-          },
-          unit_amount: 4900,
-        },
-        quantity: 1,
-      },
     ];
 
     const session = await stripe.checkout.sessions.create({
@@ -60,7 +75,6 @@ export async function POST(req: Request) {
         userId: userId || '',
         planType: planType || 'one-time',
       },
-      // For subscriptions, we want to ensure we can link the customer
       ...(isSubscription && userId ? { client_reference_id: userId } : {}),
     });
 

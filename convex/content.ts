@@ -1,6 +1,107 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
+
+// Public mutations callable from the Next.js API route (ConvexHttpClient)
+export const updateProcessStatus = mutation({
+  args: {
+    id: v.id("contentPacks"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { status: args.status });
+  },
+});
+
+export const completeProcessing = mutation({
+  args: {
+    id: v.id("contentPacks"),
+    moments: v.array(
+      v.object({
+        timestamp: v.string(),
+        description: v.string(),
+        linkedinPost: v.string(),
+        twitterThread: v.array(v.string()),
+        tiktokCaption: v.string(),
+        linkedinCarousel: v.optional(v.array(v.object({
+          slide: v.number(),
+          content: v.string(),
+          title: v.string(),
+        }))),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { 
+      moments: args.moments,
+      status: "completed"
+    });
+    
+    // Check if all packs in batch are done
+    const pack = await ctx.db.get(args.id);
+    if (pack?.batchId) {
+        const batchPacks = await ctx.db
+            .query("contentPacks")
+            .withIndex("by_batch", (q) => q.eq("batchId", pack.batchId))
+            .collect();
+        
+        if (batchPacks.every(p => p.status === "completed" || p.status === "failed")) {
+            await ctx.db.patch(pack.batchId, { status: "completed" });
+        }
+    }
+  },
+});
+
+// Internal versions for scheduler/action use (keeping for backward compat)
+export const updateStatus = internalMutation({
+  args: {
+    id: v.id("contentPacks"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { status: args.status });
+  },
+});
+
+export const updateMoments = internalMutation({
+  args: {
+    id: v.id("contentPacks"),
+    moments: v.array(
+      v.object({
+        timestamp: v.string(),
+        description: v.string(),
+        linkedinPost: v.string(),
+        twitterThread: v.array(v.string()),
+        tiktokCaption: v.string(),
+        linkedinCarousel: v.optional(v.array(v.object({
+          slide: v.number(),
+          content: v.string(),
+          title: v.string(),
+        }))),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { 
+      moments: args.moments,
+      status: "completed"
+    });
+    
+    // Check if all packs in batch are done
+    const pack = await ctx.db.get(args.id);
+    if (pack?.batchId) {
+        const batchPacks = await ctx.db
+            .query("contentPacks")
+            .withIndex("by_batch", (q) => q.eq("batchId", pack.batchId))
+            .collect();
+        
+        if (batchPacks.every(p => p.status === "completed" || p.status === "failed")) {
+            await ctx.db.patch(pack.batchId, { status: "completed" });
+        }
+    }
+  },
+});
 
 export const createBatch = mutation({
   args: {
@@ -48,6 +149,9 @@ export const createContentPack = mutation({
     videoUrl: v.optional(v.string()),
     anonymousId: v.optional(v.string()),
     batchId: v.optional(v.id("batches")),
+    options: v.optional(v.object({
+        twitterOnly: v.optional(v.boolean()),
+    })),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -117,7 +221,7 @@ export const createContentPack = mutation({
       }
     }
 
-    return await ctx.db.insert("contentPacks", {
+    const packId = await ctx.db.insert("contentPacks", {
       userId: userId ?? undefined,
       anonymousId: args.anonymousId,
       batchId: args.batchId,
@@ -128,6 +232,17 @@ export const createContentPack = mutation({
       isPaid: isPaid,
       isFreeTrial: isFreeTrial,
     });
+
+    // NOTE: Processing is now handled by the /api/process Next.js route,
+    // which is called from the client after createContentPack resolves.
+    // The old scheduler-based Convex action (internal.actions.processVideo)
+    // is no longer used because yt-dlp/ffmpeg aren't available in the Convex runtime.
+    if (args.videoUrl) {
+        // The client-side code (app/app/page.tsx) will call /api/process
+        // after we return the packId
+    }
+
+    return packId;
   },
 });
 
@@ -135,6 +250,7 @@ export const updateContentPack = mutation({
   args: {
     id: v.id("contentPacks"),
     status: v.optional(v.string()),
+    audioStorageId: v.optional(v.string()),
     moments: v.optional(v.array(
       v.object({
         timestamp: v.string(),
@@ -150,10 +266,19 @@ export const updateContentPack = mutation({
       })
     )),
     isPaid: v.optional(v.boolean()),
+    options: v.optional(v.object({
+        twitterOnly: v.optional(v.boolean()),
+    })),
   },
   handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+    const { id, options, ...fields } = args;
     await ctx.db.patch(id, fields);
+
+    if (fields.audioStorageId) {
+        // NOTE: Processing is now handled by /api/process (called from /api/upload after extracting audio).
+        // The old scheduler-based Convex action is no longer used because yt-dlp/ffmpeg
+        // aren't available in the Convex runtime.
+    }
   },
 });
 
@@ -170,6 +295,13 @@ export const markBatchAsPaid = mutation({
     for (const pack of packs) {
       await ctx.db.patch(pack._id, { isPaid: true });
     }
+  },
+});
+
+export const getPackInternal = query({
+  args: { id: v.id("contentPacks") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
   },
 });
 
@@ -190,6 +322,13 @@ export const listMyPacks = query({
         .collect();
     }
     return [];
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
   },
 });
 

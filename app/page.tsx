@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CheckCircle, ArrowRight, Video } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle, ArrowRight, Video, Star, Loader2 } from "lucide-react";
 import posthog from 'posthog-js'
 import { FAQSection } from "@/components/FAQSection";
 
 export default function Home() {
+  const router = useRouter();
   const [variant, setVariant] = useState<"control" | "A" | "B">("control");
+  const [isPaying, setIsPaying] = useState(false);
 
   useEffect(() => {
     const variants: ("control" | "A" | "B")[] = ["control", "A", "B"];
@@ -26,6 +29,31 @@ export default function Home() {
     if (variant === "A") return "Get Started — $49 One Time";
     if (variant === "B") return "Repurpose Your First Video Free";
     return "Get Started — from $19/mo";
+  };
+
+  const handleDirectPurchase = async (planType: string) => {
+    setIsPaying(true);
+    const ctaName = planType === 'monthly' ? 'pricing_subscribe_monthly' : 'pricing_lifetime_buy';
+    trackCta(ctaName);
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planType }),
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error("Checkout error:", data.error);
+        router.push("/app");
+      }
+    } catch (error) {
+      console.error("Failed to initiate payment:", error);
+      router.push("/app");
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -114,10 +142,14 @@ export default function Home() {
 
         <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 border-t border-border">
           <div className="container px-4 md:px-6 mx-auto">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl text-center mb-12">Simple Pricing</h2>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl text-center mb-4">Simple Pricing</h2>
+            <p className="text-foreground/60 text-center mb-12 max-w-lg mx-auto">
+              🚀 <strong>Founding Member Offer:</strong> First 20 customers get lifetime access for just $49. Price increases to $97 after.
+            </p>
             <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
               <div className="flex flex-col p-6 bg-card border border-border rounded-xl shadow-lg relative overflow-hidden">
-                <h3 className="text-2xl font-bold mb-2">Pro Monthly</h3>
+                <h3 className="text-2xl font-bold mb-2">Founder Tier</h3>
+                <p className="text-sm text-foreground/60 mb-4">Perfect for getting started</p>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl font-bold">$19</span>
                   <span className="text-foreground/60">/month</span>
@@ -136,47 +168,51 @@ export default function Home() {
                     <span className="text-sm">Full Dashboard access</span>
                   </li>
                 </ul>
-                <Link href="/app" className="w-full">
-                   <button 
-                    onClick={() => trackCta('pricing_subscribe_monthly')}
-                    className="w-full py-3 bg-primary/10 text-primary border border-primary/20 rounded-lg font-bold hover:bg-primary/20 transition-colors"
-                   >
-                      Subscribe Monthly
-                   </button>
-                </Link>
+                <button
+                  onClick={() => handleDirectPurchase('monthly')}
+                  disabled={isPaying}
+                  className="w-full py-3 bg-primary/10 text-primary border border-primary/20 rounded-lg font-bold hover:bg-primary/20 transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                >
+                  {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Subscribe Monthly — $19
+                </button>
               </div>
 
-              <div className="flex flex-col p-6 bg-background border-2 border-primary rounded-xl shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-bold uppercase tracking-wider">
-                  Best Value
+              <div className="flex flex-col p-6 bg-background border-2 border-amber-500 rounded-xl shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-yellow-500 text-black px-4 py-1.5 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  Founding Member Price
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Lifetime Access</h3>
-                <div className="flex items-baseline gap-1 mb-4">
+                <h3 className="text-2xl font-bold mb-1">Lifetime Access</h3>
+                <p className="text-xs text-amber-500 font-semibold mb-3">Limited — first 20 customers only</p>
+                <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-4xl font-bold">$49</span>
+                  <span className="text-foreground/60 line-through text-lg">$97</span>
                   <span className="text-foreground/60">one-time</span>
                 </div>
+                <p className="text-xs text-amber-500/80 mb-4">Price increases to $97 after 20 sales</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                    <span className="text-sm">Unlimited Content Packs</span>
+                    <CheckCircle className="h-5 w-5 text-amber-500" />
+                    <span className="text-sm">Unlimited Content Packs — no caps</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <CheckCircle className="h-5 w-5 text-amber-500" />
                     <span className="text-sm">Priority AI processing</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                    <span className="text-sm">Never pay again</span>
+                    <CheckCircle className="h-5 w-5 text-amber-500" />
+                    <span className="text-sm">Never pay again — forever access</span>
                   </li>
                 </ul>
-                <Link href="/app" className="w-full">
-                   <button 
-                    onClick={() => trackCta('pricing_lifetime_buy')}
-                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/90 transition-colors"
-                   >
-                      Buy Once, Own Forever
-                   </button>
-                </Link>
+                <button
+                  onClick={() => handleDirectPurchase('lifetime')}
+                  disabled={isPaying}
+                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-black rounded-lg font-bold hover:from-amber-600 hover:to-yellow-600 transition-all shadow-lg inline-flex items-center justify-center disabled:opacity-50"
+                >
+                  {isPaying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
+                  Claim Founding Member Price — $49
+                </button>
               </div>
             </div>
           </div>

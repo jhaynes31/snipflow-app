@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
-import { processVideo } from '@/lib/video-processor';
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
+
+const execAsync = promisify(exec);
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
   try {
@@ -20,13 +26,47 @@ export async function POST(req: Request) {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    const filePath = path.join(tmpDir, 'video.mp4');
+    const videoPath = path.join(tmpDir, 'video.mp4');
+    const audioPath = path.join(tmpDir, 'audio.mp3');
+    
     const buffer = Buffer.from(await file.arrayBuffer());
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(videoPath, buffer);
 
-    // Trigger processing
-    // In this case, we use the local file instead of a URL
-    processVideo(filePath, packId, options).catch(console.error);
+    // 1. Extract audio locally
+    await execAsync(`ffmpeg -i "${videoPath}" -vn -ar 44100 -ac 2 -b:a 192k "${audioPath}" -y`);
+
+    // 2. Upload audio to Convex Storage
+    const uploadUrl = await convex.mutation(api.content.generateUploadUrl);
+    const audioBuffer = fs.readFileSync(audioPath);
+    
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": "audio/mpeg" },
+      body: audioBuffer,
+    });
+    
+    const { storageId } = await uploadResponse.json();
+
+    // 3. Store the audioStorageId on the pack
+    await convex.mutation(api.content.updateContentPack, {
+        id: packId as any,
+        audioStorageId: storageId,
+    });
+
+    // 4. Fire processing via /api/process (handles the full pipeline server-side)
+    // We don't await this — let it run in the background
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ packId, options }),
+    }).catch(err => console.error("Process API error:", err));
+
+    // Clean up
+    try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (e) {
+        console.error("Failed to cleanup tmp dir", e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
