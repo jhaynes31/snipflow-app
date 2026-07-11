@@ -1,6 +1,6 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
