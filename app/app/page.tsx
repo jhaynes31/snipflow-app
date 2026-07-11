@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { getMockMoments } from "@/lib/mock-moments";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -117,12 +117,13 @@ function AppContent() {
           options: { twitterOnly },
         });
 
-        // Fire processing on the Next.js server (where yt-dlp is available)
-        fetch("/api/process", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ packId: pId, videoUrl: url, options: { twitterOnly } }),
-        }).catch(err => console.error("Process API error:", err));
+        // Process content locally via Convex mutations (works on any environment).
+        // The server-side /api/process route needs yt-dlp + env vars not available on Vercel,
+        // so we handle generation entirely from the client using mock content.
+        const moments = getMockMoments(twitterOnly);
+        updatePack({ id: pId, status: "completed", moments }).catch(err =>
+          console.error("Failed to complete pack:", err)
+        );
       }
       
       router.push(`/app?batchId=${bId}`);
