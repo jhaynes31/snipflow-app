@@ -31,29 +31,17 @@ export default function Home() {
     return "Get Started — from $19/mo";
   };
 
-  const handleDirectPurchase = async (planType: string) => {
+  const handleDirectPurchase = (planType: string) => {
     setIsPaying(true);
     const ctaName = planType === 'monthly' ? 'pricing_subscribe_monthly' : 'pricing_lifetime_buy';
     trackCta(ctaName);
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planType }),
-      });
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        console.error("Checkout error:", data.error);
-        router.push("/app");
-      }
-    } catch (error) {
-      console.error("Failed to initiate payment:", error);
-      router.push("/app");
-    } finally {
-      setIsPaying(false);
-    }
+    // Redirect directly to Stripe payment links — no server-side API needed
+    const url = planType === 'monthly'
+      ? 'https://buy.stripe.com/aFafZj88qfHx7hPaDGaAw01'
+      : 'https://buy.stripe.com/28EfZjbkC7b1gSp7ruaAw00';
+    window.location.href = url;
+    // Reset after redirect
+    setTimeout(() => setIsPaying(false), 5000);
   };
 
   return (
