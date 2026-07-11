@@ -166,11 +166,11 @@ export async function POST(req: Request) {
     const deepgramKey = process.env.DEEPGRAM_API_KEY;
     if (deepgramKey && !deepgramKey.startsWith("mock")) {
       // Use Deepgram for transcription
-      const { createClient } = await import("@deepgram/sdk");
-      const deepgram = createClient(deepgramKey);
-      
+      const { DeepgramClient } = await import("@deepgram/sdk");
+      const deepgram = new DeepgramClient({ apiKey: deepgramKey });
+
       const audioBuffer = fs.readFileSync(audioPath);
-      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+      const response = await deepgram.listen.v1.media.transcribeFile(
         audioBuffer,
         {
           smart_format: true,
@@ -179,13 +179,8 @@ export async function POST(req: Request) {
         }
       );
 
-      if (error) {
-        console.error(`Deepgram error for ${packId}:`, error);
-        // Fall back to mock transcript
-        transcript = "In this video we talk about how SnipFlow is the ultimate tool for B2B creators to repurpose their webinars into LinkedIn posts, Twitter threads, and TikTok captions. It's fast, efficient and powered by AI. Join 500+ creators today.";
-      } else {
-        transcript = result?.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
-      }
+      transcript =
+        (response as any).results?.channels[0].alternatives[0].transcript || "";
     } else {
       console.log(`Using mock transcript for ${packId}`);
       transcript = "In this video we talk about how SnipFlow is the ultimate tool for B2B creators to repurpose their webinars into LinkedIn posts, Twitter threads, and TikTok captions. It's fast, efficient and powered by AI. Join 500+ creators today.";

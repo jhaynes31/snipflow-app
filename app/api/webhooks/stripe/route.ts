@@ -1,9 +1,38 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+// Initialize server-side PostHog for webhook tracking
+const POSTHOG_API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com';
+
+async function trackPostHogEvent(event: string, properties: Record<string, any>) {
+  if (!POSTHOG_API_KEY || POSTHOG_API_KEY.includes('placeholder')) {
+    console.log(`[Mock PostHog] ${event}:`, JSON.stringify(properties));
+    return;
+  }
+  try {
+    await fetch(`${POSTHOG_HOST}/capture/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: POSTHOG_API_KEY,
+        event,
+        properties: {
+          ...properties,
+          source: 'stripe_webhook',
+          $host: process.env.NEXT_PUBLIC_APP_URL,
+        },
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to send PostHog event from webhook:', err);
+  }
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -16,7 +45,7 @@ export async function POST(req: Request) {
         console.warn('STRIPE_WEBHOOK_SECRET is not set or is a placeholder, skipping verification (MOCK MODE ENABLED)');
         event = JSON.parse(body);
     } else {
-        event = stripe.webhooks.constructEvent(
+        event = getStripe().webhooks.constructEvent(
             body,
             signature,
             process.env.STRIPE_WEBHOOK_SECRET
@@ -41,6 +70,13 @@ export async function POST(req: Request) {
         usageCount: 0,
         usageResetAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
       });
+      await trackPostHogEvent('payment_completed', {
+        userId,
+        planType: 'monthly',
+        stripeSessionId: session.id,
+        amount: 1900,
+        currency: 'usd',
+      });
     } else if (planType === 'lifetime' && userId) {
       console.log(`Lifetime purchase successful for user: ${userId}`);
       await convex.mutation(api.users.updateSubscription, {
@@ -59,10 +95,26 @@ export async function POST(req: Request) {
           batchId: batchId as any,
         });
       }
+      await trackPostHogEvent('payment_completed', {
+        userId,
+        planType: 'lifetime',
+        stripeSessionId: session.id,
+        amount: 4900,
+        currency: 'usd',
+        packId,
+        batchId,
+      });
     } else if (batchId) {
       console.log(`Payment successful for batch: ${batchId}`);
       await convex.mutation(api.content.markBatchAsPaid, {
         batchId: batchId as any,
+      });
+      await trackPostHogEvent('payment_completed', {
+        batchId,
+        planType: 'one-time',
+        stripeSessionId: session.id,
+        amount: 4900,
+        currency: 'usd',
       });
     } else if (packId) {
       console.log(`Payment successful for pack: ${packId}`);
@@ -146,6 +198,15 @@ export async function POST(req: Request) {
             `);
           }
         }
+        
+        await trackPostHogEvent('payment_completed', {
+          packId,
+          planType: 'one-time',
+          stripeSessionId: session.id,
+          amount: 4900,
+          currency: 'usd',
+          userEmail: userEmail || 'unknown',
+        });
       }
     }
   } else if (event.type === 'customer.subscription.deleted') {
@@ -160,6 +221,10 @@ export async function POST(req: Request) {
         stripeSubscriptionId: undefined,
       });
       console.log(`Subscription cancelled for user: ${user._id}`);
+      await trackPostHogEvent('subscription_cancelled', {
+        userId: user._id,
+        stripeCustomerId: subscription.customer as string,
+      });
     }
   } else if (event.type === 'invoice.paid') {
     const invoice = event.data.object;
@@ -174,6 +239,12 @@ export async function POST(req: Request) {
           usageResetAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
         });
         console.log(`Usage count reset for user: ${user._id}`);
+        await trackPostHogEvent('subscription_renewed', {
+          userId: user._id,
+          stripeCustomerId: invoice.customer as string,
+          amount: invoice.amount_paid,
+          currency: invoice.currency,
+        });
       }
     }
   }
