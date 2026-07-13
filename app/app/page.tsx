@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { getMockMoments } from "@/lib/mock-moments";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -55,7 +55,7 @@ function AppContent() {
   const activePacks = batch?.packs || (pack ? [pack] : []);
   const allCompleted = activePacks.length > 0 && activePacks.every(p => p.status === "completed");
   const anyProcessing = activePacks.some(p => p.status === "processing");
-  const allPaid = activePacks.every(p => p.isPaid);
+  const allPaid = activePacks.length > 0 && activePacks.every(p => p.isPaid);
 
   useEffect(() => {
     if (allCompleted && isProcessing) {
@@ -76,15 +76,25 @@ function AppContent() {
 
   useEffect(() => {
     if (success === "true" && (packId || batchId)) {
-      if (packId && pack && !pack.isPaid) {
-        updatePack({ id: packId as any, isPaid: true });
+      try {
+        if (packId && pack && !pack.isPaid) {
+          updatePack({ id: packId as any, isPaid: true }).catch(err =>
+            console.error("Failed to mark pack as paid:", err)
+          );
+        }
+        if (batchId && batch) {
+          batch.packs.forEach(p => {
+            if (!p.isPaid) {
+              updatePack({ id: p._id, isPaid: true }).catch(err =>
+                console.error("Failed to mark batch pack as paid:", err)
+              );
+            }
+          });
+        }
+        posthog.capture('payment_completed', { packId, batchId, plan: user?.plan });
+      } catch (error) {
+        console.error("Payment completion handler error:", error);
       }
-      if (batchId && batch) {
-        batch.packs.forEach(p => {
-          if (!p.isPaid) updatePack({ id: p._id, isPaid: true });
-        });
-      }
-      posthog.capture('payment_completed', { packId, batchId, plan: user?.plan });
     }
   }, [success, packId, batchId, pack, batch, updatePack, user]);
 
@@ -222,10 +232,11 @@ function AppContent() {
     const zip = new JSZip();
     
     activePacks.forEach((p, packIdx) => {
-      const safeTitle = p.videoTitle.replace(/[^a-z0-9]/gi, '_').substring(0, 30) || `Video-${packIdx + 1}`;
+      const safeTitle = (p.videoTitle || '').replace(/[^a-z0-9]/gi, '_').substring(0, 30) || `Video-${packIdx + 1}`;
       const videoFolder = activePacks.length > 1 ? zip.folder(`${packIdx + 1}-${safeTitle}`) : zip;
+      const moments = p.moments || [];
       
-      p.moments.forEach((moment: any, i: number) => {
+      moments.forEach((moment: any, i: number) => {
         const momentFolder = videoFolder?.folder(`Moment-${i + 1}`);
         if (selectedPlatforms.includes("linkedin") && moment.linkedinPost) {
           momentFolder?.file("linkedin.txt", moment.linkedinPost);
@@ -671,7 +682,48 @@ function AppContent() {
 export default function AppPage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </Suspense>
   );
+}
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("AppPage ErrorBoundary caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh] p-8">
+          <div className="max-w-md text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+            <h2 className="text-xl font-bold text-foreground">Something unexpected happened</h2>
+            <p className="text-foreground/70 text-sm">
+              Don&apos;t worry — your data is safe. Please refresh the page or try again.
+              If the problem persists, contact support.
+            </p>
+            <Button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/app'; }}
+              className="bg-primary text-primary-foreground"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
