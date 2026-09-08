@@ -50,7 +50,24 @@ import {
   computeMeetGreet,
 } from "./src/lib/meetGreetServer";
 import { formatFee } from "./src/lib/meetGreet";
-import { PET_TYPE_LABELS } from "./src/lib/petDetails";
+import { derivePetsData, type PetDetail } from "./src/lib/petDetails";
+import { convexQuery, convexMutation } from "./src/lib/convexServer";
+import {
+  requestHasSession,
+  sessionSetCookie,
+  sessionClearCookie,
+  RateLimiter,
+  clientAddress,
+} from "./src/lib/session";
+import {
+  validateBookingRequest,
+  priceValidatedBooking,
+  findAvailabilityConflict,
+  parseDateStr,
+  timeToMinutes,
+} from "./src/lib/bookingValidation";
+import { calculatePrice } from "./src/lib/pricing";
+import { timingSafeEqual } from "node:crypto";
 /**
  * In process rate limit for password reset requests: email -> last request
  * epoch ms. One request per email per minute. A server restart resets the
@@ -65,73 +82,8 @@ const passwordResetRequests = new Map<string, number>();
  * path (src/lib/email.ts), which holds the Resend key. Guarded by a shared
  * secret (DEPOSIT_REMINDER_SECRET) that Convex passes in the body.
  */
-/**
- * Shared Convex HTTP API caller. FAIL-LOUD contract (fixed 2026-09: the old
- * helpers swallowed every failure into null/[] — callers could not tell "no
- * rows" from "database unreachable", the admin panel showed empty lists during
- * an outage, and approval emails fired while the DB write had failed):
- * - missing URL, network error, non-ok HTTP, bad JSON, or a Convex
- *   {status:"error"} payload -> console.error with the status and Convex
- *   errorMessage, then THROW an Error that includes the Convex errorMessage;
- * - success -> returns json.value ?? json exactly as before (same shape).
- * Callers rely on this: reads surface the error to the client, mutations skip
- * all downstream side effects (emails, calendar writes) on failure.
- */
-async function convexCall(
-  kind: "query" | "mutation",
-  name: string,
-  args: Record<string, unknown>,
-): Promise<any> {
-  const url = process.env.CONVEX_DEPLOYMENT_URL;
-  if (!url) {
-    throw new Error(`CONVEX_DEPLOYMENT_URL is not set (convex ${kind} ${name})`);
-  }
-  let res: Response;
-  // NB: Convex's path prefix spells queries in plural ("queries:"), while
-  // mutations just take an "s" ("mutations:").
-  const path = kind === "query" ? `queries:${name}` : `mutations:${name}`;
-  try {
-    res = await fetch(`${url}/api/${kind}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, args }),
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[serve] convex ${kind} ${name} unreachable: ${msg}`);
-    throw new Error(`Convex ${kind} ${name} unreachable: ${msg}`);
-  }
-  if (!res.ok) {
-    console.error(`[serve] convex ${kind} ${name} failed: HTTP ${res.status}`);
-    throw new Error(`Convex ${kind} ${name} failed: HTTP ${res.status}`);
-  }
-  let json: { status?: string; value?: unknown; errorMessage?: string };
-  try {
-    json = await res.json();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[serve] convex ${kind} ${name} returned invalid JSON: ${msg}`);
-    throw new Error(`Convex ${kind} ${name} returned invalid JSON: ${msg}`);
-  }
-  if (json && json.status === "error") {
-    const em = json.errorMessage || "unknown Convex error";
-    console.error(`[serve] convex ${kind} ${name} Convex error: ${em}`);
-    throw new Error(`Convex ${kind} ${name} failed: ${em}`);
-  }
-  return json.value ?? json;
-}
-async function convexMutation(
-  name: string,
-  args: Record<string, unknown>,
-): Promise<any> {
-  return convexCall("mutation", name, args);
-}
-async function convexQuery(
-  name: string,
-  args: Record<string, unknown> = {},
-): Promise<any> {
-  return convexCall("query", name, args);
-}
+// Convex access goes through src/lib/convexServer.ts (deploy-key auth, one
+// retry on reads, fail-loud on every error).
 
 // ── Partial-day availability (Feature B) ────────────────────────────────────
 // A departure day whose departure time is at or before 12:00 noon is PARTIAL:
@@ -379,10 +331,14 @@ async function handlePostCompletion(req: Request): Promise<Response> {
 }
 
 /** JSON reply helper mirroring { success, ... } shapes the client expects. */
-function jsonOk(body: unknown, status = 200): Response {
+function jsonOk(
+  body: unknown,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: JSON_HEADERS,
+    headers: { ...JSON_HEADERS, ...extraHeaders },
   });
 }
 function jsonErr(error: string, status = 200): Response {
@@ -420,51 +376,78 @@ function defaultBody(slug: string): string {
 
 // ── Public endpoints: booking, pet profile, resend code ───────────────────
 
-interface SubmitBookingBody {
-  data?: Record<string, unknown>;
-}
+/** Public form posts: per address, per minute. Slows spam without blocking a household. */
+const publicPostLimiter = new RateLimiter(20, 60_000);
+
 async function handleSubmitBooking(req: Request): Promise<Response> {
-  let body: SubmitBookingBody | null = null;
+  if (!publicPostLimiter.allow(`submit:${clientAddress(req)}`)) {
+    return jsonErr("Too many requests. Please wait a minute and try again.", 429);
+  }
+  let body: { data?: unknown } | null = null;
   try {
     body = await req.json();
   } catch {
     body = null;
   }
-  const d = (body && body.data) || null;
-  if (!d || typeof d !== "object") {
-    return jsonErr("Invalid request body");
-  }
-  const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : "");
-  if (!str("clientName").trim()) return jsonErr("Client name is required");
-  if (!str("clientEmail").trim()) return jsonErr("Client email is required");
-  if (!str("clientAddress").trim())
-    return jsonErr("Client address is required");
-  if (!str("arrivalDate").trim()) return jsonErr("Arrival date is required");
-  if (!str("arrivalTime").trim()) return jsonErr("Arrival time is required");
-  if (!str("departureDate").trim())
-    return jsonErr("Departure date is required");
-  if (!str("departureTime").trim())
-    return jsonErr("Departure time is required");
-  if (typeof d.totalPrice !== "number")
-    return jsonErr("Total price must be a number");
+  const raw = body && typeof body === "object" ? body.data : null;
 
-  const clientAddress = str("clientAddress");
+  // 1. Validate and normalise every field. Nothing from the browser is used
+  //    unless it passed here.
+  const validated = validateBookingRequest(raw);
+  if (!validated.ok) return jsonErr(validated.error);
+  const b = validated.value;
+
+  // 2. The requested dates must be open on the same calendar the public page
+  //    shows. This is the check the old server never made.
+  let availability: { dates: string[]; partial: PartialDay[] };
+  try {
+    availability = await computeAvailabilityPayload();
+  } catch (err) {
+    console.error(
+      "[serve] availability check failed:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return jsonErr(
+      "We couldn't check availability just now. Please try again in a moment.",
+      500,
+    );
+  }
+  const conflict = findAvailabilityConflict(
+    b.arrivalDate,
+    b.arrivalTime,
+    b.departureDate,
+    availability.dates,
+    availability.partial,
+  );
+  if (conflict) return jsonErr(conflict);
+
+  // 3. Price on the server with the same engine the form uses. The browser's
+  //    number is only compared for logging; the stored price is ours.
+  const pricing = priceValidatedBooking(b);
+  const clientTotal =
+    raw && typeof raw === "object" && typeof (raw as any).totalPrice === "number"
+      ? ((raw as any).totalPrice as number)
+      : undefined;
+  if (clientTotal !== undefined && Math.abs(clientTotal - pricing.total) > 0.01) {
+    console.warn(
+      `[serve] client price ${clientTotal} differs from server price ${pricing.total} for ${b.clientEmail}; storing server price`,
+    );
+  }
+
   // Owner-only Meet & Greet fee, computed server-side; never shown to the client.
   let mgDistanceMiles: number | undefined;
   let mgFee: number | undefined;
   let mgOutsideArea: boolean | undefined;
   let mgManual: boolean | undefined;
   try {
-    if (clientAddress.trim()) {
-      const { distance, fee } = await computeMeetGreet({
-        clientAddress: clientAddress.trim(),
-      });
-      if (distance.status === "ok" && distance.oneWayMiles > 0) {
-        mgDistanceMiles = distance.oneWayMiles;
-        mgFee = fee.fee;
-        mgOutsideArea = fee.outsideArea;
-        mgManual = distance.mode === "manual";
-      }
+    const { distance, fee } = await computeMeetGreet({
+      clientAddress: b.clientAddress,
+    });
+    if (distance.status === "ok" && distance.oneWayMiles > 0) {
+      mgDistanceMiles = distance.oneWayMiles;
+      mgFee = fee.fee;
+      mgOutsideArea = fee.outsideArea;
+      mgManual = distance.mode === "manual";
     }
   } catch (mgErr) {
     console.error(
@@ -473,63 +456,46 @@ async function handleSubmitBooking(req: Request): Promise<Response> {
     );
   }
 
-  // DB write FIRST — if Convex is unreachable or errors, the request is not
-  // saved and NOTHING else happens: no notification email, no success shape.
-  let response: Response;
+  const record = {
+    clientName: b.clientName,
+    clientEmail: b.clientEmail,
+    clientPhone: b.clientPhone,
+    clientAddress: b.clientAddress,
+    arrivalDate: b.arrivalDate,
+    arrivalTime: b.arrivalTime,
+    departureDate: b.departureDate,
+    departureTime: b.departureTime,
+    pets: b.pets,
+    isHoliday: pricing.isHoliday,
+    totalPrice: pricing.total,
+    holidaySurchargeDays: pricing.holidayDays,
+    holidaySurcharge: pricing.holidaySurcharge,
+    priceBreakdown: pricing.breakdown,
+    notes: b.notes,
+    petAnxieties: b.petAnxieties,
+    petAnxietyManifestation: b.petAnxietyManifestation,
+    petSleepsInBed: b.petSleepsInBed,
+    petQuirks: b.petQuirks,
+    petNames: b.petNames || undefined,
+    petDetails: b.petDetails,
+    hearAboutUs: b.hearAboutUs,
+    referredBy: b.referredBy,
+  };
+
+  // 4. DB write FIRST. If Convex is unreachable or errors, the request is not
+  //    saved and nothing else happens: no notification email, no success shape.
+  let requestId: string;
   try {
-    response = await fetch(
-      `${process.env.CONVEX_DEPLOYMENT_URL}/api/mutation`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json"},
-        body: JSON.stringify({
-          path: "mutations:createRequest",
-          args: {
-            clientName: str("clientName"),
-            clientEmail: str("clientEmail"),
-            clientPhone:
-              typeof d.clientPhone === "string" && d.clientPhone
-                ? (d.clientPhone as string)
-                : undefined,
-            clientAddress,
-            arrivalDate: str("arrivalDate"),
-            arrivalTime: str("arrivalTime"),
-            departureDate: str("departureDate"),
-            departureTime: str("departureTime"),
-            pets: d.pets,
-            isHoliday: Boolean(d.isHoliday),
-            totalPrice: d.totalPrice,
-            holidaySurchargeDays:
-              typeof d.holidaySurchargeDays === "number"
-                ? (d.holidaySurchargeDays as number)
-                : undefined,
-            holidaySurcharge:
-              typeof d.holidaySurcharge === "number"
-                ? (d.holidaySurcharge as number)
-                : undefined,
-            priceBreakdown: d.priceBreakdown,
-            notes: str("notes") || undefined,
-            petAnxieties: str("petAnxieties") || undefined,
-            petAnxietyManifestation: str("petAnxietyManifestation") || undefined,
-            petSleepsInBed: str("petSleepsInBed") || undefined,
-            petQuirks: str("petQuirks") || undefined,
-            petNames: str("petNames") || undefined,
-            petDetails: Array.isArray(d.petDetails) ? d.petDetails : undefined,
-            hearAboutUs: str("hearAboutUs") || undefined,
-            referredBy: str("referredBy") || undefined,
-            meetGreetDistanceMiles: mgDistanceMiles,
-            meetGreetFee: mgFee,
-            meetGreetOutsideArea: mgOutsideArea,
-            meetGreetManual: mgManual,
-          },
-        }),
-      },
-    );
+    requestId = await convexMutation("createRequest", {
+      ...record,
+      meetGreetDistanceMiles: mgDistanceMiles,
+      meetGreetFee: mgFee,
+      meetGreetOutsideArea: mgOutsideArea,
+      meetGreetManual: mgManual,
+    });
   } catch (dbErr) {
-    // Network-level failure (Convex unreachable): the booking is NOT saved,
-    // return success:false and skip the notification email entirely.
     console.error(
-      "[serve] createRequest Convex unreachable:",
+      "[serve] createRequest failed:",
       dbErr instanceof Error ? dbErr.message : String(dbErr),
     );
     return jsonErr(
@@ -538,70 +504,11 @@ async function handleSubmitBooking(req: Request): Promise<Response> {
     );
   }
 
-  if (!response.ok) {
-    return jsonErr(
-      `Server error: ${response.status}. Please try again.`,
-      500,
-    );
-  }
-  let result: {
-    status?: string;
-    value?: unknown;
-    errorMessage?: string;
-  };
-  try {
-    result = (await response.json()) as {
-      status?: string;
-      value?: unknown;
-      errorMessage?: string;
-    };
-  } catch (parseErr) {
-    console.error(
-      "[serve] createRequest returned invalid JSON:",
-      parseErr instanceof Error ? parseErr.message : String(parseErr),
-    );
-    return jsonErr(
-      "We couldn't save your booking request just now. Please try again in a moment.",
-      500,
-    );
-  }
-  if (result.status !== "success") {
-    console.error(
-      `[serve] createRequest Convex error: ${
-        result.errorMessage ?? "unknown error"
-      }`,
-    );
-    return jsonErr(result.errorMessage || "Booking could not be saved.");
-  }
-
-  // Saved — now notify Jen & John (failure never fails the booking).
+  // 5. Saved. Notify Jen & John (a notification failure never fails the booking).
   try {
     await sendNewRequestNotification({
-      clientName: str("clientName"),
-      clientEmail: str("clientEmail"),
-      clientPhone:
-        typeof d.clientPhone === "string" && d.clientPhone
-          ? (d.clientPhone as string)
-          : undefined,
-      clientAddress,
-      arrivalDate: str("arrivalDate"),
-      arrivalTime: str("arrivalTime"),
-      departureDate: str("departureDate"),
-      departureTime: str("departureTime"),
-      pets: d.pets,
-      isHoliday: Boolean(d.isHoliday),
-      totalPrice: d.totalPrice as number,
-      priceBreakdown: d.priceBreakdown,
-      notes: str("notes") || undefined,
-      petAnxieties: str("petAnxieties") || undefined,
-      petAnxietyManifestation: str("petAnxietyManifestation") || undefined,
-      petSleepsInBed: str("petSleepsInBed") || undefined,
-      petQuirks: str("petQuirks") || undefined,
-      petNames: str("petNames") || undefined,
-      petDetails: Array.isArray(d.petDetails) ? d.petDetails : undefined,
-      hearAboutUs: str("hearAboutUs") || undefined,
-      referredBy: str("referredBy") || undefined,
-      referralRewardStatus: str("referredBy") ? "pending" : undefined,
+      ...record,
+      referralRewardStatus: b.referredBy ? "pending" : undefined,
       meetGreetFee: mgFee,
       meetGreetDistanceMiles: mgDistanceMiles,
       meetGreetOutsideArea: mgOutsideArea,
@@ -613,10 +520,13 @@ async function handleSubmitBooking(req: Request): Promise<Response> {
     );
   }
 
-  return jsonOk({ success: true, requestId: result.value as string });
+  return jsonOk({ success: true, requestId, totalPrice: pricing.total });
 }
 
 async function handlePetProfile(req: Request): Promise<Response> {
+  if (!publicPostLimiter.allow(`profile:${clientAddress(req)}`)) {
+    return jsonErr("Too many requests. Please wait a minute and try again.", 429);
+  }
   let body: { data?: { returnCode?: string; clientEmail?: string } } | null =
     null;
   try {
@@ -653,6 +563,9 @@ async function handlePetProfile(req: Request): Promise<Response> {
 }
 
 async function handleResendCode(req: Request): Promise<Response> {
+  if (!publicPostLimiter.allow(`resend:${clientAddress(req)}`)) {
+    return jsonErr("Too many requests. Please wait a minute and try again.", 429);
+  }
   let body: { data?: { clientEmail?: string } } | null = null;
   try {
     body = await req.json();
@@ -701,7 +614,136 @@ async function handleResendCode(req: Request): Promise<Response> {
   return jsonOk({ success: true, backfilled: Boolean(value.backfilled) });
 }
 
+
+// ── Stored-record helpers for admin email flows ────────────────────────────
+// Every client email below is built from the record in Convex, never from
+// fields the admin browser posted, so a stale or edited page can't email a
+// client the wrong name, dates, or amounts.
+
+/** Deposit expected for a request/booking: the stored value, else half the total. */
+function depositFor(request: any, totalPrice: number): number {
+  return typeof request?.depositAmount === "number"
+    ? request.depositAmount
+    : Math.round(totalPrice * 0.5);
+}
+
+/** Shape a stored request row into the data the email builders expect. */
+function requestToEmailData(request: any) {
+  return {
+    clientName: String(request.clientName || ""),
+    clientEmail: String(request.clientEmail || ""),
+    clientPhone: request.clientPhone,
+    clientAddress: request.clientAddress,
+    arrivalDate: String(request.arrivalDate || ""),
+    arrivalTime: String(request.arrivalTime || ""),
+    departureDate: String(request.departureDate || ""),
+    departureTime: String(request.departureTime || ""),
+    pets: request.pets ?? {},
+    isHoliday: Boolean(request.isHoliday),
+    totalPrice: Number(request.totalPrice) || 0,
+    depositAmount: depositFor(request, Number(request.totalPrice) || 0),
+    priceBreakdown: request.priceBreakdown,
+    notes: request.notes,
+    petAnxieties: request.petAnxieties,
+    petAnxietyManifestation: request.petAnxietyManifestation,
+    petSleepsInBed: request.petSleepsInBed,
+    petQuirks: request.petQuirks,
+    petNames: request.petNames,
+    petDetails: Array.isArray(request.petDetails)
+      ? (request.petDetails as PetDetail[]).filter(
+          (p) => p && typeof p.name === "string",
+        )
+      : undefined,
+    hearAboutUs: request.hearAboutUs,
+    referredBy: request.referredBy,
+    referralRewardStatus: request.referralRewardStatus,
+    meetGreetFee: request.meetGreetFee,
+    meetGreetDistanceMiles: request.meetGreetDistanceMiles,
+    meetGreetOutsideArea: request.meetGreetOutsideArea,
+  };
+}
+
+/** Pet counts for pricing from a stored request (per-pet cards win over legacy counts). */
+function petsForPricing(request: any) {
+  if (Array.isArray(request?.petDetails) && request.petDetails.length > 0) {
+    return derivePetsData(
+      (request.petDetails as any[])
+        .filter((p) => p && typeof p.name === "string")
+        .map((p) => ({ ...p, type: p.type || "adultDog" })),
+    );
+  }
+  const p = request?.pets && typeof request.pets === "object" ? request.pets : {};
+  return {
+    adultDogs: Number(p.adultDogs) || 0,
+    puppies: Number(p.puppies) || 0,
+    cats: Number(p.cats) || 0,
+    kittens: Number(p.kittens) || 0,
+    otherSpecies: Array.isArray(p.otherSpecies) ? p.otherSpecies : [],
+  };
+}
+
+const num = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) ? v : undefined;
+const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+const optStr = (v: unknown): string | undefined => str(v) || undefined;
+
 // ── Generic admin action dispatcher ────────────────────────────────────────
+
+/**
+ * Actions that may run WITHOUT an admin session. Everything else in the
+ * dispatcher requires the signed HttpOnly session cookie issued by
+ * verifyPassword; a request without one is refused before any case runs.
+ */
+const PUBLIC_ACTIONS = new Set([
+  "verifyPassword",
+  "requestPasswordReset",
+  "resetPassword",
+  "checkSession",
+  "logout",
+]);
+
+/** Login attempts per address per 15 minutes. */
+const loginLimiter = new RateLimiter(10, 15 * 60_000);
+
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  return ba.length === bb.length && timingSafeEqual(ba, bb);
+}
+
+/**
+ * Check a candidate admin password against the stored hash, seeding the hash
+ * from ADMIN_PASSWORD the first time when nothing is stored yet.
+ * `configured` is false only when neither a stored hash nor ADMIN_PASSWORD exists.
+ */
+async function passwordMatches(
+  password: string,
+): Promise<{ ok: boolean; configured: boolean }> {
+  let stored: { salt?: string; hash?: string } | null = null;
+  try {
+    stored = await convexQuery("getAdminAuth");
+  } catch (err) {
+    console.error(
+      "[serve] getAdminAuth failed:",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+  if (stored && stored.salt && stored.hash) {
+    const candidate = await hashPassword(password, stored.salt);
+    return { ok: safeEqual(candidate, stored.hash), configured: true };
+  }
+  const adminPassword = process.env.ADMIN_PASSWORD || "";
+  if (!adminPassword) return { ok: false, configured: false };
+  if (!safeEqual(password, adminPassword)) return { ok: false, configured: true };
+  try {
+    const salt = await newSalt();
+    const hash = await hashPassword(adminPassword, salt);
+    await convexMutation("setAdminAuth", { salt, hash });
+  } catch {
+    // Non fatal: the env fallback keeps working until the hash can be stored.
+  }
+  return { ok: true, configured: true };
+}
 
 async function handleAction(req: Request): Promise<Response> {
   let body: { action?: string; data?: any } | null = null;
@@ -710,38 +752,43 @@ async function handleAction(req: Request): Promise<Response> {
   } catch {
     body = null;
   }
-  const action = body?.action || "";
-  const data = body?.data ?? {};
+  const action = typeof body?.action === "string" ? body.action : "";
+  const data = body?.data && typeof body.data === "object" ? body.data : {};
+
+  // The gate. Admin-only actions never run without a valid session cookie.
+  if (!PUBLIC_ACTIONS.has(action) && !requestHasSession(req)) {
+    return jsonErr("Not signed in. Please sign in to the admin panel again.", 401);
+  }
 
   try {
     switch (action) {
+      // ── Session ─────────────────────────────────────────────────────────
+      case "checkSession": {
+        return jsonOk({ success: true, authenticated: requestHasSession(req) });
+      }
+      case "logout": {
+        return jsonOk({ success: true }, 200, {
+          "Set-Cookie": sessionClearCookie(req),
+        });
+      }
       // ── Auth ────────────────────────────────────────────────────────────
       case "verifyPassword": {
-        const password = typeof data.password === "string" ? data.password : "";
-        try {
-          const stored: any = await convexQuery("getAdminAuth");
-          if (stored && stored.salt && stored.hash) {
-            const candidate = await hashPassword(password, stored.salt);
-            if (candidate === stored.hash) return jsonOk({ success: true });
-            return jsonOk({ success: false, error: "Invalid password" });
-          }
-        } catch {
-          // fall through to env fallback
+        if (!loginLimiter.allow(`login:${clientAddress(req)}`)) {
+          return jsonOk({
+            success: false,
+            error: "Too many sign in attempts. Please wait 15 minutes and try again.",
+          });
         }
-        const adminPassword = process.env.ADMIN_PASSWORD;
-        if (adminPassword && password === adminPassword) {
-          try {
-            const salt = await newSalt();
-            const hash = await hashPassword(adminPassword, salt);
-            await convexMutation("setAdminAuth", { salt, hash });
-          } catch {
-            // non fatal
-          }
-          return jsonOk({ success: true });
+        const password = typeof data.password === "string" ? data.password : "";
+        const result = await passwordMatches(password);
+        if (result.ok) {
+          return jsonOk({ success: true }, 200, {
+            "Set-Cookie": sessionSetCookie(req),
+          });
         }
         return jsonOk({
           success: false,
-          error: adminPassword
+          error: result.configured
             ? "Invalid password"
             : "Admin password not configured",
         });
@@ -758,9 +805,10 @@ async function handleAction(req: Request): Promise<Response> {
         try {
           const stored: any = await convexQuery("getAdminAuth");
           if (stored && stored.salt && stored.hash) {
-            currentOk =
-              (await hashPassword(data.currentPassword || "", stored.salt)) ===
-              stored.hash;
+            currentOk = safeEqual(
+              await hashPassword(data.currentPassword || "", stored.salt),
+              stored.hash,
+            );
           } else {
             currentOk =
               !!process.env.ADMIN_PASSWORD &&
@@ -803,7 +851,7 @@ async function handleAction(req: Request): Promise<Response> {
             const expiresAt = Date.now() + 30 * 60 * 1000;
             await convexMutation("createPasswordReset", { tokenHash, expiresAt });
             const baseUrl =
-              process.env.SITE_PUBLIC_URL || "https://jenjohnpetservices.ctonew.app";
+              process.env.SITE_PUBLIC_URL || "https://jenjohnpetservices.com";
             const link = `${baseUrl}/admin?resetToken=${encodeURIComponent(tokenRaw)}`;
             await sendPasswordResetEmail(link);
           }
@@ -914,86 +962,58 @@ async function handleAction(req: Request): Promise<Response> {
 
       // ── Request mutations ───────────────────────────────────────────────
       case "updateRequestStatus": {
+        const id = str(data.id);
+        const status = str(data.status);
+        if (!id || !["approved", "declined", "pending", "cancelled"].includes(status)) {
+          return jsonErr("Invalid request or status", 400);
+        }
         const statusResult: any = await convexMutation("updateRequestStatus", {
-          id: data.id,
-          status: data.status,
-          depositAmount: data.depositAmount,
-          depositLink: data.depositLink,
-          totalPrice: data.totalPrice,
-          isHoliday: data.isHoliday,
-          holidaySurchargeDays: data.holidaySurchargeDays,
-          holidaySurcharge: data.holidaySurcharge,
-          meetGreetFee: data.meetGreetFee,
-          meetGreetDistanceMiles: data.meetGreetDistanceMiles,
-          meetGreetOutsideArea: data.meetGreetOutsideArea,
-          meetGreetManual: data.meetGreetManual,
+          id,
+          status,
+          depositAmount: num(data.depositAmount),
+          depositLink: optStr(data.depositLink),
+          totalPrice: num(data.totalPrice),
+          isHoliday: typeof data.isHoliday === "boolean" ? data.isHoliday : undefined,
+          holidaySurchargeDays: num(data.holidaySurchargeDays),
+          holidaySurcharge: num(data.holidaySurcharge),
+          meetGreetFee: num(data.meetGreetFee),
+          meetGreetDistanceMiles: num(data.meetGreetDistanceMiles),
+          meetGreetOutsideArea:
+            typeof data.meetGreetOutsideArea === "boolean" ? data.meetGreetOutsideArea : undefined,
+          meetGreetManual:
+            typeof data.meetGreetManual === "boolean" ? data.meetGreetManual : undefined,
         });
-        if (
-          data.status === "approved" &&
-          data.clientName &&
-          data.clientEmail &&
-          data.arrivalDate &&
-          data.arrivalTime &&
-          data.departureDate &&
-          data.departureTime &&
-          data.totalPrice !== undefined
-        ) {
-          await sendApprovalEmail({
-            clientName: data.clientName,
-            clientEmail: data.clientEmail,
-            clientPhone: data.clientPhone,
-            arrivalDate: data.arrivalDate,
-            arrivalTime: data.arrivalTime,
-            departureDate: data.departureDate,
-            departureTime: data.departureTime,
-            pets: data.pets ?? {},
-            isHoliday: data.isHoliday ?? false,
-            totalPrice: data.totalPrice,
-            priceBreakdown: data.priceBreakdown,
-            notes: data.notes,
-            petNames: data.petNames,
-            petDetails: data.petDetails,
-          });
-          const value = statusResult?.value;
-          if (value?.profileCreated && value?.returnCode && data.clientEmail) {
+        if (status !== "approved" && status !== "declined") {
+          return jsonOk({ success: true, data: null });
+        }
+        // Read back what was stored (including any price/deposit the owner
+        // edited at approval) and email from that.
+        const request: any = await convexQuery("getRequest", { id });
+        if (!request) return jsonErr("Request not found", 404);
+        const emailData = requestToEmailData(request);
+        if (!emailData.clientEmail) return jsonOk({ success: true, data: null });
+        if (status === "approved") {
+          await sendApprovalEmail(emailData);
+          // The mutation result IS the value object ({ success, profileCreated,
+          // returnCode }); the old code read a nested .value that never existed,
+          // so the return-code email never went out.
+          if (statusResult?.profileCreated && statusResult?.returnCode) {
             const savedPetNames =
-              data.petDetails && data.petDetails.length > 0
-                ? data.petDetails
-                    .map((p: any) => p?.name?.trim())
+              emailData.petDetails && emailData.petDetails.length > 0
+                ? emailData.petDetails
+                    .map((p) => p.name.trim())
                     .filter(Boolean)
                     .join(", ")
-                : data.petNames;
+                : emailData.petNames;
             await sendProfileSavedEmail({
-              clientName: data.clientName,
-              clientEmail: data.clientEmail,
-              returnCode: value.returnCode,
+              clientName: emailData.clientName,
+              clientEmail: emailData.clientEmail,
+              returnCode: statusResult.returnCode,
               petNames: savedPetNames,
             });
           }
-        } else if (
-          data.status === "declined" &&
-          data.clientName &&
-          data.clientEmail &&
-          data.arrivalDate &&
-          data.arrivalTime &&
-          data.departureDate &&
-          data.departureTime &&
-          data.totalPrice !== undefined
-        ) {
-          await sendDeclineEmail({
-            clientName: data.clientName,
-            clientEmail: data.clientEmail,
-            clientPhone: data.clientPhone,
-            arrivalDate: data.arrivalDate,
-            arrivalTime: data.arrivalTime,
-            departureDate: data.departureDate,
-            departureTime: data.departureTime,
-            pets: data.pets ?? {},
-            isHoliday: data.isHoliday ?? false,
-            totalPrice: data.totalPrice,
-            priceBreakdown: data.priceBreakdown,
-            notes: data.notes,
-          });
+        } else {
+          await sendDeclineEmail(emailData);
         }
         return jsonOk({ success: true, data: null });
       }
@@ -1011,137 +1031,175 @@ async function handleAction(req: Request): Promise<Response> {
 
       // ── Booking deposit / balance / cancel / reschedule ─────────────────
       case "updateBookingDeposit": {
+        const id = str(data.id);
+        if (!id) return jsonErr("Booking id is required", 400);
+        const depositPaid = Boolean(data.depositPaid);
         await convexMutation("updateBooking", {
-          id: data.id,
-          depositPaid: data.depositPaid,
-          paymentMethod: data.paymentMethod,
+          id,
+          depositPaid,
+          paymentMethod: optStr(data.paymentMethod),
         });
-        if (data.depositPaid) {
-          await convexMutation("cancelDepositReminder", { bookingId: data.id });
-        }
-        if (
-          data.depositPaid &&
-          data.clientName &&
-          data.clientEmail &&
-          data.arrivalDate &&
-          data.departureDate &&
-          data.totalPrice !== undefined
-        ) {
-          const claim = await convexMutation("markDepositEmailSent", {
-            id: data.id,
+        if (!depositPaid) return jsonOk({ success: true, data: null });
+        await convexMutation("cancelDepositReminder", { bookingId: id });
+        const rec: any = await convexQuery("getBooking", { id });
+        if (!rec?.booking?.clientEmail) return jsonOk({ success: true, data: null });
+        const claim = await convexMutation("markDepositEmailSent", { id });
+        if (claim?.shouldSend) {
+          const total = Number(rec.booking.totalPrice) || 0;
+          const depositAmount = depositFor(rec.request, total);
+          await sendDepositReceivedEmail({
+            clientName: rec.booking.clientName,
+            clientEmail: rec.booking.clientEmail,
+            arrivalDate: rec.booking.arrivalDate,
+            departureDate: rec.booking.departureDate,
+            totalPrice: total,
+            petNames: rec.request?.petNames,
+            depositAmount,
+            remainingBalance: Math.max(0, total - depositAmount),
           });
-          if (claim?.shouldSend) {
-            const depositAmount =
-              data.depositAmount ?? Math.round(data.totalPrice * 0.5);
-            await sendDepositReceivedEmail({
-              clientName: data.clientName,
-              clientEmail: data.clientEmail,
-              arrivalDate: data.arrivalDate,
-              departureDate: data.departureDate,
-              totalPrice: data.totalPrice,
-              petNames: data.petNames,
-              depositAmount,
-              remainingBalance: data.totalPrice - depositAmount,
-            });
-          }
         }
         return jsonOk({ success: true, data: null });
       }
       case "updateBookingBalance": {
+        const id = str(data.id);
+        if (!id) return jsonErr("Booking id is required", 400);
+        const balancePaid = Boolean(data.balancePaid);
         await convexMutation("updateBookingBalance", {
-          id: data.id,
-          balancePaid: data.balancePaid,
-          balancePaymentMethod: data.balancePaymentMethod,
+          id,
+          balancePaid,
+          balancePaymentMethod: optStr(data.balancePaymentMethod),
         });
-        if (
-          data.balancePaid &&
-          data.clientName &&
-          data.clientEmail &&
-          data.arrivalDate &&
-          data.departureDate &&
-          data.totalPrice !== undefined
-        ) {
-          const claim = await convexMutation("markBalanceEmailSent", {
-            id: data.id,
+        if (!balancePaid) return jsonOk({ success: true, data: null });
+        const rec: any = await convexQuery("getBooking", { id });
+        if (!rec?.booking?.clientEmail) return jsonOk({ success: true, data: null });
+        const claim = await convexMutation("markBalanceEmailSent", { id });
+        if (claim?.shouldSend) {
+          const total = Number(rec.booking.totalPrice) || 0;
+          const depositAmount = depositFor(rec.request, total);
+          await sendBalanceReceivedEmail({
+            clientName: rec.booking.clientName,
+            clientEmail: rec.booking.clientEmail,
+            arrivalDate: rec.booking.arrivalDate,
+            departureDate: rec.booking.departureDate,
+            balanceAmount: Math.max(0, total - depositAmount),
+            balancePaymentMethod: rec.booking.balancePaymentMethod,
+            totalPrice: total,
+            petNames: rec.request?.petNames,
           });
-          if (claim?.shouldSend) {
-            const depositAmount =
-              data.depositAmount ?? Math.round(data.totalPrice * 0.5);
-            await sendBalanceReceivedEmail({
-              clientName: data.clientName,
-              clientEmail: data.clientEmail,
-              arrivalDate: data.arrivalDate,
-              departureDate: data.departureDate,
-              balanceAmount: data.totalPrice - depositAmount,
-              balancePaymentMethod: data.balancePaymentMethod,
-              totalPrice: data.totalPrice,
-              petNames: data.petNames,
-            });
-          }
         }
         return jsonOk({ success: true, data: null });
       }
       case "cancelBooking": {
+        const bookingId = str(data.bookingId);
+        if (!bookingId) return jsonErr("Booking id is required", 400);
+        const rec: any = await convexQuery("getBooking", { id: bookingId });
+        if (!rec?.booking) return jsonErr("Booking not found", 404);
+        const { booking, request } = rec;
         await convexMutation("updateRequestStatus", {
-          id: data.requestId,
+          id: booking.requestId,
           status: "cancelled",
         });
-        const refundAmount = computeRefund({
-          arrivalDate: data.arrivalDate,
-          isHoliday: data.isHoliday,
-          depositAmount: data.depositAmount,
-          totalPrice: data.totalPrice,
-        });
+        const total = Number(booking.totalPrice) || 0;
+        // Nothing to refund when no deposit was ever recorded as paid.
+        const refundAmount = booking.depositPaid
+          ? computeRefund({
+              arrivalDate: booking.arrivalDate,
+              isHoliday: Boolean(booking.isHoliday ?? request?.isHoliday),
+              depositAmount: depositFor(request, total),
+              totalPrice: total,
+            })
+          : 0;
         const claim: any = await convexMutation("markCancellationEmailSent", {
-          id: data.bookingId,
+          id: bookingId,
         });
         let emailed = false;
-        if (claim?.shouldSend) {
+        if (claim?.shouldSend && booking.clientEmail) {
           emailed = true;
           await sendCancellationEmail({
-            clientName: data.clientName,
-            clientEmail: data.clientEmail,
-            arrivalDate: data.arrivalDate,
-            departureDate: data.departureDate,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            arrivalDate: booking.arrivalDate,
+            departureDate: booking.departureDate,
             refundAmount,
-            isHoliday: data.isHoliday,
-            paymentMethod: data.paymentMethod,
-            petNames: data.petNames,
+            isHoliday: Boolean(booking.isHoliday ?? request?.isHoliday),
+            paymentMethod: booking.paymentMethod,
+            petNames: request?.petNames,
           });
         }
         return jsonOk({ success: true, data: { refundAmount, emailed } });
       }
       case "rescheduleBooking": {
+        const bookingId = str(data.bookingId);
+        const arrivalDate = str(data.arrivalDate);
+        const arrivalTime = str(data.arrivalTime);
+        const departureDate = str(data.departureDate);
+        const departureTime = str(data.departureTime);
+        if (!bookingId) return jsonErr("Booking id is required", 400);
+        const arr = parseDateStr(arrivalDate);
+        const dep = parseDateStr(departureDate);
+        if (!arr || !dep || timeToMinutes(arrivalTime) === null || timeToMinutes(departureTime) === null) {
+          return jsonOk({ success: false, error: "Enter valid arrival and departure dates and times." });
+        }
+        if (departureDate <= arrivalDate) {
+          return jsonOk({ success: false, error: "Departure date must be after arrival date." });
+        }
+        const rec: any = await convexQuery("getBooking", { id: bookingId });
+        if (!rec?.booking || !rec.request) return jsonErr("Booking not found", 404);
+        const { booking, request } = rec;
+        // Re-price on the server from the stored pets; the browser's number is
+        // only a preview.
+        const pets = petsForPricing(request);
+        const pricing = calculatePrice({
+          arrivalDate: arr,
+          arrivalTime,
+          departureDate: dep,
+          departureTime,
+          adultDogs: pets.adultDogs,
+          puppies: pets.puppies,
+          cats: pets.cats,
+          kittens: pets.kittens,
+          otherSpeciesCount: pets.otherSpecies.reduce(
+            (sum: number, o: any) => sum + (Number(o?.quantity) || 0),
+            0,
+          ),
+        });
         await convexMutation("rescheduleBooking", {
-          requestId: data.requestId,
-          bookingId: data.bookingId,
-          arrivalDate: data.arrivalDate,
-          arrivalTime: data.arrivalTime,
-          departureDate: data.departureDate,
-          departureTime: data.departureTime,
-          totalPrice: data.totalPrice,
-          priceBreakdown: data.priceBreakdown,
-          isHoliday: data.isHoliday,
-          holidaySurchargeDays: data.holidaySurchargeDays,
-          holidaySurcharge: data.holidaySurcharge,
+          requestId: booking.requestId,
+          bookingId,
+          arrivalDate,
+          arrivalTime,
+          departureDate,
+          departureTime,
+          totalPrice: pricing.total,
+          priceBreakdown: pricing.breakdown,
+          isHoliday: pricing.isHoliday,
+          holidaySurchargeDays: pricing.holidayDays,
+          holidaySurcharge: pricing.holidaySurcharge,
         });
+        const paidSoFar = booking.depositPaid
+          ? depositFor(request, Number(booking.totalPrice) || 0)
+          : 0;
+        const balanceDue = Math.max(0, Math.round(pricing.total - paidSoFar));
         const claim: any = await convexMutation("markRescheduleEmailSent", {
-          id: data.bookingId,
+          id: bookingId,
         });
-        if (claim?.shouldSend) {
+        if (claim?.shouldSend && booking.clientEmail) {
           await sendRescheduleEmail({
-            clientName: data.clientName,
-            clientEmail: data.clientEmail,
-            arrivalDate: data.arrivalDate,
-            arrivalTime: data.arrivalTime,
-            departureDate: data.departureDate,
-            departureTime: data.departureTime,
-            totalPrice: data.totalPrice,
-            balanceDue: data.balanceDue,
-            petNames: data.petNames,
+            clientName: booking.clientName,
+            clientEmail: booking.clientEmail,
+            arrivalDate,
+            arrivalTime,
+            departureDate,
+            departureTime,
+            totalPrice: pricing.total,
+            balanceDue,
+            petNames: request.petNames,
           });
         }
-        return jsonOk({ success: true, data: null });
+        return jsonOk({
+          success: true,
+          data: { totalPrice: pricing.total, balanceDue },
+        });
       }
       case "sendTestEmail": {
         await sendTestEmail({

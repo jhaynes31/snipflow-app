@@ -69,8 +69,8 @@ console.log(
 );
 console.log(
   "#faq deep link present:",
-  body.includes("https://jenjohnpetservices.ctonew.app/#faq") &&
-    html.includes("https://jenjohnpetservices.ctonew.app/#faq"),
+  body.includes("https://jenjohnpetservices.com/#faq") &&
+    html.includes("https://jenjohnpetservices.com/#faq"),
 );
 
 await sendEmail({

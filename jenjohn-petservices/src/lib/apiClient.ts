@@ -157,6 +157,18 @@ export async function verifyPassword(payload: {
 }): Promise<{ success: true } | { success: false; error: string }> {
   return postJson("/api/action", { action: "verifyPassword", data: payload.data });
 }
+/**
+ * Ask the server whether this browser holds a valid admin session. The session
+ * cookie is HttpOnly, so this is the only way the client can know.
+ */
+export async function checkSession(): Promise<{ authenticated: boolean }> {
+  const res = await postJson("/api/action", { action: "checkSession" });
+  return { authenticated: Boolean(res?.authenticated) };
+}
+/** End the admin session server-side (clears the HttpOnly cookie). */
+export async function logout(): Promise<void> {
+  await postJson("/api/action", { action: "logout" });
+}
 export async function changePassword(payload: {
   data: { currentPassword: string; newPassword: string };
 }): Promise<{ success: boolean; error?: string }> {

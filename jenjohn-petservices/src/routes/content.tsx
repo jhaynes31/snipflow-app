@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { verifyPassword, generateContent } from "~/lib/apiClient";
-
-const ADMIN_COOKIE_NAME = "admin_auth";
+import { verifyPassword, generateContent, checkSession, logout } from "~/lib/apiClient";
 // ── Content topics (owner picker) ─────────────────────────────────────────
 
 const TOPICS = [
@@ -80,14 +78,15 @@ function todayLabel(): string {
 
 function ContentGenerator() {
   const [authenticated, setAuthenticated] = useState(false);
-  // Restore the session from the admin_auth cookie so login sticks across reloads.
+  // Ask the server whether this browser holds a valid admin session.
   useEffect(() => {
-    if (
-      typeof document !== "undefined" &&
-      document.cookie.indexOf(ADMIN_COOKIE_NAME + "=true") !== -1
-    ) {
-      setAuthenticated(true);
-    }
+    checkSession()
+      .then((r) => {
+        if (r.authenticated) setAuthenticated(true);
+      })
+      .catch(() => {
+        /* not signed in */
+      });
   }, []);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -115,7 +114,6 @@ function ContentGenerator() {
       const res = await verifyPassword({ data: { password } });
       if (res.success) {
         setAuthenticated(true);
-        document.cookie = `${ADMIN_COOKIE_NAME}=true; path=/; max-age=86400; SameSite=Strict; Secure`;
       } else {
         setAuthError(res.error || "Invalid password");
       }
@@ -127,7 +125,9 @@ function ContentGenerator() {
   };
 
   const handleSignOut = () => {
-    document.cookie = `${ADMIN_COOKIE_NAME}=; path=/; max-age=0; SameSite=Strict; Secure`;
+    logout().catch(() => {
+      /* cookie may already be gone */
+    });
     setAuthenticated(false);
     setPassword("");
     setResult("");

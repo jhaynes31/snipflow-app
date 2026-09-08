@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -7,7 +7,7 @@ import { v } from "convex/values";
  * from `convex/mutations.ts` resolve to `mutations:<functionName>` instead.
  */
 
-export const getReviews = query({
+export const getReviews = internalQuery({
   args: {},
   handler: async (ctx) => {
     const reviews = await ctx.db.query("reviews").collect();
@@ -26,7 +26,7 @@ export const getReviews = query({
 // available unless explicitly marked unavailable", so the public calendar
 // treats every date without a record (and every record not marked blocked)
 // as available.
-export const getAvailability = query({
+export const getAvailability = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db
@@ -38,7 +38,7 @@ export const getAvailability = query({
 
 // Admin view: ALL availability records (open and explicitly closed) so the
 // admin calendar can render the full state of every date that has been set.
-export const getAllAvailability = query({
+export const getAllAvailability = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("availability").collect();
@@ -46,21 +46,21 @@ export const getAllAvailability = query({
 });
 
 // Returns the single adminAuth row ({ salt, hash }) or null when not set yet.
-export const getAdminAuth = query({
+export const getAdminAuth = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("adminAuth").first();
   },
 });
 
-export const getRequests = query({
+export const getRequests = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("requests").order("desc").collect();
   },
 });
 
-export const getBookings = query({
+export const getBookings = internalQuery({
   args: {},
   handler: async (ctx) => {
     const bookings = await ctx.db.query("bookings").order("desc").collect();
@@ -105,7 +105,7 @@ export const getBookings = query({
 // Return the saved owner override for a single email template slug, or null
 // when the owner has not customized it. Used at send time by the email builders
 // to decide between the owner's text and the built in default.
-export const getEmailTemplate = query({
+export const getEmailTemplate = internalQuery({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -116,7 +116,7 @@ export const getEmailTemplate = query({
 });
 
 // All email template overrides, for the admin panel list.
-export const getEmailTemplates = query({
+export const getEmailTemplates = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("emailTemplates").collect();
@@ -144,7 +144,7 @@ const MG_KEYS = Object.keys(MG_DEFAULT);
 
 // Return the saved Meet & Greet settings merged over their defaults as a plain
 // object the admin UI and server fns can consume directly.
-export const getSiteSettings = query({
+export const getSiteSettings = internalQuery({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("siteSettings").collect();
@@ -157,7 +157,7 @@ export const getSiteSettings = query({
 });
 
 // Raw rows (all keys) for the admin settings editor to know which are set.
-export const getAllSiteSettings = query({
+export const getAllSiteSettings = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("siteSettings").collect();
@@ -170,7 +170,7 @@ export const getAllSiteSettings = query({
  * return code AND the email belong to the same record. This prevents a code
  * guess from leaking anyone's pet profile. Returns null when there is no match.
  */
-export const getPetProfile = query({
+export const getPetProfile = internalQuery({
   args: {
     returnCode: v.string(),
     clientEmail: v.string(),
@@ -199,5 +199,28 @@ export const getPetProfile = query({
       sleepsInBed: record.sleepsInBed,
       quirks: record.quirks,
     };
+  },
+});
+
+/** One request row by id (server-side lookups for emails and admin actions). */
+export const getRequest = internalQuery({
+  args: { id: v.id("requests") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+/**
+ * One booking row by id, joined with its originating request. The server
+ * builds every client email for deposit, balance, cancel and reschedule from
+ * this record rather than from whatever the admin browser posted.
+ */
+export const getBooking = internalQuery({
+  args: { id: v.id("bookings") },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.id);
+    if (!booking) return null;
+    const request = await ctx.db.get(booking.requestId);
+    return { booking, request };
   },
 });

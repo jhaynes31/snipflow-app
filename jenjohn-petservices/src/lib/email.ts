@@ -27,15 +27,17 @@ import {
   SAMPLE_DEPOSIT_REMINDER,
   SAMPLE_RESEND_CODE,
 } from "./emailSampleData";
+import { convexQuery } from "./convexServer";
 
 const ADMIN_EMAIL = "jen.johnpetservices@proton.me";
-const SITE_BASE_URL = "https://jenjohnpetservices.ctonew.app";
+const SITE_BASE_URL =
+  process.env.SITE_PUBLIC_URL || "https://jenjohnpetservices.com";
 const FROM_EMAIL =
   process.env.RESEND_EMAIL_FROM || "bookings@jenjohnpetservices.com";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 
 const ADMIN_DASHBOARD_URL =
-  process.env.ADMIN_DASHBOARD_URL || "https://c716365b3c7cbb9dbf088b6ce7dfc5cc.ctonew.app/admin";
+  process.env.ADMIN_DASHBOARD_URL || `${SITE_BASE_URL}/admin`;
 
 const GOOGLE_REVIEW_URL =
   process.env.GOOGLE_REVIEW_URL ||
@@ -138,6 +140,12 @@ export interface NewRequestData {
   pets: unknown;
   isHoliday: boolean;
   totalPrice: number;
+  /**
+   * Deposit recorded on the request at approval (the owner may edit it). When
+   * absent the default half-of-total rule applies. Always pass the stored
+   * value so the client is told the same number the booking records.
+   */
+  depositAmount?: number;
   priceBreakdown?: unknown;
   notes?: string;
   petAnxieties?: string;
@@ -288,17 +296,8 @@ function paymentTextLines(): string {
 async function fetchEmailTemplateOverride(
   slug: string,
 ): Promise<{ body?: string; subject?: string } | null> {
-  const url = process.env.CONVEX_DEPLOYMENT_URL;
-  if (!url) return null;
   try {
-    const res = await fetch(`${url}/api/query`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: "queries:getEmailTemplate", args: { slug } }),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const rec = json.value ?? json;
+    const rec = await convexQuery("getEmailTemplate", { slug });
     if (!rec) return null;
     return {
       body:
@@ -308,7 +307,11 @@ async function fetchEmailTemplateOverride(
           ? rec.subject
           : undefined,
     };
-  } catch {
+  } catch (err) {
+    console.error(
+      "[email] could not load template override:",
+      err instanceof Error ? err.message : String(err),
+    );
     return null;
   }
 }
@@ -644,7 +647,7 @@ export async function sendPasswordResetEmail(
 
 /** Approval email sent to the client (contains deposit + payment instructions). */
 export function buildApprovalClientBody(data: NewRequestData): string {
-  const depositAmount = getDepositAmount(data.totalPrice);
+  const depositAmount = data.depositAmount ?? getDepositAmount(data.totalPrice);
   const petSummary =
     friendlyPetNames(data.petDetails, data.petNames) ??
     summarizePets(data.pets);
@@ -681,7 +684,7 @@ export function buildApprovalClientBody(data: NewRequestData): string {
 
 /** Build the HTML version of the approval email (client-facing). */
 export function buildApprovalClientHtml(data: NewRequestData): string {
-  const depositAmount = getDepositAmount(data.totalPrice);
+  const depositAmount = data.depositAmount ?? getDepositAmount(data.totalPrice);
   const petSummary =
     friendlyPetNames(data.petDetails, data.petNames) ??
     summarizePets(data.pets);
@@ -744,7 +747,7 @@ export function buildApprovalClientHtml(data: NewRequestData): string {
 
 /** Internal notification to Jen & John when a booking is approved. */
 export function buildApprovalAdminBody(data: NewRequestData): string {
-  const depositAmount = getDepositAmount(data.totalPrice);
+  const depositAmount = data.depositAmount ?? getDepositAmount(data.totalPrice);
   return [
     `Howdy Jen & John!`,
     ``,

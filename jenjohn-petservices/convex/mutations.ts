@@ -1,15 +1,15 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {
   departureTimestampEpoch,
-  POST_COMPLETION_SECRET,
-  DEPOSIT_REMINDER_SECRET,
+  postCompletionSecret,
+  depositReminderSecret,
 } from "./scheduling";
 
 /** Public base URL injected into Convex env so the scheduled job can call back. */
 const SITE_PUBLIC_URL =
-  process.env.SITE_PUBLIC_URL || "https://jenjohnpetservices.ctonew.app";
+  process.env.SITE_PUBLIC_URL || "https://jenjohnpetservices.com";
 
 // Human-friendly return-code alphabet: no 0/O or 1/I/L, so a printed code can
 // never be misread. Codes are 6 chars; on the rare collision we retry.
@@ -181,7 +181,7 @@ async function reconcileBookingBlocks(
   }
 }
 
-export const seedReviews = mutation({
+export const seedReviews = internalMutation({
   args: {},
   handler: async (ctx) => {
     const reviews = [
@@ -327,7 +327,7 @@ export const seedReviews = mutation({
   },
 });
 
-export const createReview = mutation({
+export const createReview = internalMutation({
   args: {
     name: v.string(),
     date: v.string(),
@@ -338,7 +338,7 @@ export const createReview = mutation({
   },
 });
 
-export const updateReview = mutation({
+export const updateReview = internalMutation({
   args: {
     id: v.id("reviews"),
     name: v.string(),
@@ -352,7 +352,7 @@ export const updateReview = mutation({
   },
 });
 
-export const deleteReview = mutation({
+export const deleteReview = internalMutation({
   args: {
     id: v.id("reviews"),
   },
@@ -362,7 +362,7 @@ export const deleteReview = mutation({
   },
 });
 
-export const createRequest = mutation({
+export const createRequest = internalMutation({
   args: {
     clientName: v.string(),
     clientEmail: v.string(),
@@ -407,7 +407,7 @@ export const createRequest = mutation({
   },
 });
 
-export const updateReferralRewardStatus = mutation({
+export const updateReferralRewardStatus = internalMutation({
   args: {
     requestId: v.id("requests"),
     status: v.string(),
@@ -426,7 +426,7 @@ export const updateReferralRewardStatus = mutation({
   },
 });
 
-export const updateRequestStatus = mutation({
+export const updateRequestStatus = internalMutation({
   args: {
     id: v.id("requests"),
     status: v.string(),
@@ -499,7 +499,7 @@ export const updateRequestStatus = mutation({
         // moment the owner records the deposit as paid.
         {
           const reminderTs = approvedAt + 24 * 60 * 60 * 1000;
-          const token = DEPOSIT_REMINDER_SECRET;
+          const token = depositReminderSecret();
           const depositAmount =
             (request as any).depositAmount !== undefined &&
             (request as any).depositAmount !== null
@@ -588,7 +588,7 @@ export const updateRequestStatus = mutation({
             request.departureTime,
           );
           if (depTs > Date.now() - 60_000) {
-            const token = POST_COMPLETION_SECRET;
+            const token = postCompletionSecret();
             const jobId = await ctx.scheduler.runAt(
               depTs,
               internal.scheduling.sendPostCompletion,
@@ -660,7 +660,7 @@ export const updateRequestStatus = mutation({
  * return code; later saves keep the existing code and refresh the details.
  * (The approval flow also saves automatically via updateRequestStatus.)
  */
-export const savePetProfile = mutation({
+export const savePetProfile = internalMutation({
   args: {
     clientEmail: v.string(),
     clientName: v.string(),
@@ -718,7 +718,7 @@ export const savePetProfile = mutation({
   },
 });
 
-export const deleteRequest = mutation({
+export const deleteRequest = internalMutation({
   args: {
     id: v.id("requests"),
   },
@@ -755,7 +755,7 @@ export const deleteRequest = mutation({
   },
 });
 
-export const updateBooking = mutation({
+export const updateBooking = internalMutation({
   args: {
     id: v.id("bookings"),
     depositPaid: v.boolean(),
@@ -781,7 +781,7 @@ export const updateBooking = mutation({
  * The caller sends the client email only when shouldSend is true, making
  * duplicate confirmation emails impossible.
  */
-export const markDepositEmailSent = mutation({
+export const markDepositEmailSent = internalMutation({
   args: {
     id: v.id("bookings"),
   },
@@ -803,7 +803,7 @@ export const markDepositEmailSent = mutation({
  * markDepositEmailSent). Only the caller that wins the claim sends the email,
  * so a repeated or concurrent cancel can never double-send.
  */
-export const markCancellationEmailSent = mutation({
+export const markCancellationEmailSent = internalMutation({
   args: {
     id: v.id("bookings"),
   },
@@ -826,7 +826,7 @@ export const markCancellationEmailSent = mutation({
  * deliberate reschedule wins the claim exactly once and sends one email, while
  * a repeated or concurrent claim for the same reschedule can never double-send.
  */
-export const markRescheduleEmailSent = mutation({
+export const markRescheduleEmailSent = internalMutation({
   args: {
     id: v.id("bookings"),
   },
@@ -856,7 +856,7 @@ export const markRescheduleEmailSent = mutation({
  * updateBooking for the deposit). Sets whether the remaining balance (total
  * minus deposit) has been received and, when received, how it was received.
  */
-export const updateBookingBalance = mutation({
+export const updateBookingBalance = internalMutation({
   args: {
     id: v.id("bookings"),
     balancePaid: v.boolean(),
@@ -877,7 +877,7 @@ export const updateBookingBalance = mutation({
  * booking (mirrors markDepositEmailSent). Only the caller that wins the claim
  * sends the email, so a repeated or concurrent save can never double-send.
  */
-export const markBalanceEmailSent = mutation({
+export const markBalanceEmailSent = internalMutation({
   args: {
     id: v.id("bookings"),
   },
@@ -894,7 +894,7 @@ export const markBalanceEmailSent = mutation({
   },
 });
 
-export const rescheduleBooking = mutation({
+export const rescheduleBooking = internalMutation({
   args: {
     requestId: v.id("requests"),
     bookingId: v.id("bookings"),
@@ -941,7 +941,7 @@ export const rescheduleBooking = mutation({
   },
 });
 
-export const setAdminAuth = mutation({
+export const setAdminAuth = internalMutation({
   args: {
     salt: v.string(),
     hash: v.string(),
@@ -963,7 +963,7 @@ export const setAdminAuth = mutation({
   },
 });
 
-export const setAvailability = mutation({
+export const setAvailability = internalMutation({
   args: {
     date: v.string(),
     isOpen: v.boolean(),
@@ -998,7 +998,7 @@ export const setAvailability = mutation({
  * so the engine falls back to its default. Used by the admin Meet & Greet
  * settings editor.
  */
-export const saveSiteSettings = mutation({
+export const saveSiteSettings = internalMutation({
   args: {
     entries: v.array(
       v.object({ key: v.string(), value: v.optional(v.string()) }),
@@ -1028,7 +1028,7 @@ export const saveSiteSettings = mutation({
  * or subject clears that field so the email falls back to its built in default.
  * Passing both empty clears the row entirely (owner reverted to defaults).
  */
-export const saveEmailTemplate = mutation({
+export const saveEmailTemplate = internalMutation({
   args: {
     slug: v.string(),
     body: v.optional(v.string()),
@@ -1073,7 +1073,7 @@ export const saveEmailTemplate = mutation({
  *   (depositReminderSent already true),
  * - a retried or replayed endpoint call can never send twice.
  */
-export const claimDepositReminder = mutation({
+export const claimDepositReminder = internalMutation({
   args: {
     bookingId: v.id("bookings"),
   },
@@ -1103,7 +1103,7 @@ export const claimDepositReminder = mutation({
  * is never nagged. Idempotent: if the reminder already fired (job id cleared)
  * or was never scheduled, this is a no-op.
  */
-export const cancelDepositReminder = mutation({
+export const cancelDepositReminder = internalMutation({
   args: {
     bookingId: v.id("bookings"),
   },
@@ -1140,7 +1140,7 @@ export const cancelDepositReminder = mutation({
  * - No profile and no approved booking -> return { found:false } so the caller
  *   shows a friendly message and sends NO empty code email.
  */
-export const resendReturnCode = mutation({
+export const resendReturnCode = internalMutation({
   args: {
     clientEmail: v.string(),
   },
@@ -1227,7 +1227,7 @@ export const resendReturnCode = mutation({
  * another approved booking still covers. Idempotent: repeated calls are no-ops
  * once the table already reflects the approved set.
  */
-export const syncAvailabilityFromBookings = mutation({
+export const syncAvailabilityFromBookings = internalMutation({
   args: {},
   handler: async (ctx) => {
     const before = await ctx.db.query("availability").collect();
@@ -1250,7 +1250,7 @@ export const syncAvailabilityFromBookings = mutation({
 // Only the sha256 hash of a reset token is ever stored. The raw token lives
 // only in the email link and in memory during request handling, so a database
 // read never reveals a working reset link.
-export const createPasswordReset = mutation({
+export const createPasswordReset = internalMutation({
   args: {
     tokenHash: v.string(),
     expiresAt: v.number(),
@@ -1268,7 +1268,7 @@ export const createPasswordReset = mutation({
 // expiry when the token is valid and unexpired (so the site can event a stale
 // row) and null otherwise. Consumption and invalidation happen in the same
 // mutation, so a token can never be used twice.
-export const consumePasswordReset = mutation({
+export const consumePasswordReset = internalMutation({
   args: {
     tokenHash: v.string(),
   },

@@ -1,27 +1,30 @@
-import { action, mutation } from "./_generated/server";
+import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 /**
- * Shared secret that authorizes the site's /api/post-completion endpoint to
- * send the end-of-stay email. Kept in sync with POST_COMPLETION_SECRET in the
- * site's .env. The Convex deployment key has no env:write permission, so this
- * is embedded server-side instead of reading a Convex environment variable.
- * It is server-only code and never shipped to the client.
+ * Shared secrets that authorize the site's /api/post-completion and
+ * /api/deposit-reminder callbacks. Each MUST be set as a Convex environment
+ * variable (npx convex env set POST_COMPLETION_SECRET ...) and match the same
+ * name in the site's .env. There is deliberately no fallback value: a missing
+ * secret fails the approval loudly instead of scheduling a job that would be
+ * rejected (or, worse, accepted with a value anyone can read in source).
  */
-export const POST_COMPLETION_SECRET =
-  process.env.POST_COMPLETION_SECRET ||
-  "4980baf795325c7080b4e245f8e168392a237434eb7f8b86";
-
-/**
- * Shared secret that authorizes the site's /api/deposit-reminder endpoint to
- * send the one time deposit reminder. Kept in sync with
- * DEPOSIT_REMINDER_SECRET in the site's .env. Separate secret from the
- * post completion token so one leak can't cover both callbacks.
- */
-export const DEPOSIT_REMINDER_SECRET =
-  process.env.DEPOSIT_REMINDER_SECRET ||
-  "d3c91a07b4e258f6c9a10d3b7e4f8c2a6b0d5e1f";
+function requireSecret(name: string): string {
+  const value = (process.env[name] || "").trim();
+  if (!value) {
+    throw new Error(
+      `${name} is not set in the Convex environment. Set it with: npx convex env set ${name} <value>`,
+    );
+  }
+  return value;
+}
+export function postCompletionSecret(): string {
+  return requireSecret("POST_COMPLETION_SECRET");
+}
+export function depositReminderSecret(): string {
+  return requireSecret("DEPOSIT_REMINDER_SECRET");
+}
 
 /**
  * Convert a client-entered departure ("YYYY-MM-DD" + 24h "HH:MM") into an
@@ -65,7 +68,7 @@ function easternUtcOffsetMs(date: Date): number {
  * The site endpoint sends the email and, on success, we record that the
  * end-of-stay email was sent for this request (idempotency + verification).
  */
-export const sendPostCompletion = action({
+export const sendPostCompletion = internalAction({
   args: {
     siteUrl: v.string(),
     token: v.string(),
@@ -109,7 +112,7 @@ export const sendPostCompletion = action({
  * endpoint atomically claims the one time depositReminderSent guard, so the
  * reminder can never double send even if the job or endpoint retries.
  */
-export const sendDepositReminder = action({
+export const sendDepositReminder = internalAction({
   args: {
     siteUrl: v.string(),
     token: v.string(),
@@ -141,7 +144,7 @@ export const sendDepositReminder = action({
 });
 
 /** Internal helper: record that a request's end-of-stay email has been sent. */
-export const markPostCompletionSent = mutation({
+export const markPostCompletionSent = internalMutation({
   args: { requestId: v.id("requests") },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.requestId, { postCompletionSent: true });

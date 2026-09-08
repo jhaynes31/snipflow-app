@@ -12,19 +12,7 @@ import {
   type MeetGreetFeeResult,
 } from "./meetGreet";
 import { resolveDrivingMiles, type ResolveDistanceResult } from "./distance";
-
-async function convexQuery(name: string, args: Record<string, unknown> = {}) {
-  const base = process.env.CONVEX_DEPLOYMENT_URL;
-  if (!base) throw new Error("CONVEX_DEPLOYMENT_URL not set");
-  const res = await fetch(`${base}/api/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path: `queries:${name}`, args }),
-  });
-  if (!res.ok) throw new Error(`Convex query ${name} failed: HTTP ${res.status}`);
-  const json = await res.json();
-  return json.value ?? json;
-}
+import { convexQuery } from "./convexServer";
 
 const rawDefaults: Record<string, string> = {
   baseAddress: DEFAULT_MEET_GREET_SETTINGS.baseAddress,

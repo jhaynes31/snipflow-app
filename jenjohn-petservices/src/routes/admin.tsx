@@ -40,10 +40,9 @@ import {
   changePassword,
   verifyPassword,
 } from "~/lib/apiClient";
-import { requestPasswordReset, resetPassword } from "~/lib/apiClient";
+import { requestPasswordReset, resetPassword, checkSession, logout } from "~/lib/apiClient";
 import { RescheduleControl } from "~/components/BookingRescheduleControl";
 
-const ADMIN_COOKIE_NAME = "admin_auth";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -2591,16 +2590,17 @@ function Admin() {
   const [flowMessage, setFlowMessage] = useState("");
   const [flowError, setFlowError] = useState("");
 
-  // Restore the session from the admin_auth cookie on mount so a successful
-  // login sticks across reloads. Also detect a ?resetToken= link and switch
-  // to the set a new password form.
+  // Ask the server whether this browser already holds a valid admin session
+  // (the cookie is HttpOnly, so only the server can tell). Also detect a
+  // ?resetToken= link and switch to the set a new password form.
   useEffect(() => {
-    if (
-      typeof document !== "undefined" &&
-      document.cookie.indexOf(ADMIN_COOKIE_NAME + "=true") !== -1
-    ) {
-      setAuthenticated(true);
-    }
+    checkSession()
+      .then((r) => {
+        if (r.authenticated) setAuthenticated(true);
+      })
+      .catch(() => {
+        /* not signed in */
+      });
     if (typeof window !== "undefined") {
       const tok = new URLSearchParams(window.location.search).get("resetToken");
       if (tok) {
@@ -2624,8 +2624,8 @@ function Admin() {
     try {
       const result = await verifyPassword({ data: { password } });
       if (result.success) {
+        // The server has set the HttpOnly session cookie on this response.
         setAuthenticated(true);
-        document.cookie = `${ADMIN_COOKIE_NAME}=true; path=/; max-age=86400; SameSite=Strict; Secure`;
       } else {
         setError(result.error || "Invalid password");
       }
@@ -2904,7 +2904,9 @@ function Admin() {
             </a>
             <button
               onClick={() => {
-                document.cookie = `${ADMIN_COOKIE_NAME}=; path=/; max-age=0; SameSite=Strict; Secure`;
+                logout().catch(() => {
+                  /* cookie may already be gone */
+                });
                 setAuthenticated(false);
                 setPassword("");
               }}
