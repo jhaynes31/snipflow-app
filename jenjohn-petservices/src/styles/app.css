@@ -1,0 +1,142 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-brand-cream: #f5efe4;
+  --color-brand-brown: #5c4a3a;
+  --color-brand-tan: #b89173;
+  --color-brand-brown-light: #7a6655;
+
+  --font-script: "Caveat", cursive;
+  --font-sans: "Montserrat", sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-brand-cream text-brand-brown antialiased font-sans;
+  }
+}
+
+/* ── react-day-picker brand overrides ── */
+.rdp-brand.rdp-root {
+  --rdp-accent-color: #5c4a3a; /* brand-brown */
+  --rdp-accent-background-color: rgba(184, 145, 115, 0.2); /* brand-tan 20% */
+  --rdp-day-width: 40px;
+  --rdp-day-height: 40px;
+  --rdp-day_button-width: 38px;
+  --rdp-day_button-height: 38px;
+  --rdp-day_button-border-radius: 0.5rem;
+  --rdp-outside-opacity: 0.3;
+  --rdp-disabled-opacity: 0.35;
+  --rdp-today-color: #b89173;
+  --rdp-range_start-date-background-color: #b89173;
+  --rdp-range_end-date-background-color: #b89173;
+  --rdp-range_middle-background-color: rgba(184, 145, 115, 0.2);
+  --rdp-range_middle-color: #5c4a3a;
+  --rdp-range_start-color: #fff;
+  --rdp-range_end-color: #fff;
+  --rdp-nav_button-width: 2rem;
+  --rdp-nav_button-height: 2rem;
+  --rdp-weekday-text-transform: uppercase;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Month caption */
+.rdp-brand .rdp-month_caption {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+  color: #5c4a3a;
+}
+
+/* Weekday headers */
+.rdp-brand .rdp-weekday {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 500;
+  font-size: 0.7rem;
+  color: #b89173;
+}
+
+/* Day buttons */
+.rdp-brand .rdp-day_button {
+  font-family: "Montserrat", sans-serif;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+  font-size: 0.875rem;
+}
+
+/* Today */
+.rdp-brand .rdp-today .rdp-day_button {
+  font-weight: 700;
+}
+
+/* Disabled days */
+.rdp-brand .rdp-disabled .rdp-day_button {
+  color: #c4b6aa;
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* Chevron arrows */
+.rdp-brand .rdp-chevron {
+  fill: #5c4a3a;
+}
+
+/* Nav buttons hover */
+.rdp-brand .rdp-button_next:hover,
+.rdp-brand .rdp-button_previous:hover {
+  background-color: rgba(184, 145, 115, 0.15);
+  border-radius: 0.5rem;
+}
+
+/* ── Admin availability calendar ── */
+/* Dates marked unavailable (blocked) get a red highlight on the day button.
+   All other days are available by default. */
+.rdp-admin .rdp-admin-blocked .rdp-day_button {
+  background-color: #dc2626; /* red-600 */
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+}
+
+.rdp-admin .rdp-admin-blocked .rdp-day_button:hover {
+  background-color: #b91c1c; /* red-700 */
+}
+
+/* ── Public availability calendar: partial days (Feature B) ──────────────── */
+/* A departure day whose departure time is at or before noon is PARTIAL: Jen &
+   John can accept an arrival after the actual departure time. Amber styling
+   keeps it visually distinct from fully blocked (red) and open (white). */
+.rdp-brand .rdp-partial .rdp-day_button {
+  background-color: #fde68a; /* amber-200 */
+  color: #78350f; /* amber-900 */
+  font-weight: 600;
+  border-radius: 0.5rem;
+  position: relative;
+}
+.rdp-brand .rdp-partial .rdp-day_button:hover {
+  background-color: #fcd34d; /* amber-300 */
+}
+.rdp-brand .rdp-partial .rdp-partial-dot {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #f59e0b; /* amber-500 */
+}
+
+/* ── Admin availability calendar: partial days (Feature B) ── */
+/* Partial days (departure at or before noon): amber, distinct from blocked,
+   with the reason shown as a native tooltip on the day button. */
+.rdp-admin .rdp-admin-partial .rdp-day_button {
+  background-color: #fde68a; /* amber-200 */
+  color: #78350f; /* amber-900 */
+  font-weight: 600;
+  border-radius: 0.5rem;
+}
+.rdp-admin .rdp-admin-partial .rdp-day_button:hover {
+  background-color: #fcd34d; /* amber-300 */
+}
