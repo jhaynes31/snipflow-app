@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 interface LeadModalProps {
   isOpen: boolean;
@@ -6,11 +6,40 @@ interface LeadModalProps {
   onClose: () => void;
 }
 
+/**
+ * The lead capture form shown at the end of both quizzes. Rendered as a real
+ * dialog: labelled fields, focus moves into it when it opens, Escape closes
+ * it, and the page behind it stops scrolling while it is up.
+ */
 export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const nameRef = useRef<HTMLInputElement>(null);
+  const uid = useId();
+  const ids = {
+    title: `${uid}-title`,
+    name: `${uid}-name`,
+    email: `${uid}-email`,
+    phone: `${uid}-phone`,
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusTimer = setTimeout(() => nameRef.current?.focus(), 50);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -32,6 +61,10 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
     }
   };
 
+  // text-base on the inputs keeps iOS Safari from zooming the page on focus.
+  const inputClass =
+    "w-full px-3 py-2.5 rounded-lg bg-[#204060]/20 border border-[#406080]/50 text-[#e0e0e0] placeholder:text-[#406080] focus:outline-none focus:border-[#c08020] focus:ring-1 focus:ring-[#c08020]/30 transition-all text-base sm:text-sm";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -39,6 +72,9 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={ids.title}
         className="w-full max-w-sm rounded-xl border-2 border-[#406080]/50 shadow-2xl overflow-hidden"
         style={{
           background: "linear-gradient(180deg, #0d1520 0%, #111a28 100%)",
@@ -50,58 +86,81 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
           className="px-5 py-4 text-center border-b border-[#406080]/40"
           style={{ background: "linear-gradient(180deg, #162030 0%, #0d1520 100%)" }}
         >
-          <h3 className="text-lg font-fantasy text-[#c08020]">Summon Thy DM</h3>
+          <h3 id={ids.title} className="text-lg font-fantasy text-[#c08020]">
+            Summon Thy DM
+          </h3>
           <p className="text-xs text-[#a0a0a0] mt-1">
             Enter thy details to book a council with John
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4" noValidate>
           <div>
-            <label className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
+            <label htmlFor={ids.name} className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
               Name *
             </label>
             <input
+              id={ids.name}
+              ref={nameRef}
               type="text"
+              autoComplete="name"
+              maxLength={120}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Thy name, adventurer"
-              className="w-full px-3 py-2.5 rounded-lg bg-[#204060]/20 border border-[#406080]/50 text-[#e0e0e0] placeholder:text-[#406080] focus:outline-none focus:border-[#c08020] focus:ring-1 focus:ring-[#c08020]/30 transition-all text-sm"
+              aria-invalid={Boolean(errors.name)}
+              className={inputClass}
             />
             {errors.name && (
-              <p className="text-red-400 text-xs mt-1 font-fantasy">{errors.name}</p>
+              <p role="alert" className="text-red-400 text-xs mt-1 font-fantasy">
+                {errors.name}
+              </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
+            <label htmlFor={ids.email} className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
               Email *
             </label>
             <input
+              id={ids.email}
               type="email"
+              autoComplete="email"
+              inputMode="email"
+              maxLength={200}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="thy@email.com"
-              className="w-full px-3 py-2.5 rounded-lg bg-[#204060]/20 border border-[#406080]/50 text-[#e0e0e0] placeholder:text-[#406080] focus:outline-none focus:border-[#c08020] focus:ring-1 focus:ring-[#c08020]/30 transition-all text-sm"
+              aria-invalid={Boolean(errors.email)}
+              className={inputClass}
             />
             {errors.email && (
-              <p className="text-red-400 text-xs mt-1 font-fantasy">{errors.email}</p>
+              <p role="alert" className="text-red-400 text-xs mt-1 font-fantasy">
+                {errors.email}
+              </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
+            <label htmlFor={ids.phone} className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
               Phone *
             </label>
             <input
+              id={ids.phone}
               type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              maxLength={40}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="(555) 123 4567"
-              className="w-full px-3 py-2.5 rounded-lg bg-[#204060]/20 border border-[#406080]/50 text-[#e0e0e0] placeholder:text-[#406080] focus:outline-none focus:border-[#c08020] focus:ring-1 focus:ring-[#c08020]/30 transition-all text-sm"
+              aria-invalid={Boolean(errors.phone)}
+              className={inputClass}
             />
             {errors.phone && (
-              <p className="text-red-400 text-xs mt-1 font-fantasy">{errors.phone}</p>
+              <p role="alert" className="text-red-400 text-xs mt-1 font-fantasy">
+                {errors.phone}
+              </p>
             )}
           </div>
 

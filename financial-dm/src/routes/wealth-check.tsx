@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import D20Dice from "~/components/D20Dice";
 import LeadModal from "~/components/LeadModal";
-import WealthReport, { WEALTH_QUESTIONS } from "~/components/WealthReport";
+import WealthReport, { WEALTH_QUESTIONS, computeScore, tierForScore } from "~/components/WealthReport";
 import { saveLead } from "~/server/leads";
 
 type Phase = "welcome" | "questions" | "result";
@@ -97,7 +97,7 @@ function WealthCheckPage() {
     };
 
     try {
-      await saveLead({
+      const saved = await saveLead({
         data: {
           name,
           email,
@@ -109,10 +109,15 @@ function WealthCheckPage() {
           timeline: "",
           ...finalUtm,
           quiz_type: "financial-health",
+          quiz_result: tierForScore(computeScore(scores)).name,
+          quiz_score: computeScore(scores),
         },
       });
-    } catch {
-      // Still redirect to Calendly even if save fails
+      if (!saved.ok) console.error("[lead] save failed:", saved.error);
+    } catch (e) {
+      // Still send the visitor on to Calendly; the booking matters more than
+      // the record. The failure is logged so it is not invisible.
+      console.error("[lead] save threw:", e);
     }
 
     await new Promise((r) => setTimeout(r, 1500));
@@ -230,12 +235,15 @@ function WealthCheckPage() {
               “{q.dm}”
             </p>
 
-            <div className="mt-5 flex flex-col gap-2.5">
+            <div className="mt-5 flex flex-col gap-2.5" role="radiogroup" aria-label={q.question}>
               {q.options.map((opt) => {
                 const isSelected = selectedPoints === opt.points;
                 return (
                   <button
                     key={opt.text}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
                     onClick={() => handleSelect(q.key, opt.points)}
                     className={`w-full px-4 py-3 rounded-lg border-2 text-left font-medium transition-all duration-200 ${
                       isSelected

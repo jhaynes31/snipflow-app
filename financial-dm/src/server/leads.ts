@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
+import { allowRequest, clientAddress } from "~/server/rateLimit.server";
 
 export interface LeadData {
   name: string;
@@ -21,11 +22,17 @@ export interface LeadData {
   utm_campaign: string;
   /** Defaults to "insurance" when the quiz does not send one. */
   quiz_type?: string;
+  /** Short outcome shown on the dashboard: dragon tier or character class. */
+  quiz_result?: string;
+  /** Numeric score where the quiz has one (financial health: 0 to 100). */
+  quiz_score?: number | null;
 }
 
 export interface Lead extends LeadData {
   id: number;
   quiz_type: string;
+  quiz_result: string;
+  quiz_score: number | null;
   status: string;
   created_at: string;
 }
@@ -43,10 +50,53 @@ export const initLeadsTable = createServerFn().middleware([requireAdmin]).handle
   return { ok: true };
 });
 
-/** Idempotent schema setup: create the table if missing and add quiz_type
- *  to tables created before that column existed. Cheap no-op after the first
- *  run, safe to call before every insert. */
-async function ensureLeadsTable() {
+const MAX_LEAD_SUBMISSIONS = 8;
+const LEAD_WINDOW_MS = 10 * 60 * 1000;
+
+const text = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
+
+/** Coerce and clamp everything the public quiz form sends. */
+function cleanLeadInput(d: Partial<LeadData> | undefined): LeadData {
+  const score = Number(d?.quiz_score);
+  return {
+    name: text(d?.name, 120),
+    email: text(d?.email, 200),
+    phone: text(d?.phone, 40),
+    age_range: text(d?.age_range, 40),
+    dependents: text(d?.dependents, 40),
+    has_insurance: text(d?.has_insurance, 40),
+    biggest_concern: text(d?.biggest_concern, 80),
+    timeline: text(d?.timeline, 80),
+    coverage_amount: text(d?.coverage_amount, 80),
+    health: text(d?.health, 40),
+    tobacco: text(d?.tobacco, 40),
+    monthly_budget: text(d?.monthly_budget, 80),
+    household_income: text(d?.household_income, 80),
+    utm_source: text(d?.utm_source, 120),
+    utm_medium: text(d?.utm_medium, 120),
+    utm_campaign: text(d?.utm_campaign, 120),
+    quiz_type: text(d?.quiz_type, 40) || "insurance",
+    quiz_result: text(d?.quiz_result, 120),
+    quiz_score: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null,
+  };
+}
+
+let leadsTableReady: Promise<void> | null = null;
+
+/** Idempotent schema setup: create the table if missing and add columns
+ *  introduced later. Runs once per server instance (memoized) so a lead
+ *  insert is a single query, not eight. */
+function ensureLeadsTable(): Promise<void> {
+  if (!leadsTableReady) {
+    leadsTableReady = migrateLeadsTable().catch((e) => {
+      leadsTableReady = null;
+      throw e;
+    });
+  }
+  return leadsTableReady;
+}
+
+async function migrateLeadsTable() {
   await sql()`
     CREATE TABLE IF NOT EXISTS leads (
       id SERIAL PRIMARY KEY,
@@ -73,19 +123,34 @@ async function ensureLeadsTable() {
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS tobacco TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS monthly_budget TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS household_income TEXT`;
+  await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_result TEXT`;
+  await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_score INTEGER`;
 }
 
-export const saveLead = createServerFn()
-  .validator((d: LeadData) => d)
+export const saveLead = createServerFn({ method: "POST" })
+  .validator((d: LeadData) => cleanLeadInput(d))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
+    if (!data.name || !data.email || !data.phone) {
+      return { ok: false, error: "Name, email, and phone are required." };
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      return { ok: false, error: "That email address does not look valid." };
+    }
+    if (!allowRequest(`lead:${clientAddress()}`, MAX_LEAD_SUBMISSIONS, LEAD_WINDOW_MS)) {
+      console.warn("[leads] throttled submission from", clientAddress());
+      return { ok: false, error: "Too many submissions. Please try again in a few minutes." };
+    }
     try {
       await ensureLeadsTable();
       await sql()`
-        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type)
-        VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"})
+        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score)
+        VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"}, ${data.quiz_result || ""}, ${
+          typeof data.quiz_score === "number" && Number.isFinite(data.quiz_score) ? Math.round(data.quiz_score) : null
+        })
       `;
       return { ok: true };
     } catch (e) {
+      console.error("[leads] insert failed:", e);
       return { ok: false, error: String(e) };
     }
   });
@@ -110,6 +175,8 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
     utm_medium: String(r.utm_medium ?? ""),
     utm_campaign: String(r.utm_campaign ?? ""),
     quiz_type: String(r.quiz_type ?? "insurance"),
+    quiz_result: String(r.quiz_result ?? ""),
+    quiz_score: r.quiz_score === null || r.quiz_score === undefined ? null : Number(r.quiz_score),
     status: String(r.status ?? "New"),
     id: Number(r.id),
     created_at: String(r.created_at),

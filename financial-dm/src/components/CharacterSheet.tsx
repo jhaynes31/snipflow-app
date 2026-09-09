@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useCallback } from "react";
 
 interface Answers {
   age_range: string;
@@ -229,33 +229,51 @@ interface CharacterSheetProps {
 export default function CharacterSheet({ answers, onCTA }: CharacterSheetProps) {
   const char = deriveCharacter(answers);
   const guidance = deriveGuidance(answers);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   const handleShare = useCallback(async () => {
     const svgStr = generateShareSVG(char, answers);
     const blob = new Blob([svgStr], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
 
-    const img = new Image();
-    img.src = url;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 600;
-      canvas.height = 540;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-
-      canvas.toBlob((pngBlob) => {
-        if (!pngBlob) return;
-        const downloadUrl = URL.createObjectURL(pngBlob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = "the-financial-dm-character-sheet.png";
-        a.click();
-        URL.revokeObjectURL(downloadUrl);
-      }, "image/png");
+    const triggerDownload = (href: string, filename: string) => {
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Revoke on the next tick so the download has started reading the blob.
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
     };
+
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 600;
+        canvas.height = 540;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no canvas context");
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((pngBlob) => {
+          URL.revokeObjectURL(url);
+          if (!pngBlob) {
+            // Some browsers refuse to rasterize an SVG image; hand over the SVG itself.
+            triggerDownload(URL.createObjectURL(blob), "the-financial-dm-character-sheet.svg");
+            return;
+          }
+          triggerDownload(URL.createObjectURL(pngBlob), "the-financial-dm-character-sheet.png");
+        }, "image/png");
+      } catch {
+        URL.revokeObjectURL(url);
+        triggerDownload(URL.createObjectURL(blob), "the-financial-dm-character-sheet.svg");
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      triggerDownload(URL.createObjectURL(blob), "the-financial-dm-character-sheet.svg");
+    };
+    img.src = url;
   }, [char, answers]);
 
   return (
@@ -266,7 +284,6 @@ export default function CharacterSheet({ answers, onCTA }: CharacterSheetProps) 
 
       {/* Character Sheet Card */}
       <div
-        ref={sheetRef}
         className="w-full rounded-xl overflow-hidden border-2 border-amber-700/50 shadow-2xl shadow-amber-900/20"
         style={{
           background: "linear-gradient(135deg, #f5e6c8 0%, #e8d5a3 30%, #f0ddb8 60%, #dcc894 100%)",

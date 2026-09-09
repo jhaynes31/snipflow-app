@@ -37,15 +37,6 @@ function Home() {
         💰 Roll for Wealth 💰
       </Link>
 
-      <footer className="mt-auto text-sm text-[#606080] font-fantasy">
-        Built with{" "}
-        <a
-          href="https://cto.new"
-          className="underline hover:text-[#a0a0a0] transition-colors"
-        >
-          cto.new
-        </a>
-      </footer>
     </main>
   );
 }

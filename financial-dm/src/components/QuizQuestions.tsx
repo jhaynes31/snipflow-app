@@ -109,6 +109,7 @@ export default function QuizQuestions({
   onNext,
 }: QuizQuestionsProps) {
   const q = QUESTIONS[questionIndex];
+  if (!q) return null;
   const selected = answers[q.key];
 
   const handleSelect = (opt: string) => {
@@ -166,12 +167,15 @@ export default function QuizQuestions({
           “{q.dm}”
         </p>
 
-        <div className="mt-5 flex flex-col gap-2.5">
+        <div className="mt-5 flex flex-col gap-2.5" role="radiogroup" aria-label={q.question}>
           {q.options.map((opt) => {
             const isSelected = selected === opt;
             return (
               <button
                 key={opt}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
                 onClick={() => handleSelect(opt)}
                 className={`w-full px-4 py-3 rounded-lg border-2 text-left font-medium transition-all duration-200 ${
                   isSelected

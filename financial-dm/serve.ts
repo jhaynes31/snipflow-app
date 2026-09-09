@@ -42,8 +42,21 @@ for (let attempt = 1; ; attempt++) {
       async fetch(req) {
         const { pathname } = new URL(req.url);
         if (pathname !== "/") {
-          const file = Bun.file(CLIENT_DIR + pathname);
-          if (await file.exists()) return new Response(file);
+          let decoded = pathname;
+          try {
+            decoded = decodeURIComponent(pathname);
+          } catch {
+            /* keep the raw path */
+          }
+          const file = Bun.file(CLIENT_DIR + decoded);
+          if (await file.exists()) {
+            // Vite fingerprints everything under /assets, so those can be
+            // cached forever; other static files (logo, themes) for a day.
+            const cache = decoded.startsWith("/assets/")
+              ? "public, max-age=31536000, immutable"
+              : "public, max-age=86400";
+            return new Response(file, { headers: { "cache-control": cache } });
+          }
         }
         return (
           handler as { fetch: (r: Request) => Response | Promise<Response> }

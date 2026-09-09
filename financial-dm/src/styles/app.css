@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
-/* Google Fonts: MedievalSharp for headings, Macondo for body accents */
-@import url('https://fonts.googleapis.com/css2?family=Macondo&family=MedievalSharp&display=swap');
+/* Google Fonts (MedievalSharp for headings, Macondo for body accents) are
+   loaded with <link> tags in src/routes/__root.tsx. A CSS @import placed
+   after Tailwind's rules is invalid and was being dropped from the
+   production stylesheet, which silently lost the brand font. */
 
 @layer base {
   html,

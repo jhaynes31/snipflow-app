@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, type Lead } from "~/server/leads";
 
@@ -18,6 +18,7 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState("");
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -40,15 +41,18 @@ function DashboardPage() {
 
   const handleStatusChange = async (id: number, status: string) => {
     setUpdatingId(id);
+    setActionError("");
     try {
       const result = await updateLeadStatus({ data: { id, status } });
       if (result.ok) {
         setLeads((prev) =>
           prev.map((l) => (l.id === id ? { ...l, status } : l)),
         );
+      } else {
+        setActionError(result.error || "Could not update that lead's status.");
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      setActionError(`Could not update that lead's status: ${String(e)}`);
     } finally {
       setUpdatingId(null);
     }
@@ -57,13 +61,16 @@ function DashboardPage() {
   const handleDelete = async (id: number) => {
     if (!confirm("Banish this adventurer from the records?")) return;
     setUpdatingId(id);
+    setActionError("");
     try {
       const result = await deleteLead({ data: { id } });
       if (result.ok) {
         setLeads((prev) => prev.filter((l) => l.id !== id));
+      } else {
+        setActionError(result.error || "Could not delete that lead.");
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      setActionError(`Could not delete that lead: ${String(e)}`);
     } finally {
       setUpdatingId(null);
     }
@@ -82,6 +89,13 @@ function DashboardPage() {
     } catch {
       return dateStr;
     }
+  };
+
+  const resultDisplay = (lead: Lead) => {
+    if (!lead.quiz_result) return "—";
+    return lead.quiz_score === null || lead.quiz_score === undefined
+      ? lead.quiz_result
+      : `${lead.quiz_result} (${lead.quiz_score}/100)`;
   };
 
   const utmDisplay = (lead: Lead) => {
@@ -112,12 +126,13 @@ function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <a
-              href="/generator"
+            <Link
+              to="/generator"
+              search={{ tab: "script", view: "forge" }}
               className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 transition-all font-fantasy text-sm"
             >
               🧙 Content Forge
-            </a>
+            </Link>
             <button
               onClick={fetchLeads}
               disabled={loading}
@@ -139,9 +154,15 @@ function DashboardPage() {
           </div>
         )}
 
-        {/* Table */}
+        {actionError && (
+          <div className="mb-4 p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">
+            {actionError}
+          </div>
+        )}
+
+        {/* Table (desktop). Phones get the card list below instead. */}
         {!error && (
-          <div className="overflow-x-auto rounded-xl border border-[#406080]/30">
+          <div className="hidden sm:block overflow-x-auto rounded-xl border border-[#406080]/30">
             <table className="w-full text-sm text-left">
               <thead>
                 <tr
@@ -156,6 +177,7 @@ function DashboardPage() {
                   <th className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">Concern</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden xl:table-cell">Timeline</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">Type</th>
+                  <th className="px-4 py-3 whitespace-nowrap hidden md:table-cell">Result</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden md:table-cell">Source</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">Date</th>
                   <th className="px-4 py-3 whitespace-nowrap">Status</th>
@@ -165,7 +187,7 @@ function DashboardPage() {
               <tbody className="divide-y divide-[#406080]/10">
                 {leads.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={12} className="px-4 py-12 text-center text-[#606080] font-fantasy">
+                    <td colSpan={13} className="px-4 py-12 text-center text-[#606080] font-fantasy">
                       No adventurers have completed the quest yet.
                     </td>
                   </tr>
@@ -206,6 +228,9 @@ function DashboardPage() {
                       >
                         {quizTypeLabel(lead.quiz_type)}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#a0a0a0] hidden md:table-cell whitespace-nowrap text-xs">
+                      {resultDisplay(lead)}
                     </td>
                     <td className="px-4 py-3 text-[#808080] hidden md:table-cell whitespace-nowrap text-xs">
                       {utmDisplay(lead)}
@@ -256,6 +281,11 @@ function DashboardPage() {
         )}
 
         {/* Mobile card view (visible only on small screens) */}
+        {!error && !loading && leads.length === 0 && (
+          <p className="sm:hidden text-center text-[#606080] font-fantasy py-8">
+            No adventurers have completed the quest yet.
+          </p>
+        )}
         {leads.length > 0 && (
           <div className="mt-6 sm:hidden space-y-3">
             {leads.map((lead) => (
@@ -296,6 +326,7 @@ function DashboardPage() {
                   <p>{lead.phone}</p>
                   <p>Age: {lead.age_range} · Deps: {lead.dependents} · Concern: {lead.biggest_concern}</p>
                   <p>Timeline: {lead.timeline} · Type: {quizTypeLabel(lead.quiz_type)} · Source: {utmDisplay(lead)}</p>
+                  <p>Result: {resultDisplay(lead)}</p>
                   <p className="text-[#606080]">{formatDate(lead.created_at)}</p>
                 </div>
               </div>

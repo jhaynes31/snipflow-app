@@ -1,42 +1,41 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface D20DiceProps {
   onComplete: () => void;
 }
 
-const FACES = [
-  "⚀", "⚁", "⚂", "⚃", "⚄", "⚅",
-  "⚀", "⚁", "⚂", "⚃", "⚄", "⚅",
-  "⚀", "⚁", "⚂", "⚃", "⚄", "⚅",
-  "⚀", "⚁",
-];
-
 export default function D20Dice({ onComplete }: D20DiceProps) {
   const [rolling, setRolling] = useState(false);
   const [face, setFace] = useState(0);
   const [done, setDone] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  const roll = useCallback(() => {
-    if (rolling || done) return;
-    setRolling(true);
-
-    let count = 0;
-    const maxFrames = 20;
-    const interval = setInterval(() => {
-      setFace(Math.floor(Math.random() * 20));
-      count++;
-      if (count >= maxFrames) {
-        clearInterval(interval);
-        setRolling(false);
-        setDone(true);
-        setTimeout(onComplete, 600);
-      }
-    }, 100);
-  }, [rolling, done, onComplete]);
-
+  // Start the roll shortly after mount. Every timer is cleared on unmount so
+  // leaving the landing screen mid roll never updates an unmounted component.
   useEffect(() => {
-    const t = setTimeout(roll, 400);
-    return () => clearTimeout(t);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let finish: ReturnType<typeof setTimeout> | undefined;
+    const start = setTimeout(() => {
+      setRolling(true);
+      let count = 0;
+      const maxFrames = 20;
+      interval = setInterval(() => {
+        setFace(Math.floor(Math.random() * 20));
+        count++;
+        if (count >= maxFrames) {
+          clearInterval(interval);
+          setRolling(false);
+          setDone(true);
+          finish = setTimeout(() => onCompleteRef.current(), 600);
+        }
+      }, 100);
+    }, 400);
+    return () => {
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+      if (finish) clearTimeout(finish);
+    };
   }, []);
 
   return (

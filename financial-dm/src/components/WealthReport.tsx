@@ -294,7 +294,10 @@ export default function WealthReport({ scores, onCTA }: WealthReportProps) {
         {WEALTH_QUESTIONS.map((q) => {
           const pts = Math.max(0, Math.min(10, Number(scores[q.key]) || 0));
           const tips = TIPS[q.key];
-          const band = pts >= 7 ? "high" : pts >= 4 ? "mid" : "low";
+          // Options score 0, 3 (or 4), 7, or 10. Only a full 10 earns the
+          // "high" praise; 7 and 4 get the "keep going" tip; 0 and 3 get the
+          // "first step" tip.
+          const band = pts >= 10 ? "high" : pts >= 4 ? "mid" : "low";
           const tip = tips[band];
           const barColor =
             band === "high" ? "#c08020" : band === "mid" ? "#8fb0e8" : "#a05030";

@@ -44,7 +44,13 @@ export default async function vercelHandler(
   try {
     const webRes = await fetchHandler.fetch(toWebRequest(req));
     res.statusCode = webRes.status;
-    webRes.headers.forEach((value, key) => res.setHeader(key, value));
+    // Headers.forEach joins repeated Set-Cookie values into one invalid
+    // header; copy cookies separately so several can be set in one response.
+    webRes.headers.forEach((value, key) => {
+      if (key.toLowerCase() !== "set-cookie") res.setHeader(key, value);
+    });
+    const cookies = webRes.headers.getSetCookie();
+    if (cookies.length) res.setHeader("set-cookie", cookies);
     if (webRes.body) {
       const reader = webRes.body.getReader();
       for (;;) {
@@ -57,9 +63,13 @@ export default async function vercelHandler(
   } catch (error) {
     // Log the detail server-side (captured by the host's function logs); never
     // return a stack trace to the public visitor of the site.
-    console.error("[team-site] SSR request failed", error);
-    res.statusCode = 500;
-    res.setHeader("content-type", "text/plain");
-    res.end("Internal Server Error");
+    console.error("[financial-dm] SSR request failed", error);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("content-type", "text/plain");
+      res.end("Internal Server Error");
+    } else {
+      res.end();
+    }
   }
 }

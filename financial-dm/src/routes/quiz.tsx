@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import D20Dice from "~/components/D20Dice";
 import QuizQuestions, { QUESTIONS } from "~/components/QuizQuestions";
-import CharacterSheet from "~/components/CharacterSheet";
+import CharacterSheet, { deriveCharacter } from "~/components/CharacterSheet";
 import LeadModal from "~/components/LeadModal";
 import { saveLead } from "~/server/leads";
 
 type Phase = "landing" | "questions" | "result";
 
-interface QuizAnswers {
+type QuizAnswers = {
   age_range: string;
   dependents: string;
   has_insurance: string;
@@ -19,7 +19,7 @@ interface QuizAnswers {
   tobacco: string;
   monthly_budget: string;
   household_income: string;
-}
+};
 
 const EMPTY_ANSWERS: QuizAnswers = {
   age_range: "",
@@ -131,7 +131,7 @@ function QuizPage() {
 
     // Save lead, then redirect
     try {
-      await saveLead({
+      const saved = await saveLead({
         data: {
           name,
           email,
@@ -147,10 +147,18 @@ function QuizPage() {
           monthly_budget: answers.monthly_budget,
           household_income: answers.household_income,
           ...finalUtm,
+          quiz_type: "insurance",
+          quiz_result: (() => {
+            const c = deriveCharacter(answers);
+            return `${c.className} · ${c.level}`;
+          })(),
         },
       });
-    } catch {
-      // Still redirect to Calendly even if save fails
+      if (!saved.ok) console.error("[lead] save failed:", saved.error);
+    } catch (e) {
+      // Still send the visitor on to Calendly; the booking matters more than
+      // the record. The failure is logged so it is not invisible.
+      console.error("[lead] save threw:", e);
     }
 
     // Brief transition before redirect

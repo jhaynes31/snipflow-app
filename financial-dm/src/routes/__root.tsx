@@ -16,6 +16,12 @@ export const Route = createRootRoute({
       { title: "The Financial DM: Roll for Initiative" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Macondo&family=MedievalSharp&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
     ],
