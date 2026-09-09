@@ -8,6 +8,7 @@ import {
 } from "~/server/memeGenerator";
 import MemePreview from "~/components/MemePreview";
 import type { TextBox } from "~/components/MemePreview";
+import { downloadElementPng } from "~/lib/exportPng";
 
 const CATEGORIES = [
   "Term Life Insurance",
@@ -53,7 +54,7 @@ export default function MemeGenerator() {
   );
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
-  // Refs for meme preview containers (for html2canvas capture)
+  // Refs for meme preview containers (captured by html-to-image for PNG export)
   const memePreviewRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const handlePullFact = useCallback(async () => {
@@ -174,31 +175,7 @@ export default function MemeGenerator() {
     if (!ref) return;
 
     try {
-      // html-to-image uses SVG foreignObject, the browser's own renderer,
-      // so it handles oklch(), object-fit, and layout naturally.
-      const { toPng } = await import("html-to-image");
-
-      const rect = ref.getBoundingClientRect();
-      const dataUrl = await toPng(ref, {
-        width: rect.width * 2,
-        height: rect.height * 2,
-        pixelRatio: 1,
-        cacheBust: true,
-      });
-
-      // Convert data URL to blob for download
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-
-      const filename = slugify(templateName) + "-meme.png";
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = filename;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await downloadElementPng(ref, slugify(templateName) + "-meme.png");
 
       setDownloadedIdx(idx);
       setTimeout(() => setDownloadedIdx(null), 2000);

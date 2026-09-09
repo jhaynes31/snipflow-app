@@ -1,5 +1,10 @@
 import { deckSummaries } from "./slideEditor";
 import type { EditableSlide } from "./slideEditor";
+import {
+  downloadElementPng,
+  elementToPngBlob,
+  triggerBlobDownload,
+} from "./exportPng";
 
 export { slugify, downloadScript } from "./scriptUtils";
 
@@ -37,66 +42,27 @@ export function downloadCarouselText(filename: string, text: string): void {
 }
 
 /**
- * Rasterize a single slide element to a PNG at 2x resolution and
- * trigger a download. Mirrors the meme generator's html-to-image
- * pattern (SVG foreignObject, the browser's own renderer).
+ * Rasterize a single slide element to a print ready PNG and trigger a
+ * download. Uses the shared export helper (see lib/exportPng.ts) so slides,
+ * cards, and memes all frame and scale the same way.
  */
 export async function downloadSlidePng(
   el: HTMLElement,
   titleSlug: string,
   slideLabel: string,
 ): Promise<void> {
-  const { toPng } = await import("html-to-image");
-  const rect = el.getBoundingClientRect();
-  const dataUrl = await toPng(el, {
-    width: rect.width * 2,
-    height: rect.height * 2,
-    pixelRatio: 1,
-    cacheBust: true,
-  });
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  const filename = `${titleSlug}-slide-${slideLabel}.png`;
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = url;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  await downloadElementPng(el, `${titleSlug}-slide-${slideLabel}.png`);
 }
 
-/** Render a single slide element to a PNG Blob at 2x resolution. */
-async function slideToPngBlob(el: HTMLElement): Promise<Blob> {
-  const { toPng } = await import("html-to-image");
-  const rect = el.getBoundingClientRect();
-  const dataUrl = await toPng(el, {
-    width: rect.width * 2,
-    height: rect.height * 2,
-    pixelRatio: 1,
-    cacheBust: true,
-  });
-  const res = await fetch(dataUrl);
-  return res.blob();
-}
-
-/** Trigger a single blob download via a temporary anchor. */
-function triggerBlobDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = url;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+/** Render a single slide element to a PNG Blob at export resolution. */
+function slideToPngBlob(el: HTMLElement): Promise<Blob> {
+  return elementToPngBlob(el);
 }
 
 /**
  * Download every slide as a single ZIP archive named after the carousel
- * slug (e.g. "my-title-slides.zip"). Each slide is rasterized to a 2x PNG
- * Blob, all blobs are packed into one ZIP, and a single archive download is
+ * slug (e.g. "my-title-slides.zip"). Each slide is rasterized to a PNG
+ * Blob at export resolution, all blobs are packed into one ZIP, and a single archive download is
  * triggered. This replaces the old multi-download loop, because browsers
  * reliably block all but the first programmatic download in a tight sequence.
  * A single file can never be lost.

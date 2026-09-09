@@ -1,30 +1,14 @@
 import { slugify } from "./scriptUtils";
 import type { SocialCard } from "~/server/socialCardGenerator";
+import {
+  downloadElementPng,
+  elementToPngBlob,
+  triggerBlobDownload,
+} from "./exportPng";
 
-/** Render a single card element to a PNG Blob at 2x resolution. */
-async function cardToPngBlob(el: HTMLElement): Promise<Blob> {
-  const { toPng } = await import("html-to-image");
-  const rect = el.getBoundingClientRect();
-  const dataUrl = await toPng(el, {
-    width: rect.width * 2,
-    height: rect.height * 2,
-    pixelRatio: 1,
-    cacheBust: true,
-  });
-  const res = await fetch(dataUrl);
-  return res.blob();
-}
-
-/** Trigger a single blob download via a temporary anchor. */
-function triggerBlobDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = url;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+/** Render a single card element to a PNG Blob at export resolution. */
+function cardToPngBlob(el: HTMLElement): Promise<Blob> {
+  return elementToPngBlob(el);
 }
 
 /** Render a single card element to a PNG and download it. */
@@ -33,18 +17,7 @@ export async function downloadCardPng(
   label: string,
   format: string,
 ): Promise<void> {
-  const { toPng } = await import("html-to-image");
-  const rect = el.getBoundingClientRect();
-  const dataUrl = await toPng(el, {
-    width: rect.width * 2,
-    height: rect.height * 2,
-    pixelRatio: 1,
-    cacheBust: true,
-  });
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  const filename = `${slugify(`${format}-${label}`)}.png`;
-  triggerBlobDownload(blob, filename);
+  await downloadElementPng(el, `${slugify(`${format}-${label}`)}.png`);
 }
 
 /**
