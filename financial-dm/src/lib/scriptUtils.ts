@@ -7,6 +7,40 @@ export function slugify(title: string): string {
   return slug || "script";
 }
 
+// ── Hook mechanism helpers ────────────────────────────────────────
+// Canonical values are stored in the DB. Labels are for display only.
+
+export const HOOK_TYPE_VALUES = [
+  "curiosity_gap",
+  "direct_callout",
+  "contrarian",
+  "number_specific",
+  "mix",
+] as const;
+
+export const HOOK_TYPE_LABELS: Record<string, string> = {
+  curiosity_gap: "Curiosity Gap",
+  direct_callout: "Direct Callout",
+  contrarian: "Contrarian",
+  number_specific: "Number Specific",
+  mix: "Mix",
+};
+
+/** Normalize a raw hook type string to a canonical value (or empty). */
+export function normalizeHookType(raw: unknown): string {
+  const v = String(raw ?? "").trim().toLowerCase();
+  return (HOOK_TYPE_VALUES as readonly string[]).includes(v) ? v : "";
+}
+
+/** Compose the full script from a hook and the hookless body. */
+export function composeScript(hook: string, scriptBody: string): string {
+  const h = (hook || "").trim();
+  const b = (scriptBody || "").trim();
+  if (!h) return b;
+  if (!b) return h;
+  return `${h}\n\n${b}`;
+}
+
 export interface ScriptTextParts {
   title: string;
   topic: string;
@@ -14,6 +48,7 @@ export interface ScriptTextParts {
   dndThemed: boolean;
   hookType?: string;
   targetViewer?: string;
+  painPoint?: string;
   hook: string;
   script: string;
   callToAction: string;
@@ -40,6 +75,7 @@ export function buildScriptText({
   dndThemed,
   hookType,
   targetViewer,
+  painPoint,
   hook,
   script,
   callToAction,
@@ -47,8 +83,9 @@ export function buildScriptText({
   hashtags,
 }: ScriptTextParts): string {
   const metaLines = [`Topic: ${topic}`, `Tone: ${tone}`];
+  if (painPoint) metaLines.push(`Pain point: ${painPoint}`);
   if (dndThemed) metaLines.push("D&D theme: Yes");
-  if (hookType) metaLines.push(`Hook type: ${hookType}`);
+  if (hookType) metaLines.push(`Hook type: ${HOOK_TYPE_LABELS[hookType] ?? hookType}`);
   if (targetViewer) metaLines.push(`Target viewer: ${targetViewer}`);
   const parts: string[] = [title, "", metaLines.join("  |  ")];
   pushIf(parts, "Hook", hook);

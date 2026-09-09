@@ -93,9 +93,11 @@ export function buildCarouselText(
   callToAction: string,
   hashtags: string[],
   deck: EditableSlide[],
+  painPoint?: string,
 ): string {
   const slides = deckSummaries(deck);
   const metaLines = [`Topic: ${topic}`, `Tone: ${tone}`];
+  if (painPoint) metaLines.push(`Pain point: ${painPoint}`);
   if (dndThemed) metaLines.push("D&D theme: Yes");
   const parts: string[] = [title, "", metaLines.join("  |  "), ""];
   slides.forEach((s, i) => {

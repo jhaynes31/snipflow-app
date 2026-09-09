@@ -3,10 +3,9 @@ import {
   initScriptsTable,
   getSavedScripts,
   deleteScript,
-  HOOK_TYPE_LABELS,
   type SavedScript,
 } from "~/server/scriptGenerator";
-import { buildScriptText, downloadScript, slugify } from "~/lib/scriptUtils";
+import { HOOK_TYPE_LABELS, buildScriptText, downloadScript, slugify } from "~/lib/scriptUtils";
 
 export default function SavedScripts() {
   const [scripts, setScripts] = useState<SavedScript[]>([]);
@@ -44,6 +43,7 @@ export default function SavedScripts() {
       dndThemed: s.dndThemed,
       hookType: s.hookType,
       targetViewer: s.targetViewer,
+      painPoint: s.painPoint,
       hook: s.hook,
       script: s.script,
       callToAction: s.callToAction,
@@ -64,6 +64,7 @@ export default function SavedScripts() {
       dndThemed: s.dndThemed,
       hookType: s.hookType,
       targetViewer: s.targetViewer,
+      painPoint: s.painPoint,
       hook: s.hook,
       script: s.script,
       callToAction: s.callToAction,
@@ -181,6 +182,11 @@ export default function SavedScripts() {
                       </span>
                       <span className="text-[#606080] text-xs font-fantasy">
                         {s.topic}
+                        {s.painPoint && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded bg-[#406080]/20 text-[#a0a0a0] text-xs">
+                            🎯 {s.painPoint}
+                          </span>
+                        )}
                         {s.hookType && (
                           <span className="ml-2 px-1.5 py-0.5 rounded bg-[#406080]/20 text-[#a0a0a0] text-xs">
                             🪝 {HOOK_TYPE_LABELS[s.hookType] ?? s.hookType}

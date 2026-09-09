@@ -13,14 +13,6 @@ import type { TextBox } from "~/components/MemePreview";
 import { downloadElementPng } from "~/lib/exportPng";
 
 const PLATFORMS = ["", "TikTok", "Instagram", "Facebook", "LinkedIn"];
-const CATEGORIES = [
-  "",
-  "Term Life Insurance",
-  "Investments",
-  "Getting Out of Debt",
-  "Financial Freedom",
-  "Custom",
-];
 
 /** Sanitize a template name into a safe filename slug */
 function slugify(name: string): string {
@@ -75,6 +67,7 @@ export default function SavedConcepts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const categories = Array.from(new Set(concepts.map((c) => c.category).filter(Boolean))).sort();
   const [filterPlatform, setFilterPlatform] = useState("");
   const [filterUsed, setFilterUsed] = useState<"" | "used" | "unused">("");
   const [filterFavorites, setFilterFavorites] = useState(false);
@@ -328,7 +321,7 @@ export default function SavedConcepts() {
           style={{ background: "#111a28" }}
         >
           <option value="">All Categories</option>
-          {CATEGORIES.filter(Boolean).map((cat) => (
+          {categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
             </option>
@@ -453,6 +446,11 @@ export default function SavedConcepts() {
                     </span>
                     <span className="text-[#606080] text-xs font-fantasy">
                       {concept.category}
+                      {concept.pain_point && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-[#406080]/20 text-[#a0a0a0] text-xs">
+                          🎯 {concept.pain_point}
+                        </span>
+                      )}
                       {concept.platform && (
                         <span className="ml-2 px-1.5 py-0.5 rounded bg-[#406080]/20 text-[#a0a0a0] text-xs">
                           {concept.platform}
@@ -491,6 +489,11 @@ export default function SavedConcepts() {
                   <p className="text-[#a0a0a0] text-xs leading-relaxed pt-1 font-fantasy">
                     {concept.caption}
                   </p>
+                  {concept.hashtags && concept.hashtags.length > 0 && (
+                    <p className="text-[#c08020]/80 text-[11px] leading-relaxed font-fantasy break-words">
+                      {concept.hashtags.join(" ")}
+                    </p>
+                  )}
                 </div>
 
                 {/* Source fact */}
@@ -520,7 +523,10 @@ export default function SavedConcepts() {
                   </button>
                   <button
                     onClick={() =>
-                      handleCopyCaption(concept.caption, concept.id)
+                      handleCopyCaption(
+                        [concept.caption, (concept.hashtags || []).join(" ")].filter(Boolean).join("\n\n"),
+                        concept.id,
+                      )
                     }
                     className="flex-1 px-2 py-2 rounded-lg bg-[#204060]/30 border border-[#406080]/30 text-[#e0e0e0] hover:bg-[#204060]/50 text-xs font-fantasy transition-colors"
                   >

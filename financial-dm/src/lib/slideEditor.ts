@@ -526,7 +526,7 @@ function normalizeSlide(s: EditableSlide): EditableSlide | null {
   const kind: SlideKind =
     s.kind === "content" || s.kind === "closing" ? s.kind : "cover";
   const elements = s.elements
-    .map((e) =>
+    .map((e): SlideElement | null =>
       e && typeof e.text === "string"
         ? {
             id: e.id || uid(),
@@ -553,7 +553,7 @@ function normalizeSlide(s: EditableSlide): EditableSlide | null {
           }
         : null,
     )
-    .filter((e): e is SlideElement => Boolean(e));
+    .filter((e): e is SlideElement => e !== null);
   return {
     kind,
     background: normalizeBackground(s.background),

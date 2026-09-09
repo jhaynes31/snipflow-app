@@ -19,11 +19,13 @@ export interface LeadData {
   utm_source: string;
   utm_medium: string;
   utm_campaign: string;
-  quiz_type: string;
+  /** Defaults to "insurance" when the quiz does not send one. */
+  quiz_type?: string;
 }
 
 export interface Lead extends LeadData {
   id: number;
+  quiz_type: string;
   status: string;
   created_at: string;
 }
@@ -73,8 +75,9 @@ async function ensureLeadsTable() {
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS household_income TEXT`;
 }
 
-export const saveLead = createServerFn().handler(
-  async ({ data }: { data: LeadData }): Promise<{ ok: boolean; error?: string }> => {
+export const saveLead = createServerFn()
+  .validator((d: LeadData) => d)
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
     try {
       await ensureLeadsTable();
       await sql()`
@@ -85,8 +88,7 @@ export const saveLead = createServerFn().handler(
     } catch (e) {
       return { ok: false, error: String(e) };
     }
-  },
-);
+  });
 
 export const getLeads = createServerFn().middleware([requireAdmin]).handler(async (): Promise<Lead[]> => {
   const rows = await sql()`SELECT * FROM leads ORDER BY created_at DESC`;
@@ -114,24 +116,26 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
   })) as Lead[];
 });
 
-export const updateLeadStatus = createServerFn().middleware([requireAdmin]).handler(
-  async ({ data }: { data: { id: number; status: string } }): Promise<{ ok: boolean; error?: string }> => {
+export const updateLeadStatus = createServerFn()
+  .middleware([requireAdmin])
+  .validator((d: { id: number; status: string }) => ({ id: Number(d?.id), status: String(d?.status ?? "New") }))
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
     try {
       await sql()`UPDATE leads SET status = ${data.status} WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
       return { ok: false, error: String(e) };
     }
-  },
-);
+  });
 
-export const deleteLead = createServerFn().middleware([requireAdmin]).handler(
-  async ({ data }: { data: { id: number } }): Promise<{ ok: boolean; error?: string }> => {
+export const deleteLead = createServerFn()
+  .middleware([requireAdmin])
+  .validator((d: { id: number }) => ({ id: Number(d?.id) }))
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
     try {
       await sql()`DELETE FROM leads WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
       return { ok: false, error: String(e) };
     }
-  },
-);
+  });

@@ -9,6 +9,7 @@ import {
 } from "~/server/socialCardGenerator";
 import { downloadCardPng, downloadAllCardsZip } from "~/lib/socialCardUtils";
 import SocialCardPreview from "./SocialCardPreview";
+import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 
 export default function SavedSocialCards() {
   const [batches, setBatches] = useState<SavedSocialCardBatch[]>([]);
@@ -108,7 +109,7 @@ export default function SavedSocialCards() {
         const items = batch.cards
           .map((_, i) => {
             const el = cardRefs.current[`${batch.id}-${i}`];
-            return el ? { el, label: String(i + 1) } : null;
+            return el ? { el: el as HTMLElement, label: String(i + 1) } : null;
           })
           .filter((x): x is { el: HTMLElement; label: string } => x !== null);
         await downloadAllCardsZip(batch.format, items);
@@ -201,6 +202,15 @@ export default function SavedSocialCards() {
                 </button>
               </div>
             </div>
+            {isExpanded && (batch.caption || batch.hashtags.length > 0) && (
+              <CaptionHashtagPanel
+                compact
+                captions={batch.caption ? [batch.caption] : []}
+                caption={batch.caption}
+                hashtags={batch.hashtags}
+                onError={setError}
+              />
+            )}
             {isExpanded && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
                 {batch.cards.map((card, idx) => {

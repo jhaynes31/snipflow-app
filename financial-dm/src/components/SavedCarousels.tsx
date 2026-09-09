@@ -255,7 +255,7 @@ export default function SavedCarousels() {
     try {
       const refs = slideRefs.current[c.id] || [];
       const slides = refs
-        .map((ref, i) => (ref ? { el: ref, label: String(i + 1) } : null))
+        .map((ref, i) => (ref ? { el: ref as HTMLElement, label: String(i + 1) } : null))
         .filter((x): x is { el: HTMLElement; label: string } => x !== null);
       await downloadAllSlidesZip(slugify(c.title), slides, (done, total) => {
         setDownloadProgressId({ id: c.id, done, total });
@@ -278,6 +278,7 @@ export default function SavedCarousels() {
       c.callToAction,
       c.hashtags || [],
       deckById[c.id] || c.slides || [],
+      c.painPoint,
     );
     downloadCarouselText(`carousel-${slugify(c.title)}.txt`, text);
   };
@@ -401,6 +402,11 @@ export default function SavedCarousels() {
                       </span>
                       <span className="text-[#606080] text-xs font-fantasy">
                         {c.topic}
+                        {c.painPoint && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded bg-[#406080]/20 text-[#a0a0a0] text-xs">
+                            🎯 {c.painPoint}
+                          </span>
+                        )}
                         {c.tone && (
                           <span className="ml-2 px-1.5 py-0.5 rounded bg-[#406080]/20 text-[#a0a0a0] text-xs">
                             {c.tone}

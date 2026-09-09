@@ -111,13 +111,21 @@ function DashboardPage() {
               The Financial DM: {leads.length} adventurers found
             </p>
           </div>
-          <button
-            onClick={fetchLeads}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg border border-[#406080]/40 text-[#e0e0e0] hover:bg-[#204060]/20 transition-all font-fantasy text-sm disabled:opacity-50"
-          >
-            {loading ? "Scrying..." : "🔄 Refresh"}
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <a
+              href="/generator"
+              className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 transition-all font-fantasy text-sm"
+            >
+              🧙 Content Forge
+            </a>
+            <button
+              onClick={fetchLeads}
+              disabled={loading}
+              className="px-4 py-2 rounded-lg border border-[#406080]/40 text-[#e0e0e0] hover:bg-[#204060]/20 transition-all font-fantasy text-sm disabled:opacity-50"
+            >
+              {loading ? "Scrying..." : "🔄 Refresh"}
+            </button>
+          </div>
         </div>
 
         {/* Error */}

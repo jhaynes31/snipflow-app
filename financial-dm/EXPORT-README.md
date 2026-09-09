@@ -38,9 +38,13 @@ The dump creates five tables: `leads`, `meme_concepts`, `saved_scripts`,
 
 ## Run the site locally
 1. Unzip `source.zip` into a working folder.
-2. Copy the template and fill in both values:
+2. Copy the template and fill in the values:
    `cp .env.example .env`
-   Both values are required. The site will not start without them.
+   DATABASE_URL and ANTHROPIC_API_KEY are required for the site to work.
+   ADMIN_PASSWORD is the shared password for John's private tools (the lead
+   dashboard at /dashboard and the content forge at /generator). Without it
+   those pages and their server functions stay locked. AUTH_SECRET is optional
+   (see .env.example).
 3. Install dependencies:
    `bun install`
 4. Start the dev server:
@@ -56,9 +60,10 @@ This produces the production build. To preview it:
 This project deploys to Vercel. The included `go-live.sh` script handles the
 deploy. It sources the local `.env` file, so DATABASE_URL and
 ANTHROPIC_API_KEY must both be set in `.env` before you run it.
-In addition, the Vercel project itself must have two environment variables set:
-DATABASE_URL and ANTHROPIC_API_KEY. Set them in the Vercel dashboard under
-Project Settings, Environment Variables. The deployed app reads them from the
+In addition, the Vercel project itself must have these environment variables
+set: DATABASE_URL, ANTHROPIC_API_KEY, and ADMIN_PASSWORD (plus AUTH_SECRET if
+you use one). Set them in the Vercel dashboard under Project Settings,
+Environment Variables. go-live.sh also passes them from .env on each deploy. The deployed app reads them from the
 Vercel environment, so the site keeps working even before you create a local
 .env on the new machine.
 The deploy script also needs the Vercel token. It reads the token from the
@@ -73,6 +78,8 @@ Then deploy:
   direct endpoint, either works for the app.
 - ANTHROPIC_API_KEY: the Anthropic console, under API Keys. Create a key and
   copy it.
+- ADMIN_PASSWORD: choose it yourself. It is the only credential for the
+  private tools, so make it long. Changing it signs every browser out.
 
 Never commit the real `.env` file anywhere. The `.env.example` template is the
 only env file that belongs in source control.
@@ -83,5 +90,12 @@ only env file that belongs in source control.
 - The five database tables above are the only tables the app uses. If the
   production database later gains more tables, re run pg_dump to refresh this
   export and update the row counts in snapshot-notes.txt.
-- The D&D Meme Generator calls the Anthropic API, so it needs a valid
-  ANTHROPIC_API_KEY in the environment where it runs (local or Vercel).
+- The content forge (script, meme, carousel, and social card generators at
+  /generator) calls the Anthropic API, so it needs a valid ANTHROPIC_API_KEY
+  in the environment where it runs (local or Vercel).
+- The old per tool routes (/script-generator, /meme-generator,
+  /carousel-generator, /social-card-generator) redirect to the matching tab
+  of /generator, so existing bookmarks keep working.
+- Private pages: /login is the password gate. /dashboard and /generator
+  require a signed in session; every server function behind them checks the
+  session on the server as well.
