@@ -465,10 +465,14 @@ export default function SavedCarousels() {
                                     offsetY,
                                   })
                                 }
+                                // Rendered at the same width as the forge view. The slide
+                                // text is sized in fixed pixels, so a shrunken card clips the
+                                // heading and body, and the PNG export captures the on screen
+                                // render exactly as shown.
                                 className={
                                   isEditing
-                                    ? "max-w-[300px] ring-2 ring-[#c08020] cursor-pointer"
-                                    : "max-w-[300px] cursor-pointer"
+                                    ? "ring-2 ring-[#c08020] cursor-pointer"
+                                    : "cursor-pointer opacity-95 hover:opacity-100"
                                 }
                               />
                               <div className="flex justify-center gap-2 flex-wrap">
