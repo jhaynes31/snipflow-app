@@ -1,0 +1,14 @@
+The Financial DM export - database snapshot notes
+===================================================
+Dump timestamp (UTC): 2026-09-06T02:21:49.321Z
+Dump method: pg_dump version 18.6 (postgresql-client-18, PGDG repo) through the Neon POOLED endpoint (no direct host needed)
+Dump file: database/the-financial-dm-dump.sql
+
+Row counts (SELECT count(*) per table):
+  leads: 0
+  meme_concepts: 0
+  saved_scripts: 2
+  saved_carousels: 2
+  social_cards: 0
+
+Cross check: row counts above match the COPY block row counts in the dump (verified separately).
