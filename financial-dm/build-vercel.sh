@@ -29,8 +29,9 @@ echo "[3/3] bundle SSR handler + deps into the render function"
 bun build vercel-entry.ts --target node \
   --outfile .vercel/output/functions/render.func/index.mjs
 
+# maxDuration: content generation can take longer than the 10 second default.
 cat > .vercel/output/functions/render.func/.vc-config.json <<'JSON'
-{ "runtime": "nodejs22.x", "handler": "index.mjs", "launcherType": "Nodejs", "supportsResponseStreaming": true }
+{ "runtime": "nodejs22.x", "handler": "index.mjs", "launcherType": "Nodejs", "supportsResponseStreaming": true, "maxDuration": 60 }
 JSON
 cat > .vercel/output/config.json <<'JSON'
 { "version": 3, "routes": [ { "handle": "filesystem" }, { "src": "/(.*)", "dest": "/render" } ] }
