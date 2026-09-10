@@ -61,15 +61,28 @@ Type check with `bunx tsc --noEmit`.
 
 ## Deploy
 
+There are two ways to put the site live. Both need `DATABASE_URL`,
+`ANTHROPIC_API_KEY`, and `ADMIN_PASSWORD` set in the Vercel project
+(Settings, Environment Variables).
+
+**Option A, connect the repository (recommended).** In Vercel choose
+"Add New Project", import this repository, and set the Root Directory to
+`financial-dm`. `vercel.json` already tells Vercel to install with Bun and
+run `build-vercel.sh`, which produces a Build Output bundle in
+`.vercel/output`. After that every push to the production branch deploys
+automatically and no token is needed.
+
+**Option B, deploy from a computer with the code.**
+
 ```bash
 export VERCEL_TOKEN=...   # from the Vercel account that owns the project
 bash go-live.sh
 ```
 
-`go-live.sh` builds a Vercel Build Output bundle (see `build-vercel.sh` and
-`vercel-entry.ts`), deploys it to production, passes the values from `.env`
-as runtime variables, and prints the live URL. The Vercel project, the Neon
-database, and this repository should all live in accounts John controls.
+`go-live.sh` builds the same bundle, deploys it to production, passes any
+values from a local `.env` as runtime variables, and prints the live URL.
+The Vercel project, the Neon database, and this repository should all live
+in accounts John controls.
 
 ## Authentication
 
