@@ -394,9 +394,11 @@ export function elementColor(
 export function roleClassName(role: ElementRole): string {
   switch (role) {
     case "brand":
-      return "uppercase tracking-widest text-sm font-fantasy break-words line-clamp-1 overflow-hidden";
+      // Single line, never wraps: a wrapped brand line used to lose "DM" to
+      // a hidden second line in exports.
+      return "uppercase tracking-widest text-sm font-fantasy whitespace-nowrap overflow-hidden";
     case "tag":
-      return "uppercase tracking-widest text-xs font-fantasy break-words line-clamp-1 overflow-hidden";
+      return "uppercase tracking-widest text-xs font-fantasy whitespace-nowrap overflow-hidden";
     case "heading":
       return "font-fantasy font-bold text-3xl sm:text-4xl leading-snug break-words line-clamp-4 overflow-hidden";
     case "body":
