@@ -51,13 +51,13 @@ export const PLAIN_LANGUAGE_BLOCK = `PLAIN LANGUAGE (strict): The audience is fu
 
 const TONE_WITHIN_CHARACTER: Record<Tone, string> = {
   Informative:
-    "TONE: the bartender in teaching mode. Clear, steady, confident. Lead with the fact and state it plainly up front, define every term the moment you use it, and explain the why behind the advice so the viewer follows the logic. Keep the delivery matter of fact and easy to follow. Go light on jokes; the value here is clarity. He is still warm and still talking to you, just focused on making sure you understand.",
+    "TONE: INFORMATIVE ONLY. The bartender in teaching mode. Clear, steady, confident. Lead with the fact and state it plainly up front, define every term the moment you use it, and explain the why behind the advice so the viewer follows the logic. Keep the delivery matter of fact and easy to follow. NO jokes, NO wisecracks, NO emotional appeals, NO reassurance passages. His natural friendliness shows only in the direct address and the patience of the explanation; the value here is clarity.",
   Warm:
-    "TONE: the bartender at his most caring. Open by acknowledging how the viewer might feel about this topic and make them feel seen. Normalize the worry, reassure, and let a gentle, unhurried rhythm carry the piece. Frame the advice as looking out for them rather than instructing them. Kindness first, and the invitation at the end is an act of care.",
+    "TONE: WARM ONLY. The bartender at his most caring. Open by acknowledging how the viewer might feel about this topic and make them feel seen. Normalize the worry, reassure, and let a gentle, unhurried rhythm carry the piece. Frame the advice as looking out for them rather than instructing them. NO jokes, NO deadpan lines, NO lecture rhythm or teacher voice. Kindness first, and the invitation at the end is an act of care.",
   Funny:
-    "TONE: the bartender with a dry sense of humor. Wry, deadpan observations about money and adult life, delivered flat and kind, as if the punchline is simply the honest truth. Undersell everything and let the understated lines land. The joke is never the viewer, their situation, or anyone else. Keep the real advice clear and correct underneath the dry coating, and make the invitation at the end sincere in the same deadpan voice.",
+    "TONE: FUNNY ONLY. The bartender with a dry sense of humor. Wry, deadpan observations about money and adult life, delivered flat and kind, as if the punchline is simply the honest truth. Undersell everything and let the understated lines land in every section, not just the opening. The joke is never the viewer, their situation, or anyone else. NO earnest reassurance passages and NO teacher style explaining; the real advice stays clear and correct underneath the dry coating, and the invitation at the end is sincere in the same deadpan voice.",
   "Mix / Surprise Me":
-    "TONE: the bartender on a good night. Teach the key point clearly, care openly, and land a light, dry joke where it fits naturally. Move among those three so the piece feels human and varied, with the informative thread carrying the facts, the warmth carrying the connection, and the humor keeping it light.",
+    "TONE: MIX. This is the ONLY tone that blends. Teach the key point clearly, care openly, and land a light, dry joke where it fits naturally. Move among those three so the piece feels human and varied, with the informative thread carrying the facts, the warmth carrying the connection, and the humor keeping it light.",
 };
 
 export function normalizeTone(raw: unknown): Tone {
@@ -67,8 +67,13 @@ export function normalizeTone(raw: unknown): Tone {
 
 export function toneBlock(tone: string): string {
   const t = normalizeTone(tone);
-  return `${TONE_WITHIN_CHARACTER[t]}
-Tone is a variation within the character above, never a replacement for it. "Funny" means a funny bartender, "Informative" means a bartender who is explaining well. The persona must survive the tone from the first sentence to the last, and the tone itself must be unmistakable and consistent throughout.`;
+  const separation =
+    t === "Mix / Surprise Me"
+      ? ""
+      : `
+ONE TONE ONLY (strict): The selected tone is ${t}. Write the ENTIRE piece, every section, caption, and hashtag set, in that single tone. Do not blend in any other tone. Do not open informative, turn warm in the middle, and close with a joke. If a sentence would fit one of the other tones better, rewrite it in the selected tone or cut it. A reader should be able to name the tone from any sentence chosen at random.`;
+  return `${TONE_WITHIN_CHARACTER[t]}${separation}
+Tone is a variation within the character above, never a replacement for it. "Funny" means a funny bartender, "Informative" means a bartender who is explaining well. The persona (second person, plain language, genuinely helpful) must survive the tone from the first sentence to the last, and the tone itself must be unmistakable and consistent throughout.`;
 }
 
 // ── Optional D&D flavor ────────────────────────────────────────────

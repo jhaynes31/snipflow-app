@@ -21,8 +21,9 @@ export default function ToneControls({
     <section className="rounded-xl border border-[#406080]/30 bg-[#111a28] p-5 space-y-4">
       <h2 className="font-fantasy text-[#c08020] text-lg">{heading}</h2>
       <p className="text-[#a0a0a0] text-sm font-fantasy">
-        Every piece is spoken by the same warm tavern bartender. Tone leans
-        that character one way; it never swaps him for someone else.
+        Pick one tone and the whole piece is written in that tone alone.
+        Only "Mix / Surprise Me" blends all three. Every tone is still the
+        same tavern bartender talking, never a different person.
       </p>
       <div className="flex flex-wrap gap-2 justify-center">
         {TONES.map((t) => (
