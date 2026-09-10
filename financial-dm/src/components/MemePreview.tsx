@@ -192,6 +192,10 @@ function DraggableTextBox({
         left: `${box.x}%`,
         top: `${box.y}%`,
         transform: "translate(-50%, -50%)",
+        // Never wider than the image: long lines wrap instead of running
+        // off both edges (which the PNG export then faithfully cropped).
+        width: "max-content",
+        maxWidth: "92%",
         cursor: dragging ? "grabbing" : "grab",
         userSelect: dragging ? "none" : undefined,
         zIndex: dragging ? 50 : 10,
@@ -201,7 +205,7 @@ function DraggableTextBox({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="relative inline-block">
+      <div className="relative block w-full">
         {/* Controls (hover visible) */}
         <div
           className={`absolute -top-2 -right-2 flex gap-0.5 transition-opacity ${
@@ -240,7 +244,8 @@ function DraggableTextBox({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={commitEdit}
             onKeyDown={handleInputKeyDown}
-            className={`text-white text-center uppercase leading-tight outline-none ${fontSize}`}
+            size={Math.max(12, Math.min(editValue.length + 2, 60))}
+            className={`text-white text-center uppercase leading-tight outline-none max-w-full ${fontSize}`}
             style={{
               ...textShadowStyles,
               background: box.showBackground
@@ -248,7 +253,6 @@ function DraggableTextBox({
                 : "transparent",
               border: "1px solid rgba(192,128,32,0.5)",
               padding: box.showBackground ? "2px 8px" : "0",
-              whiteSpace: "nowrap",
               minWidth: "60px",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -263,7 +267,8 @@ function DraggableTextBox({
                 ? "rgba(0,0,0,0.35)"
                 : "transparent",
               padding: box.showBackground ? "2px 8px" : "0",
-              whiteSpace: "nowrap",
+              whiteSpace: "normal",
+              overflowWrap: "break-word",
               border: hovered
                 ? "1px dashed rgba(192,128,32,0.5)"
                 : "1px dashed transparent",
@@ -398,6 +403,8 @@ const MemePreview = forwardRef<HTMLDivElement, MemePreviewProps>(
                   left: `${box.x}%`,
                   top: `${box.y}%`,
                   transform: "translate(-50%, -50%)",
+                  width: "max-content",
+                  maxWidth: "92%",
                   zIndex: 10,
                 }}
               >
@@ -409,7 +416,8 @@ const MemePreview = forwardRef<HTMLDivElement, MemePreviewProps>(
                       ? "rgba(0,0,0,0.35)"
                       : "transparent",
                     padding: box.showBackground ? "2px 8px" : "0",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "normal",
+                    overflowWrap: "break-word",
                   }}
                 >
                   {box.text}
