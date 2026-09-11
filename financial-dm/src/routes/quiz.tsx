@@ -5,12 +5,16 @@ import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
 import PartyRoster from "~/components/life/PartyRoster";
 import PartyTable from "~/components/life/PartyTable";
 import TrapOrTreasure from "~/components/life/TrapOrTreasure";
+import DamageRoll, { type DamageDie } from "~/components/life/DamageRoll";
+import ArmorReveal from "~/components/life/ArmorReveal";
+import ArmorResults from "~/components/life/ArmorResults";
+import { ARMOR_BUTTON, DAMAGE_BUTTON, DAMAGE_INTRO, DAMAGE_LABELS, SOLO_DAMAGE_LABEL } from "~/components/life/lifeCopy";
 import { CARDS_PER_GAME, type MythAnswer } from "~/components/life/mythDeck";
 import { dealMyths, mythScore, mythSummary, parseDebugMyths, type MythGame } from "~/lib/lifeMyths";
 import { defaultRng } from "~/lib/wealthRng";
 import { LOADED_ROLL_1, LOADED_ROLL_1_BUTTON, LOADED_ROLL_2, LOADED_ROLL_2_BUTTON, LOADED_TAGLINE } from "~/components/life/lifeCopy";
 import { ARMOR_CONFIG } from "~/lib/armorConfig";
-import { EMPTY_PARTY, PARTY_IDS, TIER_NAME, approxDollars, computeArmor, partySummary, roundTo10k, type LifeAnswers, type PartyId } from "~/lib/armorEngine";
+import { EMPTY_PARTY, PARTY_IDS, TIER_NAME, computeArmor, partySummary, roundTo10k, type LifeAnswers, type PartyId } from "~/lib/armorEngine";
 import { YOUNGEST_OPTIONS, optionText, visibleQuestions, type LifeQuestion } from "~/lib/lifeQuestions";
 import { saveLead } from "~/server/leads";
 
@@ -22,8 +26,8 @@ import { saveLead } from "~/server/leads";
  * Phase 1 builds the opening roll, the party, the questions, and the estimate
  * engine. The results screen here is an interim preview until Phase 3.
  */
-type Phase = "intro" | "party" | "money" | "myths" | "coverage" | "result";
-const PHASES: Phase[] = ["intro", "party", "money", "myths", "coverage", "result"];
+type Phase = "intro" | "party" | "money" | "myths" | "coverage" | "damage" | "armor" | "result";
+const PHASES: Phase[] = ["intro", "party", "money", "myths", "coverage", "damage", "armor", "result"];
 
 interface QuizState {
   phase: Phase;
@@ -125,17 +129,6 @@ function getStoredUtm(): { utm_source: string; utm_medium: string; utm_campaign:
   return { utm_source: "", utm_medium: "", utm_campaign: "" };
 }
 
-/** Results CTA copy by tier (Section 12.4). */
-function ctaCopy(tier: string): string {
-  if (tier === "traveling_light") return "When your party grows, John's saving you a seat.";
-  if (tier === "plate") return "Want a second set of eyes on your armor? Grab a seat at John's table.";
-  return "Let's forge the rest of your armor. Grab a seat at John's table.";
-}
-
-/** DRAFT disclaimer (Section 12.3): John and compliance must approve. */
-const DISCLAIMER =
-  "This is a rough educational estimate based on a common rule of thumb called the DIME method. It isn't a quote, a recommendation, or financial advice, and it doesn't account for things like savings, Social Security survivor benefits, or your family's specific plans. Talk with a licensed agent for a personalized review.";
-
 export const Route = createFileRoute("/quiz")({
   component: QuizPage,
 });
@@ -145,6 +138,10 @@ function QuizPage() {
   const [hydrated, setHydrated] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   const [dealt, setDealt] = useState(false);
+  const [damageDone, setDamageDone] = useState(false);
+  const [armorDone, setArmorDone] = useState(false);
+  /** Skip the animations when a saved game lands on one of these screens. */
+  const [resumedOn, setResumedOn] = useState<Phase | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [utmParams] = useState(() => readUtmParams());
@@ -158,6 +155,12 @@ function QuizPage() {
       setState(saved);
       // A hand that was already dealt shows its cards at once, no replay.
       if (saved.myths && (saved.phase !== "myths" || Object.keys(saved.myths.guesses).length > 0)) setDealt(true);
+      // Landing on an animated screen after a refresh: show it finished.
+      if (saved.phase === "damage" || saved.phase === "armor") {
+        setResumedOn(saved.phase);
+        setDamageDone(true);
+        if (saved.phase === "armor") setArmorDone(true);
+      }
     }
     setHydrated(true);
   }, []);
@@ -223,9 +226,23 @@ function QuizPage() {
       else update({ phase: "myths", step: 0 });
     } else if (state.phase === "coverage") {
       if (state.step < coverageQs.length - 1) update({ step: state.step + 1 });
-      else update({ phase: "result", step: 0 });
+      else {
+        setDamageDone(false);
+        setArmorDone(false);
+        setResumedOn(null);
+        update({ phase: "damage", step: 0 });
+      }
     }
   };
+
+  const damageDice: DamageDie[] = armor.solo
+    ? [{ key: "D", label: SOLO_DAMAGE_LABEL, value: armor.dice.D }]
+    : [
+        { key: "D", label: DAMAGE_LABELS.D, value: armor.dice.D },
+        { key: "I", label: DAMAGE_LABELS.I, value: armor.dice.I },
+        { key: "M", label: DAMAGE_LABELS.M, value: armor.dice.M },
+        ...(armor.kids > 0 ? [{ key: "E", label: DAMAGE_LABELS.E, value: armor.dice.E }] : []),
+      ];
 
   const handleBack = () => {
     if (state.phase === "money") {
@@ -531,74 +548,54 @@ function QuizPage() {
         </div>
       )}
 
-      {/* Phase: interim results (replaced by the damage roll, AC reveal, and full results in Phase 3) */}
-      {state.phase === "result" && (
+      {/* Phase: the damage roll (Section 10) */}
+      {state.phase === "damage" && hydrated && (
         <div className="flex flex-col items-center gap-5 w-full max-w-md mx-auto px-1 animate-slide-in">
-          <PartyTable party={state.answers.party} />
-          <div className="w-full rounded-xl border-2 border-[#8b6914]/60 shadow-2xl shadow-black/40 p-5 sm:p-6" style={parchment}>
-            <p className="text-center font-fantasy tracking-widest text-xs uppercase text-[#8b6914]">Your Armor Class</p>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-bold font-fantasy text-[#3a2c1a] text-center" data-armor-tier={armor.acTier}>
-              {TIER_NAME[armor.acTier]}
-            </h2>
-            {armor.cursed && (
-              <p className="mt-2 text-center text-sm font-fantasy text-[#8b2020]" data-cursed>
-                ☠️ Cursed armor: most of this protection is work coverage, which usually ends when the job does.
-              </p>
-            )}
-
-            {armor.solo ? (
-              <p className="mt-4 text-sm text-[#4a3820] leading-relaxed text-center">Even solo adventurers leave a tab behind: about {approxDollars(armor.dice.D, 10_000)} in debts and final expenses.</p>
-            ) : (
-              <dl className="mt-4 text-sm text-[#4a3820] space-y-1.5">
-                <Row label="Debts & final expenses" value={approxDollars(armor.dice.D)} />
-                <Row label="Income to replace" value={approxDollars(armor.dice.I)} />
-                <Row label="Mortgage" value={approxDollars(armor.dice.M)} />
-                {armor.kids > 0 && <Row label="Education" value={approxDollars(armor.dice.E)} />}
-                <Row label="Total damage" value={approxDollars(armor.damage, 10_000)} strong />
-                <Row label="Your shield (coverage today)" value={approxDollars(armor.shield)} />
-                <Row label="Where damage gets through" value={approxDollars(armor.gap)} strong />
-              </dl>
-            )}
-
-            {armor.assumptions.map((note) => (
-              <p key={note} className="mt-3 text-xs text-[#7a5f30] italic leading-relaxed" data-assumption>
-                {note}
-              </p>
-            ))}
-            {state.answers.party.members.includes("business") && !armor.solo && (
-              <p className="mt-3 text-xs text-[#7a5f30] leading-relaxed" data-business-note>
-                You've got a business partner at your table. Ask John about coverage that protects the business if something happens to one of you.
-              </p>
-            )}
-
-            <p className="mt-4 text-[11px] text-[#7a5f30] leading-relaxed border-t border-[#8b6914]/30 pt-3" data-disclaimer>
-              {DISCLAIMER}
-            </p>
+          <PartyTable party={state.answers.party} compact />
+          <div className="w-full rounded-xl border-2 border-[#8b6914]/60 p-4 text-center" style={parchment}>
+            <p className="text-[#3a2c1a] font-fantasy leading-relaxed text-sm">“{DAMAGE_INTRO}”</p>
+            <p className="mt-1 text-[#7a5f30] text-xs font-fantasy">John, The Financial DM</p>
           </div>
-
-          <p className="text-[#a0a0a0] text-center text-sm italic max-w-xs font-fantasy">“{ctaCopy(armor.acTier)}”</p>
+          <DamageRoll key={`damage-${armor.damage}`} dice={damageDice} total={armor.damage} startDone={resumedOn === "damage"} onComplete={() => setDamageDone(true)} />
           <button
-            onClick={state.leadCaptured ? () => goToCalendly() : handleCTA}
-            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+            onClick={() => {
+              setResumedOn(null);
+              update({ phase: "armor" });
+            }}
+            disabled={!damageDone}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] disabled:opacity-40 text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
           >
-            🎲 Summon Thy DM
-          </button>
-          <button onClick={() => update({ phase: "coverage", step: Math.max(0, coverageQs.length - 1) })} className="text-[#606080] hover:text-[#a0a0a0] text-xs font-fantasy underline underline-offset-4">
-            ← Change an answer
+            🛡️ {DAMAGE_BUTTON}
           </button>
         </div>
       )}
 
+      {/* Phase: the Armor Class reveal (Section 11) */}
+      {state.phase === "armor" && hydrated && (
+        <div className="flex flex-col items-center gap-5 w-full max-w-md mx-auto px-1 animate-slide-in">
+          <PartyTable party={state.answers.party} compact />
+          <ArmorReveal key={`armor-${armor.shield}-${armor.damage}`} armor={armor} animate={resumedOn !== "armor"} onDone={() => setArmorDone(true)} />
+          <button
+            onClick={() => update({ phase: "result" })}
+            disabled={!armorDone}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] disabled:opacity-40 text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            📜 {ARMOR_BUTTON}
+          </button>
+        </div>
+      )}
+
+      {/* Phase: results (Section 12) */}
+      {state.phase === "result" && (
+        <ArmorResults
+          armor={armor}
+          answers={state.answers}
+          onCTA={state.leadCaptured ? () => goToCalendly() : handleCTA}
+          onChangeAnswer={() => update({ phase: "coverage", step: Math.max(0, coverageQs.length - 1) })}
+        />
+      )}
+
       <LeadModal isOpen={showModal} onSubmit={handleSubmitLead} onClose={() => setShowModal(false)} />
     </main>
-  );
-}
-
-function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className={`flex justify-between gap-3 ${strong ? "font-bold text-[#3a2c1a] border-t border-[#8b6914]/30 pt-1.5" : ""}`}>
-      <dt>{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
-    </div>
   );
 }
