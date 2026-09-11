@@ -243,7 +243,7 @@ const PRINT_CSS = `
   .loot-table td { height: 28px !important; }
   header { padding-bottom: 8px !important; }
   .loot-check li, ul.list-disc li { margin-top: 3px !important; }
-  ol.list-decimal li { margin-top: 6px !important; }
+  ol.list-decimal li { margin-top: 4px !important; margin-bottom: 4px !important; }
   ol.list-decimal .loot-line { height: 0.28in !important; }
   header h1 { font-size: 26px !important; }
   .loot-john { margin-top: 10px !important; padding-top: 7px !important; padding-bottom: 7px !important; }
