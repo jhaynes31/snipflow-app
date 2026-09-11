@@ -1,12 +1,13 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import QuestsSection from "~/components/quest/QuestsSection";
 import SuggestField from "~/components/quest/SuggestField";
+import QuestGuide from "~/components/quest/QuestGuide";
 import { LIFE_STAGES, PROFILE_NAMES, TRIGGERS, WORRIES } from "~/lib/questSuggestions";
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
 import { deleteProfile, draftProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput } from "~/server/questBoard";
 
-type Section = "profiles" | "quests" | "scoreboard";
+type Section = "profiles" | "quests" | "scoreboard" | "guide";
 
 /**
  * The Quest Board: John's campaign manager (spec, Section 1). Phase 1 ships
@@ -15,7 +16,7 @@ type Section = "profiles" | "quests" | "scoreboard";
  */
 export const Route = createFileRoute("/_admin/quest-board")({
   validateSearch: (s: Record<string, unknown>): { section?: Section; quest?: number } => ({
-    section: s.section === "quests" || s.section === "scoreboard" ? s.section : s.section === "profiles" ? "profiles" : undefined,
+    section: s.section === "quests" || s.section === "scoreboard" || s.section === "guide" ? s.section : s.section === "profiles" ? "profiles" : undefined,
     quest: Number.isFinite(Number(s.quest)) && Number(s.quest) > 0 ? Number(s.quest) : undefined,
   }),
   component: QuestBoardPage,
@@ -25,6 +26,7 @@ const SECTIONS: Array<{ id: Section; label: string; blurb: string }> = [
   { id: "profiles", label: "🧑‍🤝‍🧑 Profiles", blurb: "Who John most wants to help: their life moments and money worries." },
   { id: "quests", label: "🗺️ Quests", blurb: "Campaigns aimed at one profile, each testing one idea." },
   { id: "scoreboard", label: "🏆 Scoreboard", blurb: "Which quests book calls. Bookings first, views second." },
+  { id: "guide", label: "📖 Guide", blurb: "How a quest works, start to finish." },
 ];
 
 function QuestBoardPage() {
@@ -72,6 +74,7 @@ function QuestBoardPage() {
         {section === "profiles" && <ProfilesSection />}
         {section === "quests" && <QuestsSection questId={quest ?? null} onSelectQuest={(id) => navigate({ to: "/quest-board", search: { section: "quests", quest: id ?? undefined } })} />}
         {section === "scoreboard" && <ComingSoon title="Scoreboard" phase="Phase 5" blurb={SECTIONS[2].blurb} />}
+        {section === "guide" && <QuestGuide />}
       </div>
     </main>
   );
