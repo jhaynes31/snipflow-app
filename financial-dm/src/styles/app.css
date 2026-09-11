@@ -73,6 +73,23 @@
   animation: dice-land 0.6s ease-out;
 }
 
+/* Plot twist: a short screen shake (financial health quiz) */
+@keyframes wealth-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-6px, 2px) rotate(-0.4deg); }
+  30% { transform: translate(6px, -2px) rotate(0.4deg); }
+  45% { transform: translate(-5px, 1px); }
+  60% { transform: translate(5px, -1px); }
+  75% { transform: translate(-3px, 0); }
+  90% { transform: translate(3px, 0); }
+}
+.animate-wealth-shake {
+  animation: wealth-shake 0.45s ease-in-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-wealth-shake { animation: none; }
+}
+
 /* Slide-in transition for quiz steps and results */
 @keyframes slide-in {
   from { opacity: 0; transform: translateY(16px); }
