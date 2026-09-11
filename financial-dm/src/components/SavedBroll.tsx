@@ -6,13 +6,15 @@ import {
   updateBrollShots,
   type SavedBrollPlan,
 } from "~/server/brollGenerator";
-import { BROLL_STYLE_META, type BrollShot, buildBrollText, downloadBrollText, formatCue } from "~/lib/brollUtils";
+import { BROLL_STYLE_META, type BrollShot, type ClipSummary, buildBrollText, downloadBrollText, formatCue } from "~/lib/brollUtils";
+import { getClips } from "~/server/clips";
 import { slugify } from "~/lib/scriptUtils";
 import BrollShotList from "~/components/generator/BrollShotList";
 
 /** Library of saved shot lists. Expand one to edit, copy, download, or delete. */
 export default function SavedBroll() {
   const [plans, setPlans] = useState<SavedBrollPlan[]>([]);
+  const [clips, setClips] = useState<ClipSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -29,7 +31,9 @@ export default function SavedBroll() {
     setError("");
     try {
       await initBrollTable();
-      setPlans(await getSavedBroll());
+      const [plans, lib] = await Promise.all([getSavedBroll(), getClips().catch(() => ({ clips: [] as ClipSummary[] }))]);
+      setPlans(plans);
+      setClips(lib.clips);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -184,6 +188,8 @@ export default function SavedBroll() {
 
                       <BrollShotList
                         shots={shotsFor(p)}
+                        clips={clips}
+                        onClipSaved={(c) => setClips((prev) => [c, ...prev])}
                         onChange={(shots) => setDrafts((prev) => ({ ...prev, [p.id]: shots }))}
                       />
 

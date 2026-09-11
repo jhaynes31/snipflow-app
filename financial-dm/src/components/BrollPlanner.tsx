@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { generateBroll, saveBroll, type BrollPlan } from "~/server/brollGenerator";
 import {
   BROLL_STYLES,
   BROLL_STYLE_META,
   type BrollStyle,
+  type ClipSummary,
   buildBrollText,
   downloadBrollText,
   formatCue,
@@ -35,12 +36,28 @@ export default function BrollPlanner({
   source,
   heading = "Step 5: Plan the B Roll",
   emptyHint = "Forge a script above and the planner unlocks.",
+  clips = [],
+  style: styleProp,
+  onStyle,
+  autoPlan = false,
+  onClipSaved,
 }: {
   source: BrollScriptSource | null;
   heading?: string;
   emptyHint?: string;
+  /** John's clip library, so shots can point at footage he already has. */
+  clips?: ClipSummary[];
+  /** Controlled shooting style (the picker then lives in the parent). */
+  style?: BrollStyle;
+  onStyle?: (style: BrollStyle) => void;
+  /** Plan as soon as a script arrives, for the one click forge. */
+  autoPlan?: boolean;
+  /** A stock find was saved to the library from a shot. */
+  onClipSaved?: (clip: ClipSummary) => void;
 }) {
-  const [style, setStyle] = useState<BrollStyle>("mixed");
+  const [styleState, setStyleState] = useState<BrollStyle>("mixed");
+  const style = styleProp ?? styleState;
+  const setStyle = onStyle ?? setStyleState;
   const [plan, setPlan] = useState<BrollPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -60,6 +77,7 @@ export default function BrollPlanner({
 
   const handleGenerate = useCallback(async () => {
     if (!source) return;
+    setPlan(null);
     setLoading(true);
     setError("");
     setSaved(false);
@@ -78,6 +96,14 @@ export default function BrollPlanner({
       setLoading(false);
     }
   }, [source, style]);
+
+  // One click forge: the parent hands us a fresh script and we plan it at once.
+  const generateRef = useRef(handleGenerate);
+  generateRef.current = handleGenerate;
+  useEffect(() => {
+    if (autoPlan && source) void generateRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlan, scriptKey]);
 
   const handleSave = useCallback(async () => {
     if (!plan) return;
@@ -134,7 +160,8 @@ export default function BrollPlanner({
             {source.painPoint ? ` · 🎯 ${source.painPoint}` : ""} · Tone: {source.tone}
           </p>
 
-          {/* Shooting style */}
+          {/* Shooting style (hidden when the parent owns it) */}
+          {!styleProp && (
           <div className="space-y-2">
             <p className="text-[#e0e0e0] font-fantasy text-sm text-center">How are you shooting this one?</p>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -157,6 +184,7 @@ export default function BrollPlanner({
             </div>
             <p className="text-center text-[#606080] text-xs font-fantasy">{BROLL_STYLE_META[style].hint}</p>
           </div>
+          )}
 
           <div className="flex justify-center">
             <button
@@ -222,6 +250,8 @@ export default function BrollPlanner({
 
               <BrollShotList
                 shots={plan.shots}
+                clips={clips}
+                onClipSaved={onClipSaved}
                 onChange={(shots) => {
                   setPlan({ ...plan, shots });
                   setSaved(false);

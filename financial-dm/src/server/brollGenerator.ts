@@ -10,12 +10,14 @@ import {
   parseJsonReply,
 } from "./contentVoice";
 import { topicPromptLines } from "./topics";
+import { listClips } from "./clips";
 import {
   BROLL_SOURCES,
   BROLL_STYLES,
   type BrollShot,
   type BrollSource,
   type BrollStyle,
+  type ClipSummary,
   estimateTiming,
 } from "~/lib/brollUtils";
 
@@ -57,7 +59,9 @@ export interface SavedBrollPlan extends BrollPlan {
 
 const STYLE_GUIDANCE: Record<BrollStyle, string> = {
   mixed:
-    "SHOOTING STYLE: MIXED. Balance shots John films himself, stock clips, screen recordings, and text cards. Pick whichever source best sells each line.",
+    "SHOOTING STYLE: MIXED. Balance shots John films himself, clips already in his library, stock clips, screen recordings, and text cards. Pick whichever source best sells each line.",
+  library:
+    "SHOOTING STYLE: MOSTLY MY CLIPS. John wants to cut this video from footage he already has. Use a library clip (source \"clip\" with its clipId) wherever one fits the line, even loosely, and fill only the real gaps with a text card or a stock clip. If the library is empty, plan as MIXED.",
   filmed:
     "SHOOTING STYLE: MOSTLY FILMED. John is behind the camera with a phone and simple props. Favor things he can film in a home, a kitchen, a car, or a tavern themed corner. Use stock or screen only when filming is impractical, and keep text cards to one or two.",
   stock:
@@ -77,7 +81,7 @@ SHOT LIST REQUIREMENTS:
 - Walk through the script IN ORDER and split it into 6 to 8 beats. Every beat covers a contiguous run of the script. Together the beats cover the entire script from the first word of the hook to the end of the call to action, with no gaps and no overlaps.
 - For each beat, "beat" is the EXACT text of the script lines it covers, copied word for word from the script (do not paraphrase, do not shorten). This is how the shot gets lined up under the voice over.
 - "shot" is what to film or source for that beat, tied to what the line actually says: a concrete subject, action, and setting, 1 to 2 sentences. Never generic ("stock footage of money"). If the line mentions a paycheck, show a paycheck; if it mentions leaving a job, show a desk being cleared.
-- "source" is one of: "film" (John films it himself), "stock" (a stock footage clip; describe it with search friendly terms), "screen" (a screen recording, for example a calculator or a bank app), "text" (a plain text card or simple graphic).
+- "source" is one of: "film" (John films it himself), "stock" (a stock footage clip; describe it with search friendly terms), "screen" (a screen recording, for example a calculator or a bank app), "text" (a plain text card or simple graphic), "clip" (a clip from John's own library, listed in the message; set "clipId" to its id and say in "shot" how to use it). Prefer a library clip over stock when one fits.
 - "onScreenText" is the text shown over that shot: 8 WORDS OR FEWER, plain language, in the bartender's voice, no insurance jargon left unexplained, no hashtags, no emoji. It should reinforce the line, not repeat it word for word. Every shot needs one.
 - "notes" is optional: props, framing, lighting, or a tip ("shoot the hook in one take, eye level").
 - The first beat is the hook and its shot should be the strongest, most stopping image in the list. The last beat is the call to action; its on screen text can name John or "book a free call".
@@ -85,7 +89,7 @@ SHOT LIST REQUIREMENTS:
 ${FORMATTING_RULES}
 
 Respond with valid JSON only, with no other text and no markdown fences. Use exactly this shape:
-{ "shots": [ { "beat": "exact script text this shot sits under", "shot": "what to film or source", "source": "film | stock | screen | text", "onScreenText": "eight words or fewer", "notes": "optional" } ] }`;
+{ "shots": [ { "beat": "exact script text this shot sits under", "shot": "what to film or source", "source": "film | stock | screen | text | clip", "clipId": null, "onScreenText": "eight words or fewer", "notes": "optional" } ] }`;
 }
 
 // ── Server Functions ───────────────────────────────────────────────
@@ -108,6 +112,18 @@ export const generateBroll = createServerFn()
     const style = normalizeStyle(data.style);
     const script = cleanText(data.script);
     if (!script) return null;
+    let clips: ClipSummary[] = [];
+    try {
+      clips = await listClips();
+    } catch (e) {
+      console.error("[brollGenerator] clip library unavailable", e);
+    }
+    const libraryBlock = clips.length
+      ? `YOUR CLIP LIBRARY (footage John already has; when one fits a beat, use source "clip" and its clipId):\n${clips
+          .slice(0, 60)
+          .map((c) => `- clipId ${c.id}: "${c.name}"${c.tags.length ? ` [${c.tags.join(", ")}]` : ""}${c.description ? ` ${c.description}` : ""}${c.durationSec ? ` (${Math.round(c.durationSec)}s)` : ""}`)
+          .join("\n")}`
+      : "YOUR CLIP LIBRARY: empty for now.";
     const user = `${topicPromptLines(data)}
 
 Title: ${cleanText(data.title) || "untitled"}
@@ -116,7 +132,9 @@ Tone: ${tone}
 FULL SCRIPT (voice over, in order; the first line is the hook):
 ${script}
 
-CALL TO ACTION (spoken last): ${cleanText(data.callToAction)}`;
+CALL TO ACTION (spoken last): ${cleanText(data.callToAction)}
+
+${libraryBlock}`;
 
     const text = await callClaude({
       tag: "brollGenerator",
@@ -129,20 +147,27 @@ CALL TO ACTION (spoken last): ${cleanText(data.callToAction)}`;
         beat?: unknown;
         shot?: unknown;
         source?: unknown;
+        clipId?: unknown;
         onScreenText?: unknown;
         notes?: unknown;
       }>;
     }>(text, "brollGenerator");
     if (!parsed || !Array.isArray(parsed.shots) || parsed.shots.length === 0) return null;
 
+    const byId = new Map(clips.map((c) => [c.id, c]));
     const raw = parsed.shots
-      .map((s) => ({
-        beat: cleanText(s?.beat),
-        shot: cleanText(s?.shot),
-        source: normalizeSource(s?.source),
-        onScreenText: cleanText(s?.onScreenText),
-        notes: cleanText(s?.notes),
-      }))
+      .map((s) => {
+        const clip = byId.get(Number(s?.clipId)) ?? null;
+        const source = clip ? ("clip" as BrollSource) : normalizeSource(s?.source);
+        return {
+          beat: cleanText(s?.beat),
+          shot: cleanText(s?.shot),
+          source: source === "clip" && !clip ? ("film" as BrollSource) : source,
+          onScreenText: cleanText(s?.onScreenText),
+          notes: cleanText(s?.notes),
+          ...(clip ? { clipId: clip.id, clipName: clip.name, clipUrl: clip.url, clipPosterUrl: clip.posterUrl } : {}),
+        };
+      })
       .filter((s) => s.beat || s.shot)
       .slice(0, 10);
 
@@ -228,6 +253,7 @@ function parseShots(raw: unknown): BrollShot[] {
       notes: String(s.notes ?? ""),
       startSec: Number(s.startSec ?? 0),
       endSec: Number(s.endSec ?? 0),
+      ...(s.clipId ? { clipId: Number(s.clipId), clipName: String(s.clipName ?? ""), clipUrl: String(s.clipUrl ?? ""), clipPosterUrl: s.clipPosterUrl ? String(s.clipPosterUrl) : undefined } : {}),
     }));
   } catch {
     return [];

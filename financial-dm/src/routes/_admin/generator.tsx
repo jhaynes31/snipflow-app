@@ -15,7 +15,7 @@ import SavedScripts from "~/components/SavedScripts";
 import SavedConcepts from "~/components/SavedConcepts";
 import SavedCarousels from "~/components/SavedCarousels";
 import SavedSocialCards from "~/components/SavedSocialCards";
-import BrollLibraryPlanner from "~/components/BrollLibraryPlanner";
+import BrollForge from "~/components/BrollForge";
 import SavedBroll from "~/components/SavedBroll";
 import { DEFAULT_TONE } from "~/lib/contentOptions";
 
@@ -242,65 +242,66 @@ function GeneratorHub() {
               </p>
             </div>
 
-            {tab === "broll" ? (
-              <BrollLibraryPlanner />
-            ) : (
-              <>
-                <TopicPainPointPicker
-                  mode={pickerMode}
-                  picks={picks}
-                  selections={selections}
-                  rolling={rolling}
-                  onRoll={handleRoll}
-                  onChange={setSelections}
-                  heading={
-                    pickerMode === "multi"
-                      ? "Step 1: Roll Topics (up to 3 cards)"
-                      : "Step 1: Roll a Topic"
-                  }
-                />
-                {rollError && (
-                  <div className="text-center p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">
-                    {rollError}
-                  </div>
-                )}
+            <TopicPainPointPicker
+              mode={pickerMode}
+              picks={picks}
+              selections={selections}
+              rolling={rolling}
+              onRoll={handleRoll}
+              onChange={setSelections}
+              heading={
+                pickerMode === "multi"
+                  ? "Step 1: Roll Topics (up to 3 cards)"
+                  : "Step 1: Roll a Topic"
+              }
+            />
+            {rollError && (
+              <div className="text-center p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">
+                {rollError}
+              </div>
+            )}
 
-                <ToneControls
-                  tone={tone}
-                  onTone={setTone}
-                  dndThemed={dndThemed}
-                  onDndThemed={setDndThemed}
-                />
+            <ToneControls
+              tone={tone}
+              onTone={setTone}
+              dndThemed={dndThemed}
+              onDndThemed={setDndThemed}
+            />
 
-                {tab === "script" && (
-                  <ScriptGenerator
-                    selection={single}
-                    tone={tone}
-                    dndThemed={dndThemed}
-                  />
-                )}
-                {tab === "meme" && (
-                  <MemeGenerator
-                    selection={single}
-                    tone={tone}
-                    dndThemed={dndThemed}
-                  />
-                )}
-                {tab === "carousel" && (
-                  <CarouselGenerator
-                    selection={single}
-                    tone={tone}
-                    dndThemed={dndThemed}
-                  />
-                )}
-                {tab === "card" && (
-                  <SocialCardGenerator
-                    selections={selections}
-                    tone={tone}
-                    dndThemed={dndThemed}
-                  />
-                )}
-              </>
+            {tab === "script" && (
+              <ScriptGenerator
+                selection={single}
+                tone={tone}
+                dndThemed={dndThemed}
+              />
+            )}
+            {tab === "meme" && (
+              <MemeGenerator
+                selection={single}
+                tone={tone}
+                dndThemed={dndThemed}
+              />
+            )}
+            {tab === "carousel" && (
+              <CarouselGenerator
+                selection={single}
+                tone={tone}
+                dndThemed={dndThemed}
+              />
+            )}
+            {tab === "card" && (
+              <SocialCardGenerator
+                selections={selections}
+                tone={tone}
+                dndThemed={dndThemed}
+              />
+            )}
+            {tab === "broll" && (
+              <BrollForge
+                selection={single}
+                tone={tone}
+                dndThemed={dndThemed}
+              />
             )}
           </div>
         )}

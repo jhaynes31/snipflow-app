@@ -45,6 +45,8 @@ Copy `.env.example` to `.env` and fill it in:
 | `ANTHROPIC_API_KEY` | yes      | key for the content forge |
 | `ADMIN_PASSWORD`    | yes      | shared password for `/dashboard` and `/generator` |
 | `AUTH_SECRET`       | no       | signs the login cookie; derived from the password when unset |
+| `PEXELS_API_KEY`    | no       | free Pexels key; turns on stock footage search inside the shot list |
+| `BLOB_READ_WRITE_TOKEN` | no   | Vercel Blob store for uploaded b roll clips (added by Vercel when a Blob store is connected); without it clips are added as links |
 
 Never commit `.env`. The same variables must be set in the Vercel project
 (Settings, Environment Variables) for the live site.
@@ -98,8 +100,8 @@ throttled per address. Only `saveLead` (the quiz submission) is public.
 
 ## Database
 
-Six tables: `leads`, `saved_scripts`, `saved_carousels`, `social_cards`,
-`meme_concepts`, `saved_broll`. Each server module creates or upgrades its own table on
+Seven tables: `leads`, `saved_scripts`, `saved_carousels`, `social_cards`,
+`meme_concepts`, `saved_broll`, `broll_clips`. Each server module creates or upgrades its own table on
 first use with `CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`,
 so no separate migration step is needed. `database/the-financial-dm-dump.sql`
 restores the schema and the saved content from the last export.
@@ -122,7 +124,12 @@ saved one) into a shot list: 6 to 8 beats that quote the script word for
 word, what to film or source for each (John films it, stock clip, screen
 recording, or text card), on screen text in the bartender's voice, notes,
 and a rough cue in seconds from `estimateTiming` in `src/lib/brollUtils.ts`.
-It never rewrites the script. Plans save to `saved_broll`.
+It never rewrites the script. Plans save to `saved_broll`. The B Roll tab
+can also forge a fresh script and its shot list in one step. John's own
+clips live in the library (`src/server/clips.ts`): video files upload from
+the browser straight to Vercel Blob with a short lived token, details go
+to `broll_clips`, and the planner is shown the library so it can point a
+shot at a clip he already has.
 
 ## PNG export
 

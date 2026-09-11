@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { getSavedScripts, initScriptsTable, type SavedScript } from "~/server/scriptGenerator";
 import BrollPlanner, { type BrollScriptSource } from "~/components/BrollPlanner";
+import type { ClipSummary } from "~/lib/brollUtils";
 
 /**
  * The hub's B Roll tab: pick any saved script from the library and plan its
  * b roll. Fresh scripts get the same planner as Step 5 of the script forge.
  */
-export default function BrollLibraryPlanner() {
+export default function BrollLibraryPlanner({ clips = [], onClipSaved }: { clips?: ClipSummary[]; onClipSaved?: (clip: ClipSummary) => void }) {
   const [scripts, setScripts] = useState<SavedScript[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,7 +55,7 @@ export default function BrollLibraryPlanner() {
   return (
     <div className="space-y-6">
       <section className="rounded-xl border border-[#406080]/30 bg-[#111a28] p-5 space-y-4">
-        <h2 className="font-fantasy text-[#c08020] text-lg">Step 1: Choose a Saved Script</h2>
+        <h2 className="font-fantasy text-[#c08020] text-lg">Step 3: Choose a Saved Script</h2>
         <p className="text-[#a0a0a0] text-sm font-fantasy">
           The shot list follows a finished script line by line. Pick one from
           the library, or forge a new one on the Script tab and plan its b roll
@@ -128,7 +129,9 @@ export default function BrollLibraryPlanner() {
 
       <BrollPlanner
         source={source}
-        heading="Step 2: Plan the B Roll"
+        clips={clips}
+        onClipSaved={onClipSaved}
+        heading="Step 4: Plan the B Roll"
         emptyHint="Choose a saved script above and the planner unlocks."
       />
     </div>
