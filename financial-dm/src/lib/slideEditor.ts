@@ -436,20 +436,26 @@ export function elementColor(
   return palette[el.role] ?? palette.heading;
 }
 
+/**
+ * Text sizes are container-query units (cqw: 1% of the slide's width), so a
+ * phone-sized preview, the desktop preview, and the PNG export all show the
+ * same proportions. The values match the old desktop sizes on an 856px card
+ * (heading 36px, body 30px, custom 24px, brand 14px, tag 12px).
+ */
 export function roleClassName(role: ElementRole): string {
   switch (role) {
     case "brand":
       // Single line, never wraps: a wrapped brand line used to lose "DM" to
       // a hidden second line in exports.
-      return "uppercase tracking-widest text-sm font-fantasy whitespace-nowrap overflow-hidden";
+      return "uppercase tracking-widest text-[1.65cqw] font-fantasy whitespace-nowrap overflow-hidden";
     case "tag":
-      return "uppercase tracking-widest text-xs font-fantasy whitespace-nowrap overflow-hidden";
+      return "uppercase tracking-widest text-[1.4cqw] font-fantasy whitespace-nowrap overflow-hidden";
     case "heading":
-      return "font-fantasy font-bold text-3xl sm:text-4xl leading-snug break-words line-clamp-4 overflow-hidden";
+      return "font-fantasy font-bold text-[4.2cqw] leading-snug break-words line-clamp-4 overflow-hidden";
     case "body":
-      return "font-fantasy text-xl sm:text-2xl lg:text-3xl leading-[1.6] break-words line-clamp-[14] overflow-hidden";
+      return "font-fantasy text-[3.5cqw] leading-[1.6] break-words line-clamp-[14] overflow-hidden";
     case "custom":
-      return "font-fantasy font-semibold text-lg sm:text-xl lg:text-2xl leading-snug break-words line-clamp-[10] overflow-hidden";
+      return "font-fantasy font-semibold text-[2.8cqw] leading-snug break-words line-clamp-[10] overflow-hidden";
   }
 }
 

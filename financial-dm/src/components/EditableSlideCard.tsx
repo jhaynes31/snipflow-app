@@ -134,11 +134,11 @@ export default function EditableSlideCard({
     // so dragging the brand moves the text and logo together.
     const content =
       el.role === "brand" ? (
-        <span className="flex flex-col items-center gap-1.5 select-none">
+        <span className="flex flex-col items-center gap-[0.7cqw] select-none">
           <span className={roleClassName(el.role)}>{el.text}</span>
           <span
             aria-hidden="true"
-            className="inline-flex items-center justify-center rounded-full bg-black/40 p-[3px]"
+            className="inline-flex items-center justify-center rounded-full bg-black/40 p-[0.35cqw]"
           >
             <img
               src="/logo.png"
@@ -146,7 +146,7 @@ export default function EditableSlideCard({
               aria-hidden="true"
               draggable={false}
               onDragStart={(e) => e.preventDefault()}
-              className="h-10 w-10 rounded-full object-contain"
+              className="h-[4.7cqw] w-[4.7cqw] rounded-full object-contain"
             />
           </span>
         </span>
@@ -201,23 +201,28 @@ export default function EditableSlideCard({
       onPointerDown={() => setSelectedId(null)}
       onClick={onClick}
       style={slideBackgroundStyle(slide)}
-      className={`relative aspect-square w-full rounded-xl border border-[#b9803a]/45 flex flex-col overflow-hidden ${
-        borderContentPaddingClass(slide.themeBorder) ?? "p-4 sm:p-5"
-      } ${className}`}
+      // A CSS size container: every text size inside is in cqw (1% of the
+      // card's full width, since the padding sits on the inner layer), so the
+      // card reads the same at phone width, desktop width, and in the export.
+      className={`relative aspect-square w-full rounded-xl border border-[#b9803a]/45 flex flex-col overflow-hidden [container-type:inline-size] ${className}`}
     >
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div
+        className={`flex flex-col h-full min-h-0 overflow-hidden ${
+          borderContentPaddingClass(slide.themeBorder) ?? "p-[2.3cqw]"
+        }`}
+      >
         {slide.kind === "content" ? (
           /* Content slides: tag + heading + body sit together as one vertically
              centered unit with even, normal gaps, and the brand line is pinned
              to the bottom. Whitespace is shared symmetrically above and below,
              so there is no top pocket or bottom void. */
           <>
-            <div className="flex-1 flex flex-col justify-center gap-[18px] min-h-0 overflow-hidden py-2">
+            <div className="flex-1 flex flex-col justify-center gap-[2.1cqw] min-h-0 overflow-hidden py-[0.9cqw]">
               {slide.elements
                 .filter((e) => e.role !== "brand")
                 .map(renderElement)}
             </div>
-            <div className="shrink-0 flex flex-col justify-center gap-1.5 min-h-0">
+            <div className="shrink-0 flex flex-col justify-center gap-[0.7cqw] min-h-0">
               {slide.elements
                 .filter((e) => e.role === "brand")
                 .map(renderElement)}
@@ -225,17 +230,17 @@ export default function EditableSlideCard({
           </>
         ) : (
           <>
-            <div className="shrink-0 flex flex-col justify-center gap-3 min-h-0 pt-2">
+            <div className="shrink-0 flex flex-col justify-center gap-[1.4cqw] min-h-0 pt-[0.9cqw]">
               {slide.elements
                 .filter((e) => e.vpos === "top")
                 .map(renderElement)}
             </div>
-            <div className="flex-1 flex flex-col justify-center gap-1.5 min-h-0 overflow-hidden py-3 sm:py-4">
+            <div className="flex-1 flex flex-col justify-center gap-[0.7cqw] min-h-0 overflow-hidden py-[1.9cqw]">
               {slide.elements
                 .filter((e) => e.vpos === "middle")
                 .map(renderElement)}
             </div>
-            <div className="shrink-0 flex flex-col justify-center gap-1.5 min-h-0">
+            <div className="shrink-0 flex flex-col justify-center gap-[0.7cqw] min-h-0">
               {slide.elements
                 .filter((e) => e.vpos === "bottom")
                 .map(renderElement)}
