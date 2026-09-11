@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import D20Dice from "~/components/D20Dice";
-import LeadModal from "~/components/LeadModal";
+import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
 import { WEALTH_QUESTIONS, computeScore, scoresFromAnswers } from "~/components/WealthReport";
 import StatSheet, { FloatingMods, centerOf, type FloatingMod } from "~/components/wealth/StatSheet";
 import WealthResults from "~/components/wealth/WealthResults";
@@ -317,9 +317,7 @@ function WealthCheckPage() {
     setShowModal(true);
   };
 
-  const handleSubmitLead = async (name: string, email: string, phone: string) => {
-    setShowModal(false);
-    setContact({ name, email });
+  const handleSubmitLead = async (name: string, email: string, phone: string): Promise<LeadSubmitOutcome> => {
 
     const storedUtm = getStoredUtm();
     const finalUtm = {
@@ -363,17 +361,24 @@ function WealthCheckPage() {
           loot_id: lootId ?? "",
         },
       });
-      if (!saved.ok) console.error("[lead] save failed:", saved.error);
-      if (saved.ok && saved.lootId) {
+      if (!saved.ok) {
+        // The details were rejected (fake email, movie phone number, and so
+        // on) or the site is overloaded. The dialog stays open with the reason.
+        console.warn("[lead] save rejected:", saved.error);
+        return { error: saved.error ?? "Please check your details and try again.", field: saved.field };
+      }
+      if (saved.lootId) {
         lootId = saved.lootId;
         lootRepeat = Boolean(saved.repeat);
       }
     } catch (e) {
-      // The loot and the booking still go ahead; the failure is logged so it
-      // is not invisible.
+      // The site itself failed (not the details). The loot still goes ahead;
+      // the failure is logged so it is not invisible.
       console.error("[lead] save threw:", e);
     }
 
+    setShowModal(false);
+    setContact({ name, email });
     update({ leadCaptured: true, phase: "loot", lootId, lootRepeat });
     scrollTop();
   };

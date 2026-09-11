@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import D20Dice from "~/components/D20Dice";
 import QuizQuestions, { QUESTIONS } from "~/components/QuizQuestions";
 import CharacterSheet, { deriveCharacter } from "~/components/CharacterSheet";
-import LeadModal from "~/components/LeadModal";
+import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
 import { saveLead } from "~/server/leads";
 
 type Phase = "landing" | "questions" | "result";
@@ -118,10 +118,7 @@ function QuizPage() {
     setShowModal(true);
   };
 
-  const handleSubmitLead = async (name: string, email: string, phone: string) => {
-    setShowModal(false);
-    setTransitioning(true);
-
+  const handleSubmitLead = async (name: string, email: string, phone: string): Promise<LeadSubmitOutcome> => {
     const storedUtm = getStoredUtm();
     const finalUtm = {
       utm_source: utmParams.utm_source || storedUtm.utm_source,
@@ -154,12 +151,20 @@ function QuizPage() {
           })(),
         },
       });
-      if (!saved.ok) console.error("[lead] save failed:", saved.error);
+      if (!saved.ok) {
+        // Rejected details (fake email, movie phone number) keep the dialog
+        // open with the reason instead of sending the visitor on.
+        console.warn("[lead] save rejected:", saved.error);
+        return { error: saved.error ?? "Please check your details and try again.", field: saved.field };
+      }
     } catch (e) {
-      // Still send the visitor on to Calendly; the booking matters more than
-      // the record. The failure is logged so it is not invisible.
+      // The site itself failed (not the details). Still send the visitor on to
+      // Calendly; the booking matters more than the record.
       console.error("[lead] save threw:", e);
     }
+
+    setShowModal(false);
+    setTransitioning(true);
 
     // Brief transition before redirect
     await new Promise((r) => setTimeout(r, 1500));

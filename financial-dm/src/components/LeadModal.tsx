@@ -1,8 +1,16 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { checkEmail, checkName, checkPhone } from "~/lib/contactValidation";
+
+/** What a submit handler may hand back: nothing on success, or a rejection. */
+export type LeadSubmitOutcome = void | { error: string; field?: "name" | "email" | "phone" };
 
 interface LeadModalProps {
   isOpen: boolean;
-  onSubmit: (name: string, email: string, phone: string) => void;
+  /**
+   * Called with the cleaned values. Return (or resolve to) a rejection to keep
+   * the dialog open and show the message; return nothing when the lead is in.
+   */
+  onSubmit: (name: string, email: string, phone: string) => LeadSubmitOutcome | Promise<LeadSubmitOutcome>;
   onClose: () => void;
 }
 
@@ -16,6 +24,8 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const uid = useId();
   const ids = {
@@ -43,22 +53,50 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
 
   if (!isOpen) return null;
 
+  // The same checks the server runs, so nearly every problem is caught before
+  // the request leaves the browser. The server has the final say.
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = "Thy name is required!";
-    if (!email.trim()) e.email = "We need thy email!";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "That looks like a cursed email...";
-    if (!phone.trim()) e.phone = "Thy phone number, please!";
-    else if (!/^[\d\s\-\+\(\)]{7,}$/.test(phone)) e.phone = "A valid phone number, adventurer!";
+    const n = checkName(name);
+    const m = checkEmail(email);
+    const p = checkPhone(phone);
+    if (!n.ok) e.name = n.message ?? "Please enter your name.";
+    if (!m.ok) e.email = m.message ?? "Please enter a real email.";
+    if (!p.ok) e.phone = p.message ?? "Please enter a real phone number.";
     setErrors(e);
-    return Object.keys(e).length === 0;
+    setSuggestion(m.ok ? null : (m.suggestion ?? null));
+    if (Object.keys(e).length) return null;
+    return { name: n.value!, email: m.value!, phone: p.value! };
   };
 
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (validate()) {
-      onSubmit(name.trim(), email.trim(), phone.trim());
+    if (submitting) return;
+    const clean = validate();
+    if (!clean) return;
+    setSubmitting(true);
+    try {
+      const outcome = await onSubmit(clean.name, clean.email, clean.phone);
+      if (outcome && outcome.error) {
+        setErrors({ [outcome.field ?? "form"]: outcome.error });
+      }
+    } catch (err) {
+      console.error("[lead] submit threw:", err);
+      setErrors({ form: "Something went wrong on our end. Please try again." });
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const applySuggestion = () => {
+    if (!suggestion) return;
+    setEmail(suggestion);
+    setSuggestion(null);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.email;
+      return next;
+    });
   };
 
   // text-base on the inputs keeps iOS Safari from zooming the page on focus.
@@ -137,6 +175,18 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
             {errors.email && (
               <p role="alert" className="text-red-400 text-xs mt-1 font-fantasy">
                 {errors.email}
+                {suggestion && (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={applySuggestion}
+                      className="underline text-[#c08020] hover:text-[#e0a030]"
+                    >
+                      Yes, fix it
+                    </button>
+                  </>
+                )}
               </p>
             )}
           </div>
@@ -153,7 +203,7 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
               maxLength={40}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="(555) 123 4567"
+              placeholder="(415) 123 4567"
               aria-invalid={Boolean(errors.phone)}
               className={inputClass}
             />
@@ -164,19 +214,28 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
             )}
           </div>
 
+          {errors.form && (
+            <p role="alert" className="text-red-400 text-xs font-fantasy text-center">
+              {errors.form}
+            </p>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
+              disabled={submitting}
               className="flex-1 px-4 py-2.5 rounded-lg border border-[#406080]/50 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#406080]/60 transition-all font-fantasy text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold shadow-lg shadow-[#c08020]/20 transition-all font-fantasy text-sm"
+              disabled={submitting}
+              aria-busy={submitting}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-[#c08020] hover:bg-[#a06a18] disabled:opacity-60 disabled:cursor-wait text-[#0d1520] font-bold shadow-lg shadow-[#c08020]/20 transition-all font-fantasy text-sm"
             >
-              Roll for Initiative!
+              {submitting ? "Checking…" : "Roll for Initiative!"}
             </button>
           </div>
         </form>

@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { allowRequest, clientAddress } from "~/server/rateLimit.server";
+import { checkEmail, checkName, checkPhone } from "~/lib/contactValidation";
+import { verifyMailDomain } from "~/server/mailDomain.server";
 
 export interface LeadData {
   name: string;
@@ -47,6 +49,8 @@ export interface LeadData {
 export interface SaveLeadResult {
   ok: boolean;
   error?: string;
+  /** Which form field the error belongs to, when it is about one. */
+  field?: "name" | "email" | "phone";
   /** The loot item this person owns: the first one they ever claimed. */
   lootId?: string;
   /** True when this email or phone already claimed loot; no new lead row was made. */
@@ -168,12 +172,17 @@ async function migrateLeadsTable() {
 export const saveLead = createServerFn({ method: "POST" })
   .validator((d: LeadData) => cleanLeadInput(d))
   .handler(async ({ data }): Promise<SaveLeadResult> => {
-    if (!data.name || !data.email || !data.phone) {
-      return { ok: false, error: "Name, email, and phone are required." };
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      return { ok: false, error: "That email address does not look valid." };
-    }
+    // The same checks the form runs, enforced here so they cannot be skipped,
+    // plus a live lookup that the email's domain actually receives mail.
+    const name = checkName(data.name);
+    if (!name.ok) return { ok: false, error: name.message, field: "name" };
+    const email = checkEmail(data.email);
+    if (!email.ok) return { ok: false, error: email.message, field: "email" };
+    const phone = checkPhone(data.phone);
+    if (!phone.ok) return { ok: false, error: phone.message, field: "phone" };
+    data = { ...data, name: name.value!, email: email.value!, phone: phone.value! };
+    const domainOk = await verifyMailDomain(data.email.split("@")[1]);
+    if (!domainOk) return { ok: false, error: "That email's domain doesn't receive mail. Check the spelling after the @.", field: "email" };
     if (!allowRequest(`lead:${clientAddress()}`, MAX_LEAD_SUBMISSIONS, LEAD_WINDOW_MS)) {
       console.warn("[leads] throttled submission from", clientAddress());
       return { ok: false, error: "Too many submissions. Please try again in a few minutes." };
