@@ -43,7 +43,7 @@ Copy `.env.example` to `.env` and fill it in:
 | ------------------- | -------- | ------- |
 | `DATABASE_URL`      | yes      | Neon Postgres connection string |
 | `ANTHROPIC_API_KEY` | yes      | key for the content forge |
-| `ADMIN_PASSWORD`    | yes      | shared password for `/dashboard` and `/generator` |
+| `ADMIN_PASSWORD`    | yes      | starting and recovery password for `/dashboard` and `/generator` (John can change it on the site) |
 | `AUTH_SECRET`       | no       | signs the login cookie; derived from the password when unset |
 | `PEXELS_API_KEY`    | no       | free Pexels key; stock footage for the B Roll tab |
 | `PIXABAY_API_KEY`   | no       | free Pixabay key; second stock footage source for the B Roll tab |
@@ -99,10 +99,18 @@ private server function runs the `requireAdmin` middleware, so the data is
 protected even if the functions are called directly. Wrong passwords are
 throttled per address. Only `saveLead` (the quiz submission) is public.
 
+`ADMIN_PASSWORD` is the starting password. `/change-password` (linked from
+every private page) stores a new one, hashed with scrypt, in the
+`admin_settings` table; that stored password then takes over. Session
+tokens carry a password version, so a change signs out every other device.
+Forgotten password: set a new `ADMIN_PASSWORD` in Vercel and redeploy; the
+next sign in with that new value clears the stored password and becomes
+the password again.
+
 ## Database
 
-Seven tables: `leads`, `saved_scripts`, `saved_carousels`, `social_cards`,
-`meme_concepts`, `saved_broll`, `broll_clips`. Each server module creates or upgrades its own table on
+Eight tables: `leads`, `saved_scripts`, `saved_carousels`, `social_cards`,
+`meme_concepts`, `saved_broll`, `broll_clips`, `admin_settings`. Each server module creates or upgrades its own table on
 first use with `CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`,
 so no separate migration step is needed. `database/the-financial-dm-dump.sql`
 restores the schema and the saved content from the last export.

@@ -122,6 +122,20 @@ function LoginPage() {
             >
               {submitting ? "Checking..." : "Enter"}
             </button>
+            <details className="pt-1">
+              <summary className="cursor-pointer text-[#606080] hover:text-[#a0a0a0] text-xs font-fantasy text-center">
+                Forgot the password?
+              </summary>
+              <div className="mt-2 p-3 rounded-lg bg-[#0d1520]/60 border border-[#406080]/30 text-[#a0a0a0] text-xs font-fantasy leading-relaxed space-y-2">
+                <p>There is no email reset, on purpose: the only way in is through the site's own settings.</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Open the project in Vercel, then Settings, then Environment Variables.</li>
+                  <li>Give ADMIN_PASSWORD a new value and save it.</li>
+                  <li>Redeploy the latest deployment.</li>
+                  <li>Sign in here with that new value. It replaces any password set from the site and signs out every other device.</li>
+                </ol>
+              </div>
+            </details>
           </form>
         )}
       </div>

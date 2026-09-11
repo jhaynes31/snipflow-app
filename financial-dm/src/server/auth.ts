@@ -2,10 +2,12 @@ import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
 import {
   endSession,
+  hasCustomPassword,
   isAuthConfigured,
   isAuthenticated,
   loginThrottle,
   passwordMatches,
+  setAdminPassword,
   startSession,
 } from "./auth.server";
 
@@ -47,6 +49,8 @@ export const requireAdmin = createMiddleware({ type: "function" }).server(
 export interface AuthStatus {
   authenticated: boolean;
   configured: boolean;
+  /** True when the password in force was set from the site, not from Vercel. */
+  customPassword: boolean;
 }
 
 /** Used by the `_admin` layout route to decide whether to redirect to /login. */
@@ -54,6 +58,7 @@ export const getAuthStatus = createServerFn().handler(
   async (): Promise<AuthStatus> => ({
     authenticated: await isAuthenticated(),
     configured: isAuthConfigured(),
+    customPassword: await hasCustomPassword().catch(() => false),
   }),
 );
 
@@ -87,7 +92,7 @@ export const loginWithPassword = createServerFn({ method: "POST" })
         retryInSeconds: Math.ceil(wait / 1000),
       };
     }
-    if (!passwordMatches(data.password)) {
+    if (!(await passwordMatches(data.password))) {
       loginThrottle.recordFailure(key);
       // A short fixed delay on failure slows down scripted guessing.
       await new Promise((r) => setTimeout(r, 400));
@@ -105,3 +110,50 @@ export const logout = createServerFn({ method: "POST" }).handler(
     return { ok: true };
   },
 );
+
+export const MIN_PASSWORD_LENGTH = 10;
+
+export interface ChangePasswordResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Change the shared password from inside the site. Requires the current
+ * password again, stores the new one hashed, and refreshes this device's
+ * session so John stays signed in while every other device is signed out.
+ */
+export const changeAdminPassword = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .validator((input: { current: string; next: string }) => ({
+    current: typeof input?.current === "string" ? input.current : "",
+    next: typeof input?.next === "string" ? input.next : "",
+  }))
+  .handler(async ({ data }): Promise<ChangePasswordResult> => {
+    const key = loginThrottle.key();
+    const wait = loginThrottle.remainingMs(key);
+    if (wait > 0) {
+      setResponseStatus(429);
+      return { ok: false, error: "Too many attempts. Please wait a minute and try again." };
+    }
+    if (!(await passwordMatches(data.current))) {
+      loginThrottle.recordFailure(key);
+      await new Promise((r) => setTimeout(r, 400));
+      return { ok: false, error: "The current password is not correct." };
+    }
+    const next = data.next;
+    if (next.trim().length < MIN_PASSWORD_LENGTH) {
+      return { ok: false, error: `Use at least ${MIN_PASSWORD_LENGTH} characters. A short sentence works well.` };
+    }
+    if (next !== next.trim()) return { ok: false, error: "Please remove spaces at the start or end." };
+    if (next === data.current) return { ok: false, error: "That is already the password. Pick a different one." };
+    try {
+      await setAdminPassword(next);
+    } catch (e) {
+      console.error("[auth] could not save the new password", e);
+      return { ok: false, error: "Could not save the new password. Please try again." };
+    }
+    loginThrottle.clear(key);
+    await startSession();
+    return { ok: true };
+  });

@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { getAuthStatus, logout } from "~/server/auth";
 
 /**
@@ -35,7 +35,14 @@ function AdminLayout() {
 
   return (
     <>
-      <div className="fixed top-3 right-3 z-40">
+      <div className="fixed top-3 right-3 z-40 flex gap-2">
+        <Link
+          to="/change-password"
+          className="px-3 py-1.5 rounded-lg bg-[#0d1520]/80 border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 text-xs font-fantasy transition-all backdrop-blur"
+          title="Change the password for the private tools"
+        >
+          🔑 Password
+        </Link>
         <button
           type="button"
           onClick={handleLogout}
