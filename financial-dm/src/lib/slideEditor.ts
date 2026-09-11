@@ -296,15 +296,30 @@ export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
     image: "/themes/backgrounds/obsidian.png",
     light: false,
   },
+  // Painted scenes (generated textures in the same moody style as the set above).
+  { id: "castle", label: "Castle", image: "/themes/backgrounds/castle.jpg", light: false },
+  { id: "dungeon", label: "Dungeon", image: "/themes/backgrounds/dungeon.jpg", light: false },
+  { id: "dungeon-bricks", label: "Dungeon Bricks", image: "/themes/backgrounds/dungeon-bricks.jpg", light: false },
+  { id: "mossy-cobbles", label: "Mossy Cobbles", image: "/themes/backgrounds/mossy-cobbles.jpg", light: false },
+  { id: "temple", label: "Temple", image: "/themes/backgrounds/temple.jpg", light: false },
+  { id: "temple-pillars", label: "Temple Pillars", image: "/themes/backgrounds/temple-pillars.jpg", light: false },
+  { id: "sword", label: "Sword", image: "/themes/backgrounds/sword.jpg", light: false },
+  { id: "fire", label: "Fire", image: "/themes/backgrounds/fire.jpg", light: false },
+  { id: "volcano", label: "Volcano", image: "/themes/backgrounds/volcano.jpg", light: false },
+  { id: "mountains", label: "Mountains", image: "/themes/backgrounds/mountains.jpg", light: false },
+  { id: "forest", label: "Forest", image: "/themes/backgrounds/forest.jpg", light: false },
+  { id: "old-oak-bark", label: "Old Oak Bark", image: "/themes/backgrounds/old-oak-bark.jpg", light: false },
+  { id: "moon", label: "Moon", image: "/themes/backgrounds/moon.jpg", light: false },
+  { id: "starry-sky", label: "Starry Sky", image: "/themes/backgrounds/starry-sky.jpg", light: false },
+  { id: "sky", label: "Day Sky", image: "/themes/backgrounds/sky.jpg", light: true },
+  { id: "clouds", label: "Dusk Clouds", image: "/themes/backgrounds/clouds.jpg", light: false },
+  { id: "thunderstorm", label: "Thunderstorm", image: "/themes/backgrounds/thunderstorm.jpg", light: false },
+  { id: "rain", label: "Rain", image: "/themes/backgrounds/rain.jpg", light: false },
   // Vector backgrounds (small files, crisp at any export size).
   { id: "parchment-map", label: "Parchment Map", image: "/themes/backgrounds/parchment-map.svg", light: true },
   { id: "dragon-scales", label: "Dragon Scales", image: "/themes/backgrounds/dragon-scales.svg", light: false },
   { id: "tavern-wood", label: "Tavern Wood", image: "/themes/backgrounds/tavern-wood.svg", light: false },
   { id: "stained-glass", label: "Stained Glass", image: "/themes/backgrounds/stained-glass.svg", light: false },
-  { id: "castle-stone", label: "Castle Stone", image: "/themes/backgrounds/castle-stone.svg", light: false },
-  { id: "night-forest", label: "Night Forest", image: "/themes/backgrounds/night-forest.svg", light: false },
-  { id: "gold-filigree", label: "Gold Filigree", image: "/themes/backgrounds/gold-filigree.svg", light: false },
-  { id: "red-velvet", label: "Red Velvet", image: "/themes/backgrounds/red-velvet.svg", light: false },
 ];
 
 export interface ThemeBorderOption {
@@ -320,6 +335,15 @@ export const THEME_BORDERS: ThemeBorderOption[] = [
   { id: "pillars", label: "Pillars", image: "/themes/borders/pillars.png" },
   { id: "gold", label: "Gold", image: "/themes/borders/gold.png" },
   { id: "moss", label: "Moss", image: "/themes/borders/moss.png" },
+  // Painted frames.
+  { id: "wrought-iron", label: "Wrought Iron", image: "/themes/borders/wrought-iron.png" },
+  { id: "aged-gold", label: "Aged Gold", image: "/themes/borders/aged-gold.png" },
+  { id: "weathered-stone", label: "Weathered Stone", image: "/themes/borders/weathered-stone.png" },
+  { id: "rune-stone", label: "Rune Stone", image: "/themes/borders/rune-stone.png" },
+  { id: "oak-wood", label: "Oak Wood", image: "/themes/borders/oak-wood.png" },
+  { id: "thorns", label: "Thorns", image: "/themes/borders/thorns.png" },
+  { id: "flame", label: "Flame", image: "/themes/borders/flame.png" },
+  { id: "frost", label: "Frost", image: "/themes/borders/frost.png" },
   // Vector frames.
   { id: "gold-ornate", label: "Gold Ornate", image: "/themes/borders/gold-ornate.svg" },
   { id: "rope", label: "Rope", image: "/themes/borders/rope.svg" },
@@ -355,9 +379,21 @@ export function themeBorderImage(id?: string): string | undefined {
  * undefined when there is no theme border, so the caller falls back to its
  * default slide padding.
  */
+// Thicker frames push the text further in so nothing sits under the frame.
+const BORDER_PADDING: Record<string, string> = {
+  chains: "p-[13%]",
+  flame: "p-[11%]",
+  frost: "p-[11%]",
+  "weathered-stone": "p-[10.5%]",
+  "rune-stone": "p-[10.5%]",
+  "wrought-iron": "p-[9%]",
+  "aged-gold": "p-[9%]",
+  "oak-wood": "p-[9%]",
+};
+
 export function borderContentPaddingClass(id?: string): string | undefined {
   if (!id || !isThemeBorder(id)) return undefined;
-  return id === "chains" ? "p-[13%]" : "p-[7.5%]";
+  return BORDER_PADDING[id] ?? "p-[7.5%]";
 }
 
 /** CSS for a themed slide background (full-bleed texture, cover). */
