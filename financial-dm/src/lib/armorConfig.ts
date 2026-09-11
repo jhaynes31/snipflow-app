@@ -1,9 +1,9 @@
 /**
  * Every number behind the life insurance quiz's coverage estimate (the DIME
- * method: Debts, Income, Mortgage, Education). All of it is a PLACEHOLDER
- * until John confirms it. While `confirmedByJohn` is false the quiz shows a
- * dev-only banner; production never shows the banner, but the flag makes it
- * hard to launch unconfirmed numbers by accident.
+ * method: Debts, Income, Mortgage, Education). John confirmed every value
+ * below (September 2026). If any number changes, set `confirmedByJohn` back
+ * to false until he signs off again: while it is false the quiz shows a
+ * dev-only banner (never in production).
  *
  * Nothing in here is random and nothing in here may import the dice.
  */
@@ -43,7 +43,7 @@ export interface ArmorConfig {
 }
 
 export const ARMOR_CONFIG: ArmorConfig = {
-  confirmedByJohn: false,
+  confirmedByJohn: true,
   incomeMidpoints: { lt30: 25_000, "30_50": 40_000, "50_75": 62_500, "75_100": 87_500, "100_150": 125_000, "150p": 175_000 },
   caregiverReplacementValue: 40_000,
   mortgageMidpoints: { none: 0, lt100: 50_000, "100_200": 150_000, "200_300": 250_000, "300_400": 350_000, "400p": 450_000 },
