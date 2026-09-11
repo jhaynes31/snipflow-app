@@ -154,7 +154,8 @@ function WealthCheckPage() {
 
       {/* Brand header */}
       <div className="mb-6 text-center">
-        <img src="/logo.png" alt="The Financial DM" className="h-24 sm:h-28 mx-auto mb-4 drop-shadow-lg" />
+        <img src="/logo.png" alt="The Financial DM" className="h-40 sm:h-52 w-auto mx-auto mb-2 drop-shadow-lg" />
+        <p className="text-[#c9a25a] text-xs sm:text-sm font-fantasy tracking-wide -mt-1 mb-3">Protect what matters most, because life is unpredictable.</p>
         <h1
           className="text-3xl sm:text-4xl font-fantasy text-[#c08020] tracking-wide"
           style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}

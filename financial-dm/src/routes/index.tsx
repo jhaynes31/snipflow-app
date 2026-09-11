@@ -10,7 +10,8 @@ function Home() {
       className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 pb-20 text-center"
       style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }}
     >
-      <img src="/logo.png" alt="The Financial DM" className="h-28 sm:h-36 mx-auto mb-2 drop-shadow-lg" />
+      <img src="/logo.png" alt="The Financial DM" className="h-40 sm:h-52 w-auto mx-auto mb-2 drop-shadow-lg" />
+      <p className="text-[#c9a25a] text-xs sm:text-sm font-fantasy tracking-wide -mt-1 mb-3">Protect what matters most, because life is unpredictable.</p>
       <span className="rounded-full bg-[#204060]/30 px-3 py-1 text-sm font-fantasy text-[#c08020] border border-[#406080]/30">
         Licensed Term Life Agent
       </span>
