@@ -7,7 +7,7 @@ import StatSheet, { FloatingMods, centerOf, type FloatingMod } from "~/component
 import WealthResults from "~/components/wealth/WealthResults";
 import LootDrop from "~/components/wealth/LootDrop";
 import ShareCard from "~/components/wealth/ShareCard";
-import { lootForRoll } from "~/lib/wealthLoot";
+import { lootById, lootForRoll, statForLoot } from "~/lib/wealthLoot";
 import { renderShareCard, shareFactsFrom, shareOrDownload, shareText } from "~/lib/wealthShare";
 import { NATURAL_1_HEADLINE, NATURAL_20_HEADLINE, OPENING_BUTTON, SAVE_OUTCOME_COPY, openingRollCopy } from "~/components/wealth/wealthCopy";
 import { CLASS_META, STAT_META, TIER_META, computeProfile, formatMod, type Answers, type StatKey } from "~/lib/wealthProfile";
@@ -68,6 +68,10 @@ interface QuizState {
   };
   /** The lead form was submitted once; never ask twice. */
   leadCaptured?: boolean;
+  /** The loot item this person owns, as confirmed by the server. */
+  lootId?: string;
+  /** This email or phone had claimed loot before; same item, no second prize. */
+  lootRepeat?: boolean;
 }
 
 const STORAGE_KEY = "wealth_quiz_v2";
@@ -86,6 +90,8 @@ function loadState(): QuizState | null {
       answers: parsed.answers && typeof parsed.answers === "object" ? parsed.answers : {},
       rolls: parsed.rolls && typeof parsed.rolls === "object" ? parsed.rolls : {},
       leadCaptured: Boolean(parsed.leadCaptured),
+      lootId: typeof parsed.lootId === "string" ? parsed.lootId : undefined,
+      lootRepeat: Boolean(parsed.lootRepeat),
     };
   } catch {
     return null;
@@ -217,9 +223,6 @@ function WealthCheckPage() {
       }
       update((prev) => ({ rolls: { ...prev.rolls, saveEvent: picked.roll, saveEventId: picked.event.id } }));
     }
-    if (state.phase === "loot" && !state.rolls.loot) {
-      update((prev) => ({ rolls: { ...prev.rolls, loot: defaultRng.d20() } }));
-    }
     if (state.phase === "save_roll" && !state.rolls.saveDice) {
       const event = SAVE_EVENTS.find((e) => e.id === state.rolls.saveEventId);
       if (!event) {
@@ -325,6 +328,13 @@ function WealthCheckPage() {
       utm_campaign: utmParams.utm_campaign || storedUtm.utm_campaign,
     };
     const scores = scoresFromAnswers(state.answers);
+    // Roll the loot now (once) so the server can record which item this
+    // person owns. A repeat claimant gets their original item back instead.
+    const lootRoll = state.rolls.loot ?? defaultRng.d20();
+    if (!state.rolls.loot) update((prev) => ({ rolls: { ...prev.rolls, loot: lootRoll } }));
+    const rolledLoot = profile.weakestStat ? lootForRoll(profile.weakestStat, lootRoll) : null;
+    let lootId = rolledLoot?.id;
+    let lootRepeat = false;
 
     try {
       const saved = await saveLead({
@@ -350,16 +360,21 @@ function WealthCheckPage() {
           twist_scenario: state.rolls.twistScenario ?? "",
           save_event: state.rolls.saveEventId ?? "",
           save_outcome: saveResult ? (saveResult.success ? "success" : "fail") : "",
+          loot_id: lootId ?? "",
         },
       });
       if (!saved.ok) console.error("[lead] save failed:", saved.error);
+      if (saved.ok && saved.lootId) {
+        lootId = saved.lootId;
+        lootRepeat = Boolean(saved.repeat);
+      }
     } catch (e) {
       // The loot and the booking still go ahead; the failure is logged so it
       // is not invisible.
       console.error("[lead] save threw:", e);
     }
 
-    update({ leadCaptured: true, phase: "loot" });
+    update({ leadCaptured: true, phase: "loot", lootId, lootRepeat });
     scrollTop();
   };
 
@@ -383,7 +398,7 @@ function WealthCheckPage() {
   const saveModifier = saveEvent ? profile.stats[saveEvent.tests] : 0;
   const saveResult = saveEvent && state.rolls.saveDice ? resolveSave(state.rolls.saveDice, saveModifier, SAVE_DC) : null;
   const shareFacts = saveEvent && saveResult ? shareFactsFrom(saveEvent.name, saveEvent.id, saveResult, TIER_META[profile.tier].title, saveEvent.tests) : null;
-  const lootItem = profile.weakestStat && state.rolls.loot ? lootForRoll(profile.weakestStat, state.rolls.loot) : null;
+  const lootItem = lootById(state.lootId) ?? (profile.weakestStat && state.rolls.loot ? lootForRoll(profile.weakestStat, state.rolls.loot) : null);
   const inQuestions = state.phase === "questions" || state.phase === "twist";
   const parchment = {
     background: "linear-gradient(165deg, #f5e6c8 0%, #ead5a8 55%, #ddc38d 100%)",
@@ -765,8 +780,13 @@ function WealthCheckPage() {
       {state.phase === "loot" && (
         <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
           <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">🎁 Loot drop</p>
+          {state.lootRepeat && (
+            <p className="text-[#a0a0a0] text-sm font-fantasy text-center max-w-sm" data-loot-repeat>
+              You've been at this table before, traveler. One loot drop per adventurer: here's yours again, in case you lost it.
+            </p>
+          )}
           {lootItem && profile.weakestStat ? (
-            <LootDrop key={lootItem.id} item={lootItem} statName={STAT_META[profile.weakestStat].name} />
+            <LootDrop key={lootItem.id} item={lootItem} statName={STAT_META[statForLoot(lootItem.id) ?? profile.weakestStat].name} />
           ) : (
             <div className="h-40" />
           )}

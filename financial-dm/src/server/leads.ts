@@ -40,6 +40,17 @@ export interface LeadData {
   save_event?: string;
   /** "success" or "fail". */
   save_outcome?: string;
+  /** The loot item this person was given (financial health quiz). Fixed on first claim. */
+  loot_id?: string;
+}
+
+export interface SaveLeadResult {
+  ok: boolean;
+  error?: string;
+  /** The loot item this person owns: the first one they ever claimed. */
+  lootId?: string;
+  /** True when this email or phone already claimed loot; no new lead row was made. */
+  repeat?: boolean;
 }
 
 export interface Lead extends LeadData {
@@ -99,6 +110,7 @@ function cleanLeadInput(d: Partial<LeadData> | undefined): LeadData {
     twist_scenario: text(d?.twist_scenario, 40),
     save_event: text(d?.save_event, 40),
     save_outcome: text(d?.save_outcome, 12),
+    loot_id: text(d?.loot_id, 40),
     quiz_score: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null,
   };
 }
@@ -147,14 +159,15 @@ async function migrateLeadsTable() {
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS household_income TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_result TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_score INTEGER`;
-  for (const col of ["character_tier", "character_class", "weakest_stat", "stats_json", "twist_answer", "twist_scenario", "save_event", "save_outcome"]) {
+  await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS retakes INTEGER DEFAULT 0`;
+  for (const col of ["character_tier", "character_class", "weakest_stat", "loot_id", "stats_json", "twist_answer", "twist_scenario", "save_event", "save_outcome"]) {
     await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
 }
 
 export const saveLead = createServerFn({ method: "POST" })
   .validator((d: LeadData) => cleanLeadInput(d))
-  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
+  .handler(async ({ data }): Promise<SaveLeadResult> => {
     if (!data.name || !data.email || !data.phone) {
       return { ok: false, error: "Name, email, and phone are required." };
     }
@@ -167,13 +180,32 @@ export const saveLead = createServerFn({ method: "POST" })
     }
     try {
       await ensureLeadsTable();
+      // Financial health quiz: the loot belongs to the person, not the run.
+      // The same email or phone number gets the item it claimed first and no
+      // second lead row; the existing row just counts the retake.
+      if (data.quiz_type === "financial-health") {
+        const email = data.email.trim().toLowerCase();
+        const phoneDigits = data.phone.replace(/\D/g, "");
+        const prior = (await sql()`
+          SELECT id, loot_id FROM leads
+          WHERE quiz_type = 'financial-health'
+            AND (lower(email) = ${email} OR (${phoneDigits.length >= 7} AND regexp_replace(phone, '[^0-9]', '', 'g') = ${phoneDigits}))
+          ORDER BY created_at ASC LIMIT 1
+        `) as Array<{ id: number; loot_id: string | null }>;
+        if (prior.length) {
+          const keep = prior[0].loot_id || data.loot_id || "";
+          await sql()`UPDATE leads SET retakes = COALESCE(retakes, 0) + 1, loot_id = COALESCE(NULLIF(loot_id, ''), ${keep || null}) WHERE id = ${prior[0].id}`;
+          console.log("[leads] repeat financial health claim for lead", prior[0].id);
+          return { ok: true, lootId: keep || undefined, repeat: true };
+        }
+      }
       await sql()`
-        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome)
+        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome, loot_id)
         VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"}, ${data.quiz_result || ""}, ${
           typeof data.quiz_score === "number" && Number.isFinite(data.quiz_score) ? Math.round(data.quiz_score) : null
-        }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null})
+        }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null}, ${data.loot_id || null})
       `;
-      return { ok: true };
+      return { ok: true, lootId: data.loot_id || undefined, repeat: false };
     } catch (e) {
       console.error("[leads] insert failed:", e);
       return { ok: false, error: String(e) };
@@ -210,6 +242,7 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
     twist_scenario: r.twist_scenario ? String(r.twist_scenario) : undefined,
     save_event: r.save_event ? String(r.save_event) : undefined,
     save_outcome: r.save_outcome ? String(r.save_outcome) : undefined,
+    loot_id: r.loot_id ? String(r.loot_id) : undefined,
     status: String(r.status ?? "New"),
     id: Number(r.id),
     created_at: String(r.created_at),

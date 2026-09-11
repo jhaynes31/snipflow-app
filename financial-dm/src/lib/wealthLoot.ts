@@ -47,3 +47,22 @@ export function lootForRoll(stat: StatKey, d20: number): LootItem {
   const idx = Math.min(items.length - 1, Math.floor(((d20 - 1) * items.length) / 20));
   return items[idx];
 }
+
+/** Find any loot item by id, whichever stat it belongs to. */
+export function lootById(id: string | undefined): LootItem | null {
+  if (!id) return null;
+  for (const items of Object.values(LOOT_TABLE)) {
+    const hit = items.find((i) => i.id === id);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/** Which stat a loot item belongs to. */
+export function statForLoot(id: string | undefined): StatKey | null {
+  if (!id) return null;
+  for (const [stat, items] of Object.entries(LOOT_TABLE) as Array<[StatKey, LootItem[]]>) {
+    if (items.some((i) => i.id === id)) return stat;
+  }
+  return null;
+}
