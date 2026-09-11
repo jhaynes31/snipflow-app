@@ -44,6 +44,24 @@ export interface LeadData {
   save_outcome?: string;
   /** The loot item this person was given (financial health quiz). Fixed on first claim. */
   loot_id?: string;
+  // Life insurance quiz, loaded dice version (all optional, additive)
+  /** Roster summary, e.g. "Partner, 2 kids, parent". */
+  party?: string;
+  youngest_age?: string;
+  income_bracket?: string;
+  mortgage_bracket?: string;
+  debt_bracket?: string;
+  education_choice?: string;
+  employer_coverage?: string;
+  personal_coverage?: string;
+  /** Coverage estimate, rounded to the nearest $10,000. */
+  est_damage?: number | null;
+  est_shield?: number | null;
+  est_gap?: number | null;
+  /** Unarmored, Leather Armor, Chain Mail, Plate Armor, or Traveling Light. */
+  armor_tier?: string;
+  /** "yes" when work coverage is more than half of the shield. */
+  armor_cursed?: string;
 }
 
 export interface SaveLeadResult {
@@ -116,7 +134,26 @@ function cleanLeadInput(d: Partial<LeadData> | undefined): LeadData {
     save_outcome: text(d?.save_outcome, 12),
     loot_id: text(d?.loot_id, 40),
     quiz_score: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null,
+    party: text(d?.party, 120),
+    youngest_age: text(d?.youngest_age, 20),
+    income_bracket: text(d?.income_bracket, 80),
+    mortgage_bracket: text(d?.mortgage_bracket, 40),
+    debt_bracket: text(d?.debt_bracket, 40),
+    education_choice: text(d?.education_choice, 80),
+    employer_coverage: text(d?.employer_coverage, 80),
+    personal_coverage: text(d?.personal_coverage, 40),
+    est_damage: dollars(d?.est_damage),
+    est_shield: dollars(d?.est_shield),
+    est_gap: dollars(d?.est_gap),
+    armor_tier: text(d?.armor_tier, 30),
+    armor_cursed: text(d?.armor_cursed, 3),
   };
+}
+
+/** Whole dollars, capped well above any estimate the quiz can produce. */
+function dollars(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100_000_000, Math.round(n))) : null;
 }
 
 let leadsTableReady: Promise<void> | null = null;
@@ -167,6 +204,13 @@ async function migrateLeadsTable() {
   for (const col of ["character_tier", "character_class", "weakest_stat", "loot_id", "stats_json", "twist_answer", "twist_scenario", "save_event", "save_outcome"]) {
     await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
+  // Life insurance quiz (loaded dice): answers as brackets, estimate as rounded dollars.
+  for (const col of ["party", "youngest_age", "income_bracket", "mortgage_bracket", "debt_bracket", "education_choice", "employer_coverage", "personal_coverage", "armor_tier", "armor_cursed"]) {
+    await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} TEXT`);
+  }
+  for (const col of ["est_damage", "est_shield", "est_gap"]) {
+    await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} INTEGER`);
+  }
 }
 
 export const saveLead = createServerFn({ method: "POST" })
@@ -209,10 +253,12 @@ export const saveLead = createServerFn({ method: "POST" })
         }
       }
       await sql()`
-        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome, loot_id)
+        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome, loot_id,
+          party, youngest_age, income_bracket, mortgage_bracket, debt_bracket, education_choice, employer_coverage, personal_coverage, est_damage, est_shield, est_gap, armor_tier, armor_cursed)
         VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"}, ${data.quiz_result || ""}, ${
           typeof data.quiz_score === "number" && Number.isFinite(data.quiz_score) ? Math.round(data.quiz_score) : null
-        }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null}, ${data.loot_id || null})
+        }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null}, ${data.loot_id || null},
+          ${data.party || null}, ${data.youngest_age || null}, ${data.income_bracket || null}, ${data.mortgage_bracket || null}, ${data.debt_bracket || null}, ${data.education_choice || null}, ${data.employer_coverage || null}, ${data.personal_coverage || null}, ${data.est_damage ?? null}, ${data.est_shield ?? null}, ${data.est_gap ?? null}, ${data.armor_tier || null}, ${data.armor_cursed || null})
       `;
       return { ok: true, lootId: data.loot_id || undefined, repeat: false };
     } catch (e) {
@@ -252,6 +298,19 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
     save_event: r.save_event ? String(r.save_event) : undefined,
     save_outcome: r.save_outcome ? String(r.save_outcome) : undefined,
     loot_id: r.loot_id ? String(r.loot_id) : undefined,
+    party: r.party ? String(r.party) : undefined,
+    youngest_age: r.youngest_age ? String(r.youngest_age) : undefined,
+    income_bracket: r.income_bracket ? String(r.income_bracket) : undefined,
+    mortgage_bracket: r.mortgage_bracket ? String(r.mortgage_bracket) : undefined,
+    debt_bracket: r.debt_bracket ? String(r.debt_bracket) : undefined,
+    education_choice: r.education_choice ? String(r.education_choice) : undefined,
+    employer_coverage: r.employer_coverage ? String(r.employer_coverage) : undefined,
+    personal_coverage: r.personal_coverage ? String(r.personal_coverage) : undefined,
+    est_damage: r.est_damage === null || r.est_damage === undefined ? null : Number(r.est_damage),
+    est_shield: r.est_shield === null || r.est_shield === undefined ? null : Number(r.est_shield),
+    est_gap: r.est_gap === null || r.est_gap === undefined ? null : Number(r.est_gap),
+    armor_tier: r.armor_tier ? String(r.armor_tier) : undefined,
+    armor_cursed: r.armor_cursed ? String(r.armor_cursed) : undefined,
     status: String(r.status ?? "New"),
     id: Number(r.id),
     created_at: String(r.created_at),

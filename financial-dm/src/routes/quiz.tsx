@@ -1,38 +1,73 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import D20Dice from "~/components/D20Dice";
-import QuizQuestions, { QUESTIONS } from "~/components/QuizQuestions";
-import CharacterSheet, { deriveCharacter } from "~/components/CharacterSheet";
 import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
+import PartyRoster from "~/components/life/PartyRoster";
+import PartyTable from "~/components/life/PartyTable";
+import { LOADED_ROLL_1, LOADED_ROLL_1_BUTTON, LOADED_ROLL_2, LOADED_ROLL_2_BUTTON, LOADED_TAGLINE } from "~/components/life/lifeCopy";
+import { ARMOR_CONFIG } from "~/lib/armorConfig";
+import { EMPTY_PARTY, PARTY_IDS, TIER_NAME, approxDollars, computeArmor, partySummary, roundTo10k, type LifeAnswers, type PartyId } from "~/lib/armorEngine";
+import { YOUNGEST_OPTIONS, optionText, visibleQuestions, type LifeQuestion } from "~/lib/lifeQuestions";
 import { saveLead } from "~/server/leads";
 
-type Phase = "landing" | "questions" | "result";
+/**
+ * The life insurance quiz, "loaded dice" version (Section 4):
+ * INTRO_ROLL → PARTY → MONEY_QUESTIONS → TRAP_OR_TREASURE → COVERAGE_QUESTIONS
+ * → DAMAGE_ROLL → AC_REVEAL → RESULTS → LOOT → SHARE
+ *
+ * Phase 1 builds the opening roll, the party, the questions, and the estimate
+ * engine. The results screen here is an interim preview until Phase 3.
+ */
+type Phase = "intro" | "party" | "money" | "coverage" | "result";
+const PHASES: Phase[] = ["intro", "party", "money", "coverage", "result"];
 
-type QuizAnswers = {
-  age_range: string;
-  dependents: string;
-  has_insurance: string;
-  biggest_concern: string;
-  timeline: string;
-  coverage_amount: string;
-  health: string;
-  tobacco: string;
-  monthly_budget: string;
-  household_income: string;
-};
+interface QuizState {
+  phase: Phase;
+  /** Which loaded roll is on screen: 1 or 2. */
+  introRoll: 1 | 2;
+  /** Index within the current question group. */
+  step: number;
+  answers: LifeAnswers;
+  /** The lead form was submitted once; never ask twice. */
+  leadCaptured?: boolean;
+}
 
-const EMPTY_ANSWERS: QuizAnswers = {
-  age_range: "",
-  dependents: "",
-  has_insurance: "",
-  biggest_concern: "",
-  timeline: "",
-  coverage_amount: "",
-  health: "",
-  tobacco: "",
-  monthly_budget: "",
-  household_income: "",
-};
+const STORAGE_KEY = "life_quiz_v1";
+const FRESH: QuizState = { phase: "intro", introRoll: 1, step: 0, answers: { party: EMPTY_PARTY } };
+
+/** Dev-only banner while the estimate's numbers are unconfirmed (Section 9.1). */
+const SHOW_UNCONFIRMED_BANNER = Boolean(import.meta.env.DEV) && !ARMOR_CONFIG.confirmedByJohn;
+
+function loadState(): QuizState | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<QuizState>;
+    if (!p || typeof p !== "object") return null;
+    const a = (p.answers && typeof p.answers === "object" ? p.answers : {}) as Partial<LifeAnswers>;
+    const members = Array.isArray(a.party?.members) ? a.party!.members.filter((m): m is PartyId => (PARTY_IDS as readonly string[]).includes(m)) : [];
+    const youngest = YOUNGEST_OPTIONS.some((o) => o.id === a.party?.youngest) ? a.party!.youngest : undefined;
+    return {
+      phase: PHASES.includes(p.phase as Phase) ? (p.phase as Phase) : "intro",
+      introRoll: p.introRoll === 2 ? 2 : 1,
+      step: Math.max(0, Number(p.step) || 0),
+      answers: { ...a, party: { members, kids: Math.max(1, Math.min(6, Number(a.party?.kids) || 1)), youngest } },
+      leadCaptured: Boolean(p.leadCaptured),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveState(state: QuizState): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 function readUtmParams(): { utm_source: string; utm_medium: string; utm_campaign: string } {
   if (typeof window === "undefined") return { utm_source: "", utm_medium: "", utm_campaign: "" };
@@ -71,51 +106,115 @@ function getStoredUtm(): { utm_source: string; utm_medium: string; utm_campaign:
   return { utm_source: "", utm_medium: "", utm_campaign: "" };
 }
 
+/** Results CTA copy by tier (Section 12.4). */
+function ctaCopy(tier: string): string {
+  if (tier === "traveling_light") return "When your party grows, John's saving you a seat.";
+  if (tier === "plate") return "Want a second set of eyes on your armor? Grab a seat at John's table.";
+  return "Let's forge the rest of your armor. Grab a seat at John's table.";
+}
+
+/** DRAFT disclaimer (Section 12.3): John and compliance must approve. */
+const DISCLAIMER =
+  "This is a rough educational estimate based on a common rule of thumb called the DIME method. It isn't a quote, a recommendation, or financial advice, and it doesn't account for things like savings, Social Security survivor benefits, or your family's specific plans. Talk with a licensed agent for a personalized review.";
+
 export const Route = createFileRoute("/quiz")({
   component: QuizPage,
 });
 
 function QuizPage() {
-  const [phase, setPhase] = useState<Phase>("landing");
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<QuizAnswers>(EMPTY_ANSWERS);
+  const [state, setState] = useState<QuizState>(FRESH);
+  const [hydrated, setHydrated] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [utmParams] = useState(() => readUtmParams());
 
-  // Scroll to top on phase change
+  // Resume a saved game after mount (the server render always starts fresh).
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [phase, questionIndex]);
-
-  const handleDiceComplete = useCallback(() => {
-    // Auto-transition handled by the Start button
+    const saved = loadState();
+    if (saved) setState(saved);
+    setHydrated(true);
   }, []);
 
-  const handleStart = () => {
-    setPhase("questions");
-    setQuestionIndex(0);
-  };
+  const update = useCallback((patch: Partial<QuizState> | ((prev: QuizState) => Partial<QuizState>)) => {
+    setState((prev) => {
+      const next = { ...prev, ...(typeof patch === "function" ? patch(prev) : patch) };
+      saveState(next);
+      return next;
+    });
+  }, []);
 
-  const handleSkip = () => {
-    setPhase("questions");
-    setQuestionIndex(0);
-  };
+  const scrollTop = useCallback(() => {
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }, []);
 
-  const handleAnswer = (key: string, value: string) => {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    if (hydrated) scrollTop();
+  }, [state.phase, state.step, hydrated, scrollTop]);
+
+  // Everything below is derived from the full answer set, every render, so
+  // going back and changing an answer can never double count (Section 3).
+  const armor = useMemo(() => computeArmor(state.answers), [state.answers]);
+  const moneyQs = useMemo(() => visibleQuestions(state.answers, "money"), [state.answers]);
+  const coverageQs = useMemo(() => visibleQuestions(state.answers, "coverage"), [state.answers]);
+  const group: LifeQuestion[] = state.phase === "money" ? moneyQs : state.phase === "coverage" ? coverageQs : [];
+  const q = group[Math.min(state.step, Math.max(0, group.length - 1))];
+  const totalQs = moneyQs.length + coverageQs.length;
+  const questionNumber = state.phase === "coverage" ? moneyQs.length + state.step + 1 : state.step + 1;
+
+  // ── Opening roll ────────────────────────────────────────────────
+  const handleIntroButton = () => {
+    if (state.introRoll === 1) {
+      setIntroDone(false);
+      update({ introRoll: 2 });
+    } else {
+      update({ phase: "party" });
+    }
+  };
+  const skipIntro = () => update({ phase: "party" });
+
+  // ── Questions ──────────────────────────────────────────────────
+  const setAnswer = (key: LifeQuestion["key"], id: string) => {
+    update((prev) => {
+      const answers = { ...prev.answers, [key]: id } as LifeAnswers;
+      // Switching between "paycheck" and "no paycheck" changes which work
+      // coverage question applies, so a stale answer to the other one is dropped.
+      if (key === "income" && (prev.answers.income === "none") !== (id === "none")) delete answers.employer;
+      return { answers };
+    });
   };
 
   const handleNext = () => {
-    if (questionIndex < QUESTIONS.length - 1) {
-      setQuestionIndex((i) => i + 1);
-    } else {
-      setPhase("result");
+    if (state.phase === "money") {
+      if (state.step < moneyQs.length - 1) update({ step: state.step + 1 });
+      else update({ phase: "coverage", step: 0 });
+    } else if (state.phase === "coverage") {
+      if (state.step < coverageQs.length - 1) update({ step: state.step + 1 });
+      else update({ phase: "result", step: 0 });
     }
   };
 
-  const handleCTA = () => {
-    setShowModal(true);
+  const handleBack = () => {
+    if (state.phase === "money") {
+      if (state.step > 0) update({ step: state.step - 1 });
+      else update({ phase: "party" });
+    } else if (state.phase === "coverage") {
+      if (state.step > 0) update({ step: state.step - 1 });
+      else update({ phase: "money", step: Math.max(0, moneyQs.length - 1) });
+    } else if (state.phase === "party") {
+      update({ phase: "intro", introRoll: 1 });
+      setIntroDone(false);
+    }
+  };
+
+  // ── Lead capture → Calendly (placement unchanged until Phase 4) ─
+  const handleCTA = () => setShowModal(true);
+
+  const goToCalendly = (name?: string, email?: string) => {
+    const calendlyUrl = new URL("https://calendly.com/thefinancialdm-proton/30min");
+    if (name) calendlyUrl.searchParams.set("name", name);
+    if (email) calendlyUrl.searchParams.set("email", email);
+    window.location.href = calendlyUrl.toString();
   };
 
   const handleSubmitLead = async (name: string, email: string, phone: string): Promise<LeadSubmitOutcome> => {
@@ -125,30 +224,39 @@ function QuizPage() {
       utm_medium: utmParams.utm_medium || storedUtm.utm_medium,
       utm_campaign: utmParams.utm_campaign || storedUtm.utm_campaign,
     };
+    const a = state.answers;
+    const tierName = TIER_NAME[armor.acTier];
 
-    // Save lead, then redirect
     try {
       const saved = await saveLead({
         data: {
           name,
           email,
           phone,
-          age_range: answers.age_range,
-          dependents: answers.dependents,
-          has_insurance: answers.has_insurance,
-          biggest_concern: answers.biggest_concern,
-          timeline: answers.timeline,
-          coverage_amount: answers.coverage_amount,
-          health: answers.health,
-          tobacco: answers.tobacco,
-          monthly_budget: answers.monthly_budget,
-          household_income: answers.household_income,
+          // Existing fields keep their meanings (Phase 0, item 5).
+          age_range: a.age ?? "",
+          dependents: partySummary(a.party),
+          has_insurance: armor.shield > 0 ? "Yes" : "No",
+          biggest_concern: "",
+          timeline: "",
+          household_income: optionText("income", a.income, a),
           ...finalUtm,
           quiz_type: "insurance",
-          quiz_result: (() => {
-            const c = deriveCharacter(answers);
-            return `${c.className} · ${c.level}`;
-          })(),
+          quiz_result: armor.cursed ? `${tierName} · Cursed armor` : tierName,
+          // New, additive fields (Section 16). Estimates are rounded; no health data.
+          party: partySummary(a.party),
+          youngest_age: a.party.members.includes("kids") ? (YOUNGEST_OPTIONS.find((o) => o.id === a.party.youngest)?.text ?? "") : "",
+          income_bracket: optionText("income", a.income, a),
+          mortgage_bracket: optionText("mortgage", a.mortgage, a),
+          debt_bracket: optionText("debts", a.debts, a),
+          education_choice: a.party.members.includes("kids") ? optionText("education", a.education, a) : "",
+          employer_coverage: optionText("employer", a.employer, a),
+          personal_coverage: optionText("personal", a.personal, a),
+          est_damage: roundTo10k(armor.damage),
+          est_shield: roundTo10k(armor.shield),
+          est_gap: roundTo10k(armor.gap),
+          armor_tier: tierName,
+          armor_cursed: armor.cursed ? "yes" : "no",
         },
       });
       if (!saved.ok) {
@@ -163,98 +271,258 @@ function QuizPage() {
       console.error("[lead] save threw:", e);
     }
 
+    update({ leadCaptured: true });
     setShowModal(false);
     setTransitioning(true);
-
-    // Brief transition before redirect
     await new Promise((r) => setTimeout(r, 1500));
+    goToCalendly(name, email);
+  };
 
-    const calendlyUrl = new URL("https://calendly.com/thefinancialdm-proton/30min");
-    calendlyUrl.searchParams.set("name", name);
-    calendlyUrl.searchParams.set("email", email);
-    window.location.href = calendlyUrl.toString();
+  const inQuestions = state.phase === "money" || state.phase === "coverage";
+  const parchment = {
+    background: "linear-gradient(165deg, #f5e6c8 0%, #ead5a8 55%, #ddc38d 100%)",
+    boxShadow: "inset 0 0 40px rgba(139,105,20,0.25), 0 20px 50px rgba(0,0,0,0.45)",
   };
 
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center py-8 px-4 relative"
+    <main
+      className="min-h-dvh flex flex-col items-center py-8 px-4 relative"
       style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }}
     >
-      {/* Transition overlay */}
-      {transitioning && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4"
-          style={{ backgroundColor: "rgba(8, 14, 22, 0.95)" }}
-        >
-          <div className="w-16 h-16 border-4 border-[#c08020] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#e0e0e0] font-fantasy text-lg animate-pulse">
-            Rolling for initiative...
-          </p>
-          <p className="text-[#a0a0a0] text-sm font-fantasy">
-            Thy council with the DM awaits!
-          </p>
+      {SHOW_UNCONFIRMED_BANNER && (
+        <div className="fixed top-0 inset-x-0 z-40 bg-[#c83a3a] text-white text-center text-xs font-bold py-1" role="status">
+          Estimate values not yet confirmed by John.
         </div>
       )}
 
-      {/* Brand header */}
-      <div className="mb-6 text-center">
-        <img src="/logo.png" alt="The Financial DM" className="h-40 sm:h-52 w-auto mx-auto mb-2 drop-shadow-lg" />
-        <p className="text-[#c9a25a] text-xs sm:text-sm font-fantasy tracking-wide -mt-1 mb-3">Protect what matters most, because life is unpredictable.</p>
-        <h1 className="text-3xl sm:text-4xl font-fantasy text-[#c08020] tracking-wide"
+      {/* Transition overlay */}
+      {transitioning && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: "rgba(8, 14, 22, 0.95)" }}>
+          <div className="w-16 h-16 border-4 border-[#c08020] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[#e0e0e0] font-fantasy text-lg animate-pulse">Rolling for initiative...</p>
+          <p className="text-[#a0a0a0] text-sm font-fantasy">Thy council with the DM awaits!</p>
+        </div>
+      )}
+
+      {/* Brand header (compact once the questions start) */}
+      <div className={`text-center ${inQuestions || state.phase === "party" ? "mb-3" : "mb-6"}`}>
+        {!inQuestions && state.phase !== "party" && (
+          <>
+            <img src="/logo.png" alt="The Financial DM" className="h-40 sm:h-52 w-auto mx-auto mb-2 drop-shadow-lg" />
+            <p className="text-[#c9a25a] text-xs sm:text-sm font-fantasy tracking-wide -mt-1 mb-3">Protect what matters most, because life is unpredictable.</p>
+          </>
+        )}
+        <h1
+          className={`font-fantasy text-[#c08020] tracking-wide ${inQuestions || state.phase === "party" ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl"}`}
           style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}
         >
           ⚔️ Roll for Initiative ⚔️
         </h1>
-        <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">
-          The Financial DM
-        </p>
+        {!inQuestions && state.phase !== "party" && <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">The Financial DM</p>}
       </div>
 
-      {/* Phase: Landing */}
-      {phase === "landing" && (
-        <div className="flex flex-col items-center gap-8 w-full max-w-md">
-          <D20Dice onComplete={handleDiceComplete} />
+      {/* Phase: the loaded opening roll (Section 5) */}
+      {state.phase === "intro" && (
+        <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
+          {hydrated ? (
+            <D20Dice
+              key={`loaded-${state.introRoll}`}
+              value={20}
+              durationMs={1400}
+              skippable
+              honorReducedMotion
+              resultText={() => (state.introRoll === 1 ? "Natural 20!" : "Natural 20... again.")}
+              announce={() => "You rolled a 20. These dice are loaded on purpose; the roll does not affect your results."}
+              onComplete={() => setIntroDone(true)}
+            />
+          ) : (
+            <div className="h-48" />
+          )}
 
-          <div className="flex flex-col items-center gap-4 w-full px-4">
-            <button
-              onClick={handleStart}
-              className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
-            >
-              🎲 Start Thy Quest
-            </button>
-            <button
-              onClick={handleSkip}
-              className="text-[#a0a0a0] hover:text-[#e0e0e0] text-sm font-fantasy underline underline-offset-4 transition-colors"
-            >
-              Skip Intro
-            </button>
+          <div
+            className={`w-full max-w-sm rounded-xl border-2 border-[#8b6914]/60 p-5 text-center transition-opacity duration-500 ${introDone ? "opacity-100" : "opacity-0"}`}
+            style={{ background: "linear-gradient(165deg, #f5e6c8 0%, #ead5a8 55%, #ddc38d 100%)" }}
+            aria-hidden={!introDone}
+          >
+            <p className="text-[#3a2c1a] font-fantasy leading-relaxed">“{state.introRoll === 1 ? LOADED_ROLL_1 : LOADED_ROLL_2}”</p>
+            <p className="mt-2 text-[#7a5f30] text-xs font-fantasy">John, The Financial DM</p>
           </div>
 
-          <p className="text-[#606080] text-xs text-center max-w-xs font-fantasy">
-            Discover thy character class and begin your journey to protect what matters most.
-          </p>
+          <button
+            onClick={handleIntroButton}
+            disabled={!introDone}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] disabled:opacity-40 text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            🎲 {state.introRoll === 1 ? LOADED_ROLL_1_BUTTON : LOADED_ROLL_2_BUTTON}
+          </button>
+          <button onClick={skipIntro} className="text-[#a0a0a0] hover:text-[#e0e0e0] text-sm font-fantasy underline underline-offset-4 transition-colors">
+            Skip intro
+          </button>
+
+          <p className="text-[#606080] text-xs text-center max-w-xs font-fantasy leading-relaxed">{LOADED_TAGLINE}</p>
         </div>
       )}
 
-      {/* Phase: Questions */}
-      {phase === "questions" && (
-        <QuizQuestions
-          questionIndex={questionIndex}
-          answers={answers}
-          onAnswer={handleAnswer}
-          onNext={handleNext}
-        />
+      {/* Phase: build your party (Section 6) */}
+      {state.phase === "party" && (
+        <div className="w-full max-w-md mx-auto">
+          <div className="sticky top-2 z-30 mb-4">
+            <PartyTable party={state.answers.party} compact />
+          </div>
+          <PartyRoster
+            party={state.answers.party}
+            onChange={(party) => update((prev) => ({ answers: { ...prev.answers, party } }))}
+            onNext={() => update({ phase: "money", step: 0 })}
+            onBack={handleBack}
+          />
+        </div>
       )}
 
-      {/* Phase: Result */}
-      {phase === "result" && (
-        <CharacterSheet answers={answers} onCTA={handleCTA} />
+      {/* Phase: money and coverage questions (Section 7) */}
+      {inQuestions && q && (
+        <div className="w-full max-w-md mx-auto">
+          <div className="sticky top-2 z-30 mb-4">
+            <PartyTable party={state.answers.party} compact />
+          </div>
+
+          <div key={`${state.phase}-${state.step}`} className="flex flex-col items-center gap-5 w-full px-1 animate-slide-in">
+            <div className="w-full flex flex-col gap-2 items-center">
+              <div className="w-full flex gap-1.5">
+                {Array.from({ length: totalQs }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                      i < questionNumber - 1 ? "bg-[#c08020]" : i === questionNumber - 1 ? "bg-[#c08020] animate-pulse" : "bg-[#204060]/40"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-[#a0a0a0] font-fantasy tracking-wider uppercase">
+                Question {questionNumber} of {totalQs}
+              </p>
+            </div>
+
+            <div className="w-full rounded-xl border-2 border-[#8b6914]/60 shadow-2xl shadow-black/40 p-5 sm:p-6" style={parchment}>
+              <div className="flex items-center justify-between text-[#8b6914] opacity-70 text-sm select-none">
+                <span>❦</span>
+                <span className="font-fantasy tracking-widest text-xs uppercase">{q.label}</span>
+                <span>❦</span>
+              </div>
+              <h2 className="mt-3 text-xl sm:text-2xl font-bold text-[#3a2c1a] text-center leading-snug">{q.question}</h2>
+              <p className="mt-2 text-sm italic text-[#7a5f30] text-center font-fantasy leading-relaxed">“{q.dm}”</p>
+
+              <div className="mt-5 flex flex-col gap-2.5" role="radiogroup" aria-label={q.question}>
+                {q.options.map((opt) => {
+                  const selected = state.answers[q.key] === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setAnswer(q.key, opt.id)}
+                      className={`w-full px-4 py-3 rounded-lg border-2 text-left font-medium transition-all duration-200 ${
+                        selected
+                          ? "border-[#3a2c1a] bg-[#3a2c1a] text-[#f5e6c8] shadow-lg"
+                          : "border-[#8b6914]/40 bg-[#fdf3dc]/60 text-[#4a3820] hover:border-[#8b6914]/80 hover:bg-[#fdf3dc]"
+                      }`}
+                    >
+                      {opt.text}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 flex justify-between items-center">
+                <button type="button" onClick={handleBack} className="px-4 py-2.5 rounded-lg font-fantasy text-sm text-[#7a5f30] hover:text-[#3a2c1a] transition-all">
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!state.answers[q.key]}
+                  className={`px-6 py-2.5 rounded-lg font-fantasy text-sm transition-all ${
+                    state.answers[q.key]
+                      ? "bg-[#8b6914] hover:bg-[#6f5310] text-[#fdf3dc] font-bold shadow-lg shadow-[#8b6914]/30"
+                      : "bg-[#c9b27e]/50 text-[#8a7a58] cursor-not-allowed"
+                  }`}
+                >
+                  {state.phase === "coverage" && state.step === coverageQs.length - 1 ? "Roll for Damage →" : "Next →"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Lead capture modal */}
-      <LeadModal
-        isOpen={showModal}
-        onSubmit={handleSubmitLead}
-        onClose={() => setShowModal(false)}
-      />
+      {/* Phase: interim results (replaced by the damage roll, AC reveal, and full results in Phase 3) */}
+      {state.phase === "result" && (
+        <div className="flex flex-col items-center gap-5 w-full max-w-md mx-auto px-1 animate-slide-in">
+          <PartyTable party={state.answers.party} />
+          <div className="w-full rounded-xl border-2 border-[#8b6914]/60 shadow-2xl shadow-black/40 p-5 sm:p-6" style={parchment}>
+            <p className="text-center font-fantasy tracking-widest text-xs uppercase text-[#8b6914]">Your Armor Class</p>
+            <h2 className="mt-1 text-2xl sm:text-3xl font-bold font-fantasy text-[#3a2c1a] text-center" data-armor-tier={armor.acTier}>
+              {TIER_NAME[armor.acTier]}
+            </h2>
+            {armor.cursed && (
+              <p className="mt-2 text-center text-sm font-fantasy text-[#8b2020]" data-cursed>
+                ☠️ Cursed armor: most of this protection is work coverage, which usually ends when the job does.
+              </p>
+            )}
+
+            {armor.solo ? (
+              <p className="mt-4 text-sm text-[#4a3820] leading-relaxed text-center">Even solo adventurers leave a tab behind: about {approxDollars(armor.dice.D, 10_000)} in debts and final expenses.</p>
+            ) : (
+              <dl className="mt-4 text-sm text-[#4a3820] space-y-1.5">
+                <Row label="Debts & final expenses" value={approxDollars(armor.dice.D)} />
+                <Row label="Income to replace" value={approxDollars(armor.dice.I)} />
+                <Row label="Mortgage" value={approxDollars(armor.dice.M)} />
+                {armor.kids > 0 && <Row label="Education" value={approxDollars(armor.dice.E)} />}
+                <Row label="Total damage" value={approxDollars(armor.damage, 10_000)} strong />
+                <Row label="Your shield (coverage today)" value={approxDollars(armor.shield)} />
+                <Row label="Where damage gets through" value={approxDollars(armor.gap)} strong />
+              </dl>
+            )}
+
+            {armor.assumptions.map((note) => (
+              <p key={note} className="mt-3 text-xs text-[#7a5f30] italic leading-relaxed" data-assumption>
+                {note}
+              </p>
+            ))}
+            {state.answers.party.members.includes("business") && !armor.solo && (
+              <p className="mt-3 text-xs text-[#7a5f30] leading-relaxed" data-business-note>
+                You've got a business partner at your table. Ask John about coverage that protects the business if something happens to one of you.
+              </p>
+            )}
+
+            <p className="mt-4 text-[11px] text-[#7a5f30] leading-relaxed border-t border-[#8b6914]/30 pt-3" data-disclaimer>
+              {DISCLAIMER}
+            </p>
+          </div>
+
+          <p className="text-[#a0a0a0] text-center text-sm italic max-w-xs font-fantasy">“{ctaCopy(armor.acTier)}”</p>
+          <button
+            onClick={state.leadCaptured ? () => goToCalendly() : handleCTA}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            🎲 Summon Thy DM
+          </button>
+          <button onClick={() => update({ phase: "coverage", step: Math.max(0, coverageQs.length - 1) })} className="text-[#606080] hover:text-[#a0a0a0] text-xs font-fantasy underline underline-offset-4">
+            ← Change an answer
+          </button>
+        </div>
+      )}
+
+      <LeadModal isOpen={showModal} onSubmit={handleSubmitLead} onClose={() => setShowModal(false)} />
     </main>
+  );
+}
+
+function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={`flex justify-between gap-3 ${strong ? "font-bold text-[#3a2c1a] border-t border-[#8b6914]/30 pt-1.5" : ""}`}>
+      <dt>{label}</dt>
+      <dd className="tabular-nums">{value}</dd>
+    </div>
   );
 }
