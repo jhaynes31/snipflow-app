@@ -352,7 +352,7 @@ function StockFinder({ shot, onPick, onSaved }: { shot: BrollShot; onPick: (clip
             <ul className="grid gap-2 grid-cols-3">
               {results.map((st) => (
                 <li key={st.id} className="rounded-lg border border-[#406080]/30 bg-[#0d1520]/60 overflow-hidden">
-                  <a href={st.pageUrl} target="_blank" rel="noreferrer" title="Preview on Pexels">
+                  <a href={st.pageUrl} target="_blank" rel="noreferrer" title={`Preview on ${st.source === "pixabay" ? "Pixabay" : "Pexels"}`}>
                     {st.posterUrl ? <img src={st.posterUrl} alt="" className="w-full aspect-[3/4] object-cover" /> : <div className="w-full aspect-[3/4] bg-[#204060]/40" />}
                   </a>
                   <div className="p-1.5 space-y-1">

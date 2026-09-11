@@ -89,9 +89,11 @@ export interface Footage {
   posterUrl?: string;
 }
 
-/** A stock clip found through the free footage search (Pexels). */
+/** A stock clip found through the free footage search (Pexels or Pixabay). */
 export interface StockClip {
   id: number;
+  /** Which free stock site it came from. */
+  source: "pexels" | "pixabay";
   name: string;
   /** Best quality mp4 for the edit. */
   url: string;

@@ -130,7 +130,7 @@ export default function BrollFinder({ script }: { script: ScriptResult | null })
           </div>
         </div>
         <p className="text-[#a0a0a0] text-sm font-fantasy">
-          Real clips, free to use, matched to each line of the script in order. Hover to preview, download the ones you like, or save them to your library.
+          Real clips from Pexels and Pixabay, free to use, matched to each line of the script in order. Hover to preview, download the ones you like, or save them to your library.
         </p>
 
         {!script ? (
@@ -227,7 +227,7 @@ export default function BrollFinder({ script }: { script: ScriptResult | null })
             </ol>
             {ideas.length > 0 && (
               <p className="text-[#606080] text-xs font-fantasy">
-                Clips come from Pexels and are free to use in John's videos, no credit required. Download opens the full quality file; save your keepers to the library so they are one click away next time.
+                Clips come from Pexels and Pixabay and are free to use in John's videos, no credit required. Download opens the full quality file; save your keepers to the library so they are one click away next time.
               </p>
             )}
           </>
@@ -255,7 +255,7 @@ function StockCard({ clip, saved, onSave }: { clip: StockClip; saved: boolean; o
       }}
       data-stock-id={clip.id}
     >
-      <a href={clip.pageUrl} target="_blank" rel="noreferrer" className="block relative" title="Open on Pexels">
+      <a href={clip.pageUrl} target="_blank" rel="noreferrer" className="block relative" title={`Open on ${clip.source === "pixabay" ? "Pixabay" : "Pexels"}`}>
         {clip.posterUrl && !hover ? (
           <img src={clip.posterUrl} alt="" className="w-full aspect-[3/4] object-cover" loading="lazy" />
         ) : (
@@ -263,6 +263,9 @@ function StockCard({ clip, saved, onSave }: { clip: StockClip; saved: boolean; o
         )}
         <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-fantasy">
           {clip.durationSec ? formatCue(clip.durationSec) : ""}{clip.height ? ` · ${clip.height}p` : ""}
+        </span>
+        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[#e0b45a] text-[10px] font-fantasy capitalize">
+          {clip.source}
         </span>
       </a>
       <div className="p-2 space-y-1">

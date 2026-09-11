@@ -45,7 +45,8 @@ Copy `.env.example` to `.env` and fill it in:
 | `ANTHROPIC_API_KEY` | yes      | key for the content forge |
 | `ADMIN_PASSWORD`    | yes      | shared password for `/dashboard` and `/generator` |
 | `AUTH_SECRET`       | no       | signs the login cookie; derived from the password when unset |
-| `PEXELS_API_KEY`    | no       | free Pexels key; turns on stock footage search inside the shot list |
+| `PEXELS_API_KEY`    | no       | free Pexels key; stock footage for the B Roll tab |
+| `PIXABAY_API_KEY`   | no       | free Pixabay key; second stock footage source for the B Roll tab |
 | `BLOB_READ_WRITE_TOKEN` | no   | Vercel Blob store for uploaded b roll clips (added by Vercel when a Blob store is connected); without it clips are added as links |
 
 Never commit `.env`. The same variables must be set in the Vercel project
@@ -122,7 +123,7 @@ and should be left alone; adjust the inputs that reach it instead.
 The B Roll tab is the script forge followed by footage. Once a script is
 on screen, `src/server/brollFinder.ts` asks the model for 6 to 8 concrete
 footage searches tied to the script's lines in order, pulls real clips for
-each from Pexels (free for commercial use), and shows them with hover
+each from Pexels and Pixabay (both free for commercial use), and shows them with hover
 previews, download links, and a save button. John's own clips live in the
 library (`src/server/clips.ts`): uploads go from the browser straight to
 Vercel Blob with a short lived token, links (Google Drive and the like) can

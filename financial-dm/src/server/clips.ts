@@ -188,10 +188,10 @@ export const deleteClip = createServerFn({ method: "POST" })
     }
   });
 
-// ── Free stock footage search (Pexels) ─────────────────────────────
-// Pexels clips are free for commercial use without attribution (credit is
-// still shown as a courtesy). Needs PEXELS_API_KEY; without it the search
-// says so instead of failing.
+// ── Free stock footage search (Pexels + Pixabay) ───────────────────
+// Both sites offer clips free for commercial use without attribution
+// (credit is still shown as a courtesy). Each needs its own free key;
+// without any key the search says so instead of failing.
 
 export async function searchPexels(
   query: string,
@@ -226,6 +226,7 @@ export async function searchPexels(
       const slug = v.url.replace(/\/$/, "").split("/").pop() ?? `pexels-${v.id}`;
       return {
         id: v.id,
+        source: "pexels" as const,
         name: slug.replace(/-\d+$/, "").replace(/-/g, " "),
         url: hd?.link ?? v.url,
         previewUrl: sd?.link,
@@ -244,6 +245,95 @@ export async function searchPexels(
   }
 }
 
+export async function searchPixabay(
+  query: string,
+  orientation: "portrait" | "landscape" | "square" = "portrait",
+  perPage = 9,
+): Promise<{ ok: boolean; clips: StockClip[]; error?: string }> {
+  const key = process.env.PIXABAY_API_KEY;
+  if (!key) return { ok: false, clips: [], error: "Pixabay is not set up yet. Add a free Pixabay key (PIXABAY_API_KEY) in Vercel." };
+  const q = query.trim().slice(0, 100);
+  if (!q) return { ok: true, clips: [] };
+  try {
+    // Pixabay has no orientation filter for video, so ask for more and sort by fit.
+    const url = `https://pixabay.com/api/videos/?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&per_page=${Math.max(3, Math.min(perPage * 3, 50))}&safesearch=true`;
+    const res = await fetch(url);
+    if (!res.ok) return { ok: false, clips: [], error: `Pixabay search failed (${res.status}).` };
+    const json = (await res.json()) as {
+      hits?: Array<{
+        id: number;
+        pageURL: string;
+        tags?: string;
+        duration?: number;
+        user?: string;
+        picture_id?: string;
+        videos?: Record<string, { url?: string; width?: number; height?: number; thumbnail?: string }>;
+      }>;
+    };
+    const wantPortrait = orientation === "portrait";
+    const clips: StockClip[] = (json.hits ?? [])
+      .map((h) => {
+        const v = h.videos ?? {};
+        const best = v.large?.url ? v.large : v.medium?.url ? v.medium : v.small;
+        const small = v.small?.url ? v.small : v.tiny?.url ? v.tiny : best;
+        const w = best?.width ?? 0;
+        const ht = best?.height ?? 0;
+        const poster = best?.thumbnail ?? small?.thumbnail ?? (h.picture_id ? `https://i.vimeocdn.com/video/${h.picture_id}_640x360.jpg` : undefined);
+        return {
+          id: h.id,
+          source: "pixabay" as const,
+          name: (h.tags ?? "").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 3).join(", ") || `pixabay ${h.id}`,
+          url: best?.url ?? h.pageURL,
+          previewUrl: small?.url,
+          pageUrl: h.pageURL,
+          posterUrl: poster,
+          durationSec: h.duration,
+          width: w,
+          height: ht,
+          credit: h.user ? `Video by ${h.user} on Pixabay` : "Pixabay",
+          fit: wantPortrait ? (ht > w ? 2 : ht === w ? 1 : 0) : orientation === "landscape" ? (w > ht ? 2 : w === ht ? 1 : 0) : ht === w ? 2 : 0,
+        };
+      })
+      .sort((a, b) => b.fit - a.fit)
+      .slice(0, perPage)
+      .map(({ fit: _fit, ...clip }) => clip);
+    return { ok: true, clips };
+  } catch (e) {
+    console.error("[clips] pixabay search failed", e);
+    return { ok: false, clips: [], error: "Pixabay is unreachable right now." };
+  }
+}
+
+export function stockSources(): { pexels: boolean; pixabay: boolean } {
+  return { pexels: Boolean(process.env.PEXELS_API_KEY), pixabay: Boolean(process.env.PIXABAY_API_KEY) };
+}
+
+/** Search every stock site that has a key and interleave the results. */
+export async function searchStock(
+  query: string,
+  orientation: "portrait" | "landscape" | "square" = "portrait",
+  perPage = 8,
+): Promise<{ ok: boolean; clips: StockClip[]; error?: string }> {
+  const on = stockSources();
+  if (!on.pexels && !on.pixabay) {
+    return { ok: false, clips: [], error: "Stock footage search is not set up yet. Add a free Pexels key (PEXELS_API_KEY) and/or Pixabay key (PIXABAY_API_KEY) in Vercel and redeploy." };
+  }
+  const each = on.pexels && on.pixabay ? Math.ceil(perPage / 2) : perPage;
+  type R = { ok: boolean; clips: StockClip[]; error?: string };
+  const none: R = { ok: true, clips: [] };
+  const [a, b] = await Promise.all([
+    on.pexels ? searchPexels(query, orientation, each) : Promise.resolve<R>(none),
+    on.pixabay ? searchPixabay(query, orientation, each) : Promise.resolve<R>(none),
+  ]);
+  const clips: StockClip[] = [];
+  for (let i = 0; i < Math.max(a.clips.length, b.clips.length); i++) {
+    if (a.clips[i]) clips.push(a.clips[i]);
+    if (b.clips[i]) clips.push(b.clips[i]);
+  }
+  const error = [a, b].find((r) => !r.ok)?.error;
+  return { ok: a.ok || b.ok, clips: clips.slice(0, perPage), error: a.ok && b.ok ? undefined : error };
+}
+
 export const searchStockClips = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { query: string; orientation?: "portrait" | "landscape" | "square"; perPage?: number }) => ({
@@ -251,8 +341,11 @@ export const searchStockClips = createServerFn({ method: "POST" })
     orientation: d?.orientation ?? "portrait",
     perPage: Math.min(Math.max(Number(d?.perPage ?? 9) || 9, 1), 24),
   }))
-  .handler(async ({ data }) => searchPexels(data.query, data.orientation, data.perPage));
+  .handler(async ({ data }) => searchStock(data.query, data.orientation, data.perPage));
 
 export const stockSearchEnabled = createServerFn()
   .middleware([requireAdmin])
-  .handler(async (): Promise<boolean> => Boolean(process.env.PEXELS_API_KEY));
+  .handler(async (): Promise<boolean> => {
+    const on = stockSources();
+    return on.pexels || on.pixabay;
+  });

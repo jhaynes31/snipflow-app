@@ -2,8 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireAdmin } from "~/server/auth";
 import { PERSONA_BLOCK, callClaude, cleanText, normalizeTone, parseJsonReply } from "./contentVoice";
 import { topicPromptLines } from "./topics";
-import { listClips } from "./clips";
-import { searchPexels } from "./clips";
+import { listClips, searchStock, stockSources } from "./clips";
 import type { ClipSummary, StockClip } from "~/lib/brollUtils";
 
 /**
@@ -69,7 +68,10 @@ export const findBroll = createServerFn({ method: "POST" })
     const orientation = data.orientation === "landscape" ? "landscape" : "portrait";
     const exclude = Array.isArray(data.exclude) ? data.exclude.map(String).filter(Boolean).slice(0, 40) : [];
     const script = cleanText(data.script);
-    if (!script) return { ideas: [], libraryMatches: [], stockEnabled: Boolean(process.env.PEXELS_API_KEY), error: "Forge a script first." };
+    if (!script) {
+      const on0 = stockSources();
+      return { ideas: [], libraryMatches: [], stockEnabled: on0.pexels || on0.pixabay, error: "Forge a script first." };
+    }
     const user = `${topicPromptLines(data)}
 
 FULL SCRIPT (voice over, in order; the first line is the hook):
@@ -89,18 +91,19 @@ CALL TO ACTION (spoken last): ${cleanText(data.callToAction)}${exclude.length ? 
       .filter((i) => i.query)
       .slice(0, 8);
 
-    const stockEnabled = Boolean(process.env.PEXELS_API_KEY);
+    const on = stockSources();
+    const stockEnabled = on.pexels || on.pixabay;
     let error: string | undefined;
     if (ideas.length === 0) {
       error = "The AI service did not return footage ideas. Please try again.";
     } else if (stockEnabled) {
-      const results = await Promise.all(ideas.map((i) => searchPexels(i.query, orientation, 4)));
+      const results = await Promise.all(ideas.map((i) => searchStock(i.query, orientation, on.pexels && on.pixabay ? 6 : 4)));
       results.forEach((r, k) => {
         ideas[k].clips = r.clips;
-        if (!r.ok && !error) error = r.error;
+        if (r.error && !error) error = r.error;
       });
     } else {
-      error = "Stock footage search is not set up yet. Add a free Pexels key (PEXELS_API_KEY) in Vercel and redeploy.";
+      error = "Stock footage search is not set up yet. Add a free Pexels key (PEXELS_API_KEY) and/or Pixabay key (PIXABAY_API_KEY) in Vercel and redeploy.";
     }
 
     // Anything in John's own library that matches the ideas or the topic.
