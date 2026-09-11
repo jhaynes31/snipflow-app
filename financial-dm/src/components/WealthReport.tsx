@@ -1,14 +1,37 @@
-export interface WealthOption {
+import type { AnswerOption, Answers, Modifiers, ProfileQuestion } from "~/lib/wealthProfile";
+
+export interface WealthOption extends AnswerOption {
+  /** Shown to the player (kept as `text` for the existing markup). */
   text: string;
   points: number;
+  modifiers?: Modifiers;
 }
 
-export interface WealthQuestion {
+export interface WealthQuestion extends ProfileQuestion {
   key: string;
   label: string;
   question: string;
   dm: string;
   options: WealthOption[];
+}
+
+/**
+ * Build the four answer options for a question. Points are the original lead
+ * score values; modifiers move the character sheet stats (Phase 0 mapping).
+ */
+function opts(
+  texts: [string, string, string, string],
+  points: [number, number, number, number],
+  stat?: keyof Modifiers,
+  mods?: [number, number, number, number],
+): WealthOption[] {
+  return texts.map((text, i) => ({
+    id: `o${i + 1}`,
+    label: text,
+    text,
+    points: points[i],
+    modifiers: stat && mods && mods[i] !== 0 ? { [stat]: mods[i] } : undefined,
+  }));
 }
 
 export const WEALTH_QUESTIONS: WealthQuestion[] = [
@@ -17,120 +40,70 @@ export const WEALTH_QUESTIONS: WealthQuestion[] = [
     label: "Emergency Fund",
     question: "How many months could you cover your expenses if you lost your income today?",
     dm: "How many moons could ye survive if thy coin stream ran dry?",
-    options: [
-      { text: "Paycheck to paycheck", points: 0 },
-      { text: "1 to 3 months", points: 4 },
-      { text: "3 to 6 months", points: 7 },
-      { text: "6+ months: solid fund", points: 10 },
-    ],
+    options: opts(["Paycheck to paycheck", "1 to 3 months", "3 to 6 months", "6+ months: solid fund"], [0, 4, 7, 10], "CON", [-2, -1, 1, 2]),
   },
   {
     key: "budgeting",
     label: "Budgeting",
     question: "Do you track where your money goes each month?",
     dm: "Dost thou track thine gold pieces spent each month?",
-    options: [
-      { text: "I have no idea", points: 0 },
-      { text: "Occasionally", points: 3 },
-      { text: "Roughly", points: 7 },
-      { text: "Every dollar accounted for", points: 10 },
-    ],
+    options: opts(["I have no idea", "Occasionally", "Roughly", "Every dollar accounted for"], [0, 3, 7, 10], "DEX", [-2, -1, 1, 2]),
   },
   {
     key: "debt_burden",
     label: "Debt Burden",
     question: "What percentage of your monthly income goes toward debt payments?",
     dm: "What share of thy monthly treasure goes to debt?",
-    options: [
-      { text: "More than 50%", points: 0 },
-      { text: "30 to 50%", points: 3 },
-      { text: "10 to 30%", points: 7 },
-      { text: "Less than 10% or debt free", points: 10 },
-    ],
+    options: opts(["More than 50%", "30 to 50%", "10 to 30%", "Less than 10% or debt free"], [0, 3, 7, 10], "STR", [-2, -1, 1, 3]),
   },
   {
     key: "credit_awareness",
     label: "Credit Awareness",
     question: "Do you know your credit score range?",
     dm: "Knowest thou thy credit score range?",
-    options: [
-      { text: "I'm afraid to look", points: 0 },
-      { text: "Below 600", points: 3 },
-      { text: "600 to 700", points: 7 },
-      { text: "700+", points: 10 },
-    ],
+    options: opts(["I'm afraid to look", "Below 600", "600 to 700", "700+"], [0, 3, 7, 10], "INT", [-2, -1, 1, 2]),
   },
   {
     key: "retirement",
     label: "Retirement",
     question: "Are you actively saving for retirement?",
     dm: "Hast thou begun hoarding gold for thy elder years?",
-    options: [
-      { text: "Not yet", points: 0 },
-      { text: "Just starting", points: 3 },
-      { text: "Consistent contributions", points: 7 },
-      { text: "Maxing out accounts", points: 10 },
-    ],
+    options: opts(["Not yet", "Just starting", "Consistent contributions", "Maxing out accounts"], [0, 3, 7, 10], "WIS", [-1, 0, 1, 1]),
   },
   {
     key: "investing",
     label: "Investing",
     question: "How diversified are your investments?",
     dm: "How spread out is thy treasure across different holdings?",
-    options: [
-      { text: "I don't invest / all in one place", points: 0 },
-      { text: "One type only", points: 3 },
-      { text: "Some diversification", points: 7 },
-      { text: "Well diversified", points: 10 },
-    ],
+    options: opts(["I don't invest / all in one place", "One type only", "Some diversification", "Well diversified"], [0, 3, 7, 10], "WIS", [-1, 0, 1, 1]),
   },
   {
     key: "insurance",
     label: "Insurance",
     question: "Do you have adequate insurance (health, life, home/renters)?",
     dm: "Hath thou warded thyself against calamity?",
-    options: [
-      { text: "No, I'm uninsured", points: 0 },
-      { text: "Minimal coverage", points: 3 },
-      { text: "Adequate protection", points: 7 },
-      { text: "Fully covered", points: 10 },
-    ],
+    options: opts(["No, I'm uninsured", "Minimal coverage", "Adequate protection", "Fully covered"], [0, 3, 7, 10], "CON", [-1, 0, 0, 1]),
   },
   {
     key: "financial_goals",
     label: "Financial Goals",
     question: "Do you have written financial goals?",
     dm: "Hast thou inscribed thy financial quests on parchment?",
-    options: [
-      { text: "No goals", points: 0 },
-      { text: "Vague ideas", points: 3 },
-      { text: "Some written down", points: 7 },
-      { text: "Detailed plan with milestones", points: 10 },
-    ],
+    options: opts(["No goals", "Vague ideas", "Some written down", "Detailed plan with milestones"], [0, 3, 7, 10], "INT", [-1, 0, 0, 1]),
   },
   {
     key: "estate_planning",
     label: "Estate Planning",
     question: "Do you have a will or estate plan in place?",
     dm: "Hast thou prepared thy kingdom for when thou art gone?",
-    options: [
-      { text: "Nothing", points: 0 },
-      { text: "I've thought about it", points: 3 },
-      { text: "Basic will", points: 7 },
-      { text: "Full estate plan", points: 10 },
-    ],
+    options: opts(["Nothing", "I've thought about it", "Basic will", "Full estate plan"], [0, 3, 7, 10], "WIS", [-1, 0, 0, 1]),
   },
   {
     key: "net_worth",
     label: "Net Worth",
     question: "Is your net worth growing year over year?",
     dm: "Is thy treasure growing year by year?",
-    options: [
-      { text: "Shrinking / don't know", points: 0 },
-      { text: "Staying flat", points: 3 },
-      { text: "Growing slowly", points: 7 },
-      { text: "Growing strongly", points: 10 },
-    ],
+    options: opts(["Shrinking / don't know", "Staying flat", "Growing slowly", "Growing strongly"], [0, 3, 7, 10], "DEX", [-1, 0, 0, 1]),
   },
 ];
 
@@ -241,6 +214,16 @@ const TIPS: Record<string, CategoryTips> = {
 
 export function tierForScore(score: number): DragonTier {
   return TIERS.find((t) => score >= t.min) || TIERS[TIERS.length - 1];
+}
+
+/** Points per question key from answers held as option ids. */
+export function scoresFromAnswers(answers: Answers): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const q of WEALTH_QUESTIONS) {
+    const opt = q.options.find((o) => o.id === answers[q.key]);
+    if (opt) out[q.key] = opt.points;
+  }
+  return out;
 }
 
 export function computeScore(scores: Record<string, number>): number {
