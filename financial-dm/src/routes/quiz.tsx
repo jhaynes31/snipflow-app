@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import D20Dice from "~/components/D20Dice";
 import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
 import PartyRoster from "~/components/life/PartyRoster";
 import PartyTable from "~/components/life/PartyTable";
+import TrapOrTreasure from "~/components/life/TrapOrTreasure";
+import { CARDS_PER_GAME, type MythAnswer } from "~/components/life/mythDeck";
+import { dealMyths, mythScore, mythSummary, parseDebugMyths, type MythGame } from "~/lib/lifeMyths";
+import { defaultRng } from "~/lib/wealthRng";
 import { LOADED_ROLL_1, LOADED_ROLL_1_BUTTON, LOADED_ROLL_2, LOADED_ROLL_2_BUTTON, LOADED_TAGLINE } from "~/components/life/lifeCopy";
 import { ARMOR_CONFIG } from "~/lib/armorConfig";
 import { EMPTY_PARTY, PARTY_IDS, TIER_NAME, approxDollars, computeArmor, partySummary, roundTo10k, type LifeAnswers, type PartyId } from "~/lib/armorEngine";
@@ -18,16 +22,18 @@ import { saveLead } from "~/server/leads";
  * Phase 1 builds the opening roll, the party, the questions, and the estimate
  * engine. The results screen here is an interim preview until Phase 3.
  */
-type Phase = "intro" | "party" | "money" | "coverage" | "result";
-const PHASES: Phase[] = ["intro", "party", "money", "coverage", "result"];
+type Phase = "intro" | "party" | "money" | "myths" | "coverage" | "result";
+const PHASES: Phase[] = ["intro", "party", "money", "myths", "coverage", "result"];
 
 interface QuizState {
   phase: Phase;
   /** Which loaded roll is on screen: 1 or 2. */
   introRoll: 1 | 2;
-  /** Index within the current question group. */
+  /** Index within the current question group (or the myth card on the table). */
   step: number;
   answers: LifeAnswers;
+  /** Trap or Treasure: dealt once, stored at once, never redrawn. */
+  myths?: MythGame;
   /** The lead form was submitted once; never ask twice. */
   leadCaptured?: boolean;
 }
@@ -38,6 +44,13 @@ const FRESH: QuizState = { phase: "intro", introRoll: 1, step: 0, answers: { par
 /** Dev-only banner while the estimate's numbers are unconfirmed (Section 9.1). */
 const SHOW_UNCONFIRMED_BANNER = Boolean(import.meta.env.DEV) && !ARMOR_CONFIG.confirmedByJohn;
 
+/**
+ * QA override (?debugMyths=work_coverage,taxes,conversion) exists only in dev
+ * builds or when a preview build sets VITE_ENABLE_DEBUG_ROLLS=1. In production
+ * the check is a compile time false, so the parameter is inert.
+ */
+const DEBUG_ENABLED = Boolean(import.meta.env.DEV) || import.meta.env.VITE_ENABLE_DEBUG_ROLLS === "1";
+
 function loadState(): QuizState | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -47,11 +60,17 @@ function loadState(): QuizState | null {
     const a = (p.answers && typeof p.answers === "object" ? p.answers : {}) as Partial<LifeAnswers>;
     const members = Array.isArray(a.party?.members) ? a.party!.members.filter((m): m is PartyId => (PARTY_IDS as readonly string[]).includes(m)) : [];
     const youngest = YOUNGEST_OPTIONS.some((o) => o.id === a.party?.youngest) ? a.party!.youngest : undefined;
+    const m = p.myths;
+    const myths: MythGame | undefined =
+      m && Array.isArray(m.cards) && m.cards.length === CARDS_PER_GAME
+        ? { roll: Number(m.roll) || 1, cards: m.cards.map(String), guesses: m.guesses && typeof m.guesses === "object" ? m.guesses : {} }
+        : undefined;
     return {
       phase: PHASES.includes(p.phase as Phase) ? (p.phase as Phase) : "intro",
       introRoll: p.introRoll === 2 ? 2 : 1,
       step: Math.max(0, Number(p.step) || 0),
       answers: { ...a, party: { members, kids: Math.max(1, Math.min(6, Number(a.party?.kids) || 1)), youngest } },
+      myths,
       leadCaptured: Boolean(p.leadCaptured),
     };
   } catch {
@@ -125,14 +144,21 @@ function QuizPage() {
   const [state, setState] = useState<QuizState>(FRESH);
   const [hydrated, setHydrated] = useState(false);
   const [introDone, setIntroDone] = useState(false);
+  const [dealt, setDealt] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [utmParams] = useState(() => readUtmParams());
+  const debugMythsRef = useRef<string[]>([]);
 
   // Resume a saved game after mount (the server render always starts fresh).
   useEffect(() => {
+    if (DEBUG_ENABLED) debugMythsRef.current = parseDebugMyths(window.location.search);
     const saved = loadState();
-    if (saved) setState(saved);
+    if (saved) {
+      setState(saved);
+      // A hand that was already dealt shows its cards at once, no replay.
+      if (saved.myths && (saved.phase !== "myths" || Object.keys(saved.myths.guesses).length > 0)) setDealt(true);
+    }
     setHydrated(true);
   }, []);
 
@@ -151,6 +177,13 @@ function QuizPage() {
   useEffect(() => {
     if (hydrated) scrollTop();
   }, [state.phase, state.step, hydrated, scrollTop]);
+
+  // The hand is dealt the moment the phase is entered and stored at once,
+  // before the encounter die starts moving. It is never dealt twice.
+  useEffect(() => {
+    if (!hydrated || state.phase !== "myths" || state.myths) return;
+    update({ myths: { roll: defaultRng.d20(), cards: dealMyths(defaultRng, DEBUG_ENABLED ? debugMythsRef.current : []), guesses: {} } });
+  }, [hydrated, state.phase, state.myths, update]);
 
   // Everything below is derived from the full answer set, every render, so
   // going back and changing an answer can never double count (Section 3).
@@ -187,7 +220,7 @@ function QuizPage() {
   const handleNext = () => {
     if (state.phase === "money") {
       if (state.step < moneyQs.length - 1) update({ step: state.step + 1 });
-      else update({ phase: "coverage", step: 0 });
+      else update({ phase: "myths", step: 0 });
     } else if (state.phase === "coverage") {
       if (state.step < coverageQs.length - 1) update({ step: state.step + 1 });
       else update({ phase: "result", step: 0 });
@@ -198,13 +231,25 @@ function QuizPage() {
     if (state.phase === "money") {
       if (state.step > 0) update({ step: state.step - 1 });
       else update({ phase: "party" });
-    } else if (state.phase === "coverage") {
+    } else if (state.phase === "myths") {
       if (state.step > 0) update({ step: state.step - 1 });
       else update({ phase: "money", step: Math.max(0, moneyQs.length - 1) });
+    } else if (state.phase === "coverage") {
+      if (state.step > 0) update({ step: state.step - 1 });
+      else update({ phase: "myths", step: CARDS_PER_GAME - 1 });
     } else if (state.phase === "party") {
       update({ phase: "intro", introRoll: 1 });
       setIntroDone(false);
     }
+  };
+
+  // ── Trap or Treasure ───────────────────────────────────────────
+  const handleGuess = (cardId: string, answer: MythAnswer) => {
+    update((prev) => (prev.myths && !prev.myths.guesses[cardId] ? { myths: { ...prev.myths, guesses: { ...prev.myths.guesses, [cardId]: answer } } } : {}));
+  };
+  const handleMythNext = () => {
+    if (state.step < CARDS_PER_GAME - 1) update({ step: state.step + 1 });
+    else update({ phase: "coverage", step: 0 });
   };
 
   // ── Lead capture → Calendly (placement unchanged until Phase 4) ─
@@ -257,6 +302,8 @@ function QuizPage() {
           est_gap: roundTo10k(armor.gap),
           armor_tier: tierName,
           armor_cursed: armor.cursed ? "yes" : "no",
+          myth_json: JSON.stringify(mythSummary(state.myths)),
+          myth_score: state.myths ? mythScore(state.myths) : null,
         },
       });
       if (!saved.ok) {
@@ -279,6 +326,7 @@ function QuizPage() {
   };
 
   const inQuestions = state.phase === "money" || state.phase === "coverage";
+  const compactHeader = inQuestions || state.phase === "party" || state.phase === "myths";
   const parchment = {
     background: "linear-gradient(165deg, #f5e6c8 0%, #ead5a8 55%, #ddc38d 100%)",
     boxShadow: "inset 0 0 40px rgba(139,105,20,0.25), 0 20px 50px rgba(0,0,0,0.45)",
@@ -305,20 +353,20 @@ function QuizPage() {
       )}
 
       {/* Brand header (compact once the questions start) */}
-      <div className={`text-center ${inQuestions || state.phase === "party" ? "mb-3" : "mb-6"}`}>
-        {!inQuestions && state.phase !== "party" && (
+      <div className={`text-center ${compactHeader ? "mb-3" : "mb-6"}`}>
+        {!compactHeader && (
           <>
             <img src="/logo.png" alt="The Financial DM" className="h-40 sm:h-52 w-auto mx-auto mb-2 drop-shadow-lg" />
             <p className="text-[#c9a25a] text-xs sm:text-sm font-fantasy tracking-wide -mt-1 mb-3">Protect what matters most, because life is unpredictable.</p>
           </>
         )}
         <h1
-          className={`font-fantasy text-[#c08020] tracking-wide ${inQuestions || state.phase === "party" ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl"}`}
+          className={`font-fantasy text-[#c08020] tracking-wide ${compactHeader ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl"}`}
           style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}
         >
           ⚔️ Roll for Initiative ⚔️
         </h1>
-        {!inQuestions && state.phase !== "party" && <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">The Financial DM</p>}
+        {!compactHeader && <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">The Financial DM</p>}
       </div>
 
       {/* Phase: the loaded opening roll (Section 5) */}
@@ -375,6 +423,34 @@ function QuizPage() {
             onNext={() => update({ phase: "money", step: 0 })}
             onBack={handleBack}
           />
+        </div>
+      )}
+
+      {/* Phase: Trap or Treasure (Section 8) */}
+      {state.phase === "myths" && (
+        <div className="w-full max-w-md mx-auto">
+          <div className="sticky top-2 z-30 mb-4">
+            <PartyTable party={state.answers.party} compact />
+          </div>
+          {!state.myths ? (
+            <div className="h-48" />
+          ) : !dealt ? (
+            <div className="flex flex-col items-center gap-5 animate-slide-in">
+              <D20Dice
+                key={`deal-${state.myths.roll}`}
+                value={state.myths.roll}
+                durationMs={1200}
+                variant="encounter"
+                skippable
+                honorReducedMotion
+                resultText={() => "The rumor pile shuffles..."}
+                announce={() => "Three myth cards are dealt. Call each one trap or treasure."}
+                onComplete={() => setDealt(true)}
+              />
+            </div>
+          ) : (
+            <TrapOrTreasure game={state.myths} step={Math.min(state.step, CARDS_PER_GAME - 1)} onGuess={handleGuess} onNext={handleMythNext} onBack={handleBack} />
+          )}
         </div>
       )}
 
