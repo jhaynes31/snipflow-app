@@ -193,55 +193,65 @@ export const deleteClip = createServerFn({ method: "POST" })
 // still shown as a courtesy). Needs PEXELS_API_KEY; without it the search
 // says so instead of failing.
 
+export async function searchPexels(
+  query: string,
+  orientation: "portrait" | "landscape" | "square" = "portrait",
+  perPage = 9,
+): Promise<{ ok: boolean; clips: StockClip[]; error?: string }> {
+  const key = process.env.PEXELS_API_KEY;
+  if (!key) return { ok: false, clips: [], error: "Stock search is not set up yet. Add a free Pexels key (PEXELS_API_KEY) in Vercel." };
+  const q = query.trim().slice(0, 120);
+  if (!q) return { ok: true, clips: [] };
+  try {
+    const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(q)}&per_page=${perPage}&orientation=${orientation}`;
+    const res = await fetch(url, { headers: { Authorization: key } });
+    if (!res.ok) return { ok: false, clips: [], error: `Stock search failed (${res.status}).` };
+    const json = (await res.json()) as {
+      videos?: Array<{
+        id: number;
+        url: string;
+        image?: string;
+        duration?: number;
+        width?: number;
+        height?: number;
+        user?: { name?: string };
+        video_files?: Array<{ link: string; quality?: string; width?: number; height?: number; file_type?: string }>;
+      }>;
+    };
+    const clips: StockClip[] = (json.videos ?? []).map((v) => {
+      // Prefer an HD mp4 that is not enormous; keep a small one for hover previews.
+      const files = (v.video_files ?? []).filter((f) => (f.file_type ?? "video/mp4") === "video/mp4");
+      const hd = files.find((f) => f.quality === "hd" && Math.max(f.height ?? 0, f.width ?? 0) <= 1920) ?? files.find((f) => f.quality === "hd") ?? files[0];
+      const sd = files.filter((f) => f.quality === "sd").sort((a, b) => (a.width ?? 0) - (b.width ?? 0))[0] ?? hd;
+      const slug = v.url.replace(/\/$/, "").split("/").pop() ?? `pexels-${v.id}`;
+      return {
+        id: v.id,
+        name: slug.replace(/-\d+$/, "").replace(/-/g, " "),
+        url: hd?.link ?? v.url,
+        previewUrl: sd?.link,
+        pageUrl: v.url,
+        posterUrl: v.image,
+        durationSec: v.duration,
+        width: hd?.width ?? v.width,
+        height: hd?.height ?? v.height,
+        credit: v.user?.name ? `Video by ${v.user.name} on Pexels` : "Pexels",
+      };
+    });
+    return { ok: true, clips };
+  } catch (e) {
+    console.error("[clips] stock search failed", e);
+    return { ok: false, clips: [], error: "Stock search is unreachable right now." };
+  }
+}
+
 export const searchStockClips = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
-  .validator((d: { query: string; orientation?: "portrait" | "landscape" | "square" }) => ({
-    query: String(d?.query ?? "").trim().slice(0, 120),
+  .validator((d: { query: string; orientation?: "portrait" | "landscape" | "square"; perPage?: number }) => ({
+    query: String(d?.query ?? ""),
     orientation: d?.orientation ?? "portrait",
+    perPage: Math.min(Math.max(Number(d?.perPage ?? 9) || 9, 1), 24),
   }))
-  .handler(async ({ data }): Promise<{ ok: boolean; clips: StockClip[]; error?: string }> => {
-    const key = process.env.PEXELS_API_KEY;
-    if (!key) return { ok: false, clips: [], error: "Stock search is not set up yet. Add a free Pexels key (PEXELS_API_KEY) in Vercel." };
-    if (!data.query) return { ok: true, clips: [] };
-    try {
-      const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(data.query)}&per_page=9&orientation=${data.orientation}`;
-      const res = await fetch(url, { headers: { Authorization: key } });
-      if (!res.ok) return { ok: false, clips: [], error: `Stock search failed (${res.status}).` };
-      const json = (await res.json()) as {
-        videos?: Array<{
-          id: number;
-          url: string;
-          image?: string;
-          duration?: number;
-          width?: number;
-          height?: number;
-          user?: { name?: string };
-          video_files?: Array<{ link: string; quality?: string; width?: number; height?: number; file_type?: string }>;
-        }>;
-      };
-      const clips: StockClip[] = (json.videos ?? []).map((v) => {
-        // Prefer an HD mp4 that is not enormous.
-        const files = (v.video_files ?? []).filter((f) => (f.file_type ?? "video/mp4") === "video/mp4");
-        const pick = files.find((f) => f.quality === "hd" && (f.height ?? 0) <= 1920) ?? files.find((f) => f.quality === "hd") ?? files[0];
-        const slug = v.url.replace(/\/$/, "").split("/").pop() ?? `pexels-${v.id}`;
-        return {
-          id: v.id,
-          name: slug.replace(/-\d+$/, "").replace(/-/g, " "),
-          url: pick?.link ?? v.url,
-          pageUrl: v.url,
-          posterUrl: v.image,
-          durationSec: v.duration,
-          width: pick?.width ?? v.width,
-          height: pick?.height ?? v.height,
-          credit: v.user?.name ? `Video by ${v.user.name} on Pexels` : "Pexels",
-        };
-      });
-      return { ok: true, clips };
-    } catch (e) {
-      console.error("[clips] stock search failed", e);
-      return { ok: false, clips: [], error: "Stock search is unreachable right now." };
-    }
-  });
+  .handler(async ({ data }) => searchPexels(data.query, data.orientation, data.perPage));
 
 export const stockSearchEnabled = createServerFn()
   .middleware([requireAdmin])

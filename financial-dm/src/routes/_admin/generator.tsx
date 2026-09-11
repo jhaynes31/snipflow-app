@@ -15,7 +15,10 @@ import SavedScripts from "~/components/SavedScripts";
 import SavedConcepts from "~/components/SavedConcepts";
 import SavedCarousels from "~/components/SavedCarousels";
 import SavedSocialCards from "~/components/SavedSocialCards";
-import BrollForge from "~/components/BrollForge";
+import BrollTab from "~/components/BrollTab";
+import ClipLibrary from "~/components/ClipLibrary";
+import { getClips } from "~/server/clips";
+import type { ClipSummary } from "~/lib/brollUtils";
 import SavedBroll from "~/components/SavedBroll";
 import { DEFAULT_TONE } from "~/lib/contentOptions";
 
@@ -72,10 +75,10 @@ const TAB_META: Record<
   },
   broll: {
     label: "🎬 B Roll",
-    title: "B Roll Planner",
+    title: "B Roll Forge",
     blurb:
-      "Pick a saved script and get a shot list: what to film or find under each line, from which source, with on screen text and cues in seconds.",
-    saved: "🎞️ Saved Shot Lists",
+      "Forge the script, then get real footage for every line of it, ready to download and edit, plus your own clip library.",
+    saved: "📁 My B Roll Library",
   },
 };
 
@@ -225,11 +228,23 @@ function GeneratorHub() {
 
         {view === "saved" ? (
           <div className={tab === "meme" ? "max-w-6xl mx-auto" : ""}>
-            {tab === "script" && <SavedScripts />}
+            {tab === "script" && (
+              <div className="space-y-8">
+                <SavedScripts />
+                <details className="rounded-xl border border-[#406080]/30 bg-[#111a28] p-5">
+                  <summary className="cursor-pointer font-fantasy text-[#c08020] text-lg">
+                    🎬 Saved Shot Lists
+                  </summary>
+                  <div className="pt-4">
+                    <SavedBroll />
+                  </div>
+                </details>
+              </div>
+            )}
             {tab === "meme" && <SavedConcepts />}
             {tab === "carousel" && <SavedCarousels />}
             {tab === "card" && <SavedSocialCards />}
-            {tab === "broll" && <SavedBroll />}
+            {tab === "broll" && <BrollLibraryView />}
           </div>
         ) : (
           <div className="space-y-6">
@@ -297,7 +312,7 @@ function GeneratorHub() {
               />
             )}
             {tab === "broll" && (
-              <BrollForge
+              <BrollTab
                 selection={single}
                 tone={tone}
                 dndThemed={dndThemed}
@@ -322,5 +337,27 @@ function GeneratorHub() {
         </div>
       </div>
     </main>
+  );
+}
+
+/** The B Roll tab's saved view: John's own footage. */
+function BrollLibraryView() {
+  const [clips, setClips] = useState<ClipSummary[]>([]);
+  const [uploadsEnabled, setUploadsEnabled] = useState(false);
+  useEffect(() => {
+    getClips()
+      .then((r) => {
+        setClips(r.clips);
+        setUploadsEnabled(r.uploadsEnabled);
+      })
+      .catch(() => {});
+  }, []);
+  return (
+    <ClipLibrary
+      clips={clips}
+      uploadsEnabled={uploadsEnabled}
+      onChange={setClips}
+      defaultOpen
+    />
   );
 }

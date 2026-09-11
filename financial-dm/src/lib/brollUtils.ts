@@ -93,7 +93,10 @@ export interface Footage {
 export interface StockClip {
   id: number;
   name: string;
+  /** Best quality mp4 for the edit. */
   url: string;
+  /** Small mp4 for hover previews. */
+  previewUrl?: string;
   pageUrl: string;
   posterUrl?: string;
   durationSec?: number;

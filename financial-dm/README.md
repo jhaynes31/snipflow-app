@@ -117,19 +117,22 @@ screen. The hook rule in
 `src/server/scriptGenerator.ts` is intentionally unchanged from the original
 and should be left alone; adjust the inputs that reach it instead.
 
-## B roll planner
+## B roll
 
-`src/server/brollGenerator.ts` turns a finished script (a fresh forge or a
-saved one) into a shot list: 6 to 8 beats that quote the script word for
-word, what to film or source for each (John films it, stock clip, screen
-recording, or text card), on screen text in the bartender's voice, notes,
-and a rough cue in seconds from `estimateTiming` in `src/lib/brollUtils.ts`.
-It never rewrites the script. Plans save to `saved_broll`. The B Roll tab
-can also forge a fresh script and its shot list in one step. John's own
-clips live in the library (`src/server/clips.ts`): video files upload from
-the browser straight to Vercel Blob with a short lived token, details go
-to `broll_clips`, and the planner is shown the library so it can point a
-shot at a clip he already has.
+The B Roll tab is the script forge followed by footage. Once a script is
+on screen, `src/server/brollFinder.ts` asks the model for 6 to 8 concrete
+footage searches tied to the script's lines in order, pulls real clips for
+each from Pexels (free for commercial use), and shows them with hover
+previews, download links, and a save button. John's own clips live in the
+library (`src/server/clips.ts`): uploads go from the browser straight to
+Vercel Blob with a short lived token, links (Google Drive and the like) can
+be added one at a time or many at once, and matching library clips show
+next to the stock results.
+
+The optional shot list (`src/server/brollGenerator.ts`, Step 5 under the
+Script tab) turns a script into beats with what to film, on screen text,
+and cues in seconds; saved shot lists sit under the Script tab's saved
+view.
 
 ## PNG export
 

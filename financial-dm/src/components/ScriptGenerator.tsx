@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ScriptResult } from "~/server/scriptGenerator";
 import { generateScript, regenerateHooks, saveScript } from "~/server/scriptGenerator";
 import type { TopicSelection } from "~/server/topics";
@@ -30,10 +30,16 @@ export default function ScriptGenerator({
   selection,
   tone,
   dndThemed,
+  onResult,
+  showPlanner = true,
 }: {
   selection: TopicSelection | null;
   tone: string;
   dndThemed: boolean;
+  /** The B Roll tab listens here and pulls footage for whatever script is on screen. */
+  onResult?: (result: ScriptResult | null) => void;
+  /** Hide the optional Step 5 shot list (the B Roll tab shows footage instead). */
+  showPlanner?: boolean;
 }) {
   const [hookType, setHookType] = useState("direct_callout");
   const [targetViewer, setTargetViewer] = useState("");
@@ -49,6 +55,10 @@ export default function ScriptGenerator({
   const [downloaded, setDownloaded] = useState(false);
   /** saved_scripts.id once this package is saved, so the b roll plan can point at it. */
   const [savedId, setSavedId] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    onResult?.(result);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   const textParts = useCallback(
     (r: ScriptResult) => ({
@@ -454,6 +464,7 @@ export default function ScriptGenerator({
       </section>
 
       {/* Plan the B Roll: follows the finished script, never changes it. */}
+      {showPlanner && (
       <BrollPlanner
         source={
           result
@@ -472,6 +483,7 @@ export default function ScriptGenerator({
             : null
         }
       />
+      )}
     </div>
   );
 }
