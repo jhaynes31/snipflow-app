@@ -142,12 +142,13 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   {
     id: "wrapup",
     title: "Wrap up and learn",
-    where: "Quest → ✏️ Edit quest → Retro",
+    where: "Scoreboard, or Quest → ✏️ Edit quest → Retro",
     intro: "When the end date passes, close the quest and write down what you learned while it is fresh. The Scoreboard and, later, the campaign coach both read from this.",
     steps: [
       { do: "Set the quest status to Complete." },
-      { do: "Fill in the Retro: what did we learn? Two or three honest sentences are enough.", note: "The chips offer starters if the page is blank." },
-      { do: "Open the Scoreboard to compare quests by bookings, then sales. Below 20 leads it says \"Too early to tell\" instead of showing rates.", note: "The Scoreboard is the next piece being built." },
+      { do: "Fill in the Retro: what did we learn? Two or three honest sentences are enough.", note: "The chips offer starters if the page is blank. The retro feeds the campaign coach later." },
+      { do: "Open the Scoreboard. Quests are ranked by bookings, then sales, with posts, link visits, quiz starts and finishes, leads, and not-a-fit reasons beside each.", note: "Below 20 leads it says \"Too early to tell\" instead of showing rates. Tick two or three quests to see them side by side." },
+      { do: "When a quest's end date passes, the Scoreboard asks \"What did we learn?\" at the top. Answer it there and it saves to the quest." },
       { do: "Start the next quest with the best-performing idea, or the next question you want answered." },
     ],
     tip: "Two completed quests with real numbers beat ten half-finished ones.",

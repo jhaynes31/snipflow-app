@@ -2,6 +2,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import QuestsSection from "~/components/quest/QuestsSection";
 import SuggestField from "~/components/quest/SuggestField";
 import QuestGuide from "~/components/quest/QuestGuide";
+import Scoreboard from "~/components/quest/Scoreboard";
 import { LIFE_STAGES, PROFILE_NAMES, TRIGGERS, WORRIES } from "~/lib/questSuggestions";
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
@@ -73,20 +74,10 @@ function QuestBoardPage() {
 
         {section === "profiles" && <ProfilesSection />}
         {section === "quests" && <QuestsSection questId={quest ?? null} onSelectQuest={(id) => navigate({ to: "/quest-board", search: { section: "quests", quest: id ?? undefined } })} />}
-        {section === "scoreboard" && <ComingSoon title="Scoreboard" phase="Phase 5" blurb={SECTIONS[2].blurb} />}
+        {section === "scoreboard" && <Scoreboard onOpenQuest={(id) => navigate({ to: "/quest-board", search: { section: "quests", quest: id } })} />}
         {section === "guide" && <QuestGuide />}
       </div>
     </main>
-  );
-}
-
-function ComingSoon({ title, phase, blurb }: { title: string; phase: string; blurb: string }) {
-  return (
-    <section className="rounded-xl border border-[#406080]/30 bg-[#111a28] p-8 text-center">
-      <h2 className="font-fantasy text-[#c08020] text-xl">{title}</h2>
-      <p className="text-[#a0a0a0] text-sm font-fantasy mt-2 max-w-md mx-auto">{blurb}</p>
-      <p className="text-[#606080] text-xs font-fantasy mt-4">Arrives in {phase}.</p>
-    </section>
   );
 }
 

@@ -187,7 +187,7 @@ let leadsTableReady: Promise<void> | null = null;
 /** Idempotent schema setup: create the table if missing and add columns
  *  introduced later. Runs once per server instance (memoized) so a lead
  *  insert is a single query, not eight. */
-function ensureLeadsTable(): Promise<void> {
+export function ensureLeadsTable(): Promise<void> {
   if (!leadsTableReady) {
     leadsTableReady = migrateLeadsTable().catch((e) => {
       leadsTableReady = null;
