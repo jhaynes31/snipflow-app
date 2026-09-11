@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { EditableSlide, SlideElement, HAlign, VPos, CustomBackground } from "~/lib/slideEditor";
-import { BACKGROUNDS, THEME_BACKGROUNDS, THEME_BORDERS, isCustomBackground } from "~/lib/slideEditor";
+import { BACKGROUNDS, TEXT_COLOR_PRESETS, THEME_BACKGROUNDS, THEME_BORDERS, elementColor, isCustomBackground } from "~/lib/slideEditor";
 import type { ChangeEvent } from "react";
 
 const ALIGN_OPTIONS: Array<{ value: HAlign; icon: string; label: string }> = [
@@ -55,6 +55,8 @@ export default function SlideEditorPanel({
   onSelectThemeBackground,
   onSelectThemeBorder,
   onApplyLookToAll,
+  onColorAll,
+  onColorAllSlides,
 }: {
   slide: EditableSlide;
   slideNumber: number;
@@ -70,11 +72,24 @@ export default function SlideEditorPanel({
   onSelectThemeBackground: (id: string | undefined) => void;
   onSelectThemeBorder: (id: string | undefined) => void;
   onApplyLookToAll: (look: SlideLook) => void;
+  /** Set (or clear, with undefined) the text color of every element on this slide. */
+  onColorAll: (color: string | undefined) => void;
+  /** Set (or clear) the text color of every element on every slide. */
+  onColorAllSlides: (color: string | undefined) => void;
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState<Tab>("background");
   const [tall, setTall] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [coloredAll, setColoredAll] = useState(false);
+  const customColorRef = useRef<HTMLInputElement | null>(null);
+  const elementColorRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  /** The slide's current text color when every element shares one; else none. */
+  const slideColor = (() => {
+    const colors = new Set(slide.elements.map((e) => e.color ?? ""));
+    return colors.size === 1 ? [...colors][0] || undefined : null;
+  })();
 
   const hasScene = !!slide.themeBackground;
 
@@ -114,6 +129,41 @@ export default function SlideEditorPanel({
     >
       {label}
     </button>
+  );
+
+  const swatches = (current: string | undefined | null, onPick: (color: string | undefined) => void, pickerRef: (el: HTMLInputElement | null) => void, size = "w-7 h-7") => (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {TEXT_COLOR_PRESETS.map((c) => {
+        const active = current !== null && (current ?? undefined) === c.value;
+        return (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onPick(c.value)}
+            title={c.label}
+            aria-label={`Text color ${c.label}`}
+            aria-pressed={active}
+            data-text-color={c.id}
+            className={`${size} rounded-full border-2 transition-all flex items-center justify-center text-[10px] ${
+              active ? "border-[#c08020] ring-2 ring-[#c08020]/50 scale-110" : "border-[#406080]/60 hover:border-[#c08020]/70"
+            }`}
+            style={c.value ? { background: c.value } : { background: "linear-gradient(135deg,#ffffff 0 50%,#0d1520 50% 100%)" }}
+          >
+            {!c.value && <span className="sr-only">Auto</span>}
+          </button>
+        );
+      })}
+      <label className={`${size} rounded-full border-2 border-dashed border-[#406080]/60 hover:border-[#c08020]/70 flex items-center justify-center cursor-pointer text-xs`} title="Pick any color">
+        🎨
+        <input
+          ref={pickerRef}
+          type="color"
+          className="sr-only"
+          onChange={(e) => onPick(e.target.value)}
+          aria-label="Pick any text color"
+        />
+      </label>
+    </div>
   );
 
   const thumbClass = (active: boolean) =>
@@ -287,6 +337,25 @@ export default function SlideEditorPanel({
 
           {tab === "text" && (
             <div>
+              <div className="rounded-lg border border-[#406080]/25 bg-[#0d1520]/50 p-3 mb-3" data-slide-color>
+                <p className="text-[#a0a0a0] text-[11px] font-fantasy uppercase tracking-wider mb-2">Text color for this slide</p>
+                {swatches(slideColor, onColorAll, (el) => (customColorRef.current = el))}
+                <p className="text-[#606080] text-[11px] font-fantasy mt-2">
+                  Auto picks light or dark text for the background. Pick a swatch when it's hard to read, or 🎨 for any color.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onColorAllSlides(slideColor === null ? undefined : slideColor);
+                    setColoredAll(true);
+                    setTimeout(() => setColoredAll(false), 1500);
+                  }}
+                  className="mt-2 px-3 py-1.5 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15 transition-all text-xs font-fantasy"
+                  data-color-all-slides
+                >
+                  {coloredAll ? "✅ Applied to all slides" : "🎨 Use this text color on all slides"}
+                </button>
+              </div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[#a0a0a0] text-[11px] font-fantasy uppercase tracking-wider">Text on this slide</p>
                 <button
@@ -318,6 +387,11 @@ export default function SlideEditorPanel({
                       className="w-full px-3 py-2 rounded-lg bg-[#111a28] border border-[#406080]/40 text-[#e0e0e0] placeholder-[#606080] text-sm font-fantasy focus:outline-none focus:border-[#c08020]/50 resize-none"
                       placeholder="Type the text for this slide..."
                     />
+                    <div className="flex items-center gap-2" data-element-color={el.id}>
+                      <span className="text-[#606080] text-[11px] font-fantasy shrink-0">Color</span>
+                      <span className="w-4 h-4 rounded-full border border-[#406080]/60 shrink-0" style={{ background: elementColor(el, slide.background, slide.themeBackground) }} aria-hidden="true" />
+                      {swatches(el.color, (c) => onUpdateElement(el.id, { color: c }), (node) => (elementColorRefs.current[el.id] = node), "w-5 h-5")}
+                    </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="flex items-center gap-1">
                         <span className="text-[#606080] text-[11px] font-fantasy mr-1">Align</span>

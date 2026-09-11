@@ -102,7 +102,7 @@ Respond with valid JSON only, with no other text and no markdown fences. Use exa
 
 // ── Server Functions ───────────────────────────────────────────────
 
-export const generateCarousel = createServerFn()
+export const generateCarousel = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: CarouselInput) => d)
   .handler(async ({ data }): Promise<CarouselResult | null> => {
@@ -181,7 +181,7 @@ export const initCarouselsTable = createServerFn()
   });
 
 /** Persist a generated carousel. Mirrors saveScript. */
-export const saveCarousel = createServerFn()
+export const saveCarousel = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: SaveCarouselInput) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; id?: number; error?: string }> => {
@@ -227,7 +227,7 @@ export const getSavedCarousels = createServerFn()
   });
 
 /** Update the editable slides of a saved carousel (used by inline editing). */
-export const updateCarouselSlides = createServerFn()
+export const updateCarouselSlides = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number; slides: EditableSlide[] }) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -241,7 +241,7 @@ export const updateCarouselSlides = createServerFn()
   });
 
 /** Delete a saved carousel by id. */
-export const deleteCarousel = createServerFn()
+export const deleteCarousel = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {

@@ -104,7 +104,7 @@ function normalizeStyle(raw: unknown): BrollStyle {
   return (BROLL_STYLES as readonly string[]).includes(s) ? (s as BrollStyle) : "mixed";
 }
 
-export const generateBroll = createServerFn()
+export const generateBroll = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: BrollInput) => d)
   .handler(async ({ data }): Promise<BrollPlan | null> => {
@@ -223,7 +223,7 @@ export const initBrollTable = createServerFn()
     return { ok: true };
   });
 
-export const saveBroll = createServerFn()
+export const saveBroll = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: BrollPlan) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; id?: number; error?: string }> => {
@@ -285,7 +285,7 @@ export const getSavedBroll = createServerFn()
   });
 
 /** Update the shots of a saved plan (inline edits to on screen text etc.). */
-export const updateBrollShots = createServerFn()
+export const updateBrollShots = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number; shots: BrollShot[] }) => ({ id: Number(d?.id), shots: Array.isArray(d?.shots) ? d.shots : [] }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -298,7 +298,7 @@ export const updateBrollShots = createServerFn()
     }
   });
 
-export const deleteBroll = createServerFn()
+export const deleteBroll = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {

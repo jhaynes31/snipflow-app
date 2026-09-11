@@ -32,6 +32,12 @@ export interface SlideElement {
    */
   offsetX?: number;
   offsetY?: number;
+  /**
+   * Optional text color chosen by the owner (a hex value). When absent the
+   * element uses the automatic palette for its background, which is what
+   * every generated deck starts with.
+   */
+  color?: string;
 }
 
 export interface EditableSlide {
@@ -429,12 +435,30 @@ export function elementColor(
   backgroundId?: string,
   themeBackgroundId?: string,
 ): string {
+  if (el.color && isHexColor(el.color)) return el.color;
   const light = isThemeBackground(themeBackgroundId)
     ? isLightThemeBackground(themeBackgroundId)
     : isLightBackground(backgroundId);
   const palette = light ? LIGHT_PALETTE : DARK_PALETTE;
   return palette[el.role] ?? palette.heading;
 }
+
+export function isHexColor(v: unknown): v is string {
+  return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
+}
+
+/** Quick picks for text color. "Auto" (undefined) restores the palette. */
+export const TEXT_COLOR_PRESETS: Array<{ id: string; label: string; value?: string }> = [
+  { id: "auto", label: "Auto" },
+  { id: "white", label: "White", value: "#ffffff" },
+  { id: "cream", label: "Cream", value: "#f5e6c8" },
+  { id: "gold", label: "Gold", value: "#e0b45a" },
+  { id: "sky", label: "Sky", value: "#bfe3ff" },
+  { id: "mint", label: "Mint", value: "#9fe3b0" },
+  { id: "navy", label: "Navy", value: "#0d1520" },
+  { id: "brown", label: "Brown", value: "#3a2c1a" },
+  { id: "black", label: "Black", value: "#000000" },
+];
 
 /**
  * Text sizes are container-query units (cqw: 1% of the slide's width), so a
@@ -603,6 +627,7 @@ function normalizeSlide(s: EditableSlide): EditableSlide | null {
               typeof e.offsetY === "number" && Number.isFinite(e.offsetY)
                 ? e.offsetY
                 : undefined,
+            color: isHexColor(e.color) ? e.color : undefined,
           }
         : null,
     )

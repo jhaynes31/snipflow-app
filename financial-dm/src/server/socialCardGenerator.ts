@@ -143,7 +143,7 @@ Respond with valid JSON only, with no other text and no markdown fences. Use exa
 
 // ── Server Functions ───────────────────────────────────────────────
 
-export const generateSocialCards = createServerFn()
+export const generateSocialCards = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: SocialCardGenerateInput) => d)
   .handler(async ({ data }): Promise<SocialCardBatchResult | null> => {
@@ -262,7 +262,7 @@ export interface SaveSocialCardsInput {
   cards: SocialCard[];
 }
 
-export const saveSocialCards = createServerFn()
+export const saveSocialCards = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: SaveSocialCardsInput) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; id?: number; error?: string }> => {
@@ -310,7 +310,7 @@ export const getSavedSocialCards = createServerFn()
   });
 
 /** Update the edited cards of a saved batch (used by inline editing). */
-export const updateSocialCards = createServerFn()
+export const updateSocialCards = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number; cards: SocialCard[] }) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -325,7 +325,7 @@ export const updateSocialCards = createServerFn()
     }
   });
 
-export const deleteSocialCards = createServerFn()
+export const deleteSocialCards = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {

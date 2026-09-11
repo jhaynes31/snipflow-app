@@ -141,6 +141,24 @@ export default function SavedCarousels() {
     markDirty(id);
   }, []);
 
+  const colorAll = useCallback((id: number, idx: number, color: string | undefined) => {
+    setDeckById((db) => {
+      const arr = db[id] || [];
+      const next = arr.map((s, i) => (i === idx ? { ...s, elements: s.elements.map((e) => ({ ...e, color })) } : s));
+      return { ...db, [id]: next };
+    });
+    markDirty(id);
+  }, []);
+
+  const colorAllSlides = useCallback((id: number, color: string | undefined) => {
+    setDeckById((db) => {
+      const arr = db[id] || [];
+      const next = arr.map((s) => ({ ...s, elements: s.elements.map((e) => ({ ...e, color })) }));
+      return { ...db, [id]: next };
+    });
+    markDirty(id);
+  }, []);
+
   /** Copy one slide's whole look (background, scene, border) to every slide of that carousel. */
   const applyLookToAll = useCallback((id: number, look: SlideLook) => {
     setDeckById((db) => {
@@ -507,6 +525,8 @@ export default function SavedCarousels() {
                                     selectThemeBorder(c.id, idx, id)
                                   }
                                   onApplyLookToAll={(look) => applyLookToAll(c.id, look)}
+                                  onColorAll={(color) => colorAll(c.id, idx, color)}
+                                  onColorAllSlides={(color) => colorAllSlides(c.id, color)}
                                 />
                               )}
                             </div>

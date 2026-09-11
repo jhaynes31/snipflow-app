@@ -215,6 +215,14 @@ export default function CarouselGenerator({
     );
   }, []);
 
+  const colorAll = useCallback((idx: number, color: string | undefined) => {
+    setDeck((d) => d.map((s, i) => (i === idx ? { ...s, elements: s.elements.map((e) => ({ ...e, color })) } : s)));
+  }, []);
+
+  const colorAllSlides = useCallback((color: string | undefined) => {
+    setDeck((d) => d.map((s) => ({ ...s, elements: s.elements.map((e) => ({ ...e, color })) })));
+  }, []);
+
   /** Copy one slide's whole look (background, scene, border) to every slide. */
   const applyLookToAll = useCallback((look: SlideLook) => {
     setDeck((d) => d.map((s) => ({ ...s, ...look })));
@@ -384,6 +392,8 @@ export default function CarouselGenerator({
                         onSelectThemeBackground={(id) => selectThemeBackground(idx, id)}
                         onSelectThemeBorder={(id) => selectThemeBorder(idx, id)}
                         onApplyLookToAll={applyLookToAll}
+                        onColorAll={(color) => colorAll(idx, color)}
+                        onColorAllSlides={colorAllSlides}
                       />
                     )}
                   </div>

@@ -137,7 +137,7 @@ export const fetchMemeTemplates = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<MemeTemplate[]> => loadMemeTemplates());
 
-export const findTemplateImage = createServerFn()
+export const findTemplateImage = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { templateName: string }) => ({ templateName: String(d?.templateName ?? "") }))
   .handler(async ({ data }): Promise<MemeTemplate | null> =>
@@ -175,7 +175,7 @@ TEMPLATE GUIDE (name, how it is used, and its text slots in order):
 ${layoutGuideLines(templates)}`;
 }
 
-export const generateMemeConcepts = createServerFn()
+export const generateMemeConcepts = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: MemeGenerateInput) => d)
   .handler(async ({ data }): Promise<MemeConcept[]> => {
@@ -277,7 +277,7 @@ export interface SaveConceptInput {
   textBoxesJson?: string;
 }
 
-export const saveConcept = createServerFn()
+export const saveConcept = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: SaveConceptInput) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; id?: number; error?: string }> => {
@@ -331,7 +331,7 @@ export interface UpdateConceptInput {
   };
 }
 
-export const updateConcept = createServerFn()
+export const updateConcept = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: UpdateConceptInput) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -379,7 +379,7 @@ export const updateConcept = createServerFn()
     }
   });
 
-export const deleteConcept = createServerFn()
+export const deleteConcept = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {

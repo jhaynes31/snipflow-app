@@ -363,7 +363,7 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
   })) as Lead[];
 });
 
-export const updateLeadStatus = createServerFn()
+export const updateLeadStatus = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number; status: string }) => ({ id: Number(d?.id), status: String(d?.status ?? "New") }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -375,7 +375,7 @@ export const updateLeadStatus = createServerFn()
     }
   });
 
-export const deleteLead = createServerFn()
+export const deleteLead = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {

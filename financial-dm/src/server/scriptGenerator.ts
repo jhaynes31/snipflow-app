@@ -259,7 +259,7 @@ export function stripLeadingHook(script: string, hook: string): string {
 
 // ── Server Functions ───────────────────────────────────────────────
 
-export const generateScript = createServerFn()
+export const generateScript = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: ScriptInput) => d)
   .handler(async ({ data }): Promise<ScriptResult | null> => {
@@ -336,7 +336,7 @@ export interface RegenerateHooksInput {
  * Re roll ONLY the hooks. The script, call to action, caption, and hashtags
  * are left exactly as they are; the client swaps the returned options in.
  */
-export const regenerateHooks = createServerFn()
+export const regenerateHooks = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: RegenerateHooksInput) => d)
   .handler(async ({ data }): Promise<HookOption[] | null> => {
@@ -403,7 +403,7 @@ export const initScriptsTable = createServerFn()
   });
 
 /** Persist a generated posting package (the selected hook and caption). */
-export const saveScript = createServerFn()
+export const saveScript = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: ScriptResult) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; id?: number; error?: string }> => {
@@ -450,7 +450,7 @@ export const getSavedScripts = createServerFn()
   });
 
 /** Delete a saved script by id. */
-export const deleteScript = createServerFn()
+export const deleteScript = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
