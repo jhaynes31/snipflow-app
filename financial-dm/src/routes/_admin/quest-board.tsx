@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import QuestsSection from "~/components/quest/QuestsSection";
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
 import { deleteProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput } from "~/server/questBoard";
@@ -11,8 +12,9 @@ type Section = "profiles" | "quests" | "scoreboard";
  * later phases.
  */
 export const Route = createFileRoute("/_admin/quest-board")({
-  validateSearch: (s: Record<string, unknown>): { section?: Section } => ({
+  validateSearch: (s: Record<string, unknown>): { section?: Section; quest?: number } => ({
     section: s.section === "quests" || s.section === "scoreboard" ? s.section : s.section === "profiles" ? "profiles" : undefined,
+    quest: Number.isFinite(Number(s.quest)) && Number(s.quest) > 0 ? Number(s.quest) : undefined,
   }),
   component: QuestBoardPage,
 });
@@ -24,7 +26,8 @@ const SECTIONS: Array<{ id: Section; label: string; blurb: string }> = [
 ];
 
 function QuestBoardPage() {
-  const { section = "profiles" } = Route.useSearch();
+  const { section = "profiles", quest } = Route.useSearch();
+  const navigate = useNavigate();
   return (
     <main className="min-h-dvh py-6 px-4" style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }}>
       <div className="max-w-5xl mx-auto">
@@ -65,7 +68,7 @@ function QuestBoardPage() {
         </nav>
 
         {section === "profiles" && <ProfilesSection />}
-        {section === "quests" && <ComingSoon title="Quests" phase="Phase 2" blurb={SECTIONS[1].blurb} />}
+        {section === "quests" && <QuestsSection questId={quest ?? null} onSelectQuest={(id) => navigate({ to: "/quest-board", search: { section: "quests", quest: id ?? undefined } })} />}
         {section === "scoreboard" && <ComingSoon title="Scoreboard" phase="Phase 5" blurb={SECTIONS[2].blurb} />}
       </div>
     </main>
