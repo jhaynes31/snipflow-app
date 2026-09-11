@@ -238,6 +238,12 @@ export interface ThemeBackgroundOption {
   image: string;
   /** True when the texture is bright enough that dark text reads best. */
   light: boolean;
+  /**
+   * Bright in places but dark at the edges (Golden Sky). Slides keep their
+   * light palette; the social card, whose text is smaller, stays on cream
+   * text with a dark shadow instead.
+   */
+  midtone?: boolean;
 }
 
 export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
@@ -264,6 +270,7 @@ export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
     label: "Golden Sky",
     image: "/themes/backgrounds/golden-sky.png",
     light: true,
+    midtone: true,
   },
   {
     id: "deep-space",
@@ -375,6 +382,12 @@ export function slideBackgroundStyle(slide: EditableSlide): CSSProperties {
 /** True when a theme background is bright enough that dark text reads best. */
 export function isLightThemeBackground(id?: string): boolean {
   return THEME_BACKGROUNDS.find((t) => t.id === id)?.light ?? false;
+}
+
+/** Pale all over (parchment, paper): the only case small text goes dark. */
+export function isPaleThemeBackground(id?: string): boolean {
+  const t = THEME_BACKGROUNDS.find((t) => t.id === id);
+  return Boolean(t?.light && !t.midtone);
 }
 
 // ── Default text colors, chosen per background so text stays legible ─
