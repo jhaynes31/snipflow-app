@@ -76,10 +76,14 @@ export interface ContentSlot {
   postSlug: string;
   stats: Partial<Record<"views" | "likes" | "comments" | "shares" | "saves", number>>;
   flags: string[];
+  /** John has seen the flagged words on the current draft. */
+  flagsAcknowledged: boolean;
+  /** Earlier drafts' output refs, newest first. */
+  outputHistory: string[];
   notes: string;
 }
 
-export type SlotInput = Omit<ContentSlot, "id" | "seriesName" | "seriesKind" | "totalParts"> & { id?: number };
+export type SlotInput = Omit<ContentSlot, "id" | "seriesName" | "seriesKind" | "totalParts" | "flagsAcknowledged" | "outputHistory"> & { id?: number };
 
 const text = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 const int = (v: unknown, lo: number, hi: number, dflt: number) => {
@@ -171,6 +175,8 @@ function ensureTables(): Promise<void> {
         )
       `;
       await sql()`CREATE TABLE IF NOT EXISTS quest_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`;
+      await sql()`ALTER TABLE content_slots ADD COLUMN IF NOT EXISTS output_history TEXT DEFAULT '[]'`;
+      await sql()`ALTER TABLE content_slots ADD COLUMN IF NOT EXISTS flags_acknowledged BOOLEAN DEFAULT FALSE`;
       await seedShowsOnce();
     })().catch((e) => {
       ready = null;
@@ -257,6 +263,8 @@ function rowToSlot(r: Record<string, unknown>, series?: Series): ContentSlot {
     postSlug: String(r.post_slug ?? ""),
     stats: parseJson(r.stats, {}),
     flags: parseJson<string[]>(r.flags, []),
+    flagsAcknowledged: Boolean(r.flags_acknowledged),
+    outputHistory: parseJson<string[]>(r.output_history, []),
     notes: String(r.notes ?? ""),
   };
 }
@@ -469,9 +477,10 @@ export const getSlots = createServerFn()
     return slotsForQuest(data.questId);
   });
 
-/** Status changes only move forward through John's hands: posted requires approved (Section 7.3). */
-function statusAllowed(prev: SlotStatus | null, next: SlotStatus): string | null {
+/** Status changes only move forward through John's hands: posted requires approved, and flagged words must be acknowledged before approval (Sections 7.3, 7.4). */
+function statusAllowed(prev: SlotStatus | null, next: SlotStatus, flags: string[], acknowledged: boolean): string | null {
   if (next === "posted" && prev !== "approved" && prev !== "posted") return "Approve the post before marking it posted.";
+  if ((next === "approved" || next === "posted") && flags.length && !acknowledged && prev !== "approved" && prev !== "posted") return `Acknowledge the flagged words first (${flags.join(", ")}), or fix the text and save it again.`;
   return null;
 }
 
@@ -489,18 +498,22 @@ export const saveSlot = createServerFn({ method: "POST" })
     }
     try {
       let prev: SlotStatus | null = null;
+      let flags: string[] = data.flags;
+      let acknowledged = false;
       if (data.id) {
-        const cur = (await sql()`SELECT status FROM content_slots WHERE id = ${data.id}`) as Array<{ status: SlotStatus }>;
+        const cur = (await sql()`SELECT status, flags, flags_acknowledged FROM content_slots WHERE id = ${data.id}`) as Array<{ status: SlotStatus; flags: string; flags_acknowledged: boolean }>;
         prev = cur[0]?.status ?? null;
+        flags = parseJson<string[]>(cur[0]?.flags, []);
+        acknowledged = Boolean(cur[0]?.flags_acknowledged);
       }
-      const blocked = statusAllowed(prev, data.status);
+      const blocked = statusAllowed(prev, data.status, flags, acknowledged);
       if (blocked) return { ok: false, error: blocked };
       if (data.id) {
         await sql()`
           UPDATE content_slots SET date = ${data.date}, platform = ${data.platform}, generator = ${data.generator}, generator_reason = ${data.generatorReason},
             series_id = ${data.seriesId}, part_number = ${data.partNumber}, made_elsewhere = ${data.madeElsewhere}, topic = ${data.topic}, pain_point = ${data.painPoint},
             hook_angle = ${data.hookAngle}, generator_output_ref = ${data.generatorOutputRef}, status = ${data.status}, post_url = ${data.postUrl}, post_slug = ${data.postSlug},
-            stats = ${JSON.stringify(data.stats)}, flags = ${JSON.stringify(data.flags)}, notes = ${data.notes}, updated_at = NOW()
+            stats = ${JSON.stringify(data.stats)}, notes = ${data.notes}, updated_at = NOW()
           WHERE id = ${data.id}
         `;
         return { ok: true, id: data.id };

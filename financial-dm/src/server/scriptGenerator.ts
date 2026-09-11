@@ -15,6 +15,9 @@ import {
   parseJsonReply,
 } from "./contentVoice";
 import { topicPromptLines } from "./topics";
+import { campaignPromptBlock } from "~/server/campaign";
+import { ensureCtaLine, ensureSpokenEnding, type CampaignContext } from "~/lib/campaign";
+
 import { composeScript, normalizeHookType } from "~/lib/scriptUtils";
 
 // Topic rolling now lives in ./topics (one pool for every generator). These
@@ -33,6 +36,8 @@ export interface ScriptInput {
   hookType: string;
   targetViewer: string;
   payoff: string;
+  /** Optional campaign brief context (Quest Board). Without it nothing changes. */
+  campaign?: CampaignContext;
 }
 
 export interface HookOption {
@@ -273,7 +278,7 @@ export const generateScript = createServerFn({ method: "POST" })
     const text = await callClaude({
       tag: "scriptGenerator",
       system: buildScriptSystemPrompt(tone, dndThemed),
-      user: scriptUserContent({ ...data, painPoint, payoff }),
+      user: [scriptUserContent({ ...data, painPoint, payoff }), campaignPromptBlock(data.campaign, "script")].filter(Boolean).join("\n\n"),
       maxTokens: 1800,
     });
     const parsed = parseJsonReply<{
@@ -293,8 +298,9 @@ export const generateScript = createServerFn({ method: "POST" })
     const hooks = parseHooks(parsed.hooks, data.hookType, parsed.hook, parsed.used_hook_type);
     const hook = hooks[0]?.text ?? "";
     const rawScript = cleanText(parsed.script);
-    const scriptBody = cleanText(parsed.scriptBody) || stripLeadingHook(rawScript, hook);
-    const captions = normalizeCaptions(parsed.captions, parsed.caption);
+    // With a campaign brief the spoken script always ends with the tease (middle parts) and the CTA line.
+    const scriptBody = ensureSpokenEnding(cleanText(parsed.scriptBody) || stripLeadingHook(rawScript, hook), data.campaign);
+    const captions = normalizeCaptions(parsed.captions, parsed.caption).map((c) => ensureCtaLine(c, data.campaign));
 
     return {
       topic: data.topic,
@@ -310,7 +316,7 @@ export const generateScript = createServerFn({ method: "POST" })
       hooks,
       scriptBody,
       script: composeScript(hook, scriptBody),
-      callToAction: cleanText(parsed.callToAction),
+      callToAction: ensureCtaLine(cleanText(parsed.callToAction), data.campaign),
       caption: captions[0] ?? "",
       captions,
       hashtags: normalizeHashtags(parsed.hashtags),

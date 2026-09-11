@@ -3,6 +3,7 @@ import { QUEST_CONFIG, generatorById, type GeneratorId } from "~/lib/questConfig
 import { WEEKDAY_NAMES, defaultEndDate, groupByWeek, partOrderWarnings, generatorSummary, seriesBadge, slugProblem, suggestSlug, toISODate, weekdayOf, type PlannedSlot, type SlotStatus, SLOT_STATUSES } from "~/lib/questPlan";
 import { getProfiles, type ClientProfile } from "~/server/questBoard";
 import { acceptPlan, deleteQuest, deleteSeries, deleteSlot, draftPlan, draftSeriesOutline, getQuests, getSeries, getSlots, saveQuest, saveSeries, saveSlot, type ContentSlot, type Quest, type QuestInput, type Series, type SeriesInput, type SlotInput } from "~/server/quests";
+import { acknowledgeFlags } from "~/server/campaign";
 
 /**
  * Quest Board › Quests (spec, Section 6): the quest list and builder, the
@@ -550,8 +551,18 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
 
   const setStatus = async (slot: ContentSlot, status: SlotStatus) => {
     setError("");
+    if (status === "posted" && !slot.postUrl) {
+      // Marking posted asks for the post link (Section 7.3).
+      setEditingSlot({ ...slot, status: "posted" });
+      return;
+    }
     const res = await saveSlot({ data: { ...slot, status } });
     if (!res.ok) setError(res.error || "Could not update the slot.");
+    await loadSlots();
+  };
+  const ackFlags = async (slot: ContentSlot) => {
+    const res = await acknowledgeFlags({ data: { slotId: slot.id } });
+    if (!res.ok) setError(res.error || "Could not acknowledge the flags.");
     await loadSlots();
   };
   const removeSlot = async (slot: ContentSlot) => {
@@ -676,7 +687,7 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
             <p className="text-[#a0a0a0] text-xs font-fantasy uppercase tracking-wider">{w.label} · from {fmtDate(w.weekStart)}</p>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
               {w.items.map((s) => (
-                <SlotCard key={s.id} slot={s} onEdit={() => setEditingSlot({ ...s })} onStatus={(st) => setStatus(s, st)} onDelete={() => removeSlot(s)} />
+                <SlotCard key={s.id} slot={s} onEdit={() => setEditingSlot({ ...s })} onStatus={(st) => setStatus(s, st)} onDelete={() => removeSlot(s)} onAckFlags={() => ackFlags(s)} />
               ))}
             </div>
           </div>
@@ -686,9 +697,11 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
   );
 }
 
-function SlotCard({ slot, onEdit, onStatus, onDelete }: { slot: ContentSlot; onEdit: () => void; onStatus: (s: SlotStatus) => void; onDelete: () => void }) {
+function SlotCard({ slot, onEdit, onStatus, onDelete, onAckFlags }: { slot: ContentSlot; onEdit: () => void; onStatus: (s: SlotStatus) => void; onDelete: () => void; onAckFlags: () => void }) {
   const g = generatorById(slot.generator);
   const badge = seriesBadge(slot);
+  const canOpen = Boolean(g?.available && g.forgeTab) && !slot.madeElsewhere;
+  const savedView = g?.forgeTab ? `/generator?tab=${g.forgeTab}&view=saved` : null;
   return (
     <article className={`rounded-lg border p-3 space-y-1.5 ${slot.status === "skipped" ? "border-[#406080]/20 opacity-60" : "border-[#406080]/30"} bg-[#111a28]`} data-slot={slot.id} data-slot-status={slot.status}>
       <div className="flex items-center justify-between gap-2">
@@ -707,6 +720,39 @@ function SlotCard({ slot, onEdit, onStatus, onDelete }: { slot: ContentSlot; onE
       {slot.painPoint && <p className="text-[#a0a0a0] text-xs">“{slot.painPoint}”</p>}
       {slot.hookAngle && <p className="text-[#e8c884] text-xs font-fantasy">Hook: {slot.hookAngle}</p>}
       {slot.generatorReason && <p className="text-[#606080] text-[11px]">Why {g?.label?.toLowerCase() ?? slot.generator}: {slot.generatorReason}</p>}
+      {slot.flags.length > 0 && (
+        <div className={`rounded-lg border px-2 py-1.5 text-[11px] font-fantasy ${slot.flagsAcknowledged ? "border-[#406080]/40 text-[#a0a0a0]" : "border-[#c08020]/60 bg-[#c08020]/10 text-[#e8c884]"}`} data-slot-flags={slot.flagsAcknowledged ? "acknowledged" : "open"}>
+          ⚠️ Flagged words: {slot.flags.join(", ")}
+          {slot.flagsAcknowledged ? " · acknowledged" : (
+            <button type="button" onClick={onAckFlags} className="ml-2 underline text-[#c08020]" data-ack-flags>
+              I've checked these
+            </button>
+          )}
+        </div>
+      )}
+      {slot.generatorOutputRef && (
+        <p className="text-[11px] font-fantasy text-[#7fd08a]" data-slot-draft>
+          📄 Draft attached{savedView ? <> · <a href={savedView} className="underline">view in the forge's saved list</a></> : null}
+          {slot.outputHistory.length ? ` · ${slot.outputHistory.length} earlier draft${slot.outputHistory.length === 1 ? "" : "s"} kept` : ""}
+        </p>
+      )}
+      {slot.postUrl && (
+        <p className="text-[11px] font-fantasy text-[#a0a0a0] truncate">
+          🔗 <a href={slot.postUrl} target="_blank" rel="noopener" className="underline">{slot.postUrl}</a>
+          {Object.keys(slot.stats).length ? ` · ${Object.entries(slot.stats).map(([k, v]) => `${v} ${k}`).join(", ")}` : ""}
+        </p>
+      )}
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
+        {canOpen ? (
+          <a href={`/generator?tab=${g!.forgeTab}&view=forge&slot=${slot.id}`} className={`${btn} border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15`} data-open-generator>
+            🧙 Open in generator
+          </a>
+        ) : slot.madeElsewhere ? null : (
+          <span className={`${btn} border-[#406080]/30 text-[#606080] cursor-not-allowed`} title="Switch the generator, or tick Made another way" data-open-generator-disabled>
+            🧙 Generator not built yet
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-2 pt-1">
         <select value={slot.status} onChange={(e) => onStatus(e.target.value as SlotStatus)} className="text-xs font-fantasy px-2 py-1 rounded border border-[#406080]/40 bg-transparent text-[#e0e0e0]" aria-label="Slot status" data-slot-status-select>
           {SLOT_STATUSES.map((st) => (
@@ -808,24 +854,23 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
             ))}
           </select>
         </label>
-        {chosenSeries?.kind === "multi_part" ? (
-          <label className="block">
-            <span className={label}>Part number</span>
-            <input type="number" min={1} max={chosenSeries.totalParts ?? 4} className={input} value={form.partNumber ?? 1} onChange={(e) => set("partNumber", Number(e.target.value) || 1)} />
-          </label>
-        ) : (
-          <label className="block">
-            <span className={label}>Status</span>
-            <select className={input} value={form.status} onChange={(e) => set("status", e.target.value as SlotStatus)}>
-              {SLOT_STATUSES.map((st) => (
-                <option key={st} value={st}>
-                  {STATUS_LABEL[st]}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <label className="block">
+          <span className={label}>Status</span>
+          <select className={input} value={form.status} onChange={(e) => set("status", e.target.value as SlotStatus)} data-form-status>
+            {SLOT_STATUSES.map((st) => (
+              <option key={st} value={st}>
+                {STATUS_LABEL[st]}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+      {chosenSeries?.kind === "multi_part" && (
+        <label className="block max-w-[160px]">
+          <span className={label}>Part number</span>
+          <input type="number" min={1} max={chosenSeries.totalParts ?? 4} className={input} value={form.partNumber ?? 1} onChange={(e) => set("partNumber", Number(e.target.value) || 1)} />
+        </label>
+      )}
       {g && !g.available && (
         <p className="text-red-300 text-xs font-fantasy" data-not-built>
           {g.label} isn't built yet. Switch the generator, or tick "Made another way" to move this slot through the statuses without it.
@@ -865,6 +910,21 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
           Post link <span className="text-[#606080]">{QUEST_CONFIG.siteDomain}/</span>
           <input className={`${input} w-32`} value={form.postSlug} onChange={(e) => set("postSlug", e.target.value)} maxLength={30} placeholder="optional" />
         </label>
+      </div>
+      <div className="rounded-lg border border-[#406080]/25 bg-[#0d1520]/40 p-3 space-y-2">
+        <p className="text-[#a0a0a0] text-[11px] font-fantasy uppercase tracking-wider">After posting</p>
+        <label className="block">
+          <span className={label}>Post link (the TikTok URL)</span>
+          <input className={input} value={form.postUrl} onChange={(e) => set("postUrl", e.target.value)} maxLength={300} placeholder="https://www.tiktok.com/@.../video/..." data-post-url />
+        </label>
+        <div className="grid grid-cols-5 gap-2">
+          {(["views", "likes", "comments", "shares", "saves"] as const).map((k) => (
+            <label key={k} className="block">
+              <span className={label}>{k}</span>
+              <input type="number" min={0} className={input} value={form.stats[k] ?? ""} onChange={(e) => set("stats", { ...form.stats, [k]: e.target.value === "" ? undefined : Number(e.target.value) })} data-stat={k} />
+            </label>
+          ))}
+        </div>
       </div>
       <label className="block">
         <span className={label}>Notes</span>

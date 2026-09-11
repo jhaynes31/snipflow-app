@@ -21,6 +21,9 @@ import { getClips } from "~/server/clips";
 import type { ClipSummary } from "~/lib/brollUtils";
 import SavedBroll from "~/components/SavedBroll";
 import { DEFAULT_TONE } from "~/lib/contentOptions";
+import CampaignBriefBanner from "~/components/generator/CampaignBriefBanner";
+import { getCampaignBrief } from "~/server/campaign";
+import type { CampaignBrief } from "~/lib/campaign";
 
 /**
  * The unified generator hub. One shell, one topic and pain point roll, one
@@ -89,16 +92,20 @@ function normalizeTab(raw: unknown): GeneratorTab {
 }
 
 export const Route = createFileRoute("/_admin/generator")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { tab: GeneratorTab; view: View; slot?: number } => ({
     tab: normalizeTab(search.tab),
     view: (search.view === "saved" ? "saved" : "forge") as View,
+    /** A Quest Board slot whose campaign brief prefills the forge. */
+    slot: Number(search.slot) > 0 ? Number(search.slot) : undefined,
   }),
   component: GeneratorHub,
 });
 
 function GeneratorHub() {
-  const { tab, view } = Route.useSearch();
+  const { tab, view, slot } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const [brief, setBrief] = useState<CampaignBrief | null>(null);
+  const [briefError, setBriefError] = useState("");
 
   // Shared across every tab.
   const [picks, setPicks] = useState<TopicPick[]>([]);
@@ -119,13 +126,41 @@ function GeneratorHub() {
   }, [pickerMode, selections]);
 
   const setTab = useCallback(
-    (next: GeneratorTab) => navigate({ search: { tab: next, view: "forge" } }),
-    [navigate],
+    (next: GeneratorTab) => navigate({ search: { tab: next, view: "forge", slot } }),
+    [navigate, slot],
   );
   const setView = useCallback(
-    (next: View) => navigate({ search: { tab, view: next } }),
-    [navigate, tab],
+    (next: View) => navigate({ search: { tab, view: next, slot } }),
+    [navigate, tab, slot],
   );
+
+  // A slot in the address loads its campaign brief (Section 7.1): the topic,
+  // fact, and pain point land in the picker, and the matching tab opens.
+  useEffect(() => {
+    if (!slot) {
+      setBrief(null);
+      setBriefError("");
+      return;
+    }
+    let alive = true;
+    getCampaignBrief({ data: { slotId: slot } })
+      .then((b) => {
+        if (!alive) return;
+        if (!b) {
+          setBriefError("That slot no longer exists.");
+          return;
+        }
+        setBrief(b);
+        setPicks([{ topic: b.topic, fact: b.fact, painPoints: [b.painPoint] }]);
+        setSelections([{ topic: b.topic, fact: b.fact, painPoint: b.painPoint }]);
+        if (b.forgeTab && b.forgeTab !== tab) navigate({ search: { tab: b.forgeTab, view: "forge", slot } });
+      })
+      .catch(() => alive && setBriefError("Could not load the campaign brief."));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot]);
 
   const handleRoll = useCallback(async () => {
     setRolling(true);
@@ -257,6 +292,8 @@ function GeneratorHub() {
               </p>
             </div>
 
+            {brief && <CampaignBriefBanner brief={brief} onClear={() => navigate({ search: { tab, view: "forge", slot: undefined } })} />}
+            {briefError && <p className="text-red-300 text-xs font-fantasy text-center">{briefError}</p>}
             <TopicPainPointPicker
               mode={pickerMode}
               picks={picks}
@@ -288,6 +325,7 @@ function GeneratorHub() {
                 selection={single}
                 tone={tone}
                 dndThemed={dndThemed}
+                campaign={brief ?? undefined}
               />
             )}
             {tab === "meme" && (
@@ -295,6 +333,7 @@ function GeneratorHub() {
                 selection={single}
                 tone={tone}
                 dndThemed={dndThemed}
+                campaign={brief ?? undefined}
               />
             )}
             {tab === "carousel" && (
@@ -302,6 +341,7 @@ function GeneratorHub() {
                 selection={single}
                 tone={tone}
                 dndThemed={dndThemed}
+                campaign={brief ?? undefined}
               />
             )}
             {tab === "card" && (
@@ -309,6 +349,7 @@ function GeneratorHub() {
                 selections={selections}
                 tone={tone}
                 dndThemed={dndThemed}
+                campaign={brief ?? undefined}
               />
             )}
             {tab === "broll" && (

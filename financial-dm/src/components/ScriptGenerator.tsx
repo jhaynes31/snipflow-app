@@ -11,6 +11,8 @@ import {
 } from "~/lib/scriptUtils";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 import BrollPlanner from "~/components/BrollPlanner";
+import { attachOutputToSlot } from "~/server/campaign";
+import { contextOf, type CampaignBrief } from "~/lib/campaign";
 
 // Hook mechanism picker options. Value is canonical and stored in the DB.
 const HOOK_OPTIONS: Array<{ value: string; label: string; hint: string }> = [
@@ -32,10 +34,13 @@ export default function ScriptGenerator({
   dndThemed,
   onResult,
   showPlanner = true,
+  campaign,
 }: {
   selection: TopicSelection | null;
   tone: string;
   dndThemed: boolean;
+  /** A Quest Board brief. Optional: without it the forge works exactly as before. */
+  campaign?: CampaignBrief;
   /** The B Roll tab listens here and pulls footage for whatever script is on screen. */
   onResult?: (result: ScriptResult | null) => void;
   /** Hide the optional Step 5 shot list (the B Roll tab shows footage instead). */
@@ -55,10 +60,19 @@ export default function ScriptGenerator({
   const [downloaded, setDownloaded] = useState(false);
   /** saved_scripts.id once this package is saved, so the b roll plan can point at it. */
   const [savedId, setSavedId] = useState<number | undefined>(undefined);
+  const [questState, setQuestState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [questNote, setQuestNote] = useState("");
   useEffect(() => {
     onResult?.(result);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
+
+  // A campaign brief fills the hook aim fields John hasn't typed into.
+  useEffect(() => {
+    if (!campaign) return;
+    setTargetViewer((v) => v || [campaign.profileName, campaign.lifeStage].filter(Boolean).join(": "));
+    setPayoff((v) => v || campaign.hookAngle);
+  }, [campaign]);
 
   const textParts = useCallback(
     (r: ScriptResult) => ({
@@ -100,6 +114,7 @@ export default function ScriptGenerator({
           hookType,
           targetViewer,
           payoff,
+          campaign: campaign ? contextOf(campaign) : undefined,
         },
       });
       if (!res) {
@@ -108,13 +123,15 @@ export default function ScriptGenerator({
         );
         return;
       }
+      setQuestState("idle");
+      setQuestNote("");
       setResult(res);
     } catch {
       setError("Failed to generate the posting package. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [selection, tone, dndThemed, hookType, targetViewer, payoff]);
+  }, [selection, tone, dndThemed, hookType, targetViewer, payoff, campaign]);
 
   /** Re roll only the hooks; script, call to action, captions, hashtags stay. */
   const handleRegenerateHooks = useCallback(async () => {
@@ -228,6 +245,37 @@ export default function ScriptGenerator({
     }
   }, [result]);
 
+  /** Save the package, then attach it to the campaign slot (Section 7.2). */
+  const handleSaveToQuest = useCallback(async () => {
+    if (!result || !campaign) return;
+    setQuestState("saving");
+    setQuestNote("");
+    try {
+      let id = savedId;
+      if (!id) {
+        const res = await saveScript({ data: result });
+        if (!res.ok || !res.id) {
+          setQuestState("error");
+          setQuestNote(res.error || "Could not save the posting package.");
+          return;
+        }
+        id = res.id;
+        setSavedId(id);
+      }
+      const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `script:${id}`, text: buildScriptText(textParts(result)) } });
+      if (!att.ok) {
+        setQuestState("error");
+        setQuestNote(att.error || "Could not save to the quest.");
+        return;
+      }
+      setQuestState("saved");
+      setQuestNote(att.flags.length ? `⚠️ Flagged words to check before approval: ${att.flags.join(", ")}` : "Slot moved to Drafted.");
+    } catch {
+      setQuestState("error");
+      setQuestNote("Could not save to the quest.");
+    }
+  }, [result, campaign, savedId, textParts]);
+
   return (
     <div className="space-y-6">
       {/* Aim the Hook */}
@@ -324,7 +372,8 @@ export default function ScriptGenerator({
           </button>
         </div>
 
-        {error && (
+        {questNote && <p className={`text-xs font-fantasy ${questState === "error" ? "text-red-300" : "text-[#e8c884]"}`} data-quest-note>{questNote}</p>}
+      {error && (
           <div className="text-center p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">
             {error}
           </div>
@@ -335,6 +384,16 @@ export default function ScriptGenerator({
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h3 className="font-fantasy text-[#c08020] text-xl">📜 {result.title}</h3>
               <div className="flex flex-wrap gap-2 shrink-0">
+                {campaign && <button
+                  type="button"
+                  onClick={handleSaveToQuest}
+                  disabled={questState === "saving"}
+                  className="px-4 py-2 rounded-lg bg-[#c08020]/15 border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/25 transition-all text-sm font-fantasy disabled:opacity-50"
+                  data-save-to-quest
+                >
+                  {questState === "saving" ? "🗺️ Saving to quest..." : questState === "saved" ? "✅ Saved to quest" : "🗺️ Save to quest"}
+                </button>
+                }
                 <button
                   type="button"
                   onClick={handleSave}

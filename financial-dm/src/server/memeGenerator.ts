@@ -15,6 +15,9 @@ import {
   parseJsonReply,
 } from "./contentVoice";
 import { topicPromptLines } from "./topics";
+import { campaignPromptBlock } from "~/server/campaign";
+import { ensureCtaLine, type CampaignContext } from "~/lib/campaign";
+
 import { layoutGuideLines, slotsFor } from "~/lib/memeLayouts";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -39,6 +42,8 @@ export interface MemeGenerateInput {
   painPoint: string;
   tone: string;
   dndThemed: boolean;
+  /** Optional campaign brief context (Quest Board). Without it nothing changes. */
+  campaign?: CampaignContext;
 }
 
 export interface SavedMemeConcept {
@@ -187,7 +192,7 @@ export const generateMemeConcepts = createServerFn({ method: "POST" })
     const text = await callClaude({
       tag: "memeGenerator",
       system: buildMemeSystemPrompt(tone, Boolean(data.dndThemed), templates),
-      user: topicPromptLines({ ...data, painPoint }),
+      user: [topicPromptLines({ ...data, painPoint }), campaignPromptBlock(data.campaign, "meme")].filter(Boolean).join("\n\n"),
       maxTokens: 2048,
     });
     const parsed = parseJsonReply<{
@@ -204,7 +209,7 @@ export const generateMemeConcepts = createServerFn({ method: "POST" })
     if (!parsed || !Array.isArray(parsed.concepts)) return [];
     return parsed.concepts
       .map((c) => {
-        const captions = normalizeCaptions(c?.captions, c?.caption);
+        const captions = normalizeCaptions(c?.captions, c?.caption).map((x) => ensureCtaLine(x, data.campaign));
         const template = cleanText(c?.template);
         // One entry per slot. Older replies (or a model that ignores the
         // guide) come back as top/bottom, which map to the first and last slot.

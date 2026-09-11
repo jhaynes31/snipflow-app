@@ -19,6 +19,8 @@ import {
 } from "~/lib/slideEditor";
 import EditableSlideCard from "~/components/EditableSlideCard";
 import SlideEditorPanel, { type SlideLook } from "~/components/SlideEditorPanel";
+import { attachOutputToSlot } from "~/server/campaign";
+import { contextOf, type CampaignBrief } from "~/lib/campaign";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 
 /**
@@ -29,11 +31,16 @@ export default function CarouselGenerator({
   selection,
   tone,
   dndThemed,
+  campaign,
 }: {
   selection: TopicSelection | null;
   tone: string;
   dndThemed: boolean;
+  /** A Quest Board brief. Optional: without it the forge works exactly as before. */
+  campaign?: CampaignBrief;
 }) {
+  const [questState, setQuestState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [questNote, setQuestNote] = useState("");
   const [result, setResult] = useState<CarouselResult | null>(null);
   const [deck, setDeck] = useState<EditableSlide[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -67,8 +74,11 @@ export default function CarouselGenerator({
           painPoint: selection.painPoint,
           tone,
           dndThemed,
+          campaign: campaign ? contextOf(campaign) : undefined,
         },
       });
+      setQuestState("idle");
+      setQuestNote("");
       if (!res) {
         setError(
           "The carousel generator could not reach the AI service right now. Please check that the API key is set and try again.",
@@ -83,7 +93,7 @@ export default function CarouselGenerator({
     } finally {
       setLoading(false);
     }
-  }, [selection, tone, dndThemed]);
+  }, [selection, tone, dndThemed, campaign]);
 
   const selectCaption = useCallback(
     (caption: string) => {
@@ -156,6 +166,32 @@ export default function CarouselGenerator({
     );
     downloadCarouselText(`carousel-${slugify(result.title)}.txt`, text);
   }, [result, deck]);
+
+  const handleSaveToQuest = useCallback(async () => {
+    if (!result || !campaign) return;
+    setQuestState("saving");
+    setQuestNote("");
+    try {
+      const res = await saveCarousel({ data: { ...result, deck } });
+      if (!res.ok || !res.id) {
+        setQuestState("error");
+        setQuestNote(res.error || "Could not save the carousel.");
+        return;
+      }
+      const text = [result.title, ...deck.flatMap((s) => s.elements.map((e) => e.text)), result.caption, result.callToAction].join("\n");
+      const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `carousel:${res.id}`, text } });
+      if (!att.ok) {
+        setQuestState("error");
+        setQuestNote(att.error || "Could not save to the quest.");
+        return;
+      }
+      setQuestState("saved");
+      setQuestNote(att.flags.length ? `⚠️ Flagged words to check before approval: ${att.flags.join(", ")}` : "Slot moved to Drafted.");
+    } catch {
+      setQuestState("error");
+      setQuestNote("Could not save to the quest.");
+    }
+  }, [result, deck, campaign]);
 
   const handleSave = useCallback(async () => {
     if (!result) return;
@@ -288,6 +324,16 @@ export default function CarouselGenerator({
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h3 className="font-fantasy text-[#c08020] text-xl">{result.title}</h3>
               <div className="flex flex-wrap gap-2 shrink-0">
+                {campaign && <button
+                  type="button"
+                  onClick={handleSaveToQuest}
+                  disabled={questState === "saving"}
+                  className="px-4 py-2 rounded-lg bg-[#c08020]/15 border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/25 transition-all text-sm font-fantasy disabled:opacity-50"
+                  data-save-to-quest
+                >
+                  {questState === "saving" ? "🗺️ Saving to quest..." : questState === "saved" ? "✅ Saved to quest" : "🗺️ Save to quest"}
+                </button>
+                }
                 <button
                   type="button"
                   onClick={handleSave}
@@ -296,6 +342,7 @@ export default function CarouselGenerator({
                 >
                   {saving ? "💾 Saving..." : saved ? "✅ Saved!" : "💾 Save Carousel"}
                 </button>
+                {questNote && <p className={`w-full text-xs font-fantasy ${questState === "error" ? "text-red-300" : "text-[#e8c884]"}`} data-quest-note>{questNote}</p>}
                 <button
                   type="button"
                   onClick={handleCopyCaption}

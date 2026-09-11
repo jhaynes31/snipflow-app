@@ -15,6 +15,9 @@ import {
   parseJsonReply,
 } from "./contentVoice";
 import { statFactFor, topicPromptLines, type TopicSelection } from "./topics";
+import { campaignPromptBlock } from "~/server/campaign";
+import { ensureCtaLine, type CampaignContext } from "~/lib/campaign";
+
 
 // Topic rolling lives in ./topics; keep the old names importable.
 export { getRandomTopics as getRandomSocialTopics, type TopicPick } from "./topics";
@@ -45,6 +48,8 @@ export interface SocialCardGenerateInput {
   dndThemed: boolean;
   /** One card per selection (up to three). */
   topics: TopicSelection[];
+  /** Optional campaign brief context (Quest Board). Without it nothing changes. */
+  campaign?: CampaignContext;
 }
 
 /** A generated batch: the cards plus a shared caption and hashtag set. */
@@ -166,7 +171,7 @@ export const generateSocialCards = createServerFn({ method: "POST" })
         }
         return lines.join("\n");
       })
-      .join("\n\n");
+      .join("\n\n") + (data.campaign ? "\n\n" + campaignPromptBlock(data.campaign, "card") : "");
 
     const text = await callClaude({
       tag: "socialCardGenerator",
@@ -224,7 +229,7 @@ export const generateSocialCards = createServerFn({ method: "POST" })
     }
     const captions = Array.isArray(parsed)
       ? []
-      : normalizeCaptions(parsed.captions, parsed.caption);
+      : normalizeCaptions(parsed.captions, parsed.caption).map((x) => ensureCtaLine(x, data.campaign));
     const hashtags = Array.isArray(parsed) ? [] : normalizeHashtags(parsed.hashtags);
     return { cards, caption: captions[0] ?? "", captions, hashtags };
   });

@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from "react";
+import { attachOutputToSlot } from "~/server/campaign";
+import { contextOf, type CampaignBrief } from "~/lib/campaign";
 import type { MemeConcept, MemeTemplate } from "~/server/memeGenerator";
 import { generateMemeConcepts, saveConcept, findTemplateImage } from "~/server/memeGenerator";
 import type { TopicSelection } from "~/server/topics";
@@ -48,11 +50,16 @@ export default function MemeGenerator({
   selection,
   tone,
   dndThemed,
+  campaign,
 }: {
   selection: TopicSelection | null;
   tone: string;
   dndThemed: boolean;
+  /** A Quest Board brief. Optional: without it the forge works exactly as before. */
+  campaign?: CampaignBrief;
 }) {
+  const [questIdx, setQuestIdx] = useState<number | null>(null);
+  const [questNote, setQuestNote] = useState("");
   const [concepts, setConcepts] = useState<MemeConcept[]>([]);
   const [templateImages, setTemplateImages] = useState<(MemeTemplate | null)[]>([]);
   const [textBoxesArr, setTextBoxesArr] = useState<TextBox[][]>([]);
@@ -76,8 +83,9 @@ export default function MemeGenerator({
       painPoint: selection.painPoint,
       tone,
       dndThemed,
+      campaign: campaign ? contextOf(campaign) : undefined,
     };
-  }, [selection, tone, dndThemed]);
+  }, [selection, tone, dndThemed, campaign]);
 
   const handleGenerate = useCallback(async () => {
     const data = input();
@@ -148,7 +156,7 @@ export default function MemeGenerator({
   }, []);
 
   const persist = useCallback(
-    async (concept: MemeConcept, idx: number, extra: { platform?: string; isUsed?: boolean; isFavorite?: boolean }) => {
+    async (concept: MemeConcept, idx: number, extra: { platform?: string; isUsed?: boolean; isFavorite?: boolean; toQuest?: boolean }) => {
       if (!selection) return;
       setSavingId(idx);
       try {
@@ -175,6 +183,11 @@ export default function MemeGenerator({
           setError(result.error || "Save failed");
           return;
         }
+        if (extra.toQuest && campaign && result.id) {
+          const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `meme:${result.id}`, text: [...boxes.map((b) => b.text), concept.caption].join("\n") } });
+          setQuestIdx(att.ok ? idx : null);
+          setQuestNote(!att.ok ? att.error || "Could not save to the quest." : att.flags.length ? `⚠️ Flagged words to check before approval: ${att.flags.join(", ")}` : "Slot moved to Drafted.");
+        }
         setSavedIdx(idx);
         setTimeout(() => setSavedIdx(null), 2000);
         setPlatformPickerIdx(null);
@@ -184,7 +197,7 @@ export default function MemeGenerator({
         setSavingId(null);
       }
     },
-    [selection, tone, textBoxesArr],
+    [selection, tone, textBoxesArr, campaign],
   );
 
   const handleToggleEdit = useCallback((idx: number) => {
@@ -227,7 +240,8 @@ export default function MemeGenerator({
           </button>
         </div>
 
-        {error && (
+        {questNote && <p className="text-xs font-fantasy text-[#e8c884]" data-quest-note>{questNote}</p>}
+      {error && (
           <div className="text-center p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">
             {error}
           </div>
@@ -294,6 +308,17 @@ export default function MemeGenerator({
                   </button>
                 </div>
                 <div className="flex gap-2">
+                  {campaign && (
+                    <button
+                      type="button"
+                      onClick={() => persist(concept, idx, { isFavorite: true, toQuest: true })}
+                      disabled={savingId === idx}
+                      className="flex-1 px-2 py-2 rounded-lg bg-[#c08020]/15 border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/25 transition-all text-xs font-fantasy disabled:opacity-50"
+                      data-save-to-quest
+                    >
+                      {questIdx === idx ? "✅ In quest" : "🗺️ Save to quest"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => persist(concept, idx, { isFavorite: true })}

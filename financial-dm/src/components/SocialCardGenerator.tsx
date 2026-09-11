@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from "react";
+import { attachOutputToSlot } from "~/server/campaign";
+import { contextOf, type CampaignBrief } from "~/lib/campaign";
 import {
   generateSocialCards,
   saveSocialCards,
@@ -32,11 +34,16 @@ export default function SocialCardGenerator({
   selections,
   tone,
   dndThemed,
+  campaign,
 }: {
   selections: TopicSelection[];
   tone: string;
   dndThemed: boolean;
+  /** A Quest Board brief. Optional: without it the forge works exactly as before. */
+  campaign?: CampaignBrief;
 }) {
+  const [questState, setQuestState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [questNote, setQuestNote] = useState("");
   const [format, setFormat] = useState<SocialCardFormat>("trap");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -65,8 +72,10 @@ export default function SocialCardGenerator({
     setSaved(false);
     try {
       const res = await generateSocialCards({
-        data: { format, tone, dndThemed, topics: selections.slice(0, 3) },
+        data: { format, tone, dndThemed, topics: selections.slice(0, 3), campaign: campaign ? contextOf(campaign) : undefined },
       });
+      setQuestState("idle");
+      setQuestNote("");
       if (!res || res.cards.length === 0) {
         setError(
           "The card generator could not reach the AI service right now. Please check that the API key is set and try again.",
@@ -79,7 +88,7 @@ export default function SocialCardGenerator({
     } finally {
       setLoading(false);
     }
-  }, [selections, format, tone, dndThemed]);
+  }, [selections, format, tone, dndThemed, campaign]);
 
   const updateCard = useCallback((idx: number, patch: Partial<SocialCard>) => {
     setBatch((b) =>
@@ -91,6 +100,32 @@ export default function SocialCardGenerator({
     setBatch((b) => (b ? { ...b, caption } : b));
     setSaved(false);
   }, []);
+
+  const handleSaveToQuest = useCallback(async () => {
+    if (!batch || batch.cards.length === 0 || !campaign) return;
+    setQuestState("saving");
+    setQuestNote("");
+    try {
+      const res = await saveSocialCards({ data: { format, tone, dndThemed, caption: batch.caption, hashtags: batch.hashtags, cards: batch.cards } });
+      if (!res.ok || !res.id) {
+        setQuestState("error");
+        setQuestNote(res.error || "Could not save the cards.");
+        return;
+      }
+      const text = [...batch.cards.flatMap((c) => [c.headline, c.body, c.punchline]), batch.caption].join("\n");
+      const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `cards:${res.id}`, text } });
+      if (!att.ok) {
+        setQuestState("error");
+        setQuestNote(att.error || "Could not save to the quest.");
+        return;
+      }
+      setQuestState("saved");
+      setQuestNote(att.flags.length ? `⚠️ Flagged words to check before approval: ${att.flags.join(", ")}` : "Slot moved to Drafted.");
+    } catch {
+      setQuestState("error");
+      setQuestNote("Could not save to the quest.");
+    }
+  }, [batch, campaign, format, tone, dndThemed]);
 
   const handleSave = useCallback(async () => {
     if (!batch || batch.cards.length === 0) return;
@@ -287,7 +322,17 @@ export default function SocialCardGenerator({
           <div className="flex flex-wrap gap-2 items-center justify-between">
             <h2 className="font-fantasy text-[#c08020] text-lg">Your Cards</h2>
             <div className="flex flex-wrap gap-2">
-              <button
+              {campaign && <button
+                  type="button"
+                  onClick={handleSaveToQuest}
+                  disabled={questState === "saving"}
+                  className="px-4 py-2 rounded-lg bg-[#c08020]/15 border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/25 transition-all text-sm font-fantasy disabled:opacity-50"
+                  data-save-to-quest
+                >
+                  {questState === "saving" ? "🗺️ Saving to quest..." : questState === "saved" ? "✅ Saved to quest" : "🗺️ Save to quest"}
+                </button>
+                }
+                <button
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
@@ -295,6 +340,7 @@ export default function SocialCardGenerator({
               >
                 {saving ? "💾 Saving..." : saved ? "✅ Saved!" : "💾 Save to Library"}
               </button>
+              {questNote && <p className={`w-full text-xs font-fantasy ${questState === "error" ? "text-red-300" : "text-[#e8c884]"}`} data-quest-note>{questNote}</p>}
               <button
                 type="button"
                 onClick={handleDownloadAll}

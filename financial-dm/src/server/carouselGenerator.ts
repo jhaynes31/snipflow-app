@@ -15,6 +15,9 @@ import {
   parseJsonReply,
 } from "./contentVoice";
 import { topicPromptLines } from "./topics";
+import { campaignPromptBlock } from "~/server/campaign";
+import { ensureCtaLine, type CampaignContext } from "~/lib/campaign";
+
 import { parseSavedDeck, serializeDeck, type EditableSlide } from "~/lib/slideEditor";
 
 export type { EditableSlide, SlideElement, SlideKind, ElementRole } from "~/lib/slideEditor";
@@ -29,6 +32,8 @@ export interface CarouselInput {
   painPoint: string;
   tone: string;
   dndThemed: boolean;
+  /** Optional campaign brief context (Quest Board). Without it nothing changes. */
+  campaign?: CampaignContext;
 }
 
 export interface CarouselSlide {
@@ -112,7 +117,7 @@ export const generateCarousel = createServerFn({ method: "POST" })
     const text = await callClaude({
       tag: "carouselGenerator",
       system: buildCarouselSystemPrompt(tone, dndThemed),
-      user: topicPromptLines({ ...data, painPoint }),
+      user: [topicPromptLines({ ...data, painPoint }), campaignPromptBlock(data.campaign, "carousel")].filter(Boolean).join("\n\n"),
       maxTokens: 2048,
     });
     const parsed = parseJsonReply<{
@@ -134,7 +139,7 @@ export const generateCarousel = createServerFn({ method: "POST" })
           .filter((s) => s.heading || s.body)
           .slice(0, 6)
       : [];
-    const captions = normalizeCaptions(parsed.captions, parsed.caption);
+    const captions = normalizeCaptions(parsed.captions, parsed.caption).map((c) => ensureCtaLine(c, data.campaign));
 
     return {
       topic: data.topic,
@@ -145,7 +150,7 @@ export const generateCarousel = createServerFn({ method: "POST" })
       title: cleanText(parsed.title),
       caption: captions[0] ?? "",
       captions,
-      callToAction: cleanText(parsed.callToAction),
+      callToAction: ensureCtaLine(cleanText(parsed.callToAction), data.campaign),
       hashtags: normalizeHashtags(parsed.hashtags),
       slides,
     };
