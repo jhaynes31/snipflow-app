@@ -222,7 +222,7 @@ function QuizPage() {
     setSheetShareStatus("working");
     try {
       const blob = await renderShareCard(sheetRef.current);
-      setSheetShareStatus(await shareOrDownload(blob, `${combinedShareText(sheet)} https://thefinancialdm.vercel.app/quiz`));
+      setSheetShareStatus(await shareOrDownload(blob, `${combinedShareText(sheet)} https://thefinancialdm.com/quiz`));
     } catch (e) {
       console.error("[share] failed", e);
       setSheetShareStatus("error");
@@ -321,7 +321,7 @@ function QuizPage() {
     setShareStatus("working");
     try {
       const blob = await renderShareCard(shareRef.current);
-      setShareStatus(await shareOrDownload(blob, `${trapShareText(mythScore(state.myths))} https://thefinancialdm.vercel.app/quiz`));
+      setShareStatus(await shareOrDownload(blob, `${trapShareText(mythScore(state.myths))} https://thefinancialdm.com/quiz`));
     } catch (e) {
       console.error("[share] failed", e);
       setShareStatus("error");

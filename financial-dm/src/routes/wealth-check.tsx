@@ -396,7 +396,7 @@ function WealthCheckPage() {
     setShareStatus("working");
     try {
       const blob = await renderShareCard(shareRef.current);
-      setShareStatus(await shareOrDownload(blob, `${shareText(shareFacts)} ${"https://" + "thefinancialdm.vercel.app/wealth-check"}`));
+      setShareStatus(await shareOrDownload(blob, `${shareText(shareFacts)} ${"https://" + "thefinancialdm.com/wealth-check"}`));
     } catch (e) {
       console.error("[share] failed", e);
       setShareStatus("error");

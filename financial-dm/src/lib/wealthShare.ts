@@ -5,7 +5,7 @@
  */
 import type { SaveResult } from "./wealthEvents";
 
-export const SHARE_QUIZ_URL = "thefinancialdm.vercel.app/wealth-check";
+export const SHARE_QUIZ_URL = "thefinancialdm.com/wealth-check";
 
 export interface ShareFacts {
   eventName: string;
