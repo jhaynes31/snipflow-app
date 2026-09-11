@@ -109,15 +109,17 @@ export const getCampaignBrief = createServerFn()
     const q = quests[0];
     const generator = (generatorById(String(s.generator))?.id ?? "script") as GeneratorId;
     const gen = generatorById(generator)!;
-    const slug = String(q.slug ?? "");
-    const spokenLine = spokenLineFor(slug);
-    const url = `https://${QUEST_CONFIG.siteDomain}/${slug}`;
     const offerQuiz = q.offer_quiz === "financial" ? "financial" : "life_insurance";
 
+    // The link the post should speak: the most specific one John set up
+    // (Section 8.1). A post link tracks this one post, a series link tracks
+    // the series, and otherwise the quest's own link is used.
+    let slug = String(q.slug ?? "");
     let series: CampaignBrief["series"];
     if (s.series_id != null) {
       const sr = (await sql()`SELECT * FROM quest_series WHERE id = ${Number(s.series_id)}`) as Array<Record<string, unknown>>;
       if (sr.length) {
+        if (sr[0].slug) slug = String(sr[0].slug);
         const kind = sr[0].kind === "multi_part" ? "multi_part" : "recurring";
         series = { name: String(sr[0].name ?? ""), kind, outline: parseJson<string[]>(sr[0].outline, []) };
         if (kind === "multi_part") {
@@ -133,6 +135,10 @@ export const getCampaignBrief = createServerFn()
         }
       }
     }
+
+    if (s.post_slug) slug = String(s.post_slug);
+    const spokenLine = spokenLineFor(slug);
+    const url = `https://${QUEST_CONFIG.siteDomain}/${slug}`;
 
     const triggers = parseJson<string[]>(q.triggers, []);
     const pains = parseJson<string[]>(q.pain_points, []);
