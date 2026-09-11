@@ -63,4 +63,4 @@ export const QUESTS: Record<StatKey, string> = {
 export const RESULTS_CTA = "Want to train your stats? Grab a seat at John's table.";
 
 /** Show the dragon artwork on the results screen. Flip to false to retire it; no files are removed. */
-export const SHOW_DRAGON = true;
+export const SHOW_DRAGON = false;
