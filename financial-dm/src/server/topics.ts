@@ -381,14 +381,42 @@ export function buildTopicPool(): TopicPick[] {
 }
 
 /**
- * Pick `count` distinct TopicPick entries. Prefers distinct topics (by
- * topic string) and only falls back to distinct topic+fact pairs if the pool
- * cannot supply enough distinct topics. Fisher Yates shuffle on a copy so
- * results are varied and non repeating.
+ * Every distinct topic name with the facts that back it, so a roll can treat
+ * "Term Life Insurance" (55 facts) and "Budgeting" (1 fact) as equals.
  */
-export function pickRandomTopics(count = 3): TopicPick[] {
-  const pool = buildTopicPool();
-  if (pool.length === 0) {
+export function buildTopicGroups(): Array<{ topic: string; facts: string[] }> {
+  const map = new Map<string, string[]>();
+  for (const [category, facts] of Object.entries(FACTS)) {
+    map.set(category, [...(map.get(category) ?? []), ...facts]);
+  }
+  for (const t of EXTRA_TOPICS) {
+    map.set(t.topic, [...(map.get(t.topic) ?? []), t.fact]);
+  }
+  return [...map.entries()].map(([topic, facts]) => ({ topic, facts }));
+}
+
+function shuffle<T>(list: T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * Pick `count` distinct topics, each topic name equally likely, then one
+ * random fact under each. Topics named in `exclude` (normally the previous
+ * roll) are skipped while enough other topics remain, so "Roll again" always
+ * shows John something new.
+ *
+ * The old version rolled from a flat list of every fact, so the four seed
+ * bank categories with 55 facts each crowded out the 30 or so single fact
+ * topics almost every time.
+ */
+export function pickRandomTopics(count = 3, exclude: string[] = []): TopicPick[] {
+  const groups = buildTopicGroups();
+  if (groups.length === 0) {
     return [
       {
         topic: "Financial Literacy",
@@ -397,37 +425,29 @@ export function pickRandomTopics(count = 3): TopicPick[] {
       },
     ];
   }
-  const shuffled = [...pool];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const want = Math.min(count, shuffled.length);
-  const picks: TopicPick[] = [];
-  const seenTopics = new Set<string>();
-  for (const item of shuffled) {
-    if (picks.length === want) break;
-    if (!seenTopics.has(item.topic)) {
-      seenTopics.add(item.topic);
-      picks.push(item);
-    }
-  }
-  const seenPairs = new Set(picks.map((p) => `${p.topic} ${p.fact}`));
-  for (const item of shuffled) {
-    if (picks.length === want) break;
-    const key = `${item.topic} ${item.fact}`;
-    if (!seenPairs.has(key)) {
-      seenPairs.add(key);
-      picks.push(item);
-    }
-  }
-  return picks;
+  const want = Math.min(count, groups.length);
+  const skip = new Set(exclude.map((t) => t.trim().toLowerCase()));
+  const fresh = groups.filter((g) => !skip.has(g.topic.toLowerCase()));
+  const candidates = fresh.length >= want ? fresh : groups;
+  return shuffle(candidates)
+    .slice(0, want)
+    .map((g) => ({
+      topic: g.topic,
+      fact: g.facts[Math.floor(Math.random() * g.facts.length)],
+      painPoints: painPointsFor(g.topic),
+    }));
 }
 
-/** Roll three topics (with their pain points) for any generator. */
+/**
+ * Roll three topics (with their pain points) for any generator. Pass the
+ * topics currently on screen as `exclude` to guarantee a different set.
+ */
 export const getRandomTopics = createServerFn()
   .middleware([requireAdmin])
-  .handler(async (): Promise<TopicPick[]> => pickRandomTopics(3));
+  .validator((d?: { exclude?: string[] }) => ({
+    exclude: Array.isArray(d?.exclude) ? d.exclude.map(String).slice(0, 12) : [],
+  }))
+  .handler(async ({ data }): Promise<TopicPick[]> => pickRandomTopics(3, data.exclude));
 
 /**
  * The shared "what is this content about" section of every user message.

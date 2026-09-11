@@ -289,6 +289,15 @@ export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
     image: "/themes/backgrounds/obsidian.png",
     light: false,
   },
+  // Vector backgrounds (small files, crisp at any export size).
+  { id: "parchment-map", label: "Parchment Map", image: "/themes/backgrounds/parchment-map.svg", light: true },
+  { id: "dragon-scales", label: "Dragon Scales", image: "/themes/backgrounds/dragon-scales.svg", light: false },
+  { id: "tavern-wood", label: "Tavern Wood", image: "/themes/backgrounds/tavern-wood.svg", light: false },
+  { id: "stained-glass", label: "Stained Glass", image: "/themes/backgrounds/stained-glass.svg", light: false },
+  { id: "castle-stone", label: "Castle Stone", image: "/themes/backgrounds/castle-stone.svg", light: false },
+  { id: "night-forest", label: "Night Forest", image: "/themes/backgrounds/night-forest.svg", light: false },
+  { id: "gold-filigree", label: "Gold Filigree", image: "/themes/backgrounds/gold-filigree.svg", light: false },
+  { id: "red-velvet", label: "Red Velvet", image: "/themes/backgrounds/red-velvet.svg", light: false },
 ];
 
 export interface ThemeBorderOption {
@@ -304,6 +313,13 @@ export const THEME_BORDERS: ThemeBorderOption[] = [
   { id: "pillars", label: "Pillars", image: "/themes/borders/pillars.png" },
   { id: "gold", label: "Gold", image: "/themes/borders/gold.png" },
   { id: "moss", label: "Moss", image: "/themes/borders/moss.png" },
+  // Vector frames.
+  { id: "gold-ornate", label: "Gold Ornate", image: "/themes/borders/gold-ornate.svg" },
+  { id: "rope", label: "Rope", image: "/themes/borders/rope.svg" },
+  { id: "celtic-knot", label: "Celtic Knot", image: "/themes/borders/celtic-knot.svg" },
+  { id: "ivy", label: "Ivy", image: "/themes/borders/ivy.svg" },
+  { id: "runes", label: "Runes", image: "/themes/borders/runes.svg" },
+  { id: "scale-rim", label: "Scale Rim", image: "/themes/borders/scale-rim.svg" },
 ];
 
 export function isThemeBackground(id?: string): boolean {

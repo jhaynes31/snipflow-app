@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+ <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="3"/><feColorMatrix values="0 0 0 0 0.45 0 0 0 0 0.33 0 0 0 0 0.16 0 0 0 0.16 0"/></filter>
+ <filter id="stain"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="4" seed="9"/><feColorMatrix values="0 0 0 0 0.35 0 0 0 0 0.22 0 0 0 0 0.08 0 0 0 0.35 0"/></filter>
+ <radialGradient id="vig" cx="50%" cy="50%" r="72%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#3a2408" stop-opacity="0.55"/></radialGradient>
+ <linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1e2bd"/><stop offset="1" stop-color="#d9c08c"/></linearGradient>
+</defs>
+<rect width="1024" height="1024" fill="url(#base)"/>
+<rect width="1024" height="1024" filter="url(#stain)"/>
+<g stroke="#8a6a2a" stroke-opacity="0.18" stroke-width="2"><line x1="0" y1="0" x2="0" y2="1024"/><line x1="128" y1="0" x2="128" y2="1024"/><line x1="256" y1="0" x2="256" y2="1024"/><line x1="384" y1="0" x2="384" y2="1024"/><line x1="512" y1="0" x2="512" y2="1024"/><line x1="640" y1="0" x2="640" y2="1024"/><line x1="768" y1="0" x2="768" y2="1024"/><line x1="896" y1="0" x2="896" y2="1024"/><line x1="0" y1="0" x2="1024" y2="0"/><line x1="0" y1="128" x2="1024" y2="128"/><line x1="0" y1="256" x2="1024" y2="256"/><line x1="0" y1="384" x2="1024" y2="384"/><line x1="0" y1="512" x2="1024" y2="512"/><line x1="0" y1="640" x2="1024" y2="640"/><line x1="0" y1="768" x2="1024" y2="768"/><line x1="0" y1="896" x2="1024" y2="896"/></g>
+<g fill="none" stroke="#7a5a1e" stroke-opacity="0.35" stroke-width="3"><path d="M120 820 C 260 700, 380 760, 470 640 S 700 480, 900 520"/><path d="M80 300 C 200 330, 260 260, 380 290 S 560 380, 700 300"/></g>
+<g transform="translate(860 160)" fill="none" stroke="#7a5a1e" stroke-opacity="0.5" stroke-width="4"><circle r="70"/><circle r="52"/><path d="M0 -70 L14 -14 L70 0 L14 14 L0 70 L-14 14 L-70 0 L-14 -14 Z" fill="#7a5a1e" fill-opacity="0.35"/></g>
+<rect width="1024" height="1024" filter="url(#grain)"/>
+<rect width="1024" height="1024" fill="url(#vig)"/>
+</svg>

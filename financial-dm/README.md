@@ -9,7 +9,8 @@ built as a Dungeons & Dragons flavored experience.
   a hand off to John's Calendly.
 - **Private pages** (password protected): the lead dashboard (`/dashboard`)
   and the content forge (`/generator`), which produces scripts, memes,
-  carousels, and social cards in John's tavern bartender voice.
+  carousels, social cards, and b roll shot lists in John's tavern bartender
+  voice.
 
 ## Stack
 
@@ -23,11 +24,13 @@ src/
   routes/            pages. Files under _admin/ require login.
   components/        UI pieces (quizzes, generators, previews, saved views)
   components/generator/  the shared topic/pain point picker, tone controls,
-                     caption + hashtag panel used by every forge tab
+                     caption + hashtag panel, and b roll shot list used by
+                     the forge tabs
   server/            server functions (database + AI calls). auth.ts is the
                      password gate, contentVoice.ts is the shared persona and
                      prompt rules, topics.ts is the topic pool with pain points
-  lib/               client safe helpers (slide model, PNG export, text export)
+  lib/               client safe helpers (slide model, PNG export, text export,
+                     b roll timing estimates)
 public/              images: logo, dragon tiers, carousel themes
 database/            SQL dump of the five tables plus notes
 ```
@@ -95,8 +98,8 @@ throttled per address. Only `saveLead` (the quiz submission) is public.
 
 ## Database
 
-Five tables: `leads`, `saved_scripts`, `saved_carousels`, `social_cards`,
-`meme_concepts`. Each server module creates or upgrades its own table on
+Six tables: `leads`, `saved_scripts`, `saved_carousels`, `social_cards`,
+`meme_concepts`, `saved_broll`. Each server module creates or upgrades its own table on
 first use with `CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`,
 so no separate migration step is needed. `database/the-financial-dm-dump.sql`
 restores the schema and the saved content from the last export.
@@ -106,9 +109,20 @@ restores the schema and the saved content from the last export.
 Every generator builds its prompt from `src/server/contentVoice.ts`: the
 bartender persona, the plain language rule, tone as a variation within that
 character, formatting rules, and the caption and hashtag rules. Topic and
-pain point come from `src/server/topics.ts`. The hook rule in
+pain point come from `src/server/topics.ts`, which rolls three distinct
+topics with every topic name equally likely and skips whatever is already on
+screen. The hook rule in
 `src/server/scriptGenerator.ts` is intentionally unchanged from the original
 and should be left alone; adjust the inputs that reach it instead.
+
+## B roll planner
+
+`src/server/brollGenerator.ts` turns a finished script (a fresh forge or a
+saved one) into a shot list: 6 to 8 beats that quote the script word for
+word, what to film or source for each (John films it, stock clip, screen
+recording, or text card), on screen text in the bartender's voice, notes,
+and a rough cue in seconds from `estimateTiming` in `src/lib/brollUtils.ts`.
+It never rewrites the script. Plans save to `saved_broll`.
 
 ## PNG export
 

@@ -10,6 +10,7 @@ import {
   slugify,
 } from "~/lib/scriptUtils";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
+import BrollPlanner from "~/components/BrollPlanner";
 
 // Hook mechanism picker options. Value is canonical and stored in the DB.
 const HOOK_OPTIONS: Array<{ value: string; label: string; hint: string }> = [
@@ -46,6 +47,8 @@ export default function ScriptGenerator({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  /** saved_scripts.id once this package is saved, so the b roll plan can point at it. */
+  const [savedId, setSavedId] = useState<number | undefined>(undefined);
 
   const textParts = useCallback(
     (r: ScriptResult) => ({
@@ -75,6 +78,7 @@ export default function ScriptGenerator({
     setCopied(false);
     setHookCopied(false);
     setSaved(false);
+    setSavedId(undefined);
     try {
       const res = await generateScript({
         data: {
@@ -205,6 +209,7 @@ export default function ScriptGenerator({
         return;
       }
       setSaved(true);
+      setSavedId(res.id);
       setTimeout(() => setSaved(false), 2000);
     } catch {
       setError("Could not save the posting package.");
@@ -447,6 +452,26 @@ export default function ScriptGenerator({
           </div>
         )}
       </section>
+
+      {/* Plan the B Roll: follows the finished script, never changes it. */}
+      <BrollPlanner
+        source={
+          result
+            ? {
+                scriptId: savedId,
+                title: result.title,
+                topic: result.topic,
+                fact: result.fact,
+                painPoint: result.painPoint,
+                tone: result.tone,
+                dndThemed: result.dndThemed,
+                hook: result.hook,
+                script: result.script,
+                callToAction: result.callToAction,
+              }
+            : null
+        }
+      />
     </div>
   );
 }
