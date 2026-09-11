@@ -17,12 +17,11 @@ import {
 import {
   makeElement,
   collectCustomBackgrounds,
-  isCustomBackground,
   type EditableSlide,
   type SlideElement,
 } from "~/lib/slideEditor";
 import EditableSlideCard from "~/components/EditableSlideCard";
-import SlideEditorPanel from "~/components/SlideEditorPanel";
+import SlideEditorPanel, { type SlideLook } from "~/components/SlideEditorPanel";
 
 export default function SavedCarousels() {
   const [carousels, setCarousels] = useState<SavedCarousel[]>([]);
@@ -76,7 +75,7 @@ export default function SavedCarousels() {
         const arr = db[id] || [];
         const next = arr.map((s, i) =>
           i === idx
-            ? { ...s, background: bgId, backgroundImage: image ?? undefined }
+            ? { ...s, background: bgId, backgroundImage: image ?? undefined, themeBackground: undefined }
             : s,
         );
         return { ...db, [id]: next };
@@ -142,14 +141,11 @@ export default function SavedCarousels() {
     markDirty(id);
   }, []);
 
-  const applyBgToAll = useCallback((id: number, bgId: string, image?: string) => {
+  /** Copy one slide's whole look (background, scene, border) to every slide of that carousel. */
+  const applyLookToAll = useCallback((id: number, look: SlideLook) => {
     setDeckById((db) => {
       const arr = db[id] || [];
-      const next = arr.map((s) => ({
-        ...s,
-        background: bgId,
-        backgroundImage: isCustomBackground(bgId) ? image : undefined,
-      }));
+      const next = arr.map((s) => ({ ...s, ...look }));
       return { ...db, [id]: next };
     });
     markDirty(id);
@@ -183,24 +179,13 @@ export default function SavedCarousels() {
     [],
   );
 
-  const applyThemeToAll = useCallback(
-    (id: number, themeBackground?: string, themeBorder?: string) => {
-      setDeckById((db) => {
-        const arr = db[id] || [];
-        const next = arr.map((s) => ({
-          ...s,
-          themeBackground,
-          themeBorder,
-        }));
-        return { ...db, [id]: next };
-      });
-      markDirty(id);
-    },
-    [],
-  );
-
   const toggleEdit = useCallback((id: number, idx: number) => {
-    setEditingKey((prev) => (prev === `${id}:${idx}` ? null : `${id}:${idx}`));
+    setEditingKey((prev) => {
+      const key = `${id}:${idx}`;
+      const next = prev === key ? null : key;
+      if (next) setTimeout(() => slideRefs.current[id]?.[idx]?.scrollIntoView({ block: "start", behavior: "smooth" }), 0);
+      return next;
+    });
   }, []);
 
   const handleSave = async (id: number) => {
@@ -442,7 +427,7 @@ export default function SavedCarousels() {
                       </p>
                     </div>
                     {slides.length > 0 && (
-                      <div className="space-y-4">
+                      <div className={`space-y-4 ${editingKey && editingKey.startsWith(`${c.id}:`) ? "pb-[48vh]" : ""}`}>
                         <p className="text-[#c08020] font-bold font-fantasy text-sm">
                           🃏 Slides
                         </p>
@@ -498,6 +483,9 @@ export default function SavedCarousels() {
                               {isEditing && (
                                 <SlideEditorPanel
                                   slide={slide}
+                                  slideNumber={idx + 1}
+                                  slideCount={slides.length}
+                                  onClose={() => setEditingKey(null)}
                                   customBackgrounds={collectCustomBackgrounds(slides)}
                                   onSelectBackground={(bgId, image) =>
                                     selectBackground(c.id, idx, bgId, image)
@@ -512,18 +500,13 @@ export default function SavedCarousels() {
                                   onRemoveElement={(elId) =>
                                     removeElement(c.id, idx, elId)
                                   }
-                                  onApplyBgToAll={(bgId, image) =>
-                                    applyBgToAll(c.id, bgId, image)
-                                  }
                                   onSelectThemeBackground={(id) =>
                                     selectThemeBackground(c.id, idx, id)
                                   }
                                   onSelectThemeBorder={(id) =>
                                     selectThemeBorder(c.id, idx, id)
                                   }
-                                  onApplyThemeToAll={(tb, br) =>
-                                    applyThemeToAll(c.id, tb, br)
-                                  }
+                                  onApplyLookToAll={(look) => applyLookToAll(c.id, look)}
                                 />
                               )}
                             </div>

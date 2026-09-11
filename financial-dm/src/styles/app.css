@@ -133,3 +133,11 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #406080;
 }
+
+/* While the slide editor is docked to the right on wide screens, keep the
+   page content clear of it so the slide being edited is never covered. */
+@media (min-width: 1024px) {
+  body.slide-editor-open main {
+    padding-right: 388px;
+  }
+}

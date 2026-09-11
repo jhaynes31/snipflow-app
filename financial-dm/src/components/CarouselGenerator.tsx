@@ -14,12 +14,11 @@ import {
   buildEditableDeck,
   makeElement,
   collectCustomBackgrounds,
-  isCustomBackground,
   type EditableSlide,
   type SlideElement,
 } from "~/lib/slideEditor";
 import EditableSlideCard from "~/components/EditableSlideCard";
-import SlideEditorPanel from "~/components/SlideEditorPanel";
+import SlideEditorPanel, { type SlideLook } from "~/components/SlideEditorPanel";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 
 /**
@@ -179,9 +178,11 @@ export default function CarouselGenerator({
 
   // ── Editor state helpers ─────────────────────────────────────────
 
+  // A plain color or an uploaded image replaces any D&D scene, so what John
+  // clicks is what shows. The border is kept.
   const selectBackground = useCallback((idx: number, bgId: string, image?: string) => {
     setDeck((d) =>
-      d.map((s, i) => (i === idx ? { ...s, background: bgId, backgroundImage: image ?? undefined } : s)),
+      d.map((s, i) => (i === idx ? { ...s, background: bgId, backgroundImage: image ?? undefined, themeBackground: undefined } : s)),
     );
   }, []);
 
@@ -214,10 +215,9 @@ export default function CarouselGenerator({
     );
   }, []);
 
-  const applyBackgroundToAll = useCallback((bgId: string, image?: string) => {
-    setDeck((d) =>
-      d.map((s) => ({ ...s, background: bgId, backgroundImage: isCustomBackground(bgId) ? image : undefined })),
-    );
+  /** Copy one slide's whole look (background, scene, border) to every slide. */
+  const applyLookToAll = useCallback((look: SlideLook) => {
+    setDeck((d) => d.map((s) => ({ ...s, ...look })));
   }, []);
 
   const selectThemeBackground = useCallback((idx: number, id: string | undefined) => {
@@ -228,12 +228,13 @@ export default function CarouselGenerator({
     setDeck((d) => d.map((s, i) => (i === idx ? { ...s, themeBorder: id } : s)));
   }, []);
 
-  const applyThemeToAll = useCallback((themeBackground?: string, themeBorder?: string) => {
-    setDeck((d) => d.map((s) => ({ ...s, themeBackground, themeBorder })));
-  }, []);
-
   const toggleEdit = useCallback((idx: number) => {
-    setEditingIdx((prev) => (prev === idx ? null : idx));
+    setEditingIdx((prev) => {
+      const next = prev === idx ? null : idx;
+      // Bring the slide being edited to the top so it sits above the docked editor.
+      if (next !== null) setTimeout(() => slideRefs.current[idx]?.scrollIntoView({ block: "start", behavior: "smooth" }), 0);
+      return next;
+    });
   }, []);
 
   return (
@@ -317,8 +318,8 @@ export default function CarouselGenerator({
               onError={setError}
             />
 
-            {/* Slide deck + editor */}
-            <div className="space-y-5">
+            {/* Slide deck + editor (extra room at the bottom while the docked editor is open) */}
+            <div className={`space-y-5 ${editingIdx !== null ? "pb-[48vh]" : ""}`}>
               <div className="flex flex-wrap gap-2 items-center justify-between">
                 <p className="text-[#c08020] font-bold font-fantasy text-sm">✏️ Edit Any Slide</p>
                 <button
@@ -371,16 +372,18 @@ export default function CarouselGenerator({
                     {isSelected && (
                       <SlideEditorPanel
                         slide={slide}
+                        slideNumber={idx + 1}
+                        slideCount={deck.length}
                         customBackgrounds={collectCustomBackgrounds(deck)}
+                        onClose={() => setEditingIdx(null)}
                         onSelectBackground={(bgId, image) => selectBackground(idx, bgId, image)}
                         onUploadBackground={(image) => uploadBackground(idx, image)}
                         onUpdateElement={(elId, patch) => updateElement(idx, elId, patch)}
                         onAddCustom={() => addCustom(idx)}
                         onRemoveElement={(elId) => removeElement(idx, elId)}
-                        onApplyBgToAll={applyBackgroundToAll}
                         onSelectThemeBackground={(id) => selectThemeBackground(idx, id)}
                         onSelectThemeBorder={(id) => selectThemeBorder(idx, id)}
-                        onApplyThemeToAll={applyThemeToAll}
+                        onApplyLookToAll={applyLookToAll}
                       />
                     )}
                   </div>
