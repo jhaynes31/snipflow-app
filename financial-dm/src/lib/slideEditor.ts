@@ -247,56 +247,16 @@ export interface ThemeBackgroundOption {
 }
 
 export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
-  {
-    id: "cracked-stone",
-    label: "Cracked Stone",
-    image: "/themes/backgrounds/cracked-stone.png",
-    light: false,
-  },
-  {
-    id: "dungeon-stone",
-    label: "Dungeon Stone",
-    image: "/themes/backgrounds/dungeon-stone.png",
-    light: false,
-  },
-  {
-    id: "dark-metal",
-    label: "Dark Metal",
-    image: "/themes/backgrounds/dark-metal.png",
-    light: false,
-  },
-  {
-    id: "golden-sky",
-    label: "Golden Sky",
-    image: "/themes/backgrounds/golden-sky.png",
-    light: true,
-    midtone: true,
-  },
-  {
-    id: "deep-space",
-    label: "Deep Space",
-    image: "/themes/backgrounds/deep-space.png",
-    light: false,
-  },
-  {
-    id: "tree-bark",
-    label: "Tree Bark",
-    image: "/themes/backgrounds/tree-bark.png",
-    light: false,
-  },
-  {
-    id: "mossy-stone",
-    label: "Mossy Stone",
-    image: "/themes/backgrounds/mossy-stone.png",
-    light: false,
-  },
-  {
-    id: "obsidian",
-    label: "Obsidian",
-    image: "/themes/backgrounds/obsidian.png",
-    light: false,
-  },
-  // Painted scenes (generated textures in the same moody style as the set above).
+  // The original set.
+  { id: "cracked-stone", label: "Cracked Stone", image: "/themes/backgrounds/cracked-stone.jpg", light: false },
+  { id: "dungeon-stone", label: "Dungeon Stone", image: "/themes/backgrounds/dungeon-stone.jpg", light: false },
+  { id: "dark-metal", label: "Dark Metal", image: "/themes/backgrounds/dark-metal.jpg", light: false },
+  { id: "golden-sky", label: "Golden Sky", image: "/themes/backgrounds/golden-sky.jpg", light: true, midtone: true },
+  { id: "deep-space", label: "Deep Space", image: "/themes/backgrounds/deep-space.jpg", light: false },
+  { id: "tree-bark", label: "Tree Bark", image: "/themes/backgrounds/tree-bark.jpg", light: false },
+  { id: "mossy-stone", label: "Mossy Stone", image: "/themes/backgrounds/mossy-stone.jpg", light: false },
+  { id: "obsidian", label: "Obsidian", image: "/themes/backgrounds/obsidian.jpg", light: false },
+  // Painted scenes from the same artist set (ids are stable; saved slides point at ids).
   { id: "castle", label: "Castle", image: "/themes/backgrounds/castle.jpg", light: false },
   { id: "dungeon", label: "Dungeon", image: "/themes/backgrounds/dungeon.jpg", light: false },
   { id: "dungeon-bricks", label: "Dungeon Bricks", image: "/themes/backgrounds/dungeon-bricks.jpg", light: false },
@@ -304,6 +264,7 @@ export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
   { id: "temple", label: "Temple", image: "/themes/backgrounds/temple.jpg", light: false },
   { id: "temple-pillars", label: "Temple Pillars", image: "/themes/backgrounds/temple-pillars.jpg", light: false },
   { id: "sword", label: "Sword", image: "/themes/backgrounds/sword.jpg", light: false },
+  { id: "swords", label: "Crossed Swords", image: "/themes/backgrounds/swords.jpg", light: false },
   { id: "fire", label: "Fire", image: "/themes/backgrounds/fire.jpg", light: false },
   { id: "volcano", label: "Volcano", image: "/themes/backgrounds/volcano.jpg", light: false },
   { id: "mountains", label: "Mountains", image: "/themes/backgrounds/mountains.jpg", light: false },
@@ -311,15 +272,14 @@ export const THEME_BACKGROUNDS: ThemeBackgroundOption[] = [
   { id: "old-oak-bark", label: "Old Oak Bark", image: "/themes/backgrounds/old-oak-bark.jpg", light: false },
   { id: "moon", label: "Moon", image: "/themes/backgrounds/moon.jpg", light: false },
   { id: "starry-sky", label: "Starry Sky", image: "/themes/backgrounds/starry-sky.jpg", light: false },
-  { id: "sky", label: "Day Sky", image: "/themes/backgrounds/sky.jpg", light: true },
-  { id: "clouds", label: "Dusk Clouds", image: "/themes/backgrounds/clouds.jpg", light: false },
+  { id: "sky", label: "Day Sky", image: "/themes/backgrounds/day-sky.jpg", light: true },
+  { id: "clouds", label: "Dusk Clouds", image: "/themes/backgrounds/dusk-clouds.jpg", light: false },
   { id: "thunderstorm", label: "Thunderstorm", image: "/themes/backgrounds/thunderstorm.jpg", light: false },
   { id: "rain", label: "Rain", image: "/themes/backgrounds/rain.jpg", light: false },
-  // Vector backgrounds (small files, crisp at any export size).
-  { id: "parchment-map", label: "Parchment Map", image: "/themes/backgrounds/parchment-map.svg", light: true },
-  { id: "dragon-scales", label: "Dragon Scales", image: "/themes/backgrounds/dragon-scales.svg", light: false },
-  { id: "tavern-wood", label: "Tavern Wood", image: "/themes/backgrounds/tavern-wood.svg", light: false },
-  { id: "stained-glass", label: "Stained Glass", image: "/themes/backgrounds/stained-glass.svg", light: false },
+  { id: "parchment-map", label: "Parchment Map", image: "/themes/backgrounds/parchment-map.jpg", light: true },
+  { id: "dragon-scales", label: "Dragon Scales", image: "/themes/backgrounds/dragon-scales.jpg", light: false },
+  { id: "tavern-wood", label: "Tavern Wood", image: "/themes/backgrounds/tavern-wood.jpg", light: false },
+  { id: "stained-glass", label: "Stained Glass", image: "/themes/backgrounds/stained-glass.jpg", light: false },
 ];
 
 export interface ThemeBorderOption {
