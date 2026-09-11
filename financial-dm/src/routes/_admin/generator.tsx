@@ -323,6 +323,12 @@ function GeneratorHub() {
 
         <div className="mt-12 text-center flex flex-col gap-2 items-center">
           <a
+            href="/quest-board?section=profiles"
+            className="text-[#a0a0a0] hover:text-[#c08020] text-xs font-fantasy transition-colors"
+          >
+            🗺️ Quest Board
+          </a>
+          <a
             href="/dashboard"
             className="text-[#a0a0a0] hover:text-[#c08020] text-xs font-fantasy transition-colors"
           >
@@ -332,7 +338,7 @@ function GeneratorHub() {
             href="/"
             className="text-[#606080] hover:text-[#a0a0a0] text-xs font-fantasy transition-colors"
           >
-            🏰 Return to Quest Board
+            🏠 Back to the tavern (home page)
           </a>
         </div>
       </div>

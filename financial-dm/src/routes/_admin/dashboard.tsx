@@ -134,6 +134,13 @@ function DashboardPage() {
             >
               🧙 Content Forge
             </Link>
+            <Link
+              to="/quest-board"
+              search={{ section: "profiles" }}
+              className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 transition-all font-fantasy text-sm"
+            >
+              🗺️ Quest Board
+            </Link>
             <button
               onClick={fetchLeads}
               disabled={loading}
