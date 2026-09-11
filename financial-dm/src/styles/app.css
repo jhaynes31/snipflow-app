@@ -90,6 +90,21 @@
   .animate-wealth-shake { animation: none; }
 }
 
+/* Loot chest rattle (financial health quiz) */
+@keyframes wealth-chest {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  20% { transform: rotate(-6deg) translateY(-4px); }
+  40% { transform: rotate(6deg) translateY(0); }
+  60% { transform: rotate(-4deg) translateY(-6px); }
+  80% { transform: rotate(4deg) translateY(0); }
+}
+.animate-wealth-chest {
+  animation: wealth-chest 0.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-wealth-chest { animation: none; }
+}
+
 /* Slide-in transition for quiz steps and results */
 @keyframes slide-in {
   from { opacity: 0; transform: translateY(16px); }

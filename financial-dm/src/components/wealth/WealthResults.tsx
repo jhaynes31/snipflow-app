@@ -12,11 +12,17 @@ import { CLASS_META, STAT_META, TIER_META, formatMod, type Answers, type Profile
 export default function WealthResults({
   profile,
   answers,
-  onCTA,
+  onClaimLoot,
+  onBook,
+  leadCaptured,
 }: {
   profile: Profile;
   answers: Answers;
-  onCTA: () => void;
+  /** Primary: the loot drop (captures the lead first if needed). */
+  onClaimLoot: () => void;
+  /** Secondary: straight to John's table (captures the lead first if needed). */
+  onBook: () => void;
+  leadCaptured: boolean;
 }) {
   const tier = TIER_META[profile.tier];
   const cls = profile.classId ? CLASS_META[profile.classId] : null;
@@ -92,12 +98,21 @@ export default function WealthResults({
       </details>
 
       <button
-        onClick={onCTA}
+        onClick={onClaimLoot}
         className="w-full max-w-sm px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+      >
+        🎁 Claim Your Loot
+      </button>
+      <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">
+        {leadCaptured ? "A little something for your weakest stat." : "Tell John where to send it, and a little something for your weakest stat drops."}
+      </p>
+      <button
+        onClick={onBook}
+        className="w-full max-w-sm px-6 py-3 rounded-lg border-2 border-[#c08020]/60 text-[#c08020] hover:bg-[#c08020]/10 font-bold transition-all font-fantasy tracking-wide"
       >
         🍺 {RESULTS_CTA}
       </button>
-      <p className="text-[#606080] text-xs text-center font-fantasy">A free chat with John, no pressure, about your next move.</p>
+      <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">A free chat with John, no pressure, about your next move.</p>
     </div>
   );
 }

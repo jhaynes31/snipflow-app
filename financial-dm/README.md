@@ -143,6 +143,21 @@ Script tab) turns a script into beats with what to film, on screen text,
 and cues in seconds; saved shot lists sit under the Script tab's saved
 view.
 
+## Financial health quiz
+
+`/wealth-check` is a dice flavored character sheet. Scoring is pure:
+`src/lib/wealthProfile.ts` turns answers into five stats, a tier, a class,
+the weakest stat, and the original 0 to 100 lead score, and never sees a
+die. `src/lib/wealthRng.ts` is the only random source (crypto, seedable
+for tests). `src/lib/wealthEvents.ts` holds the plot twist, the final
+event table, and the saving throw rules. Copy John says lives in
+`src/components/wealth/wealthCopy.ts` (quest tips are a draft for John's
+review), loot in `src/lib/wealthLoot.ts` (stand ins marked TODO(Jen)), and
+the 1080 by 1080 share card in `src/lib/wealthShare.ts`. Rolls are stored
+the moment they happen and progress is kept in sessionStorage. In dev
+builds `?debugRolls=intro:20,twist:3,event:20,save:1,save2:5` forces
+specific rolls for QA; it is compiled out of production. Tests: `bun test`.
+
 ## PNG export
 
 `src/lib/exportPng.ts` is the single export path for slides, cards, and

@@ -5,6 +5,10 @@ import LeadModal from "~/components/LeadModal";
 import { WEALTH_QUESTIONS, computeScore, scoresFromAnswers } from "~/components/WealthReport";
 import StatSheet, { FloatingMods, centerOf, type FloatingMod } from "~/components/wealth/StatSheet";
 import WealthResults from "~/components/wealth/WealthResults";
+import LootDrop from "~/components/wealth/LootDrop";
+import ShareCard from "~/components/wealth/ShareCard";
+import { lootForRoll } from "~/lib/wealthLoot";
+import { renderShareCard, shareFactsFrom, shareOrDownload, shareText } from "~/lib/wealthShare";
 import { NATURAL_1_HEADLINE, NATURAL_20_HEADLINE, OPENING_BUTTON, SAVE_OUTCOME_COPY, openingRollCopy } from "~/components/wealth/wealthCopy";
 import { CLASS_META, STAT_META, TIER_META, computeProfile, formatMod, type Answers, type StatKey } from "~/lib/wealthProfile";
 import { createScriptedRng, defaultRng, type Rng } from "~/lib/wealthRng";
@@ -25,7 +29,7 @@ import {
 } from "~/lib/wealthEvents";
 import { saveLead } from "~/server/leads";
 
-type Phase = "intro" | "questions" | "twist" | "save_event" | "save_roll" | "save_result" | "result";
+type Phase = "intro" | "questions" | "twist" | "save_event" | "save_roll" | "save_result" | "result" | "loot" | "share";
 
 const TOTAL_QUESTIONS = WEALTH_QUESTIONS.length;
 /** The twist appears after this many base questions (ceil(N/2)). */
@@ -59,7 +63,11 @@ interface QuizState {
     saveEventId?: string;
     /** The save dice: one, or two under advantage or disadvantage. */
     saveDice?: number[];
+    /** d20 that picks the loot item for the weakest stat. */
+    loot?: number;
   };
+  /** The lead form was submitted once; never ask twice. */
+  leadCaptured?: boolean;
 }
 
 const STORAGE_KEY = "wealth_quiz_v2";
@@ -71,12 +79,13 @@ function loadState(): QuizState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<QuizState>;
     if (!parsed || typeof parsed !== "object") return null;
-    const phases: Phase[] = ["intro", "questions", "twist", "save_event", "save_roll", "save_result", "result"];
+    const phases: Phase[] = ["intro", "questions", "twist", "save_event", "save_roll", "save_result", "result", "loot", "share"];
     return {
       phase: phases.includes(parsed.phase as Phase) ? (parsed.phase as Phase) : "intro",
       questionIndex: Math.max(0, Math.min(TOTAL_QUESTIONS - 1, Number(parsed.questionIndex) || 0)),
       answers: parsed.answers && typeof parsed.answers === "object" ? parsed.answers : {},
       rolls: parsed.rolls && typeof parsed.rolls === "object" ? parsed.rolls : {},
+      leadCaptured: Boolean(parsed.leadCaptured),
     };
   } catch {
     return null;
@@ -150,6 +159,12 @@ function WealthCheckPage() {
   const [eventDone, setEventDone] = useState(false);
   const [diceLanded, setDiceLanded] = useState(0);
   const [shake, setShake] = useState(false);
+  /** Why the lead form is open: loot first, or straight to John's table. */
+  const [captureIntent, setCaptureIntent] = useState<"loot" | "book">("loot");
+  /** Kept in memory only (never written to storage) to prefill Calendly. */
+  const [contact, setContact] = useState<{ name: string; email: string } | null>(null);
+  const [shareStatus, setShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
+  const shareRef = useRef<HTMLDivElement>(null);
 
   /** A die for one named roll: the QA override when enabled, otherwise the real thing. */
   const rngFor = useCallback((key: keyof DebugRolls, second?: keyof DebugRolls): Rng => {
@@ -204,6 +219,9 @@ function WealthCheckPage() {
         return;
       }
       update((prev) => ({ rolls: { ...prev.rolls, saveEvent: picked.roll, saveEventId: picked.event.id } }));
+    }
+    if (state.phase === "loot" && !state.rolls.loot) {
+      update((prev) => ({ rolls: { ...prev.rolls, loot: defaultRng.d20() } }));
     }
     if (state.phase === "save_roll" && !state.rolls.saveDice) {
       const event = SAVE_EVENTS.find((e) => e.id === state.rolls.saveEventId);
@@ -282,13 +300,38 @@ function WealthCheckPage() {
     scrollTop();
   };
 
-  const handleCTA = () => {
+  const goToCalendly = useCallback((name?: string, email?: string) => {
+    const calendlyUrl = new URL("https://calendly.com/thefinancialdm-proton/30min");
+    if (name) calendlyUrl.searchParams.set("name", name);
+    if (email) calendlyUrl.searchParams.set("email", email);
+    window.location.href = calendlyUrl.toString();
+  }, []);
+
+  /** Primary exit from the results: the loot. Captures the lead first, once. */
+  const handleClaimLoot = () => {
+    if (state.leadCaptured) {
+      update({ phase: "loot" });
+      scrollTop();
+      return;
+    }
+    setCaptureIntent("loot");
+    setShowModal(true);
+  };
+
+  /** Secondary exit: straight to John's table. Same single capture. */
+  const handleBook = () => {
+    if (state.leadCaptured) {
+      goToCalendly(contact?.name, contact?.email);
+      return;
+    }
+    setCaptureIntent("book");
     setShowModal(true);
   };
 
   const handleSubmitLead = async (name: string, email: string, phone: string) => {
     setShowModal(false);
-    setTransitioning(true);
+    setContact({ name, email });
+    if (captureIntent === "book") setTransitioning(true);
 
     const storedUtm = getStoredUtm();
     const finalUtm = {
@@ -326,17 +369,30 @@ function WealthCheckPage() {
       });
       if (!saved.ok) console.error("[lead] save failed:", saved.error);
     } catch (e) {
-      // Still send the visitor on to Calendly; the booking matters more than
-      // the record. The failure is logged so it is not invisible.
+      // The loot and the booking still go ahead; the failure is logged so it
+      // is not invisible.
       console.error("[lead] save threw:", e);
     }
 
-    await new Promise((r) => setTimeout(r, 1500));
+    if (captureIntent === "book") {
+      await new Promise((r) => setTimeout(r, 1500));
+      goToCalendly(name, email);
+      return;
+    }
+    update({ leadCaptured: true, phase: "loot" });
+    scrollTop();
+  };
 
-    const calendlyUrl = new URL("https://calendly.com/thefinancialdm-proton/30min");
-    calendlyUrl.searchParams.set("name", name);
-    calendlyUrl.searchParams.set("email", email);
-    window.location.href = calendlyUrl.toString();
+  const handleShare = async () => {
+    if (!shareRef.current || !shareFacts) return;
+    setShareStatus("working");
+    try {
+      const blob = await renderShareCard(shareRef.current);
+      setShareStatus(await shareOrDownload(blob, `${shareText(shareFacts)} ${"https://" + "thefinancialdm.vercel.app/wealth-check"}`));
+    } catch (e) {
+      console.error("[share] failed", e);
+      setShareStatus("error");
+    }
   };
 
   const q = WEALTH_QUESTIONS[state.questionIndex];
@@ -346,6 +402,8 @@ function WealthCheckPage() {
   const saveEvent = SAVE_EVENTS.find((e) => e.id === state.rolls.saveEventId);
   const saveModifier = saveEvent ? profile.stats[saveEvent.tests] : 0;
   const saveResult = saveEvent && state.rolls.saveDice ? resolveSave(state.rolls.saveDice, saveModifier, SAVE_DC) : null;
+  const shareFacts = saveEvent && saveResult ? shareFactsFrom(saveEvent.name, saveEvent.id, saveResult, TIER_META[profile.tier].title, saveEvent.tests) : null;
+  const lootItem = profile.weakestStat && state.rolls.loot ? lootForRoll(profile.weakestStat, state.rolls.loot) : null;
   const inQuestions = state.phase === "questions" || state.phase === "twist";
   const parchment = {
     background: "linear-gradient(165deg, #f5e6c8 0%, #ead5a8 55%, #ddc38d 100%)",
@@ -736,7 +794,57 @@ function WealthCheckPage() {
 
       {/* Phase: Result (no dice here; everything comes from the answers) */}
       {state.phase === "result" && (
-        <WealthResults profile={profile} answers={state.answers} onCTA={handleCTA} />
+        <WealthResults profile={profile} answers={state.answers} onClaimLoot={handleClaimLoot} onBook={handleBook} leadCaptured={Boolean(state.leadCaptured)} />
+      )}
+
+      {/* Phase: loot drop */}
+      {state.phase === "loot" && (
+        <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
+          <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">🎁 Loot drop</p>
+          {lootItem && profile.weakestStat ? (
+            <LootDrop key={lootItem.id} item={lootItem} statName={STAT_META[profile.weakestStat].name} />
+          ) : (
+            <div className="h-40" />
+          )}
+          <button
+            onClick={() => {
+              update({ phase: shareFacts ? "share" : "loot" });
+              if (!shareFacts) goToCalendly(contact?.name, contact?.email);
+              scrollTop();
+            }}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            {shareFacts ? "📣 Brag About Your Roll →" : "🍺 Grab a Seat at John's Table"}
+          </button>
+        </div>
+      )}
+
+      {/* Phase: share card, then John's table */}
+      {state.phase === "share" && shareFacts && (
+        <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
+          <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">📣 Your share card</p>
+          {/* Preview: the real 1080 card scaled to fit. The export uses the same node at full size. */}
+          <div className="w-full max-w-[360px] aspect-square overflow-hidden rounded-xl shadow-2xl shadow-black/50" aria-hidden="true">
+            <div style={{ width: 1080, height: 1080, transform: "scale(0.3333)", transformOrigin: "top left" }}>
+              <ShareCard ref={shareRef} facts={shareFacts} />
+            </div>
+          </div>
+          <p className="text-[#e0e0e0] text-sm font-fantasy text-center leading-relaxed max-w-sm">{shareText(shareFacts)}</p>
+          <button
+            onClick={handleShare}
+            disabled={shareStatus === "working"}
+            className="w-full max-w-xs px-6 py-3 rounded-lg bg-[#204060]/40 border border-[#406080]/50 text-[#e0e0e0] hover:bg-[#204060]/60 font-bold font-fantasy transition-all disabled:opacity-50"
+          >
+            {shareStatus === "working" ? "Rendering the card..." : shareStatus === "shared" ? "✅ Shared" : shareStatus === "downloaded" ? "✅ Saved to your device" : shareStatus === "error" ? "Could not render the card. Try again." : "📤 Share the Card"}
+          </button>
+          <button
+            onClick={() => goToCalendly(contact?.name, contact?.email)}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            🍺 Grab a Seat at John's Table
+          </button>
+          <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">A free chat with John, no pressure, about your next move.</p>
+        </div>
       )}
 
       {/* Lead capture modal */}
