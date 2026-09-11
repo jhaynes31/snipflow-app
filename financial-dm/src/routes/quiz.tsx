@@ -24,6 +24,7 @@ import { ARMOR_CONFIG } from "~/lib/armorConfig";
 import { EMPTY_PARTY, PARTY_IDS, TIER_NAME, computeArmor, partySummary, roundTo10k, type LifeAnswers, type PartyId } from "~/lib/armorEngine";
 import { YOUNGEST_OPTIONS, optionText, visibleQuestions, type LifeQuestion } from "~/lib/lifeQuestions";
 import { saveLead } from "~/server/leads";
+import { reportQuizEvent } from "~/lib/quizEvents";
 
 /**
  * The life insurance quiz, "loaded dice" version (Section 4):
@@ -213,8 +214,10 @@ function QuizPage() {
   // what this browser has completed to show the badge.
   useEffect(() => {
     if (!hydrated) return;
-    if (["result", "loot", "share"].includes(state.phase)) setSheet(recordArmorComplete(TIER_NAME[armor.acTier]));
-    else setSheet(readCharacterSheet());
+    if (["result", "loot", "share"].includes(state.phase)) {
+      setSheet(recordArmorComplete(TIER_NAME[armor.acTier]));
+      reportQuizEvent("life_insurance", "quiz_complete");
+    } else setSheet(readCharacterSheet());
   }, [hydrated, state.phase, armor.acTier]);
 
   const handleShareSheet = async () => {
@@ -242,10 +245,14 @@ function QuizPage() {
       setIntroDone(false);
       update({ introRoll: 2 });
     } else {
-      update({ phase: "party" });
+      startQuiz();
     }
   };
-  const skipIntro = () => update({ phase: "party" });
+  const startQuiz = () => {
+    reportQuizEvent("life_insurance", "quiz_start");
+    update({ phase: "party" });
+  };
+  const skipIntro = () => startQuiz();
 
   // ── Questions ──────────────────────────────────────────────────
   const setAnswer = (key: LifeQuestion["key"], id: string) => {
@@ -335,7 +342,7 @@ function QuizPage() {
     window.location.href = calendlyUrl.toString();
   };
 
-  const handleSubmitLead = async (name: string, email: string, phone: string): Promise<LeadSubmitOutcome> => {
+  const handleSubmitLead = async (name: string, email: string, phone: string, foundVia: string): Promise<LeadSubmitOutcome> => {
     const storedUtm = getStoredUtm();
     const finalUtm = {
       utm_source: utmParams.utm_source || storedUtm.utm_source,
@@ -359,6 +366,7 @@ function QuizPage() {
           timeline: "",
           household_income: optionText("income", a.income, a),
           ...finalUtm,
+          found_via: foundVia,
           quiz_type: "insurance",
           quiz_result: armor.cursed ? `${tierName} · Cursed armor` : tierName,
           // New, additive fields (Section 16). Estimates are rounded; no health data.

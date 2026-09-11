@@ -108,6 +108,10 @@ const genId = (v: unknown): GeneratorId => (generatorById(String(v)) ? (String(v
 // ── Tables ──────────────────────────────────────────────────────────
 
 let ready: Promise<void> | null = null;
+/** Shared with the campaign link redirect and lead attribution, which read these tables. */
+export function ensureQuestTables(): Promise<void> {
+  return ensureTables();
+}
 function ensureTables(): Promise<void> {
   if (!ready) {
     ready = (async () => {

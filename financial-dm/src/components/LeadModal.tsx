@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { checkEmail, checkName, checkPhone } from "~/lib/contactValidation";
+import { FOUND_VIA_OPTIONS } from "~/lib/attribution";
 
 /** What a submit handler may hand back: nothing on success, or a rejection. */
 export type LeadSubmitOutcome = void | { error: string; field?: "name" | "email" | "phone" };
@@ -10,7 +11,7 @@ interface LeadModalProps {
    * Called with the cleaned values. Return (or resolve to) a rejection to keep
    * the dialog open and show the message; return nothing when the lead is in.
    */
-  onSubmit: (name: string, email: string, phone: string) => LeadSubmitOutcome | Promise<LeadSubmitOutcome>;
+  onSubmit: (name: string, email: string, phone: string, foundVia: string) => LeadSubmitOutcome | Promise<LeadSubmitOutcome>;
   onClose: () => void;
 }
 
@@ -23,6 +24,8 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  // "Where did you find John?" Optional, never scored (Quest Board spec, Section 8.3).
+  const [foundVia, setFoundVia] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +36,7 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
     name: `${uid}-name`,
     email: `${uid}-email`,
     phone: `${uid}-phone`,
+    foundVia: `${uid}-found-via`,
   };
 
   useEffect(() => {
@@ -76,7 +80,7 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
     if (!clean) return;
     setSubmitting(true);
     try {
-      const outcome = await onSubmit(clean.name, clean.email, clean.phone);
+      const outcome = await onSubmit(clean.name, clean.email, clean.phone, foundVia);
       if (outcome && outcome.error) {
         setErrors({ [outcome.field ?? "form"]: outcome.error });
       }
@@ -212,6 +216,27 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
                 {errors.phone}
               </p>
             )}
+          </div>
+
+          <div>
+            <label htmlFor={ids.foundVia} className="block text-sm font-fantasy text-[#a0a0a0] mb-1">
+              Where did you find John? <span className="text-[#606080]">(optional)</span>
+            </label>
+            <select
+              id={ids.foundVia}
+              value={foundVia}
+              onChange={(e) => setFoundVia(e.target.value)}
+              className={`${inputClass} cursor-pointer`}
+              style={{ background: "rgba(32, 64, 96, 0.2)" }}
+              data-found-via
+            >
+              <option value="" className="bg-gray-900">Pick one, if you like</option>
+              {FOUND_VIA_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id} className="bg-gray-900 text-[#e0e0e0]">
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {errors.form && (

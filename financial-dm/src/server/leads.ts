@@ -4,6 +4,9 @@ import { requireAdmin } from "~/server/auth";
 import { allowRequest, clientAddress } from "~/server/rateLimit.server";
 import { checkEmail, checkName, checkPhone } from "~/lib/contactValidation";
 import { verifyMailDomain } from "~/server/mailDomain.server";
+import { currentAttribution } from "~/server/attribution.server";
+import { ensureQuestTables } from "~/server/quests";
+import { isFoundVia, isLeadStatus, parseStatusHistory, type StatusChange } from "~/lib/attribution";
 
 export interface LeadData {
   name: string;
@@ -66,6 +69,8 @@ export interface LeadData {
   myth_json?: string;
   /** Trap or Treasure: number right out of 3. */
   myth_score?: number | null;
+  /** "Where did you find John?" (Quest Board spec, Section 8.3). Optional; never affects scoring. */
+  found_via?: string;
 }
 
 export interface SaveLeadResult {
@@ -86,6 +91,17 @@ export interface Lead extends LeadData {
   quiz_score: number | null;
   status: string;
   created_at: string;
+  // Campaign attribution (Quest Board spec, Section 8). Additive only.
+  quest_id: number | null;
+  quest_name: string;
+  series_id: number | null;
+  slot_id: number | null;
+  campaign_slug: string;
+  campaign_platform: string;
+  /** Every status change with its time, oldest first. */
+  status_history: StatusChange[];
+  not_a_fit_reason: string;
+  product_type: string;
 }
 
 const QUIZ_TYPES: Record<string, string> = {
@@ -128,6 +144,7 @@ function cleanLeadInput(d: Partial<LeadData> | undefined): LeadData {
     utm_campaign: text(d?.utm_campaign, 120),
     quiz_type: text(d?.quiz_type, 40) || "insurance",
     quiz_result: text(d?.quiz_result, 120),
+    found_via: isFoundVia(d?.found_via) ? d.found_via : "",
     character_tier: text(d?.character_tier, 60),
     character_class: text(d?.character_class, 40),
     weakest_stat: text(d?.weakest_stat, 8),
@@ -210,6 +227,13 @@ async function migrateLeadsTable() {
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_result TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_score INTEGER`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS retakes INTEGER DEFAULT 0`;
+  // Campaign attribution and outcomes (Quest Board spec, Section 8).
+  for (const col of ["quest_id", "series_id", "slot_id"]) {
+    await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} INTEGER`);
+  }
+  for (const col of ["campaign_slug", "campaign_platform", "found_via", "status_history", "not_a_fit_reason", "product_type"]) {
+    await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} TEXT`);
+  }
   for (const col of ["character_tier", "character_class", "weakest_stat", "loot_id", "stats_json", "twist_answer", "twist_scenario", "save_event", "save_outcome"]) {
     await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
@@ -242,6 +266,11 @@ export const saveLead = createServerFn({ method: "POST" })
     }
     try {
       await ensureLeadsTable();
+      // Which campaign link, if any, brought this person here (Section 8.2).
+      // Read from the first-party cookie on the server, so it cannot be faked
+      // from the form. The visitor's own "where did you find John" answer is
+      // stored beside it; neither ever overwrites the other.
+      const attr = currentAttribution()?.tag ?? null;
       // Financial health quiz: the loot belongs to the person, not the run.
       // The same email or phone number gets the item it claimed first and no
       // second lead row; the existing row just counts the retake.
@@ -256,7 +285,12 @@ export const saveLead = createServerFn({ method: "POST" })
         `) as Array<{ id: number; loot_id: string | null }>;
         if (prior.length) {
           const keep = prior[0].loot_id || data.loot_id || "";
-          await sql()`UPDATE leads SET retakes = COALESCE(retakes, 0) + 1, loot_id = COALESCE(NULLIF(loot_id, ''), ${keep || null}) WHERE id = ${prior[0].id}`;
+          await sql()`
+            UPDATE leads SET retakes = COALESCE(retakes, 0) + 1, loot_id = COALESCE(NULLIF(loot_id, ''), ${keep || null}),
+              quest_id = COALESCE(quest_id, ${attr?.questId ?? null}), series_id = COALESCE(series_id, ${attr?.seriesId ?? null}), slot_id = COALESCE(slot_id, ${attr?.slotId ?? null}),
+              campaign_slug = COALESCE(NULLIF(campaign_slug, ''), ${attr?.slug || null}), campaign_platform = COALESCE(NULLIF(campaign_platform, ''), ${attr?.platform || null}),
+              found_via = COALESCE(NULLIF(found_via, ''), ${data.found_via || null})
+            WHERE id = ${prior[0].id}`;
           console.log("[leads] repeat financial health claim for lead", prior[0].id);
           await linkCharacterSheet(data, prior[0].id);
           return { ok: true, lootId: keep || undefined, repeat: true };
@@ -264,11 +298,13 @@ export const saveLead = createServerFn({ method: "POST" })
       }
       const inserted = (await sql()`
         INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome, loot_id,
-          party, youngest_age, income_bracket, mortgage_bracket, debt_bracket, education_choice, employer_coverage, personal_coverage, est_damage, est_shield, est_gap, armor_tier, armor_cursed, myth_json, myth_score)
+          party, youngest_age, income_bracket, mortgage_bracket, debt_bracket, education_choice, employer_coverage, personal_coverage, est_damage, est_shield, est_gap, armor_tier, armor_cursed, myth_json, myth_score,
+          quest_id, series_id, slot_id, campaign_slug, campaign_platform, found_via, status_history)
         VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"}, ${data.quiz_result || ""}, ${
           typeof data.quiz_score === "number" && Number.isFinite(data.quiz_score) ? Math.round(data.quiz_score) : null
         }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null}, ${data.loot_id || null},
-          ${data.party || null}, ${data.youngest_age || null}, ${data.income_bracket || null}, ${data.mortgage_bracket || null}, ${data.debt_bracket || null}, ${data.education_choice || null}, ${data.employer_coverage || null}, ${data.personal_coverage || null}, ${data.est_damage ?? null}, ${data.est_shield ?? null}, ${data.est_gap ?? null}, ${data.armor_tier || null}, ${data.armor_cursed || null}, ${data.myth_json || null}, ${data.myth_score ?? null})
+          ${data.party || null}, ${data.youngest_age || null}, ${data.income_bracket || null}, ${data.mortgage_bracket || null}, ${data.debt_bracket || null}, ${data.education_choice || null}, ${data.employer_coverage || null}, ${data.personal_coverage || null}, ${data.est_damage ?? null}, ${data.est_shield ?? null}, ${data.est_gap ?? null}, ${data.armor_tier || null}, ${data.armor_cursed || null}, ${data.myth_json || null}, ${data.myth_score ?? null},
+          ${attr?.questId ?? null}, ${attr?.seriesId ?? null}, ${attr?.slotId ?? null}, ${attr?.slug || null}, ${attr?.platform || null}, ${data.found_via || null}, ${JSON.stringify([{ status: "New", at: new Date().toISOString() }])})
         RETURNING id
       `) as Array<{ id: number }>;
       await linkCharacterSheet(data, inserted[0]?.id ?? null);
@@ -312,7 +348,9 @@ async function linkCharacterSheet(data: LeadData, newId: number | null): Promise
 }
 
 export const getLeads = createServerFn().middleware([requireAdmin]).handler(async (): Promise<Lead[]> => {
-  const rows = await sql()`SELECT * FROM leads ORDER BY created_at DESC`;
+  await ensureLeadsTable();
+  await ensureQuestTables();
+  const rows = await sql()`SELECT l.*, q.name AS quest_name FROM leads l LEFT JOIN quests q ON q.id = l.quest_id ORDER BY l.created_at DESC`;
   return rows.map((r: Record<string, unknown>) => ({
     name: String(r.name ?? ""),
     email: String(r.email ?? ""),
@@ -360,16 +398,48 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
     status: String(r.status ?? "New"),
     id: Number(r.id),
     created_at: String(r.created_at),
+    found_via: r.found_via ? String(r.found_via) : "",
+    quest_id: r.quest_id === null || r.quest_id === undefined ? null : Number(r.quest_id),
+    quest_name: String(r.quest_name ?? ""),
+    series_id: r.series_id === null || r.series_id === undefined ? null : Number(r.series_id),
+    slot_id: r.slot_id === null || r.slot_id === undefined ? null : Number(r.slot_id),
+    campaign_slug: String(r.campaign_slug ?? ""),
+    campaign_platform: String(r.campaign_platform ?? ""),
+    status_history: parseStatusHistory(r.status_history),
+    not_a_fit_reason: String(r.not_a_fit_reason ?? ""),
+    product_type: String(r.product_type ?? ""),
   })) as Lead[];
 });
 
+/**
+ * Lead outcomes (Quest Board spec, Section 8.4). The status column keeps its
+ * original values and gains Showed, Sold, and Not a fit. Every change is
+ * timestamped in the history; "Not a fit" carries a reason and "Sold" a
+ * product type, never a dollar amount.
+ */
 export const updateLeadStatus = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
-  .validator((d: { id: number; status: string }) => ({ id: Number(d?.id), status: String(d?.status ?? "New") }))
-  .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
+  .validator((d: { id: number; status: string; reason?: string; productType?: string }) => ({
+    id: Number(d?.id),
+    status: isLeadStatus(d?.status) ? d.status : "New",
+    reason: text(d?.reason, 40),
+    productType: text(d?.productType, 40),
+  }))
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string; history?: StatusChange[] }> => {
     try {
-      await sql()`UPDATE leads SET status = ${data.status} WHERE id = ${data.id}`;
-      return { ok: true };
+      await ensureLeadsTable();
+      const rows = (await sql()`SELECT status, status_history FROM leads WHERE id = ${data.id}`) as Array<{ status: string; status_history: string | null }>;
+      if (!rows.length) return { ok: false, error: "That lead no longer exists." };
+      const history = parseStatusHistory(rows[0].status_history);
+      if (!history.length && rows[0].status) history.push({ status: rows[0].status, at: "" });
+      if (history[history.length - 1]?.status !== data.status) history.push({ status: data.status, at: new Date().toISOString() });
+      const reason = data.status === "Not a fit" ? data.reason || null : null;
+      const product = data.status === "Sold" ? data.productType || null : null;
+      await sql()`
+        UPDATE leads SET status = ${data.status}, status_history = ${JSON.stringify(history.slice(-30))},
+          not_a_fit_reason = ${reason}, product_type = ${product}
+        WHERE id = ${data.id}`;
+      return { ok: true, history };
     } catch (e) {
       return { ok: false, error: String(e) };
     }

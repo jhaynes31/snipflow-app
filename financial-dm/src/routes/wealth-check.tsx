@@ -28,6 +28,7 @@ import {
   scenarioForRoll,
 } from "~/lib/wealthEvents";
 import { saveLead } from "~/server/leads";
+import { reportQuizEvent } from "~/lib/quizEvents";
 import { recordFinancialComplete } from "~/lib/characterSheet";
 
 type Phase = "intro" | "questions" | "twist" | "save_event" | "save_roll" | "save_result" | "result" | "loot" | "share";
@@ -239,7 +240,10 @@ function WealthCheckPage() {
   // this quiz was completed, tier name only, so the life quiz can show the
   // full character sheet. Nothing is read back into scoring.
   useEffect(() => {
-    if (hydrated && ["result", "loot", "share"].includes(state.phase)) recordFinancialComplete(TIER_META[profile.tier].title);
+    if (hydrated && ["result", "loot", "share"].includes(state.phase)) {
+      recordFinancialComplete(TIER_META[profile.tier].title);
+      reportQuizEvent("financial", "quiz_complete");
+    }
   }, [hydrated, state.phase, profile.tier]);
 
   const scrollTop = useCallback(() => {
@@ -247,6 +251,7 @@ function WealthCheckPage() {
   }, []);
 
   const handleBegin = () => {
+    reportQuizEvent("financial", "quiz_start");
     update({ phase: "questions", questionIndex: 0 });
     scrollTop();
   };
@@ -325,8 +330,7 @@ function WealthCheckPage() {
     setShowModal(true);
   };
 
-  const handleSubmitLead = async (name: string, email: string, phone: string): Promise<LeadSubmitOutcome> => {
-
+  const handleSubmitLead = async (name: string, email: string, phone: string, foundVia: string): Promise<LeadSubmitOutcome> => {
     const storedUtm = getStoredUtm();
     const finalUtm = {
       utm_source: utmParams.utm_source || storedUtm.utm_source,
@@ -354,6 +358,7 @@ function WealthCheckPage() {
           biggest_concern: "",
           timeline: "",
           ...finalUtm,
+          found_via: foundVia,
           quiz_type: "financial-health",
           // Short outcome for the dashboard: class and tier (the dragon is retired).
           quiz_result: `${profile.classId ? CLASS_META[profile.classId].name : "Adventurer"}, ${TIER_META[profile.tier].title}`,

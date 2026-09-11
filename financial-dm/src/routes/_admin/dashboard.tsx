@@ -1,17 +1,26 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, type Lead } from "~/server/leads";
+import { LEAD_STATUSES, NOT_A_FIT_REASONS, PRODUCT_TYPES, productLabel, reasonLabel, sourceSummary } from "~/lib/attribution";
 
 export const Route = createFileRoute("/_admin/dashboard")({
   component: DashboardPage,
 });
 
-const STATUS_OPTIONS = ["New", "Contacted", "Booked"];
+// Lead outcomes (Quest Board spec, Section 8.4): the original three plus
+// Showed, Sold, and Not a fit. Each change is timestamped on the server.
+const STATUS_OPTIONS: readonly string[] = LEAD_STATUSES;
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-900/40 text-blue-300 border-blue-700/40",
   Contacted: "bg-[#c08020]/20 text-[#c08020] border-[#c08020]/40",
   Booked: "bg-green-900/40 text-green-300 border-green-700/40",
+  Showed: "bg-teal-900/40 text-teal-300 border-teal-700/40",
+  Sold: "bg-[#7fd08a]/20 text-[#7fd08a] border-[#7fd08a]/50",
+  "Not a fit": "bg-gray-800/60 text-gray-400 border-gray-600/40",
 };
+
+/** Filter values: every lead, leads with no campaign tag, or one quest by id. */
+type QuestFilter = "all" | "none" | `q:${number}`;
 
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -19,6 +28,9 @@ function DashboardPage() {
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState("");
+  const [questFilter, setQuestFilter] = useState<QuestFilter>("all");
+  // "Not a fit" asks for a reason and "Sold" for a product type before saving.
+  const [pending, setPending] = useState<{ id: number; status: string; name: string } | null>(null);
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -39,14 +51,34 @@ function DashboardPage() {
     fetchLeads();
   }, [fetchLeads]);
 
-  const handleStatusChange = async (id: number, status: string) => {
+  const handleStatusChange = (id: number, status: string) => {
+    if (status === "Not a fit" || status === "Sold") {
+      const lead = leads.find((l) => l.id === id);
+      setPending({ id, status, name: lead?.name ?? "" });
+      return;
+    }
+    void commitStatus(id, status);
+  };
+
+  const commitStatus = async (id: number, status: string, reason = "", productType = "") => {
+    setPending(null);
     setUpdatingId(id);
     setActionError("");
     try {
-      const result = await updateLeadStatus({ data: { id, status } });
+      const result = await updateLeadStatus({ data: { id, status, reason, productType } });
       if (result.ok) {
         setLeads((prev) =>
-          prev.map((l) => (l.id === id ? { ...l, status } : l)),
+          prev.map((l) =>
+            l.id === id
+              ? {
+                  ...l,
+                  status,
+                  status_history: result.history ?? l.status_history,
+                  not_a_fit_reason: status === "Not a fit" ? reason : "",
+                  product_type: status === "Sold" ? productType : "",
+                }
+              : l,
+          ),
         );
       } else {
         setActionError(result.error || "Could not update that lead's status.");
@@ -99,10 +131,20 @@ function DashboardPage() {
     return other ? `${base} · ${other}` : base;
   };
 
-  const utmDisplay = (lead: Lead) => {
-    const parts = [lead.utm_source, lead.utm_medium, lead.utm_campaign].filter(Boolean);
-    return parts.length > 0 ? parts.join(" / ") : "Direct";
-  };
+  const utmDisplay = (lead: Lead) => sourceSummary(lead);
+
+  /** The extra line under a status: why not a fit, or what was sold. */
+  const outcomeNote = (lead: Lead) =>
+    lead.status === "Not a fit" && lead.not_a_fit_reason ? reasonLabel(lead.not_a_fit_reason) : lead.status === "Sold" && lead.product_type ? productLabel(lead.product_type) : "";
+
+  const historyTitle = (lead: Lead) =>
+    lead.status_history.length ? lead.status_history.map((h) => `${h.status}${h.at ? ` · ${formatDate(h.at)}` : ""}`).join("\n") : undefined;
+
+  // Quest column and filter (Section 8.4). The quests come from the leads
+  // themselves, so the list only ever shows quests that have brought someone in.
+  const questsSeen = Array.from(new Map(leads.filter((l) => l.quest_id != null).map((l) => [l.quest_id as number, l.quest_name || `Quest ${l.quest_id}`])).entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  const visible = leads.filter((l) => (questFilter === "all" ? true : questFilter === "none" ? l.quest_id == null : l.quest_id === Number(questFilter.slice(2))));
+  const questDisplay = (lead: Lead) => (lead.quest_id != null ? lead.quest_name || `Quest ${lead.quest_id}` : lead.campaign_slug ? `/${lead.campaign_slug}` : "—");
 
   return (
     <main
@@ -123,10 +165,29 @@ function DashboardPage() {
               ⚔️ Lead Dashboard ⚔️
             </h1>
             <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">
-              The Financial DM: {leads.length} adventurers found
+              The Financial DM: {leads.length} adventurers found{questFilter !== "all" ? ` · showing ${visible.length}` : ""}
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {(questsSeen.length > 0 || questFilter !== "all") && (
+              <label className="flex items-center gap-2 text-xs font-fantasy text-[#a0a0a0]">
+                Quest
+                <select
+                  value={questFilter}
+                  onChange={(e) => setQuestFilter(e.target.value as QuestFilter)}
+                  className="px-2 py-2 rounded-lg border border-[#406080]/40 bg-transparent text-[#e0e0e0] text-xs font-fantasy"
+                  data-quest-filter
+                >
+                  <option value="all" className="bg-gray-900">All quests</option>
+                  <option value="none" className="bg-gray-900">Unattributed</option>
+                  {questsSeen.map(([id, name]) => (
+                    <option key={id} value={`q:${id}`} className="bg-gray-900">
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <Link
               to="/generator"
               search={{ tab: "script", view: "forge" }}
@@ -185,6 +246,7 @@ function DashboardPage() {
                   <th className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">Concern</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden xl:table-cell">Timeline</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">Type</th>
+                  <th className="px-4 py-3 whitespace-nowrap hidden md:table-cell">Quest</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden md:table-cell">Result</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden md:table-cell">Source</th>
                   <th className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">Date</th>
@@ -193,17 +255,18 @@ function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#406080]/10">
-                {leads.length === 0 && !loading && (
+                {visible.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={13} className="px-4 py-12 text-center text-[#606080] font-fantasy">
-                      No adventurers have completed the quest yet.
+                    <td colSpan={14} className="px-4 py-12 text-center text-[#606080] font-fantasy">
+                      {leads.length === 0 ? "No adventurers have completed the quest yet." : "No adventurers match that quest."}
                     </td>
                   </tr>
                 )}
-                {leads.map((lead) => (
+                {visible.map((lead) => (
                   <tr
                     key={lead.id}
                     className="hover:bg-[#204060]/10 transition-colors"
+                    data-lead-row={lead.id}
                   >
                     <td className="px-4 py-3 text-[#e0e0e0] font-medium whitespace-nowrap">
                       {lead.name}
@@ -237,10 +300,13 @@ function DashboardPage() {
                         {quizTypeLabel(lead.quiz_type)}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-[#a0a0a0] hidden md:table-cell whitespace-nowrap text-xs" data-lead-quest>
+                      {questDisplay(lead)}
+                    </td>
                     <td className="px-4 py-3 text-[#a0a0a0] hidden md:table-cell whitespace-nowrap text-xs">
                       {resultDisplay(lead)}
                     </td>
-                    <td className="px-4 py-3 text-[#808080] hidden md:table-cell whitespace-nowrap text-xs">
+                    <td className="px-4 py-3 text-[#808080] hidden md:table-cell whitespace-nowrap text-xs" data-lead-source>
                       {utmDisplay(lead)}
                     </td>
                     <td className="px-4 py-3 text-[#808080] hidden sm:table-cell whitespace-nowrap text-xs">
@@ -251,10 +317,12 @@ function DashboardPage() {
                         value={lead.status}
                         onChange={(e) => handleStatusChange(lead.id, e.target.value)}
                         disabled={updatingId === lead.id}
+                        title={historyTitle(lead)}
                         className={`text-xs font-fantasy px-2 py-1 rounded border cursor-pointer transition-all ${
                           STATUS_COLORS[lead.status] || STATUS_COLORS["New"]
                         } ${updatingId === lead.id ? "opacity-50" : ""}`}
                         style={{ background: "transparent" }}
+                        data-lead-status
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s} className="bg-gray-900 text-[#e0e0e0]">
@@ -262,6 +330,7 @@ function DashboardPage() {
                           </option>
                         ))}
                       </select>
+                      {outcomeNote(lead) && <p className="text-[10px] text-[#808080] font-fantasy mt-1 whitespace-nowrap" data-outcome-note>{outcomeNote(lead)}</p>}
                     </td>
                     <td className="px-2 py-3">
                       <button
@@ -294,9 +363,9 @@ function DashboardPage() {
             No adventurers have completed the quest yet.
           </p>
         )}
-        {leads.length > 0 && (
+        {visible.length > 0 && (
           <div className="mt-6 sm:hidden space-y-3">
-            {leads.map((lead) => (
+            {visible.map((lead) => (
               <div
                 key={lead.id}
                 className="p-4 rounded-xl border border-[#406080]/30 bg-[#204060]/5 space-y-2"
@@ -312,6 +381,7 @@ function DashboardPage() {
                         STATUS_COLORS[lead.status] || STATUS_COLORS["New"]
                       }`}
                       style={{ background: "transparent" }}
+                      title={historyTitle(lead)}
                     >
                       {STATUS_OPTIONS.map((s) => (
                         <option key={s} value={s} className="bg-gray-900 text-[#e0e0e0]">
@@ -334,6 +404,7 @@ function DashboardPage() {
                   <p>{lead.phone}</p>
                   <p>Age: {lead.age_range} · Deps: {lead.dependents} · Concern: {lead.biggest_concern}</p>
                   <p>Timeline: {lead.timeline} · Type: {quizTypeLabel(lead.quiz_type)} · Source: {utmDisplay(lead)}</p>
+                  <p>Quest: {questDisplay(lead)}{outcomeNote(lead) ? ` · ${outcomeNote(lead)}` : ""}</p>
                   <p>Result: {resultDisplay(lead)}</p>
                   <p className="text-[#606080]">{formatDate(lead.created_at)}</p>
                 </div>
@@ -342,6 +413,49 @@ function DashboardPage() {
           </div>
         )}
       </div>
+      {pending && (
+        <OutcomeDialog
+          status={pending.status}
+          name={pending.name}
+          onCancel={() => setPending(null)}
+          onConfirm={(choice) => commitStatus(pending.id, pending.status, pending.status === "Not a fit" ? choice : "", pending.status === "Sold" ? choice : "")}
+        />
+      )}
     </main>
+  );
+}
+
+/**
+ * One quick question before an outcome is saved: the reason for "Not a fit"
+ * (which shows whether a campaign attracts the right people) or the product
+ * type for "Sold". No dollar amounts, ever.
+ */
+function OutcomeDialog({ status, name, onCancel, onConfirm }: { status: string; name: string; onCancel: () => void; onConfirm: (choice: string) => void }) {
+  const notAFit = status === "Not a fit";
+  const options = notAFit ? NOT_A_FIT_REASONS : PRODUCT_TYPES;
+  const [choice, setChoice] = useState<string>(options[0].id);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(8, 14, 22, 0.85)" }} onClick={onCancel}>
+      <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-xl border-2 border-[#406080]/50 shadow-2xl p-5 space-y-4" style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 100%)" }} onClick={(e) => e.stopPropagation()} data-outcome-dialog>
+        <div>
+          <h3 className="text-lg font-fantasy text-[#c08020]">{notAFit ? "Why not a fit?" : "What did they buy?"}</h3>
+          <p className="text-xs text-[#a0a0a0] font-fantasy mt-1">{name ? `${name} · ` : ""}{notAFit ? "This shows whether a quest is bringing in the right people." : "Product type only. No amounts are stored."}</p>
+        </div>
+        <div className="space-y-2">
+          {options.map((o) => (
+            <label key={o.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer text-sm font-fantasy ${choice === o.id ? "border-[#c08020]/60 bg-[#c08020]/10 text-[#e0e0e0]" : "border-[#406080]/30 text-[#a0a0a0] hover:border-[#406080]/60"}`}>
+              <input type="radio" name="outcome-choice" value={o.id} checked={choice === o.id} onChange={() => setChoice(o.id)} className="accent-[#c08020]" />
+              {o.label}
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={onCancel} className="flex-1 px-4 py-2 rounded-lg border border-[#406080]/50 text-[#a0a0a0] hover:text-[#e0e0e0] font-fantasy text-sm">Cancel</button>
+          <button type="button" onClick={() => onConfirm(choice)} className="flex-1 px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm" data-outcome-confirm>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
