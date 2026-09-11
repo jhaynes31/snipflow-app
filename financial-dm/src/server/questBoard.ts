@@ -184,17 +184,165 @@ const EXAMPLE_PROFILES: Array<Omit<ProfileInput, "id" | "archived">> = [
   },
 ];
 
+/** Words that would make a suggestion about identity rather than need. Any suggestion containing one is dropped. */
+const IDENTITY_WORDS = /\b(race|racial|ethnic|ethnicity|religio|christian|muslim|jewish|hindu|buddhist|catholic|nationality|immigrant|citizenship|gender|transgender|gay|lesbian|lgbt|sexual orientation|disab|handicap|black|white|asian|latino|latina|hispanic|men|women|male|female)\b/i;
+
+/** A second set of starters, for more variety. Seeded once, skipping any name John already has. */
+const MORE_EXAMPLE_PROFILES: Array<Omit<ProfileInput, "id" | "archived">> = [
+  {
+    name: "Single Parents",
+    lifeStage: "Raising kids on one income",
+    triggers: ["a separation or divorce", "a co-parent who isn't reliable with money", "childcare costs going up", "a school year starting"],
+    painPoints: [
+      "If something happens to me, there is no second income to fall back on",
+      "I have no idea who would take care of the kids' money side of things",
+      "Every month is tight and saving anything feels impossible",
+      "I have life insurance through work but I'm not sure it's enough for one parent doing everything",
+      "I keep hearing about wills and guardians and I haven't done either",
+    ],
+    worries: "If I'm not here, who takes care of my kids, and with what?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "life_insurance",
+    notes: "",
+  },
+  {
+    name: "Small Business Owners",
+    lifeStage: "Running a small business, often with a partner",
+    triggers: ["signing a business loan", "taking on a partner", "the first employee", "a slow season"],
+    painPoints: [
+      "My income swings and I never know what a normal month looks like",
+      "I personally guaranteed a loan and my family doesn't know what that means",
+      "If something happened to my partner or me, the business would be stuck",
+      "There is no HR, no benefits package, and nobody explaining any of this",
+      "I put everything back into the business and nothing into a cushion",
+    ],
+    worries: "If something happened to me, would my family inherit the business or the debt?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "life_insurance",
+    notes: "",
+  },
+  {
+    name: "Freelancers and Gig Workers",
+    lifeStage: "Working for themselves without a benefits package",
+    triggers: ["leaving a salaried job", "a big client ending", "tax time surprises", "a gap between projects"],
+    painPoints: [
+      "No paycheck means no automatic anything: no savings, no coverage, no retirement",
+      "I lost the life insurance and benefits I had at my old job and haven't replaced them",
+      "A slow month wipes out whatever I saved in a good one",
+      "I don't know how much to set aside for taxes, let alone anything else",
+      "I keep meaning to open a retirement account and don't know which kind",
+    ],
+    worries: "If I couldn't work for three months, what would actually happen?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "financial",
+    notes: "",
+  },
+  {
+    name: "Caregivers of Aging Parents",
+    lifeStage: "Helping a parent with money, care, or both",
+    triggers: ["a parent's health scare", "moving a parent in", "handling a parent's bills", "a sibling disagreement about care"],
+    painPoints: [
+      "I'm paying for my parent's care and my own family's needs at the same time",
+      "Nobody in the family knows where my parent's policies or documents are",
+      "I don't know whether my parent has life insurance or what it covers",
+      "My own saving stopped the day I started helping them",
+      "If something happened to me, my parent would have nobody",
+    ],
+    worries: "Who takes care of my parent, and my kids, if I'm the one who's gone?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "financial",
+    notes: "",
+  },
+  {
+    name: "Recent Graduates",
+    lifeStage: "First real job after school",
+    triggers: ["the first salary", "student loan payments starting", "the first benefits enrollment", "moving to a new city"],
+    painPoints: [
+      "I got a benefits form at work and picked things at random",
+      "Student loans eat a big chunk before I even see my paycheck",
+      "Everyone says start investing early but I don't know where",
+      "I'm not sure I need life insurance yet, or when that changes",
+      "I have no idea what an emergency fund should look like at my age",
+    ],
+    worries: "Am I already behind everyone else my age?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "financial",
+    notes: "",
+  },
+  {
+    name: "Ten Years from Retirement",
+    lifeStage: "Five to ten years from retiring",
+    triggers: ["a milestone birthday", "kids finishing college", "paying off the house", "a retirement estimate that looked low"],
+    painPoints: [
+      "My term policy is ending soon and I don't know what to do next",
+      "I'm not sure the retirement savings will actually last",
+      "Our kids are grown and I don't know if we still need as much coverage",
+      "We haven't updated our will or beneficiaries in twenty years",
+      "One of us has a pension and the other doesn't, and we've never planned around that",
+    ],
+    worries: "Will the money last, and will my partner be okay if I go first?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "financial",
+    notes: "",
+  },
+];
+
 async function seedExamplesOnce(): Promise<void> {
-  const flag = (await sql()`SELECT value FROM quest_settings WHERE key = 'profiles_seeded'`) as Array<{ value: string }>;
-  if (flag.length) return;
-  for (const p of EXAMPLE_PROFILES) {
+  const flags = (await sql()`SELECT key FROM quest_settings WHERE key IN ('profiles_seeded', 'profiles_seeded_v2')`) as Array<{ key: string }>;
+  const done = new Set(flags.map((f) => f.key));
+  const existing = new Set(((await sql()`SELECT lower(name) AS name FROM client_profiles`) as Array<{ name: string }>).map((r) => r.name));
+  const insert = async (p: Omit<ProfileInput, "id" | "archived">) => {
+    if (existing.has(p.name.toLowerCase())) return;
     await sql()`
       INSERT INTO client_profiles (name, life_stage, triggers, pain_points, worries, where_they_are, recommended_quiz, notes, example)
       VALUES (${p.name}, ${p.lifeStage}, ${JSON.stringify(p.triggers)}, ${JSON.stringify(p.painPoints)}, ${p.worries}, ${JSON.stringify(p.whereTheyAre)}, ${p.recommendedQuiz}, ${p.notes}, TRUE)
     `;
+  };
+  if (!done.has("profiles_seeded")) {
+    for (const p of EXAMPLE_PROFILES) await insert(p);
+    await sql()`INSERT INTO quest_settings (key, value) VALUES ('profiles_seeded', '1') ON CONFLICT (key) DO NOTHING`;
   }
-  await sql()`INSERT INTO quest_settings (key, value) VALUES ('profiles_seeded', '1') ON CONFLICT (key) DO NOTHING`;
+  if (!done.has("profiles_seeded_v2")) {
+    for (const p of MORE_EXAMPLE_PROFILES) await insert(p);
+    await sql()`INSERT INTO quest_settings (key, value) VALUES ('profiles_seeded_v2', '1') ON CONFLICT (key) DO NOTHING`;
+  }
 }
+
+// ── Draft a whole profile ──────────────────────────────────────────
+
+export const draftProfile = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .validator((d: { hint: string; existing: string[] }) => ({ hint: text(d?.hint, 200), existing: list(d?.existing, 40, 80) }))
+  .handler(async ({ data }): Promise<{ ok: boolean; profile?: Omit<ProfileInput, "id" | "archived">; error?: string }> => {
+    const system = `You help a licensed term life agent, John "The Financial DM", describe a kind of client he wants to help with friendly, genuinely useful financial education on TikTok.
+
+Return JSON only:
+{"name":"short plural group name","lifeStage":"one line","triggers":["4 to 6 moments that create the need"],"painPoints":["5 or 6 sentences in the person's own words, first person"],"worries":"the one question that keeps them up at night, in their words","recommendedQuiz":"financial|life_insurance"}
+
+Rules: describe needs, situations, and life events, never identities. Do not mention or imply race, ethnicity, religion, national origin, sex, sexual orientation, gender identity, disability, or age groups. Plain language, no jargon, no numbers, no em dashes. Pick "life_insurance" when the group's main need is protecting dependents or a mortgage, otherwise "financial". Do not repeat a profile already on the list.`;
+    const user = `Hint from John: ${data.hint || "(none, propose a fresh kind of client he probably hasn't thought of)"}
+Profiles he already has (do not repeat): ${data.existing.join("; ") || "(none)"}`;
+    const reply = await callClaude({ system, user, maxTokens: 900, tag: "quest-profile" });
+    const parsed = parseJsonReply<Record<string, unknown>>(reply, "quest-profile");
+    if (!parsed) return { ok: false, error: "No draft came back. Try again, or add a hint." };
+    const profile = cleanProfile({
+      name: parsed.name as string,
+      lifeStage: parsed.lifeStage as string,
+      triggers: parsed.triggers as string[],
+      painPoints: parsed.painPoints as string[],
+      worries: parsed.worries as string,
+      whereTheyAre: ["tiktok"],
+      recommendedQuiz: parsed.recommendedQuiz === "financial" ? "financial" : "life_insurance",
+      notes: "",
+    });
+    const all = [profile.name, profile.lifeStage, profile.worries, ...profile.triggers, ...profile.painPoints].join(" ");
+    if (IDENTITY_WORDS.test(all)) return { ok: false, error: "The draft described who people are rather than what they need. Try again with a hint about their situation." };
+    if (!profile.name || profile.painPoints.length < 3) return { ok: false, error: "The draft came back incomplete. Try again." };
+    const { id: _id, archived: _a, ...rest } = profile;
+    void _id;
+    void _a;
+    return { ok: true, profile: rest };
+  });
 
 export const getProfiles = createServerFn().middleware([requireAdmin]).handler(async (): Promise<ClientProfile[]> => {
   await ensureTables();
@@ -259,8 +407,6 @@ export const deleteProfile = createServerFn({ method: "POST" })
 
 // ── Suggest pain points ────────────────────────────────────────────
 
-/** Words that would make a suggestion about identity rather than need. Any suggestion containing one is dropped. */
-const IDENTITY_WORDS = /\b(race|racial|ethnic|ethnicity|religio|christian|muslim|jewish|hindu|buddhist|catholic|nationality|immigrant|citizenship|gender|transgender|gay|lesbian|lgbt|sexual orientation|disab|handicap|black|white|asian|latino|latina|hispanic|men|women|male|female)\b/i;
 
 export const suggestPainPoints = createServerFn({ method: "POST" })
   .middleware([requireAdmin])

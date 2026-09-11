@@ -4,7 +4,7 @@ import SuggestField from "~/components/quest/SuggestField";
 import { LIFE_STAGES, PROFILE_NAMES, TRIGGERS, WORRIES } from "~/lib/questSuggestions";
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
-import { deleteProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput } from "~/server/questBoard";
+import { deleteProfile, draftProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput } from "~/server/questBoard";
 
 type Section = "profiles" | "quests" | "scoreboard";
 
@@ -107,6 +107,27 @@ function ProfilesSection() {
   const [error, setError] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ProfileInput | null>(null);
+  const [hint, setHint] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState("");
+
+  const draft = async () => {
+    setDrafting(true);
+    setDraftError("");
+    try {
+      const res = await draftProfile({ data: { hint, existing: profiles.map((p) => p.name) } });
+      if (!res.ok || !res.profile) {
+        setDraftError(res.error || "No draft came back.");
+        return;
+      }
+      setEditing({ ...res.profile, archived: false });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      setDraftError(String(e));
+    } finally {
+      setDrafting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,6 +185,25 @@ function ProfilesSection() {
       </div>
 
       {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">{error}</div>}
+
+      <div className="rounded-xl border border-[#406080]/30 bg-[#111a28] p-4 flex flex-wrap items-end gap-3" data-draft-profile>
+        <label className="flex-1 min-w-[240px]">
+          <span className="block text-[#a0a0a0] text-xs font-fantasy mb-1">Need more variety? Describe a kind of client, or leave it blank for a fresh idea</span>
+          <input
+            className="w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm font-fantasy focus:outline-none focus:border-[#c08020]/50 placeholder:text-[#606080]"
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
+            placeholder="e.g. nurses on night shifts, people who just got a big raise, families with a new mortgage"
+            maxLength={200}
+            data-profile-hint
+          />
+        </label>
+        <button type="button" onClick={draft} disabled={drafting} className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15 font-fantasy text-sm disabled:opacity-50" data-draft-profile-button>
+          {drafting ? "🔮 Drafting..." : "🔮 Draft a profile"}
+        </button>
+        {draftError && <p className="w-full text-red-300 text-xs font-fantasy">{draftError}</p>}
+        <p className="w-full text-[#606080] text-[11px] font-fantasy">The draft opens in the form below for you to edit. Nothing is saved until you press Save.</p>
+      </div>
 
       {editing && <ProfileForm initial={editing} onCancel={() => setEditing(null)} onSaved={onSaved} />}
 
