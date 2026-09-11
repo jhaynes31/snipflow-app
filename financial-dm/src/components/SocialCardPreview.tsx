@@ -75,12 +75,13 @@ export default function SocialCardPreview({
            * the whole content block always fits the frame at ANY card width —
            * there is no width at which it can overflow or hard-clip. The
            * middle band is flex-1 min-h-0 (it takes the slice left after the
-           * badge, punchline and brand) and overflow-hidden there is only a
-           * backstop, never relied on. Each paragraph is line-clamped so an
+           * badge, punchline and brand), centers its text vertically in that
+           * slice, and overflow-hidden there is only a backstop, never relied
+           * on. Each paragraph is line-clamped so an
            * extreme field truncates with a clean word-boundary ellipsis
            * instead of ever overflowing.
            */
-          <div className="flex-1 min-h-0 flex flex-col justify-start gap-y-[1.6cqw] overflow-hidden pt-[1.5cqw]">
+          <div className="flex-1 min-h-0 flex flex-col justify-center gap-y-[1.6cqw] overflow-hidden py-[1.5cqw]">
             {/* Myth block */}
             <div className="shrink-0 flex flex-col items-center gap-[0.9cqw] text-center max-w-full">
               <span className="shrink-0 inline-block px-[2.5cqw] py-[0.9cqw] rounded bg-[#0d1520]/70 border border-[#9a6a6a]/50 text-[#c98a8a] text-[2.7cqw] font-fantasy tracking-widest">
@@ -108,7 +109,7 @@ export default function SocialCardPreview({
           </div>
         ) : (
           /* ── Stat Card ── */
-          <div className="flex-1 min-h-0 flex flex-col justify-start items-center gap-[1.5cqw] text-center overflow-hidden pt-[1.5cqw]">
+          <div className="flex-1 min-h-0 flex flex-col justify-center items-center gap-[1.5cqw] text-center overflow-hidden py-[1.5cqw]">
             <p className="shrink-0 font-fantasy text-[#f0e6d0] text-[6cqw] leading-[1.22] line-clamp-3 break-words [text-shadow:0_0.8cqw_3cqw_rgba(0,0,0,0.9)]">
               {card.headline || "One striking statistic"}
             </p>

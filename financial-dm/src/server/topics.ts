@@ -355,6 +355,167 @@ export const TOPIC_PAIN_POINTS: Record<string, string[]> = {
   ],
 };
 
+// ── Verified statistics per topic ─────────────────────────────────
+// The Stat Card must lead with a real number. Most topic facts are
+// descriptive sentences, so each topic also carries one or two numeric
+// facts: published figures (hedged with "about" where surveys vary by
+// year), long standing rules of thumb, or plain arithmetic. Nothing here
+// is a guess; keep it that way when adding entries.
+
+export const STAT_FACTS: Record<string, string[]> = {
+  "Term Life Insurance": [
+    "Most group life insurance through work pays 1 to 2 times salary, far below the common 10 to 12 times income guideline.",
+    "A healthy 30 year old can often buy a 20 year, $500,000 term policy for roughly $20 to $30 a month.",
+  ],
+  Investments: [
+    "Rule of 72: at a 7% average return, invested money doubles about every 10 years.",
+    "Investing $200 a month at a 7% average annual return grows to roughly $244,000 in 30 years, and only $72,000 of that was money you put in.",
+  ],
+  "Getting Out of Debt": [
+    "Carrying a $5,000 credit card balance at 22% interest costs about $1,100 a year in interest alone.",
+    "Balance transfer cards often offer 0% interest for 12 to 21 months, usually for a transfer fee of 3% to 5%.",
+  ],
+  "Financial Freedom": [
+    "The 4% rule: a portfolio worth 25 times your yearly spending is the classic starting point for living off your savings.",
+    "Federal Reserve surveys find about 1 in 3 US adults could not cover a $400 surprise expense with cash or its equivalent.",
+  ],
+  Saving: [
+    "FDIC insurance protects up to $250,000 per depositor, per insured bank, per ownership category, and credit unions get the same through NCUA.",
+    "Saving $50 a week is $2,600 a year before a penny of interest.",
+  ],
+  Budgeting: [
+    "The 50/30/20 rule splits take home pay into 50% needs, 30% wants, and 20% savings and extra debt payments.",
+    "A $5 a day habit is about $1,825 a year.",
+  ],
+  "Emergency Fund": [
+    "Federal Reserve surveys find about 1 in 3 US adults could not cover a $400 surprise expense with cash or its equivalent.",
+    "A 3 to 6 month emergency fund on $4,000 of monthly expenses is $12,000 to $24,000.",
+  ],
+  "Retirement Planning": [
+    "Money growing at 7% a year doubles about every 10 years, so $10,000 saved at 25 can become about $150,000 by 65 without another deposit.",
+    "One popular benchmark: have 1 times your salary saved by 30, 3 times by 40, 6 times by 50, and 8 times by 60.",
+  ],
+  "Life Insurance Riders": [
+    "Many term policies can be converted to permanent coverage with no new medical exam, often until age 65 or 70.",
+    "A waiver of premium rider keeps the policy in force if you become totally disabled, commonly after a waiting period of 90 days to 6 months.",
+  ],
+  "Home Buying": [
+    "Closing costs typically run 2% to 5% of the loan amount on top of the down payment.",
+    "A down payment under 20% on a conventional mortgage usually means paying private mortgage insurance until you reach 20% equity.",
+  ],
+  Taxes: [
+    "Pre tax 401(k) contributions come off this year's taxable income; Roth contributions do not, but qualified withdrawals after age 59½ are tax free.",
+    "In 2025 there are 7 federal income tax brackets, from 10% to 37%, and only the dollars inside each bracket are taxed at that rate.",
+  ],
+  "Estate Planning": [
+    "In 2025 the federal estate tax exemption is $13.99 million per person, so the vast majority of estates owe no federal estate tax.",
+    "Surveys consistently find only about 1 in 3 American adults has a will.",
+  ],
+  Beneficiaries: [
+    "A beneficiary form on a life insurance policy or retirement account overrides a will, so a 10 year old designation can send money to an ex spouse.",
+    "You can name several beneficiaries with percentages, for example 50% to a spouse and 25% to each of two children, plus a backup in case they pass first.",
+  ],
+  "Career Planning": [
+    "Employer 401(k) matches are commonly 50 cents to $1 for every dollar you contribute up to 3% to 6% of pay, an instant 50% to 100% return.",
+    "A 3% raise on a $60,000 salary is $1,800 a year, or $150 a month, before taxes.",
+  ],
+  "Family and Kids": [
+    "The USDA's most recent estimate put the cost of raising a child to age 17 at more than $230,000 for a middle income family, before college.",
+    "Under the Affordable Care Act, children can stay on a parent's health plan until age 26.",
+  ],
+  "College Savings": [
+    "Money in a 529 plan grows tax free when used for qualified education costs, and up to $10,000 a year can go toward K through 12 tuition.",
+    "Saving $150 a month from birth at a 6% average return is roughly $58,000 by age 18.",
+  ],
+  "Health Coverage": [
+    "Young adults can stay on a parent's health plan until age 26 under the Affordable Care Act.",
+    "Every marketplace health plan has an out of pocket maximum; for 2025 it is capped at $9,200 for an individual and $18,400 for a family.",
+  ],
+  "Disability Protection": [
+    "The Social Security Administration estimates about 1 in 4 of today's 20 year olds will become disabled before reaching retirement age.",
+    "Long term disability insurance typically replaces about 60% of your income if you cannot work.",
+  ],
+  "Financial Goals": [
+    "A goal with a number and a date does the math for you: $5,000 by this time next year is about $420 a month, or about $96 a week.",
+    "Breaking a $12,000 goal into $1,000 a month turns a mountain into 12 steps.",
+  ],
+  "Net Worth": [
+    "One popular benchmark: net worth of 1 times your salary by 30, 3 times by 40, 6 times by 50, and 8 times by 60.",
+    "Net worth is one subtraction: everything you own minus everything you owe. Paying $300 toward debt raises it by $300, same as saving $300.",
+  ],
+  "Paying Yourself First": [
+    "$100 from every paycheck, twice a month, is $2,400 a year before any interest.",
+    "Raising your savings rate by 1% of pay each year turns a 5% saver into a 15% saver in a decade, and most people never feel the change.",
+  ],
+  "Wills and Trusts": [
+    "Surveys consistently find only about 1 in 3 American adults has a will.",
+    "Without a will, state law decides who inherits, and a minor child cannot receive an inheritance directly until age 18 or 21 depending on the state.",
+  ],
+  "Life Insurance Amounts": [
+    "A common rule of thumb is 10 to 12 times your annual income in coverage; on a $60,000 salary that is $600,000 to $720,000.",
+    "Most group life insurance through work pays only 1 to 2 times salary.",
+  ],
+  "Building Credit": [
+    "FICO scores run from 300 to 850, and payment history is about 35% of the score, the single largest factor.",
+    "Keeping credit card balances under 30% of your limits, and ideally under 10%, is one of the fastest ways to raise a score.",
+  ],
+  "Renting vs Buying": [
+    "A common test: if you will move within 5 years, renting often wins, because buying and later selling can cost 8% to 10% of the home's price in fees.",
+    "A 20% down payment on a $300,000 home is $60,000, and closing costs typically add another 2% to 5% of the loan.",
+  ],
+  "Financial Literacy": [
+    "In the TIAA Institute GFLEC Personal Finance Index, US adults answer only about half of basic money questions correctly, year after year.",
+    "Only about 1 in 3 American adults has a will, and about 1 in 3 could not cover a $400 emergency in cash: the basics are where the gap is.",
+  ],
+  "Healthcare Directives": [
+    "Anyone 18 or older can sign a healthcare directive, and every US state recognizes them.",
+    "Studies estimate only about 1 in 3 US adults has completed any advance directive.",
+  ],
+  "Compound Growth": [
+    "Rule of 72: at 8% a year money doubles about every 9 years, so $10,000 becomes about $80,000 in 27 years without adding a dime.",
+    "Investing $200 a month at a 7% average return is roughly $244,000 after 30 years; only $72,000 of it was your deposits.",
+  ],
+  "Life Changes": [
+    "Most group life insurance through work pays 1 to 2 times salary, which stops the day you leave, and a new baby usually calls for closer to 10 times income.",
+    "Marriage, a new baby, a home purchase, and a divorce are the 4 life events that most often leave coverage and beneficiaries out of date.",
+  ],
+  "Talking to Family About Money": [
+    "In the American Psychological Association's Stress in America surveys, roughly two out of three adults name money as a significant source of stress.",
+    "Only about 1 in 3 American adults has a will, so odds are someone at your table does not have a plan written down.",
+  ],
+  "Savings & CDs": [
+    "FDIC insurance covers up to $250,000 per depositor, per bank, per ownership category, and that includes CDs.",
+    "Early withdrawal penalties on CDs are commonly 3 to 6 months of interest, so match the term to when you will need the money.",
+  ],
+};
+
+/** True when a sentence carries a real figure (digits, $, %, or a spelled out quantity). */
+export function hasNumber(text: string): boolean {
+  if (/\d|[$%]/.test(text)) return true;
+  if (/\b(about |roughly |nearly )?(half|a third|two thirds|a quarter|three quarters)\b/i.test(text)) return true;
+  return /\b(one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty|half|third|quarter|double|twice)\b\s+(to\s+\w+\s+)?(years?|months?|weeks?|days?|times|percent|paychecks?|out\s+of|in\s+\w+)/i.test(
+    text,
+  );
+}
+
+const pickOne = <T,>(list: T[]): T | null => (list.length ? list[Math.floor(Math.random() * list.length)] : null);
+
+/**
+ * The verified statistic a Stat Card should lead with. The chosen fact
+ * wins when it already carries a number; otherwise a numeric fact from the
+ * same topic in the pool, then the curated STAT_FACTS bank. Null only for
+ * a topic outside the pool with no bank entry.
+ */
+export function statFactFor(topic: string, fact: string): string | null {
+  const own = (fact || "").trim();
+  if (own && hasNumber(own)) return own;
+  const group = buildTopicGroups().find((g) => g.topic.toLowerCase() === topic.trim().toLowerCase());
+  const fromPool = pickOne((group?.facts ?? []).filter(hasNumber));
+  if (fromPool) return fromPool;
+  const key = Object.keys(STAT_FACTS).find((k) => k.toLowerCase() === topic.trim().toLowerCase());
+  return key ? pickOne(STAT_FACTS[key]) : null;
+}
+
 const GENERIC_PAIN_POINTS = [
   "I do not know where to start with this",
   "I have been putting this off because it feels overwhelming",

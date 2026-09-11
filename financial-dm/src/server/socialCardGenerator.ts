@@ -14,7 +14,7 @@ import {
   normalizeTone,
   parseJsonReply,
 } from "./contentVoice";
-import { topicPromptLines, type TopicSelection } from "./topics";
+import { statFactFor, topicPromptLines, type TopicSelection } from "./topics";
 
 // Topic rolling lives in ./topics; keep the old names importable.
 export { getRandomTopics as getRandomSocialTopics, type TopicPick } from "./topics";
@@ -109,10 +109,11 @@ LENGTH CAPS (strict, the card is a fixed square and MUST never overflow):
 - headline: at most 90 characters.
 - body (the truth/fact): at most 200 characters. This is the single most important cap, keep the truth under 200 characters.
 - punchline: at most 60 characters.`
-      : `FORMAT (Stat Card): Each card features ONE striking financial statistic or fact from the supporting fact, big and bold. Write:
-- headline: the ONE bold statistic or fact, presented big and striking. If the supporting fact is qualitative rather than numeric, turn it into a bold, direct one line claim drawn exactly from that fact. Do not invent numbers.
-- body: a short supporting sentence (10 to 20 words) that explains why it matters to someone in the card's pain point situation.
+      : `FORMAT (Stat Card): Each card features ONE striking, verified financial statistic, big and bold. Every card comes with a "Statistic to feature" line; that line is the ONLY source of numbers. Write:
+- headline: that statistic as one bold line that LEADS with the number (for example "1 in 3 adults could not cover a $400 surprise" or "$100 a paycheck is $2,400 a year"). Keep every figure exactly as written in the statistic line. Never invent, round, convert, or add a number, a year, or a source that is not in that line.
+- body: a short supporting sentence (10 to 20 words) that explains why that number matters to someone in the card's pain point situation.
 - punchline: a short, brand relevant kicker that ties the stat to everyday life.
+If a card's statistic line says none is verified, write the headline as a bold one line claim drawn exactly from the supporting fact, with no numbers at all.
 
 LENGTH CAPS (strict, the card is a fixed square and MUST never overflow):
 - headline: at most 90 characters.
@@ -150,8 +151,21 @@ export const generateSocialCards = createServerFn()
     if (topics.length === 0) return null;
     const tone = normalizeTone(data.tone);
     const format: SocialCardFormat = data.format === "stat" ? "stat" : "trap";
+    // Stat Cards lead with a real number. Most rolled facts are descriptive,
+    // so each card gets a verified statistic for its topic (see topics.ts).
+    const stats = topics.map((t) => (format === "stat" ? statFactFor(t.topic, t.fact) : null));
     const user = topics
-      .map((t, i) => `Card ${i + 1}\n${topicPromptLines(t)}`)
+      .map((t, i) => {
+        const lines = [`Card ${i + 1}`, topicPromptLines(t)];
+        if (format === "stat") {
+          lines.push(
+            stats[i]
+              ? `Statistic to feature (verified; use these figures exactly as written): ${stats[i]}`
+              : "Statistic to feature: none is verified for this topic, so state the supporting fact as a bold claim with no numbers",
+          );
+        }
+        return lines.join("\n");
+      })
       .join("\n\n");
 
     const text = await callClaude({
@@ -185,7 +199,7 @@ export const generateSocialCards = createServerFn()
       if (!headline && !body) continue;
       cards.push({
         topic: cleanText(t.topic),
-        fact: cleanText(t.fact),
+        fact: cleanText(stats[i] ?? t.fact),
         painPoint: cleanText(t.painPoint),
         format,
         headline,
@@ -197,12 +211,13 @@ export const generateSocialCards = createServerFn()
     // with the underlying fact so the template is never empty.
     while (cards.length < topics.length) {
       const t = topics[cards.length];
+      const shown = stats[cards.length] ?? t.fact;
       cards.push({
         topic: cleanText(t.topic),
-        fact: cleanText(t.fact),
+        fact: cleanText(shown),
         painPoint: cleanText(t.painPoint),
         format,
-        headline: capText(cleanText(t.fact || "Know your numbers."), CARD_CAPS.headline),
+        headline: capText(cleanText(shown || "Know your numbers."), CARD_CAPS.headline),
         body: "A plan built on real numbers beats guessing every time.",
         punchline: "Pull up a stool. The Financial DM has you.",
       });
