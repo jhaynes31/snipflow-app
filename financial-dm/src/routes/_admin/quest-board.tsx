@@ -1,5 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import QuestsSection from "~/components/quest/QuestsSection";
+import SuggestField from "~/components/quest/SuggestField";
+import { LIFE_STAGES, PROFILE_NAMES, TRIGGERS, WORRIES } from "~/lib/questSuggestions";
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
 import { deleteProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput } from "~/server/questBoard";
@@ -317,19 +319,10 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
     <form onSubmit={submit} className="rounded-xl border border-[#c08020]/40 bg-[#111a28] p-5 space-y-4" data-profile-form>
       <h2 className="font-fantasy text-[#c08020] text-lg">{form.id ? `Edit: ${initial.name}` : "New profile"}</h2>
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className={label}>Name *</span>
-          <input className={input} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. New Parents" maxLength={80} required />
-        </label>
-        <label className="block">
-          <span className={label}>Life stage</span>
-          <input className={input} value={form.lifeStage} onChange={(e) => set("lifeStage", e.target.value)} placeholder="e.g. Just had, or expecting, a baby" maxLength={160} />
-        </label>
+        <SuggestField name="name" label="Name *" value={form.name} onChange={(v) => set("name", v)} suggestions={PROFILE_NAMES} placeholder="e.g. New Parents" maxLength={80} required />
+        <SuggestField name="lifeStage" label="Life stage" value={form.lifeStage} onChange={(v) => set("lifeStage", v)} suggestions={LIFE_STAGES} placeholder="e.g. Just had, or expecting, a baby" maxLength={160} />
       </div>
-      <label className="block">
-        <span className={label}>Moments that create the need (separate with commas)</span>
-        <input className={input} value={triggersText} onChange={(e) => setTriggersText(e.target.value)} placeholder="new baby, going from two incomes to one, naming a guardian" />
-      </label>
+      <SuggestField name="triggers" label="Moments that create the need (separate with commas)" value={triggersText} onChange={setTriggersText} suggestions={TRIGGERS} append placeholder="new baby, going from two incomes to one, naming a guardian" />
 
       <div>
         <div className="flex items-center justify-between mb-1">
@@ -403,10 +396,7 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
         )}
       </div>
 
-      <label className="block">
-        <span className={label}>What keeps them up at night (one line, in their words)</span>
-        <input className={input} value={form.worries} onChange={(e) => set("worries", e.target.value)} placeholder="If something happened to one of us, could the other keep the house?" maxLength={600} />
-      </label>
+      <SuggestField name="worries" label="What keeps them up at night (one line, in their words)" value={form.worries} onChange={(v) => set("worries", v)} suggestions={WORRIES} placeholder="If something happened to one of us, could the other keep the house?" maxLength={600} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>

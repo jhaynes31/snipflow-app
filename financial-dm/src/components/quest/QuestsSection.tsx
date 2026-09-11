@@ -4,6 +4,8 @@ import { WEEKDAY_NAMES, defaultEndDate, groupByWeek, partOrderWarnings, generato
 import { getProfiles, type ClientProfile } from "~/server/questBoard";
 import { acceptPlan, deleteQuest, deleteSeries, deleteSlot, draftPlan, draftSeriesOutline, getQuests, getSeries, getSlots, saveQuest, saveSeries, saveSlot, type ContentSlot, type Quest, type QuestInput, type Series, type SeriesInput, type SlotInput } from "~/server/quests";
 import { acknowledgeFlags } from "~/server/campaign";
+import SuggestField from "~/components/quest/SuggestField";
+import { GENERATOR_REASONS, HOOK_ANGLES, RETRO_STARTERS, SERIES_DESCRIPTIONS, SHOW_DESCRIPTIONS, SHOW_NAMES, SLOT_NOTES, TOPICS, lootHighlights, questNames, seriesNames, slugIdeas, testingIdeas } from "~/lib/questSuggestions";
 
 /**
  * Quest Board › Quests (spec, Section 6): the quest list and builder, the
@@ -187,20 +189,19 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
     <form onSubmit={submit} className="rounded-xl border border-[#c08020]/40 bg-[#111a28] p-5 space-y-4" data-quest-form>
       <h2 className="font-fantasy text-[#c08020] text-lg">{form.id ? `Edit: ${initial.name}` : "New quest"}</h2>
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className={label}>Quest name *</span>
-          <input
-            className={input}
-            value={form.name}
-            onChange={(e) => {
-              set("name", e.target.value);
-              if (!form.id && !form.slug) set("slug", suggestSlug(e.target.value));
-            }}
-            placeholder="e.g. New Parent Armor"
-            maxLength={80}
-            required
-          />
-        </label>
+        <SuggestField
+          name="questName"
+          label="Quest name *"
+          value={form.name}
+          onChange={(v) => {
+            set("name", v);
+            if (!form.id && !form.slug) set("slug", suggestSlug(v));
+          }}
+          suggestions={questNames(profiles.find((p) => p.id === form.profileId)?.name ?? "")}
+          placeholder="e.g. New Parent Armor"
+          maxLength={80}
+          required
+        />
         <label className="block">
           <span className={label}>Profile *</span>
           <select
@@ -222,10 +223,7 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
           </select>
         </label>
       </div>
-      <label className="block">
-        <span className={label}>What we're testing * (one idea per quest)</span>
-        <input className={input} value={form.testing} onChange={(e) => set("testing", e.target.value)} placeholder="e.g. Do job-change hooks book calls?" maxLength={300} required />
-      </label>
+      <SuggestField name="testing" label="What we're testing * (one idea per quest)" value={form.testing} onChange={(v) => set("testing", v)} suggestions={testingIdeas(profiles.find((p) => p.id === form.profileId)?.name ?? "")} placeholder="e.g. Do job-change hooks book calls?" maxLength={300} required />
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <span className={label}>Quiz offer</span>
@@ -237,10 +235,7 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
             ))}
           </div>
         </div>
-        <label className="block">
-          <span className={label}>Loot to highlight (optional)</span>
-          <input className={input} value={form.lootHighlight} onChange={(e) => set("lootHighlight", e.target.value)} placeholder="e.g. The Party Map" maxLength={120} />
-        </label>
+        <SuggestField name="loot" label="Loot to highlight (optional)" value={form.lootHighlight} onChange={(v) => set("lootHighlight", v)} suggestions={lootHighlights(form.offerQuiz)} placeholder="e.g. The Party Map" maxLength={120} />
         <div>
           <span className={label}>Platforms</span>
           <div className="flex flex-wrap gap-2">
@@ -292,6 +287,14 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
           <input className={input} value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="baby" maxLength={30} data-slug />
         </div>
         {slugIssue ? <p className="text-red-300 text-xs font-fantasy mt-1" data-slug-problem>{slugIssue}</p> : form.slug ? <p className="text-[#7fd08a] text-xs font-fantasy mt-1">“Take the free quiz at {QUEST_CONFIG.siteDomain}/{form.slug}.”</p> : null}
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          <span className="text-[#606080] text-[10px] font-fantasy uppercase tracking-wider self-center">Pick or type:</span>
+          {slugIdeas(form.name, profiles.find((p) => p.id === form.profileId)?.name ?? "").filter((x) => !takenSlugs.includes(x)).map((x) => (
+            <button key={x} type="button" onClick={() => set("slug", x)} className={`px-2 py-0.5 rounded-full border text-[11px] font-fantasy ${form.slug === x ? "bg-[#c08020]/20 border-[#c08020] text-[#c08020]" : "border-[#406080]/40 text-[#a0c8e0] hover:border-[#c08020]/60"}`} data-suggestion>
+              /{x}
+            </button>
+          ))}
+        </div>
       </label>
       {shows.length > 0 && (
         <div>
@@ -310,10 +313,7 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
         </div>
       )}
       {form.id && (
-        <label className="block">
-          <span className={label}>Retro: what did we learn? (fill in when the quest ends)</span>
-          <textarea className={`${input} resize-none`} rows={2} value={form.retro} onChange={(e) => set("retro", e.target.value)} maxLength={2000} />
-        </label>
+        <SuggestField name="retro" label="Retro: what did we learn? (fill in when the quest ends)" value={form.retro} onChange={(v) => set("retro", v)} suggestions={RETRO_STARTERS} append separator={"\n"} textarea rows={3} maxLength={2000} hint="Starters add a line; finish the sentence in your own words." />
       )}
       {error && <p className="text-red-300 text-sm font-fantasy">{error}</p>}
       <div className="flex gap-2 justify-end">
@@ -390,7 +390,7 @@ function ShowsPanel({ shows, onChanged }: { shows: Series[]; onChanged: () => vo
   );
 }
 
-function SeriesForm({ initial, questId, onCancel, onSaved }: { initial: Partial<SeriesInput>; questId?: number; onCancel: () => void; onSaved: () => void }) {
+function SeriesForm({ initial, questId, profileName, onCancel, onSaved }: { initial: Partial<SeriesInput>; questId?: number; profileName?: string; onCancel: () => void; onSaved: () => void }) {
   const kind = initial.kind ?? "recurring";
   const [form, setForm] = useState<SeriesInput>({
     id: initial.id,
@@ -444,10 +444,7 @@ function SeriesForm({ initial, questId, onCancel, onSaved }: { initial: Partial<
     <form onSubmit={submit} className="rounded-lg border border-[#c08020]/40 bg-[#0d1520]/50 p-4 space-y-3" data-series-form>
       <h4 className="font-fantasy text-[#c08020] text-sm">{form.id ? `Edit: ${initial.name}` : kind === "multi_part" ? "New multi-part series" : "New show"}</h4>
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="block">
-          <span className={label}>Name *</span>
-          <input className={input} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={kind === "multi_part" ? "e.g. New Parent Armor" : "e.g. Trap or Treasure Tuesday"} maxLength={80} required />
-        </label>
+        <SuggestField name="seriesName" label="Name *" value={form.name} onChange={(v) => set("name", v)} suggestions={kind === "multi_part" ? seriesNames(profileName ?? "") : SHOW_NAMES} placeholder={kind === "multi_part" ? "e.g. New Parent Armor" : "e.g. Trap or Treasure Tuesday"} maxLength={80} required />
         <label className="block">
           <span className={label}>Default generator</span>
           <select className={input} value={form.defaultGenerator} onChange={(e) => set("defaultGenerator", e.target.value as GeneratorId)}>
@@ -479,10 +476,7 @@ function SeriesForm({ initial, questId, onCancel, onSaved }: { initial: Partial<
           <input className={input} value={form.slug} onChange={(e) => set("slug", e.target.value)} maxLength={30} />
         </label>
       </div>
-      <label className="block">
-        <span className={label}>Description</span>
-        <input className={input} value={form.description} onChange={(e) => set("description", e.target.value)} maxLength={400} />
-      </label>
+      <SuggestField name="seriesDescription" label="Description" value={form.description} onChange={(v) => set("description", v)} suggestions={kind === "multi_part" ? SERIES_DESCRIPTIONS : SHOW_DESCRIPTIONS} maxLength={400} />
       {kind === "multi_part" && (
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -644,7 +638,7 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
           ))}
           <button type="button" onClick={() => setNewSeries(true)} className={btnGold} data-new-series>➕ Multi-part series</button>
         </div>
-        {newSeries && <SeriesForm initial={{ kind: "multi_part", questId: quest.id, totalParts: 3, defaultGenerator: "script" }} questId={quest.id} onCancel={() => setNewSeries(false)} onSaved={() => { setNewSeries(false); onChanged(); }} />}
+        {newSeries && <SeriesForm initial={{ kind: "multi_part", questId: quest.id, totalParts: 3, defaultGenerator: "script" }} questId={quest.id} profileName={quest.profileName} onCancel={() => setNewSeries(false)} onSaved={() => { setNewSeries(false); onChanged(); }} />}
         {multiPart.some((s) => s.outline.length) && (
           <div className="space-y-1">
             {multiPart.filter((s) => s.outline.length).map((s) => (
@@ -876,30 +870,11 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
           {g.label} isn't built yet. Switch the generator, or tick "Made another way" to move this slot through the statuses without it.
         </p>
       )}
-      <label className="block">
-        <span className={label}>Topic</span>
-        <input className={input} value={form.topic} onChange={(e) => set("topic", e.target.value)} maxLength={120} placeholder="e.g. Work coverage and what follows you" />
-      </label>
-      <label className="block">
-        <span className={label}>Pain point</span>
-        <input className={input} value={form.painPoint} onChange={(e) => set("painPoint", e.target.value)} maxLength={200} list="quest-pain-points" placeholder="Pick one of the profile's, or type your own" />
-        {profile && (
-          <datalist id="quest-pain-points">
-            {profile.painPoints.map((pp) => (
-              <option key={pp} value={pp} />
-            ))}
-          </datalist>
-        )}
-      </label>
+      <SuggestField name="topic" label="Topic" value={form.topic} onChange={(v) => set("topic", v)} suggestions={TOPICS} maxLength={120} placeholder="e.g. Work coverage and what follows you" />
+      <SuggestField name="painPoint" label="Pain point" value={form.painPoint} onChange={(v) => set("painPoint", v)} suggestions={profile?.painPoints ?? []} maxLength={200} placeholder="Pick one of the profile's, or type your own" />
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="block">
-          <span className={label}>Hook angle</span>
-          <input className={input} value={form.hookAngle} onChange={(e) => set("hookAngle", e.target.value)} maxLength={200} />
-        </label>
-        <label className="block">
-          <span className={label}>Why this generator (one line)</span>
-          <input className={input} value={form.generatorReason} onChange={(e) => set("generatorReason", e.target.value)} maxLength={200} />
-        </label>
+        <SuggestField name="hookAngle" label="Hook angle" value={form.hookAngle} onChange={(v) => set("hookAngle", v)} suggestions={HOOK_ANGLES} maxLength={200} />
+        <SuggestField name="generatorReason" label="Why this generator (one line)" value={form.generatorReason} onChange={(v) => set("generatorReason", v)} suggestions={GENERATOR_REASONS[form.generator] ?? []} maxLength={200} />
       </div>
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-xs font-fantasy text-[#a0a0a0]">
@@ -926,10 +901,7 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
           ))}
         </div>
       </div>
-      <label className="block">
-        <span className={label}>Notes</span>
-        <input className={input} value={form.notes} onChange={(e) => set("notes", e.target.value)} maxLength={1000} />
-      </label>
+      <SuggestField name="notes" label="Notes" value={form.notes} onChange={(v) => set("notes", v)} suggestions={SLOT_NOTES} maxLength={1000} />
       {error && <p className="text-red-300 text-xs font-fantasy">{error}</p>}
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={onCancel} className={btnGhost}>Cancel</button>
