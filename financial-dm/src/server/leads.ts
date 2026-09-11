@@ -258,23 +258,58 @@ export const saveLead = createServerFn({ method: "POST" })
           const keep = prior[0].loot_id || data.loot_id || "";
           await sql()`UPDATE leads SET retakes = COALESCE(retakes, 0) + 1, loot_id = COALESCE(NULLIF(loot_id, ''), ${keep || null}) WHERE id = ${prior[0].id}`;
           console.log("[leads] repeat financial health claim for lead", prior[0].id);
+          await linkCharacterSheet(data, prior[0].id);
           return { ok: true, lootId: keep || undefined, repeat: true };
         }
       }
-      await sql()`
+      const inserted = (await sql()`
         INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome, loot_id,
           party, youngest_age, income_bracket, mortgage_bracket, debt_bracket, education_choice, employer_coverage, personal_coverage, est_damage, est_shield, est_gap, armor_tier, armor_cursed, myth_json, myth_score)
         VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"}, ${data.quiz_result || ""}, ${
           typeof data.quiz_score === "number" && Number.isFinite(data.quiz_score) ? Math.round(data.quiz_score) : null
         }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null}, ${data.loot_id || null},
           ${data.party || null}, ${data.youngest_age || null}, ${data.income_bracket || null}, ${data.mortgage_bracket || null}, ${data.debt_bracket || null}, ${data.education_choice || null}, ${data.employer_coverage || null}, ${data.personal_coverage || null}, ${data.est_damage ?? null}, ${data.est_shield ?? null}, ${data.est_gap ?? null}, ${data.armor_tier || null}, ${data.armor_cursed || null}, ${data.myth_json || null}, ${data.myth_score ?? null})
-      `;
+        RETURNING id
+      `) as Array<{ id: number }>;
+      await linkCharacterSheet(data, inserted[0]?.id ?? null);
       return { ok: true, lootId: data.loot_id || undefined, repeat: false };
     } catch (e) {
       console.error("[leads] insert failed:", e);
       return { ok: false, error: String(e) };
     }
   });
+
+/**
+ * Cross-quiz link, server half (life insurance spec, Section 14.2): when the
+ * same email or phone has done the other quiz, copy that quiz's tier name
+ * onto this row and this row's tier onto theirs, so the dashboard shows John
+ * the full character sheet. Additive only; never blocks the save.
+ */
+async function linkCharacterSheet(data: LeadData, newId: number | null): Promise<void> {
+  try {
+    const email = data.email.trim().toLowerCase();
+    const phoneDigits = data.phone.replace(/\D/g, "");
+    const mine = data.quiz_type === "financial-health" ? "financial-health" : "insurance";
+    const theirs = mine === "financial-health" ? "insurance" : "financial-health";
+    const other = (await sql()`
+      SELECT id, character_tier, armor_tier FROM leads
+      WHERE quiz_type = ${theirs}
+        AND (lower(email) = ${email} OR (${phoneDigits.length >= 7} AND regexp_replace(phone, '[^0-9]', '', 'g') = ${phoneDigits}))
+      ORDER BY created_at DESC LIMIT 1
+    `) as Array<{ id: number; character_tier: string | null; armor_tier: string | null }>;
+    if (!other.length) return;
+    if (mine === "financial-health") {
+      // Their armor tier onto my row; my character tier onto theirs.
+      if (newId && other[0].armor_tier) await sql()`UPDATE leads SET armor_tier = COALESCE(NULLIF(armor_tier, ''), ${other[0].armor_tier}) WHERE id = ${newId}`;
+      if (data.character_tier) await sql()`UPDATE leads SET character_tier = ${data.character_tier} WHERE id = ${other[0].id}`;
+    } else {
+      if (newId && other[0].character_tier) await sql()`UPDATE leads SET character_tier = COALESCE(NULLIF(character_tier, ''), ${other[0].character_tier}) WHERE id = ${newId}`;
+      if (data.armor_tier) await sql()`UPDATE leads SET armor_tier = ${data.armor_tier} WHERE id = ${other[0].id}`;
+    }
+  } catch (e) {
+    console.warn("[leads] character sheet link skipped:", e);
+  }
+}
 
 export const getLeads = createServerFn().middleware([requireAdmin]).handler(async (): Promise<Lead[]> => {
   const rows = await sql()`SELECT * FROM leads ORDER BY created_at DESC`;

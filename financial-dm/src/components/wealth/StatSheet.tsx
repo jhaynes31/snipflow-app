@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { STAT_META, formatMod, type Profile, type StatKey } from "~/lib/wealthProfile";
+import { readCharacterSheet } from "~/lib/characterSheet";
 
 /** Where the locked AC slot points. Empty string makes it non interactive. */
 export const LIFE_INSURANCE_QUIZ_URL = "/quiz";
@@ -44,7 +45,45 @@ export default function StatSheet({ profile, flash }: { profile: Profile; flash?
   );
 }
 
+/** Short names that fit the chip. */
+const AC_SHORT: Record<string, string> = { "Plate Armor": "Plate", "Chain Mail": "Chain", "Leather Armor": "Leather", Unarmored: "None", "Traveling Light": "Light" };
+
+/**
+ * The AC slot. Locked ("???") until the life insurance quiz has been
+ * completed in this browser; then it shows that quiz's armor tier with a
+ * short unlock flash. Display only: nothing here touches the profile.
+ */
 function AcSlot() {
+  const [armor, setArmor] = useState<string | null>(null);
+  const [justUnlocked, setJustUnlocked] = useState(false);
+  useEffect(() => {
+    const tier = readCharacterSheet().armor?.tier ?? null;
+    if (!tier) return;
+    setArmor(tier);
+    setJustUnlocked(true);
+    const t = setTimeout(() => setJustUnlocked(false), 1400);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (armor) {
+    return (
+      <a
+        href={LIFE_INSURANCE_QUIZ_URL || undefined}
+        data-ac-unlocked={armor}
+        className={`flex-1 min-w-0 rounded-lg border bg-[#111a28] px-1.5 py-1.5 sm:px-3 sm:py-2 text-center text-[#e8c884] border-[#c08020]/60 transition-all ${
+          justUnlocked ? "animate-slide-in ring-2 ring-[#c08020] scale-105" : ""
+        }`}
+        title={`Armor Class: ${armor}, from the life insurance quiz. It doesn't change your financial stats.`}
+        aria-label={`Armor Class unlocked: ${armor}. From the life insurance quiz; it does not change your financial stats.`}
+      >
+        <div className="text-[10px] sm:text-xs font-fantasy tracking-widest text-[#a0a0a0]">
+          <span aria-hidden="true">🛡️ </span>AC
+        </div>
+        <div className="text-base sm:text-xl font-bold font-fantasy leading-tight truncate">{AC_SHORT[armor] ?? armor}</div>
+      </a>
+    );
+  }
+
   const inner = (
     <>
       <div className="text-[10px] sm:text-xs font-fantasy tracking-widest text-[#606080]">

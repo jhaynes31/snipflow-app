@@ -13,6 +13,8 @@ import LifeShareCard from "~/components/life/LifeShareCard";
 import { LIFE_LOOT_LINE, lifeLootById } from "~/lib/armorLoot";
 import { trapShareText } from "~/lib/lifeShare";
 import { renderShareCard, shareOrDownload } from "~/lib/wealthShare";
+import CombinedShareCard from "~/components/life/CombinedShareCard";
+import { combinedShareText, readCharacterSheet, recordArmorComplete, type CharacterSheetRecord } from "~/lib/characterSheet";
 import { ARMOR_BUTTON, DAMAGE_BUTTON, DAMAGE_INTRO, DAMAGE_LABELS, SOLO_DAMAGE_LABEL } from "~/components/life/lifeCopy";
 import { CARDS_PER_GAME, type MythAnswer } from "~/components/life/mythDeck";
 import { dealMyths, mythScore, mythSummary, parseDebugMyths, type MythGame } from "~/lib/lifeMyths";
@@ -156,6 +158,9 @@ function QuizPage() {
   const [contact, setContact] = useState<{ name: string; email: string } | null>(null);
   const [shareStatus, setShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
   const shareRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [sheet, setSheet] = useState<CharacterSheetRecord>({});
+  const [sheetShareStatus, setSheetShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
   const debugMythsRef = useRef<string[]>([]);
 
   // Resume a saved game after mount (the server render always starts fresh).
@@ -202,6 +207,28 @@ function QuizPage() {
   // Everything below is derived from the full answer set, every render, so
   // going back and changing an answer can never double count (Section 3).
   const armor = useMemo(() => computeArmor(state.answers), [state.answers]);
+
+  // Cross-quiz link (Section 14.2): once the results are reached, remember the
+  // armor tier (name only) so the wealth quiz can unlock its AC slot, and read
+  // what this browser has completed to show the badge.
+  useEffect(() => {
+    if (!hydrated) return;
+    if (["result", "loot", "share"].includes(state.phase)) setSheet(recordArmorComplete(TIER_NAME[armor.acTier]));
+    else setSheet(readCharacterSheet());
+  }, [hydrated, state.phase, armor.acTier]);
+
+  const handleShareSheet = async () => {
+    if (!sheetRef.current) return;
+    setSheetShareStatus("working");
+    try {
+      const blob = await renderShareCard(sheetRef.current);
+      setSheetShareStatus(await shareOrDownload(blob, `${combinedShareText(sheet)} https://thefinancialdm.vercel.app/quiz`));
+    } catch (e) {
+      console.error("[share] failed", e);
+      setSheetShareStatus("error");
+    }
+  };
+
   const moneyQs = useMemo(() => visibleQuestions(state.answers, "money"), [state.answers]);
   const coverageQs = useMemo(() => visibleQuestions(state.answers, "coverage"), [state.answers]);
   const group: LifeQuestion[] = state.phase === "money" ? moneyQs : state.phase === "coverage" ? coverageQs : [];
@@ -611,7 +638,16 @@ function QuizPage() {
           answers={state.answers}
           onClaimLoot={handleClaimLoot}
           onChangeAnswer={() => update({ phase: "coverage", step: Math.max(0, coverageQs.length - 1) })}
+          sheet={sheet}
+          onShareSheet={handleShareSheet}
+          sheetShareStatus={sheetShareStatus}
         />
+      )}
+      {/* Offscreen combined card, rendered at full size for export only. */}
+      {state.phase === "result" && sheet.financial && sheet.armor && (
+        <div aria-hidden="true" style={{ position: "absolute", left: -20000, top: 0 }}>
+          <CombinedShareCard ref={sheetRef} record={sheet} />
+        </div>
       )}
 
       {/* Phase: Guardian's loot (Section 13) */}

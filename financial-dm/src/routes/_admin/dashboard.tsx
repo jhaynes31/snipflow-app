@@ -93,9 +93,10 @@ function DashboardPage() {
 
   const resultDisplay = (lead: Lead) => {
     if (!lead.quiz_result) return "—";
-    return lead.quiz_score === null || lead.quiz_score === undefined
-      ? lead.quiz_result
-      : `${lead.quiz_result} (${lead.quiz_score}/100)`;
+    const base = lead.quiz_score === null || lead.quiz_score === undefined ? lead.quiz_result : `${lead.quiz_result} (${lead.quiz_score}/100)`;
+    // The other quiz's tier, copied over when the same person did both.
+    const other = lead.quiz_type === "financial-health" ? lead.armor_tier && `AC: ${lead.armor_tier}` : lead.character_tier && `Sheet: ${lead.character_tier}`;
+    return other ? `${base} · ${other}` : base;
   };
 
   const utmDisplay = (lead: Lead) => {

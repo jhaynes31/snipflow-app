@@ -28,6 +28,7 @@ import {
   scenarioForRoll,
 } from "~/lib/wealthEvents";
 import { saveLead } from "~/server/leads";
+import { recordFinancialComplete } from "~/lib/characterSheet";
 
 type Phase = "intro" | "questions" | "twist" | "save_event" | "save_roll" | "save_result" | "result" | "loot" | "share";
 
@@ -233,6 +234,13 @@ function WealthCheckPage() {
       update((prev) => ({ rolls: { ...prev.rolls, saveDice: rollSaveDice(rngFor("save", "save2"), mode) } }));
     }
   }, [hydrated, state.phase, state.rolls, profile, update, rngFor]);
+
+  // Cross-quiz link (Section 14.2 of the life insurance spec): remember that
+  // this quiz was completed, tier name only, so the life quiz can show the
+  // full character sheet. Nothing is read back into scoring.
+  useEffect(() => {
+    if (hydrated && ["result", "loot", "share"].includes(state.phase)) recordFinancialComplete(TIER_META[profile.tier].title);
+  }, [hydrated, state.phase, profile.tier]);
 
   const scrollTop = useCallback(() => {
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });

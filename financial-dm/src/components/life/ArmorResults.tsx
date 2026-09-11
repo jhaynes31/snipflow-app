@@ -1,12 +1,17 @@
 import { TIER_NAME, approxDollars, type ArmorResult, type LifeAnswers } from "~/lib/armorEngine";
 import ArmorReveal from "./ArmorReveal";
 import { BUSINESS_NOTE, CHARACTER_SHEET_LINK, DAMAGE_LABELS, RESULTS_DISCLAIMER, ctaCopy } from "./lifeCopy";
+import { armorLineFor, isFullSheet, type CharacterSheetRecord } from "~/lib/characterSheet";
 
 interface ArmorResultsProps {
   armor: ArmorResult;
   answers: LifeAnswers;
   onClaimLoot: () => void;
   onChangeAnswer: () => void;
+  /** What this browser has completed so far (Section 14.2). */
+  sheet: CharacterSheetRecord;
+  onShareSheet: () => void;
+  sheetShareStatus: "idle" | "working" | "shared" | "downloaded" | "error";
 }
 
 const parchment = {
@@ -15,7 +20,7 @@ const parchment = {
 };
 
 /** The results screen (Section 12). The disclaimer sits with the numbers, never behind a click. */
-export default function ArmorResults({ armor, answers, onClaimLoot, onChangeAnswer }: ArmorResultsProps) {
+export default function ArmorResults({ armor, answers, onClaimLoot, onChangeAnswer, sheet, onShareSheet, sheetShareStatus }: ArmorResultsProps) {
   const rows: Array<[string, number]> = [
     [DAMAGE_LABELS.D, armor.dice.D],
     [DAMAGE_LABELS.I, armor.dice.I],
@@ -77,9 +82,27 @@ export default function ArmorResults({ armor, answers, onClaimLoot, onChangeAnsw
       </button>
       <p className="text-[#606080] text-xs text-center font-fantasy -mt-3 max-w-xs">A free guide, picked from your answers. Then John's table is one tap away.</p>
 
-      <a href="/wealth-check" className="text-center text-sm font-fantasy text-[#e8c884] hover:text-[#f5e6c8] underline underline-offset-4 max-w-xs leading-relaxed" data-sheet-link>
-        {CHARACTER_SHEET_LINK}
-      </a>
+      {isFullSheet(sheet) ? (
+        <div className="w-full max-w-xs flex flex-col items-center gap-3" data-full-sheet>
+          <span className="px-4 py-2 rounded-full border-2 border-[#e0b45a] text-[#e0b45a] font-fantasy text-sm tracking-widest uppercase shadow-lg shadow-[#e0b45a]/20 animate-slide-in">
+            🏅 Full Character Sheet Complete
+          </span>
+          <p className="text-[#a0a0a0] text-xs font-fantasy text-center">
+            {sheet.financial?.tier} · {armorLineFor(sheet)}
+          </p>
+          <button
+            onClick={onShareSheet}
+            disabled={sheetShareStatus === "working"}
+            className="w-full px-6 py-3 rounded-lg bg-[#204060]/40 border border-[#406080]/50 text-[#e0e0e0] hover:bg-[#204060]/60 font-bold font-fantasy transition-all disabled:opacity-50"
+          >
+            {sheetShareStatus === "working" ? "Rendering the card..." : sheetShareStatus === "shared" ? "✅ Shared" : sheetShareStatus === "downloaded" ? "✅ Saved to your device" : sheetShareStatus === "error" ? "Could not render the card. Try again." : "📤 Share Your Full Character Sheet"}
+          </button>
+        </div>
+      ) : (
+        <a href="/wealth-check" className="text-center text-sm font-fantasy text-[#e8c884] hover:text-[#f5e6c8] underline underline-offset-4 max-w-xs leading-relaxed" data-sheet-link>
+          {CHARACTER_SHEET_LINK}
+        </a>
+      )}
       <button onClick={onChangeAnswer} className="text-[#606080] hover:text-[#a0a0a0] text-xs font-fantasy underline underline-offset-4">
         ← Change an answer
       </button>
