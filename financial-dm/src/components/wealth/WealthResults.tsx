@@ -1,6 +1,6 @@
 import { WEALTH_QUESTIONS } from "~/components/WealthReport";
 import StatSheet from "~/components/wealth/StatSheet";
-import { QUESTS, RESULTS_CTA } from "~/components/wealth/wealthCopy";
+import { QUESTS } from "~/components/wealth/wealthCopy";
 import { CLASS_META, STAT_META, TIER_META, formatMod, type Answers, type Profile } from "~/lib/wealthProfile";
 
 /**
@@ -13,15 +13,12 @@ export default function WealthResults({
   profile,
   answers,
   onClaimLoot,
-  onBook,
   leadCaptured,
 }: {
   profile: Profile;
   answers: Answers;
-  /** Primary: the loot drop (captures the lead first if needed). */
+  /** The one exit: the loot drop (captures the lead first if needed), then John's table. */
   onClaimLoot: () => void;
-  /** Secondary: straight to John's table (captures the lead first if needed). */
-  onBook: () => void;
   leadCaptured: boolean;
 }) {
   const tier = TIER_META[profile.tier];
@@ -103,16 +100,9 @@ export default function WealthResults({
       >
         🎁 Claim Your Loot
       </button>
-      <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">
-        {leadCaptured ? "A little something for your weakest stat." : "Tell John where to send it, and a little something for your weakest stat drops."}
+      <p className="text-[#606080] text-xs text-center font-fantasy -mt-3 max-w-sm">
+        {leadCaptured ? "A little something for your weakest stat, then summon thy DM." : "Tell John where to send it. A little something for your weakest stat drops, then you can summon thy DM."}
       </p>
-      <button
-        onClick={onBook}
-        className="w-full max-w-sm px-6 py-3 rounded-lg border-2 border-[#c08020]/60 text-[#c08020] hover:bg-[#c08020]/10 font-bold transition-all font-fantasy tracking-wide"
-      >
-        🍺 {RESULTS_CTA}
-      </button>
-      <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">A free chat with John, no pressure, about your next move.</p>
     </div>
   );
 }

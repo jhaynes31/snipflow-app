@@ -148,7 +148,6 @@ function WealthCheckPage() {
   const [hydrated, setHydrated] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
   const [utmParams] = useState(() => readUtmParams());
   const [floats, setFloats] = useState<FloatingMod[]>([]);
   const [flash, setFlash] = useState<StatKey | null>(null);
@@ -159,8 +158,6 @@ function WealthCheckPage() {
   const [eventDone, setEventDone] = useState(false);
   const [diceLanded, setDiceLanded] = useState(0);
   const [shake, setShake] = useState(false);
-  /** Why the lead form is open: loot first, or straight to John's table. */
-  const [captureIntent, setCaptureIntent] = useState<"loot" | "book">("loot");
   /** Kept in memory only (never written to storage) to prefill Calendly. */
   const [contact, setContact] = useState<{ name: string; email: string } | null>(null);
   const [shareStatus, setShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
@@ -307,31 +304,19 @@ function WealthCheckPage() {
     window.location.href = calendlyUrl.toString();
   }, []);
 
-  /** Primary exit from the results: the loot. Captures the lead first, once. */
+  /** The one exit from the results: the loot. Captures the lead first, once. */
   const handleClaimLoot = () => {
     if (state.leadCaptured) {
       update({ phase: "loot" });
       scrollTop();
       return;
     }
-    setCaptureIntent("loot");
-    setShowModal(true);
-  };
-
-  /** Secondary exit: straight to John's table. Same single capture. */
-  const handleBook = () => {
-    if (state.leadCaptured) {
-      goToCalendly(contact?.name, contact?.email);
-      return;
-    }
-    setCaptureIntent("book");
     setShowModal(true);
   };
 
   const handleSubmitLead = async (name: string, email: string, phone: string) => {
     setShowModal(false);
     setContact({ name, email });
-    if (captureIntent === "book") setTransitioning(true);
 
     const storedUtm = getStoredUtm();
     const finalUtm = {
@@ -374,11 +359,6 @@ function WealthCheckPage() {
       console.error("[lead] save threw:", e);
     }
 
-    if (captureIntent === "book") {
-      await new Promise((r) => setTimeout(r, 1500));
-      goToCalendly(name, email);
-      return;
-    }
     update({ leadCaptured: true, phase: "loot" });
     scrollTop();
   };
@@ -416,22 +396,6 @@ function WealthCheckPage() {
       style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }}
     >
       <FloatingMods items={floats} onDone={(id) => setFloats((prev) => prev.filter((f) => f.id !== id))} />
-
-      {/* Transition overlay */}
-      {transitioning && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4"
-          style={{ backgroundColor: "rgba(8, 14, 22, 0.95)" }}
-        >
-          <div className="w-16 h-16 border-4 border-[#c08020] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#e0e0e0] font-fantasy text-lg animate-pulse">
-            Rolling for wealth...
-          </p>
-          <p className="text-[#a0a0a0] text-sm font-fantasy">
-            Thy council with the DM awaits!
-          </p>
-        </div>
-      )}
 
       {/* Brand header (compact once the questions start so the sheet has room) */}
       <div className={`text-center ${inQuestions ? "mb-3" : "mb-6"}`}>
@@ -794,7 +758,7 @@ function WealthCheckPage() {
 
       {/* Phase: Result (no dice here; everything comes from the answers) */}
       {state.phase === "result" && (
-        <WealthResults profile={profile} answers={state.answers} onClaimLoot={handleClaimLoot} onBook={handleBook} leadCaptured={Boolean(state.leadCaptured)} />
+        <WealthResults profile={profile} answers={state.answers} onClaimLoot={handleClaimLoot} leadCaptured={Boolean(state.leadCaptured)} />
       )}
 
       {/* Phase: loot drop */}
@@ -814,7 +778,7 @@ function WealthCheckPage() {
             }}
             className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
           >
-            {shareFacts ? "📣 Brag About Your Roll →" : "🍺 Grab a Seat at John's Table"}
+            {shareFacts ? "📣 Brag About Your Roll →" : "🎲 Summon Thy DM"}
           </button>
         </div>
       )}
@@ -841,9 +805,9 @@ function WealthCheckPage() {
             onClick={() => goToCalendly(contact?.name, contact?.email)}
             className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
           >
-            🍺 Grab a Seat at John's Table
+            🎲 Summon Thy DM
           </button>
-          <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">A free chat with John, no pressure, about your next move.</p>
+          <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">Opens John's calendar. A free chat, no pressure, about your next move.</p>
         </div>
       )}
 
