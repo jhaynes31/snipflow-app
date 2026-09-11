@@ -290,27 +290,45 @@ export interface ThemeBorderOption {
 }
 
 export const THEME_BORDERS: ThemeBorderOption[] = [
+  // The original set.
   { id: "chains", label: "Chains", image: "/themes/borders/chains.png" },
   { id: "vines", label: "Vines", image: "/themes/borders/vines.png" },
   { id: "pillars", label: "Pillars", image: "/themes/borders/pillars.png" },
   { id: "gold", label: "Gold", image: "/themes/borders/gold.png" },
   { id: "moss", label: "Moss", image: "/themes/borders/moss.png" },
-  // Painted frames.
-  { id: "wrought-iron", label: "Wrought Iron", image: "/themes/borders/wrought-iron.png" },
-  { id: "aged-gold", label: "Aged Gold", image: "/themes/borders/aged-gold.png" },
-  { id: "weathered-stone", label: "Weathered Stone", image: "/themes/borders/weathered-stone.png" },
-  { id: "rune-stone", label: "Rune Stone", image: "/themes/borders/rune-stone.png" },
-  { id: "oak-wood", label: "Oak Wood", image: "/themes/borders/oak-wood.png" },
-  { id: "thorns", label: "Thorns", image: "/themes/borders/thorns.png" },
-  { id: "flame", label: "Flame", image: "/themes/borders/flame.png" },
-  { id: "frost", label: "Frost", image: "/themes/borders/frost.png" },
-  // Vector frames.
-  { id: "gold-ornate", label: "Gold Ornate", image: "/themes/borders/gold-ornate.svg" },
-  { id: "rope", label: "Rope", image: "/themes/borders/rope.svg" },
-  { id: "celtic-knot", label: "Celtic Knot", image: "/themes/borders/celtic-knot.svg" },
-  { id: "ivy", label: "Ivy", image: "/themes/borders/ivy.svg" },
-  { id: "runes", label: "Runes", image: "/themes/borders/runes.svg" },
-  { id: "scale-rim", label: "Scale Rim", image: "/themes/borders/scale-rim.svg" },
+  // Painted frames matching the painted backgrounds (about 11% thick).
+  { id: "castle-frame", label: "Castle", image: "/themes/borders/castle-frame.webp" },
+  { id: "dungeon-frame", label: "Dungeon", image: "/themes/borders/dungeon-frame.webp" },
+  { id: "dungeon-bricks-frame", label: "Dungeon Bricks", image: "/themes/borders/dungeon-bricks-frame.webp" },
+  { id: "mossy-cobbles-frame", label: "Mossy Cobbles", image: "/themes/borders/mossy-cobbles-frame.webp" },
+  { id: "temple-frame", label: "Temple", image: "/themes/borders/temple-frame.webp" },
+  { id: "temple-pillars-frame", label: "Temple Pillars", image: "/themes/borders/temple-pillars-frame.webp" },
+  { id: "sword-frame", label: "Sword", image: "/themes/borders/sword-frame.webp" },
+  { id: "swords-frame", label: "Crossed Swords", image: "/themes/borders/swords-frame.webp" },
+  { id: "fire-frame", label: "Fire", image: "/themes/borders/fire-frame.webp" },
+  { id: "volcano-frame", label: "Volcano", image: "/themes/borders/volcano-frame.webp" },
+  { id: "mountains-frame", label: "Mountains", image: "/themes/borders/mountains-frame.webp" },
+  { id: "forest-frame", label: "Forest", image: "/themes/borders/forest-frame.webp" },
+  { id: "old-oak-bark-frame", label: "Old Oak Bark", image: "/themes/borders/old-oak-bark-frame.webp" },
+  { id: "moon-frame", label: "Moon", image: "/themes/borders/moon-frame.webp" },
+  { id: "starry-sky-frame", label: "Starry Sky", image: "/themes/borders/starry-sky-frame.webp" },
+  { id: "day-sky-frame", label: "Day Sky", image: "/themes/borders/day-sky-frame.webp" },
+  { id: "dusk-clouds-frame", label: "Dusk Clouds", image: "/themes/borders/dusk-clouds-frame.webp" },
+  { id: "thunderstorm-frame", label: "Thunderstorm", image: "/themes/borders/thunderstorm-frame.webp" },
+  { id: "rain-frame", label: "Rain", image: "/themes/borders/rain-frame.webp" },
+  { id: "parchment-map-frame", label: "Parchment Map", image: "/themes/borders/parchment-map-frame.webp" },
+  { id: "dragon-scales-frame", label: "Dragon Scales", image: "/themes/borders/dragon-scales-frame.webp" },
+  { id: "tavern-wood-frame", label: "Tavern Wood", image: "/themes/borders/tavern-wood-frame.webp" },
+  { id: "stained-glass-frame", label: "Stained Glass", image: "/themes/borders/stained-glass-frame.webp" },
+  // Generated frames.
+  { id: "wrought-iron", label: "Wrought Iron", image: "/themes/borders/wrought-iron.webp" },
+  { id: "aged-gold", label: "Aged Gold", image: "/themes/borders/aged-gold.webp" },
+  { id: "weathered-stone", label: "Weathered Stone", image: "/themes/borders/weathered-stone.webp" },
+  { id: "rune-stone", label: "Rune Stone", image: "/themes/borders/rune-stone.webp" },
+  { id: "oak-wood", label: "Oak Wood", image: "/themes/borders/oak-wood.webp" },
+  { id: "thorns", label: "Thorns", image: "/themes/borders/thorns.webp" },
+  { id: "flame", label: "Flame", image: "/themes/borders/flame.webp" },
+  { id: "frost", label: "Frost", image: "/themes/borders/frost.webp" },
 ];
 
 export function isThemeBackground(id?: string): boolean {
@@ -353,6 +371,8 @@ const BORDER_PADDING: Record<string, string> = {
 
 export function borderContentPaddingClass(id?: string): string | undefined {
   if (!id || !isThemeBorder(id)) return undefined;
+  // The painted "-frame" set is about 11% thick on every side.
+  if (id.endsWith("-frame")) return "p-[13.5%]";
   return BORDER_PADDING[id] ?? "p-[7.5%]";
 }
 
