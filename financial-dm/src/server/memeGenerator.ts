@@ -15,11 +15,15 @@ import {
   parseJsonReply,
 } from "./contentVoice";
 import { topicPromptLines } from "./topics";
+import { layoutGuideLines, slotsFor } from "~/lib/memeLayouts";
 
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface MemeConcept {
   template: string;
+  /** One line per text slot of the template, in the template's slot order. */
+  texts: string[];
+  /** First and last slot, kept for older callers and the saved table. */
   topText: string;
   bottomText: string;
   /** Selected caption (defaults to captions[0]). */
@@ -61,6 +65,8 @@ export interface MemeTemplate {
   url: string;
   width: number;
   height: number;
+  /** How many text boxes imgflip says this template normally carries. */
+  boxCount: number;
 }
 
 // ── Imgflip Template Cache (module scope) ──────────────────────────
@@ -83,6 +89,7 @@ async function loadMemeTemplates(): Promise<MemeTemplate[]> {
           url: string;
           width: number;
           height: number;
+          box_count?: number;
         }>;
       };
     };
@@ -93,6 +100,7 @@ async function loadMemeTemplates(): Promise<MemeTemplate[]> {
       url: String(m.url),
       width: Number(m.width),
       height: Number(m.height),
+      boxCount: Number(m.box_count ?? 2) || 2,
     }));
     console.log(`[memeGenerator] Cached ${_templatesCache.length} imgflip templates`);
     return _templatesCache;
@@ -136,20 +144,20 @@ export const findTemplateImage = createServerFn()
     matchTemplate(await loadMemeTemplates(), data.templateName),
   );
 
-function buildMemeSystemPrompt(tone: string, dndThemed: boolean, templateNames: string): string {
+function buildMemeSystemPrompt(tone: string, dndThemed: boolean, templates: MemeTemplate[]): string {
   return `You are writing meme concepts for John, a licensed life insurance agent and the creator of the brand "The Financial DM". The text on each meme, its caption, and its hashtags are all written by the character described below. Meme text is read in two seconds on a phone, so every word has to earn its place.
 
 ${buildVoiceBlock({ tone, dndThemed, medium: "meme" })}
 
-Given a topic, a supporting fact, and the viewer's pain point, generate 3 meme concepts. For each concept, suggest a popular meme template from the list below, the text overlay (top and bottom), caption options, and hashtags.
+Given a topic, a supporting fact, and the viewer's pain point, generate 3 meme concepts. For each concept, pick a template from the guide below, write one line for EACH of its text slots (in slot order, so the words land on the right part of the picture), plus caption options and hashtags.
 
 MEME TEXT REQUIREMENTS:
-- topText and bottomText together tell one small, true story about money that the viewer recognizes from the pain point. Set up on top, land it on the bottom.
-- Each line is short (aim for under 10 words), plain language, and still sounds like the bartender talking to you. The humor is the recognizable truth, never mockery of the viewer.
+- Fill every slot listed for the template, in order, one entry per slot. The slot's role tells you what that part of the picture means in the joke; write the text that belongs there. A slot marked optional may be a short phrase or an empty string.
+- Together the slots tell one small, true story about money that the viewer recognizes from the pain point. Set up first, land the point last.
+- Each line is short (aim for under 8 words, under 5 for labels on people or objects), plain language, and still sounds like the bartender talking to you. The humor is the recognizable truth, never mockery of the viewer.
 - The meme must still teach or reveal the useful point from the supporting fact; a viewer should be a little smarter after reading it.
-- Match each concept's text to how its template is normally used, so the joke reads instantly.
 
-TEMPLATE VARIETY: For each concept, pick a different template from the list below. Prioritize variety. Try to suggest templates that are not the most obvious or overused ones. Mix classic and less common templates.
+TEMPLATE VARIETY: Use a different template for each concept. Mix classics with less common ones; do not default to the same two or three every time.
 
 ${CAPTION_OPTIONS_RULES}
 Captions may be a little shorter for memes (keep each under 200 characters) and must not repeat the meme text.
@@ -161,10 +169,10 @@ ${VARIETY_RULES}
 ${FORMATTING_RULES}
 
 Return your response as valid JSON only. No other text, no markdown fences. Use this exact structure:
-{ "concepts": [ { "template": "Template Name", "topText": "Top text here", "bottomText": "Bottom text here", "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo"] } ] }
+{ "concepts": [ { "template": "Template Name exactly as listed", "texts": ["slot 1 text", "slot 2 text"], "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo"] } ] }
 
-Available meme templates (choose from these for variety. Avoid repeating the same ones across concepts):
-${templateNames}`;
+TEMPLATE GUIDE (name, how it is used, and its text slots in order):
+${layoutGuideLines(templates)}`;
 }
 
 export const generateMemeConcepts = createServerFn()
@@ -173,19 +181,19 @@ export const generateMemeConcepts = createServerFn()
   .handler(async ({ data }): Promise<MemeConcept[]> => {
     // Fetch real imgflip templates so Claude can suggest actual, varied templates
     const templates = await loadMemeTemplates();
-    const templateNames = templates.map((t) => t.name).join(", ");
     const tone = normalizeTone(data.tone);
     const painPoint = cleanText(data.painPoint);
 
     const text = await callClaude({
       tag: "memeGenerator",
-      system: buildMemeSystemPrompt(tone, Boolean(data.dndThemed), templateNames),
+      system: buildMemeSystemPrompt(tone, Boolean(data.dndThemed), templates),
       user: topicPromptLines({ ...data, painPoint }),
       maxTokens: 2048,
     });
     const parsed = parseJsonReply<{
       concepts?: Array<{
         template?: unknown;
+        texts?: unknown;
         topText?: unknown;
         bottomText?: unknown;
         caption?: unknown;
@@ -197,16 +205,26 @@ export const generateMemeConcepts = createServerFn()
     return parsed.concepts
       .map((c) => {
         const captions = normalizeCaptions(c?.captions, c?.caption);
+        const template = cleanText(c?.template);
+        // One entry per slot. Older replies (or a model that ignores the
+        // guide) come back as top/bottom, which map to the first and last slot.
+        const slotCount = slotsFor(matchTemplate(templates, template) ?? { name: template }).length;
+        let texts = Array.isArray(c?.texts) ? (c.texts as unknown[]).map((t) => cleanText(t)) : [];
+        if (texts.length === 0) texts = [cleanText(c?.topText), cleanText(c?.bottomText)].filter(Boolean);
+        texts = texts.slice(0, Math.max(slotCount, 1));
+        while (texts.length < slotCount) texts.push("");
+        const filled = texts.filter(Boolean);
         return {
-          template: cleanText(c?.template),
-          topText: cleanText(c?.topText),
-          bottomText: cleanText(c?.bottomText),
+          template,
+          texts,
+          topText: filled[0] ?? "",
+          bottomText: filled.length > 1 ? filled[filled.length - 1] : "",
           caption: captions[0] ?? "",
           captions,
           hashtags: normalizeHashtags(c?.hashtags),
         };
       })
-      .filter((c) => c.template || c.topText || c.bottomText)
+      .filter((c) => c.template || c.texts.some(Boolean))
       .slice(0, 3);
   });
 

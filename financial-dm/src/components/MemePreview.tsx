@@ -7,6 +7,21 @@ export interface TextBox {
   x: number; // percentage from left edge (0-100)
   y: number; // percentage from top edge (0-100)
   showBackground: boolean;
+  /** Max width as a percent of the image (default 92). Narrow for labels on a panel or person. */
+  w?: number;
+  /** Dark text without the white meme outline, for signs and whiteboards. */
+  dark?: boolean;
+}
+
+const darkTextStyles: React.CSSProperties = {
+  fontFamily: "'Impact', 'Arial Black', sans-serif",
+  color: "#111",
+  textShadow: "none",
+};
+
+/** Text styling for a box: classic white with outline, or dark for light areas. */
+function boxTextStyle(box: TextBox): React.CSSProperties {
+  return box.dark ? darkTextStyles : textShadowStyles;
 }
 
 interface MemePreviewProps {
@@ -195,7 +210,7 @@ function DraggableTextBox({
         // Never wider than the image: long lines wrap instead of running
         // off both edges (which the PNG export then faithfully cropped).
         width: "max-content",
-        maxWidth: "92%",
+        maxWidth: `${box.w ?? 92}%`,
         cursor: dragging ? "grabbing" : "grab",
         userSelect: dragging ? "none" : undefined,
         zIndex: dragging ? 50 : 10,
@@ -226,6 +241,16 @@ function DraggableTextBox({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              onUpdate({ ...box, dark: !box.dark });
+            }}
+            className="w-5 h-5 flex items-center justify-center rounded bg-[#0d1520]/80 border border-[#406080]/50 text-white text-[10px] hover:bg-[#1a2535] transition-colors"
+            title={box.dark ? "Switch to white meme text" : "Switch to dark text (for signs and whiteboards)"}
+          >
+            {box.dark ? "Aa" : "Ａ"}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
               onDelete(box.id);
             }}
             className="w-5 h-5 flex items-center justify-center rounded bg-red-900/60 border border-red-700/40 text-red-200 text-[10px] hover:bg-red-800/80 transition-colors"
@@ -245,9 +270,9 @@ function DraggableTextBox({
             onBlur={commitEdit}
             onKeyDown={handleInputKeyDown}
             size={Math.max(12, Math.min(editValue.length + 2, 60))}
-            className={`text-white text-center uppercase leading-tight outline-none max-w-full ${fontSize}`}
+            className={`${box.dark ? "" : "text-white"} text-center uppercase leading-tight outline-none max-w-full ${fontSize}`}
             style={{
-              ...textShadowStyles,
+              ...boxTextStyle(box),
               background: box.showBackground
                 ? "rgba(0,0,0,0.35)"
                 : "transparent",
@@ -260,9 +285,9 @@ function DraggableTextBox({
         ) : (
           <div
             onClick={handleTextClick}
-            className={`text-white text-center uppercase leading-tight ${fontSize}`}
+            className={`${box.dark ? "" : "text-white"} text-center uppercase leading-tight ${fontSize}`}
             style={{
-              ...textShadowStyles,
+              ...boxTextStyle(box),
               background: box.showBackground
                 ? "rgba(0,0,0,0.35)"
                 : "transparent",
@@ -404,14 +429,14 @@ const MemePreview = forwardRef<HTMLDivElement, MemePreviewProps>(
                   top: `${box.y}%`,
                   transform: "translate(-50%, -50%)",
                   width: "max-content",
-                  maxWidth: "92%",
+                  maxWidth: `${box.w ?? 92}%`,
                   zIndex: 10,
                 }}
               >
                 <div
-                  className={`text-white text-center uppercase leading-tight ${fontSize}`}
+                  className={`${box.dark ? "" : "text-white"} text-center uppercase leading-tight ${fontSize}`}
                   style={{
-                    ...textShadowStyles,
+                    ...boxTextStyle(box),
                     background: box.showBackground
                       ? "rgba(0,0,0,0.35)"
                       : "transparent",

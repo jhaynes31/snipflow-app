@@ -4,6 +4,7 @@ import { generateMemeConcepts, saveConcept, findTemplateImage } from "~/server/m
 import type { TopicSelection } from "~/server/topics";
 import MemePreview from "~/components/MemePreview";
 import type { TextBox } from "~/components/MemePreview";
+import { slotsFor } from "~/lib/memeLayouts";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 import { downloadElementPng } from "~/lib/exportPng";
 import { PLATFORMS } from "~/lib/contentOptions";
@@ -21,10 +22,21 @@ function makeTextBox(id: string, text: string, x: number, y: number, showBackgro
   return { id, text, x, y, showBackground };
 }
 
-function boxesFor(concept: MemeConcept): TextBox[] {
+/**
+ * Place each slot's text where the template's layout says it belongs. With
+ * no matched template yet (or no layout), the writer's lines fall back to
+ * evenly spaced rows so nothing is lost.
+ */
+function boxesFor(concept: MemeConcept, template: MemeTemplate | null): TextBox[] {
+  const texts = concept.texts?.length ? concept.texts : [concept.topText, concept.bottomText];
+  const slots = slotsFor(template ?? { name: concept.template, boxCount: texts.length });
   const boxes: TextBox[] = [];
-  if (concept.topText) boxes.push(makeTextBox(crypto.randomUUID(), concept.topText, 50, 8, true));
-  if (concept.bottomText) boxes.push(makeTextBox(crypto.randomUUID(), concept.bottomText, 50, 85, true));
+  texts.forEach((text, i) => {
+    if (!text) return;
+    const slot = slots[i] ?? slots[slots.length - 1] ?? { x: 50, y: 50, w: 92 };
+    const box = makeTextBox(crypto.randomUUID(), text, slot.x, slot.y, !slot.dark);
+    boxes.push({ ...box, w: slot.w, dark: slot.dark });
+  });
   return boxes;
 }
 
@@ -82,11 +94,13 @@ export default function MemeGenerator({
         setError("The API returned no concepts. Check the server log or try again.");
       }
       setConcepts(result);
-      setTextBoxesArr(result.map(boxesFor));
+      setTextBoxesArr(result.map((c) => boxesFor(c, null)));
       const images = await Promise.all(
         result.map((c) => findTemplateImage({ data: { templateName: c.template } })),
       );
       setTemplateImages(images);
+      // Now that the real template is known, place the text where its layout says.
+      setTextBoxesArr(result.map((c, i) => boxesFor(c, images[i])));
     } catch {
       setError("Failed to generate concepts. Check the API key and try again.");
     } finally {
@@ -104,9 +118,9 @@ export default function MemeGenerator({
         if (result.length > 0) {
           const newConcept = result[idx] || result[0];
           setConcepts((prev) => prev.map((c, i) => (i === idx ? newConcept : c)));
-          setTextBoxesArr((prev) => prev.map((b, i) => (i === idx ? boxesFor(newConcept) : b)));
           const img = await findTemplateImage({ data: { templateName: newConcept.template } });
           setTemplateImages((prev) => prev.map((t, i) => (i === idx ? img : t)));
+          setTextBoxesArr((prev) => prev.map((b, i) => (i === idx ? boxesFor(newConcept, img) : b)));
         }
       } catch {
         // ignore
