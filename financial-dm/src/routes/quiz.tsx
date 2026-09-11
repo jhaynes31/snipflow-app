@@ -8,6 +8,11 @@ import TrapOrTreasure from "~/components/life/TrapOrTreasure";
 import DamageRoll, { type DamageDie } from "~/components/life/DamageRoll";
 import ArmorReveal from "~/components/life/ArmorReveal";
 import ArmorResults from "~/components/life/ArmorResults";
+import LifeLoot from "~/components/life/LifeLoot";
+import LifeShareCard from "~/components/life/LifeShareCard";
+import { LIFE_LOOT_LINE, lifeLootById } from "~/lib/armorLoot";
+import { trapShareText } from "~/lib/lifeShare";
+import { renderShareCard, shareOrDownload } from "~/lib/wealthShare";
 import { ARMOR_BUTTON, DAMAGE_BUTTON, DAMAGE_INTRO, DAMAGE_LABELS, SOLO_DAMAGE_LABEL } from "~/components/life/lifeCopy";
 import { CARDS_PER_GAME, type MythAnswer } from "~/components/life/mythDeck";
 import { dealMyths, mythScore, mythSummary, parseDebugMyths, type MythGame } from "~/lib/lifeMyths";
@@ -26,8 +31,8 @@ import { saveLead } from "~/server/leads";
  * Phase 1 builds the opening roll, the party, the questions, and the estimate
  * engine. The results screen here is an interim preview until Phase 3.
  */
-type Phase = "intro" | "party" | "money" | "myths" | "coverage" | "damage" | "armor" | "result";
-const PHASES: Phase[] = ["intro", "party", "money", "myths", "coverage", "damage", "armor", "result"];
+type Phase = "intro" | "party" | "money" | "myths" | "coverage" | "damage" | "armor" | "result" | "loot" | "share";
+const PHASES: Phase[] = ["intro", "party", "money", "myths", "coverage", "damage", "armor", "result", "loot", "share"];
 
 interface QuizState {
   phase: Phase;
@@ -40,6 +45,8 @@ interface QuizState {
   myths?: MythGame;
   /** The lead form was submitted once; never ask twice. */
   leadCaptured?: boolean;
+  /** The loot item chosen from the answers at claim time. */
+  lootId?: string;
 }
 
 const STORAGE_KEY = "life_quiz_v1";
@@ -76,6 +83,7 @@ function loadState(): QuizState | null {
       answers: { ...a, party: { members, kids: Math.max(1, Math.min(6, Number(a.party?.kids) || 1)), youngest } },
       myths,
       leadCaptured: Boolean(p.leadCaptured),
+      lootId: typeof p.lootId === "string" ? p.lootId : undefined,
     };
   } catch {
     return null;
@@ -143,8 +151,11 @@ function QuizPage() {
   /** Skip the animations when a saved game lands on one of these screens. */
   const [resumedOn, setResumedOn] = useState<Phase | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
   const [utmParams] = useState(() => readUtmParams());
+  /** Kept in memory only (never written to storage) to prefill Calendly. */
+  const [contact, setContact] = useState<{ name: string; email: string } | null>(null);
+  const [shareStatus, setShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
+  const shareRef = useRef<HTMLDivElement>(null);
   const debugMythsRef = useRef<string[]>([]);
 
   // Resume a saved game after mount (the server render always starts fresh).
@@ -269,8 +280,26 @@ function QuizPage() {
     else update({ phase: "coverage", step: 0 });
   };
 
-  // ── Lead capture → Calendly (placement unchanged until Phase 4) ─
-  const handleCTA = () => setShowModal(true);
+  // ── Guardian's loot: the one exit from the results. Captures the lead first, once. ─
+  const handleClaimLoot = () => {
+    if (state.leadCaptured) {
+      update({ phase: "loot", lootId: armor.loot });
+      return;
+    }
+    setShowModal(true);
+  };
+
+  const handleShare = async () => {
+    if (!shareRef.current || !state.myths) return;
+    setShareStatus("working");
+    try {
+      const blob = await renderShareCard(shareRef.current);
+      setShareStatus(await shareOrDownload(blob, `${trapShareText(mythScore(state.myths))} https://thefinancialdm.vercel.app/quiz`));
+    } catch (e) {
+      console.error("[share] failed", e);
+      setShareStatus("error");
+    }
+  };
 
   const goToCalendly = (name?: string, email?: string) => {
     const calendlyUrl = new URL("https://calendly.com/thefinancialdm-proton/30min");
@@ -321,6 +350,7 @@ function QuizPage() {
           armor_cursed: armor.cursed ? "yes" : "no",
           myth_json: JSON.stringify(mythSummary(state.myths)),
           myth_score: state.myths ? mythScore(state.myths) : null,
+          loot_id: armor.loot,
         },
       });
       if (!saved.ok) {
@@ -335,11 +365,9 @@ function QuizPage() {
       console.error("[lead] save threw:", e);
     }
 
-    update({ leadCaptured: true });
+    setContact({ name, email });
     setShowModal(false);
-    setTransitioning(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    goToCalendly(name, email);
+    update({ leadCaptured: true, phase: "loot", lootId: armor.loot });
   };
 
   const inQuestions = state.phase === "money" || state.phase === "coverage";
@@ -357,15 +385,6 @@ function QuizPage() {
       {SHOW_UNCONFIRMED_BANNER && (
         <div className="fixed top-0 inset-x-0 z-40 bg-[#c83a3a] text-white text-center text-xs font-bold py-1" role="status">
           Estimate values not yet confirmed by John.
-        </div>
-      )}
-
-      {/* Transition overlay */}
-      {transitioning && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: "rgba(8, 14, 22, 0.95)" }}>
-          <div className="w-16 h-16 border-4 border-[#c08020] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#e0e0e0] font-fantasy text-lg animate-pulse">Rolling for initiative...</p>
-          <p className="text-[#a0a0a0] text-sm font-fantasy">Thy council with the DM awaits!</p>
         </div>
       )}
 
@@ -590,9 +609,59 @@ function QuizPage() {
         <ArmorResults
           armor={armor}
           answers={state.answers}
-          onCTA={state.leadCaptured ? () => goToCalendly() : handleCTA}
+          onClaimLoot={handleClaimLoot}
           onChangeAnswer={() => update({ phase: "coverage", step: Math.max(0, coverageQs.length - 1) })}
         />
+      )}
+
+      {/* Phase: Guardian's loot (Section 13) */}
+      {state.phase === "loot" && (
+        <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
+          <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">🎁 Loot drop</p>
+          <p className="text-[#e0e0e0] font-fantasy text-center max-w-sm leading-relaxed">“{LIFE_LOOT_LINE}”</p>
+          {(() => {
+            const item = lifeLootById(state.lootId) ?? lifeLootById(armor.loot);
+            return item ? <LifeLoot key={item.id} item={item} /> : <div className="h-40" />;
+          })()}
+          <button
+            onClick={() => {
+              if (state.myths) update({ phase: "share" });
+              else goToCalendly(contact?.name, contact?.email);
+            }}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            {state.myths ? "📣 Brag About Your Cards →" : "🎲 Summon Thy DM"}
+          </button>
+        </div>
+      )}
+
+      {/* Phase: Trap or Treasure share card, then John's table (Section 14.1) */}
+      {state.phase === "share" && state.myths && (
+        <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
+          <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">📣 Your share card</p>
+          <div className="w-full max-w-[360px] aspect-square overflow-hidden rounded-xl shadow-2xl shadow-black/50" aria-hidden="true">
+            <div style={{ width: 1080, height: 1080, transform: "scale(0.3333)", transformOrigin: "top left" }}>
+              <LifeShareCard ref={shareRef} score={mythScore(state.myths)} />
+            </div>
+          </div>
+          <p className="text-[#e0e0e0] text-sm font-fantasy text-center leading-relaxed max-w-sm" data-share-text>
+            {trapShareText(mythScore(state.myths))}
+          </p>
+          <button
+            onClick={handleShare}
+            disabled={shareStatus === "working"}
+            className="w-full max-w-xs px-6 py-3 rounded-lg bg-[#204060]/40 border border-[#406080]/50 text-[#e0e0e0] hover:bg-[#204060]/60 font-bold font-fantasy transition-all disabled:opacity-50"
+          >
+            {shareStatus === "working" ? "Rendering the card..." : shareStatus === "shared" ? "✅ Shared" : shareStatus === "downloaded" ? "✅ Saved to your device" : shareStatus === "error" ? "Could not render the card. Try again." : "📤 Share the Card"}
+          </button>
+          <button
+            onClick={() => goToCalendly(contact?.name, contact?.email)}
+            className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
+          >
+            🎲 Summon Thy DM
+          </button>
+          <p className="text-[#606080] text-xs text-center font-fantasy -mt-3">Opens John's calendar. A free chat, no pressure, about your next move.</p>
+        </div>
       )}
 
       <LeadModal isOpen={showModal} onSubmit={handleSubmitLead} onClose={() => setShowModal(false)} />

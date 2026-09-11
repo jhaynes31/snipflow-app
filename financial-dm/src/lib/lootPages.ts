@@ -21,7 +21,9 @@ export type LootBlock =
   /** Labelled blanks, one line each. */
   | { type: "fields"; heading: string; items: string[] }
   /** The allowed facts, shown as "Good to know". */
-  | { type: "facts"; heading?: string; items: string[] };
+  | { type: "facts"; heading?: string; items: string[] }
+  /** Start a new printed page here (invisible on screen). */
+  | { type: "pagebreak" };
 
 export interface LootPageContent {
   id: string;
@@ -98,6 +100,82 @@ export const LOOT_PAGES: LootPageContent[] = [
     cta: CTA,
     footer: FOOTER,
     pageLimit: 1,
+  },
+  {
+    id: "cursed_armor_decoder",
+    title: "The Cursed Armor Decoder",
+    subtitle: "What to ask HR about your work coverage",
+    icon: "d20",
+    intro: "Work coverage is great armor, until you change jobs. Here's how to find out if yours is cursed.",
+    body: [
+      {
+        type: "paragraph",
+        text: "Bring this to HR, or open your benefits portal, and write down what you find. Ten minutes, and you'll know exactly what your work armor does and doesn't do.",
+      },
+      {
+        type: "questions",
+        heading: "Seven questions for HR",
+        items: [
+          "How much life insurance do I have through work (a flat amount or a multiple of salary)?",
+          "Can I buy more? Does that require health questions?",
+          "Who's listed as my beneficiary?",
+          "What happens to my coverage if I leave, get laid off, or retire?",
+          "Can I keep it or convert it? What's the deadline, and what would it cost?",
+          "Does my coverage change as I get older?",
+          "Is there coverage for my spouse or kids through the plan?",
+        ],
+      },
+      {
+        type: "facts",
+        heading: "Good to know",
+        items: [
+          "Work life insurance often ends, or has to be converted, when you leave a job.",
+          "Some plans let you keep or convert coverage, often within a limited time window.",
+          "Under IRS rules, the cost of employer-paid group term life coverage above $50,000 generally counts as taxable income to the employee.",
+        ],
+      },
+    ],
+    cta: CTA,
+    footer: FOOTER,
+    pageLimit: 1,
+  },
+  {
+    id: "party_map",
+    title: "The Party Map",
+    subtitle: "The \"if something happens to me\" organizer",
+    icon: "chest",
+    intro: "If something happens to you, your party shouldn't have to go treasure hunting. Draw them a map.",
+    body: [
+      {
+        type: "note",
+        tone: "safety",
+        text: "Write where things are, not account numbers or passwords. Keep this somewhere safe and tell someone you trust where it is.",
+      },
+      { type: "fields", heading: "Who to call first", items: ["First call (name and number):", "Second call (name and number):", "Third call (name and number):"] },
+      { type: "fields", heading: "Life insurance", items: ["Company:", "Agent (name and number):", "Where the policy is kept:"] },
+      { type: "fields", heading: "Work benefits", items: ["Employer:", "HR contact (name and number):"] },
+      {
+        type: "table",
+        heading: "Bank and retirement accounts",
+        columns: ["Institution", "Type (checking, savings, 401(k), IRA...)", "Where statements are kept"],
+        rows: 4,
+      },
+      { type: "fields", heading: "Home and vehicles", items: ["Where the deed is kept:", "Mortgage lender:", "Vehicles, and where the titles are kept:"] },
+      { type: "pagebreak" },
+      { type: "fields", heading: "Will and estate documents", items: ["Where they are:", "Attorney (name and number):"] },
+      {
+        type: "table",
+        heading: "Bills on autopay",
+        columns: ["Bill", "Paid from (account name, not the number)", "About when each month"],
+        rows: 6,
+      },
+      { type: "fields", heading: "Digital life", items: ["Where the instructions for your password manager are kept:", "Who knows where to find them:"] },
+      { type: "fields", heading: "Pets", items: ["Who will care for them:", "Vet (name and number):"] },
+      { type: "fields", heading: "This map", items: ["Date last updated:", "Where the original is kept:"] },
+    ],
+    cta: CTA,
+    footer: FOOTER,
+    pageLimit: 2,
   },
 ];
 

@@ -5,7 +5,7 @@ import { BUSINESS_NOTE, CHARACTER_SHEET_LINK, DAMAGE_LABELS, RESULTS_DISCLAIMER,
 interface ArmorResultsProps {
   armor: ArmorResult;
   answers: LifeAnswers;
-  onCTA: () => void;
+  onClaimLoot: () => void;
   onChangeAnswer: () => void;
 }
 
@@ -15,7 +15,7 @@ const parchment = {
 };
 
 /** The results screen (Section 12). The disclaimer sits with the numbers, never behind a click. */
-export default function ArmorResults({ armor, answers, onCTA, onChangeAnswer }: ArmorResultsProps) {
+export default function ArmorResults({ armor, answers, onClaimLoot, onChangeAnswer }: ArmorResultsProps) {
   const rows: Array<[string, number]> = [
     [DAMAGE_LABELS.D, armor.dice.D],
     [DAMAGE_LABELS.I, armor.dice.I],
@@ -69,12 +69,13 @@ export default function ArmorResults({ armor, answers, onCTA, onChangeAnswer }: 
 
       <p className="text-[#a0a0a0] text-center text-sm italic max-w-xs font-fantasy">“{ctaCopy(armor.acTier)}”</p>
       <button
-        onClick={onCTA}
+        onClick={onClaimLoot}
         className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
         data-cta={TIER_NAME[armor.acTier]}
       >
-        🎲 Summon Thy DM
+        🎁 Claim Your Loot
       </button>
+      <p className="text-[#606080] text-xs text-center font-fantasy -mt-3 max-w-xs">A free guide, picked from your answers. Then John's table is one tap away.</p>
 
       <a href="/wealth-check" className="text-center text-sm font-fantasy text-[#e8c884] hover:text-[#f5e6c8] underline underline-offset-4 max-w-xs leading-relaxed" data-sheet-link>
         {CHARACTER_SHEET_LINK}

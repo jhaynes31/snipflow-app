@@ -191,6 +191,8 @@ function Block({ block }: { block: LootBlock }) {
           </div>
         </div>
       );
+    case "pagebreak":
+      return <div className="loot-pagebreak" aria-hidden="true" />;
     case "facts":
       return (
         <div>
@@ -230,6 +232,7 @@ const PRINT_CSS = `
 .loot-line { display: block; height: 0.32in; border-bottom: 1px solid rgba(139,105,20,.7); }
 .loot-fields .loot-line { height: 0.28in; }
 @media (max-width: 480px) { .loot-kicker { letter-spacing: 0.12em; } }
+.loot-pagebreak { height: 0; }
 @media print {
   @page { size: Letter; margin: 0; }
   html, body { background: #eedcb4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -240,12 +243,15 @@ const PRINT_CSS = `
   .loot-table td { height: 28px !important; }
   header { padding-bottom: 8px !important; }
   .loot-check li, ul.list-disc li { margin-top: 3px !important; }
+  ol.list-decimal li { margin-top: 6px !important; }
+  ol.list-decimal .loot-line { height: 0.28in !important; }
   header h1 { font-size: 26px !important; }
   .loot-john { margin-top: 10px !important; padding-top: 7px !important; padding-bottom: 7px !important; }
   h2 { margin-top: 11px !important; margin-bottom: 4px !important; }
   .loot-cta { margin-top: 12px !important; padding-top: 8px !important; padding-bottom: 8px !important; }
   footer { margin-top: 10px !important; }
-  .loot-table, .loot-cta, .loot-john, .loot-safety { break-inside: avoid; }
+  .loot-table, .loot-cta, .loot-john, .loot-safety, .loot-fields { break-inside: avoid; }
+  .loot-pagebreak { break-before: page; height: 0; }
   h2 { break-after: avoid; }
 }
 `;
