@@ -38,6 +38,28 @@ export const TIER_META: Record<TierId, { title: string; line: string }> = {
   legendary: { title: "Legendary Hero", line: "Look at you. Most folks in this tavern would trade sheets with you." },
 };
 
+/** Tie break order for the strongest stat (which picks the class). */
+export const STRONGEST_PRIORITY: StatKey[] = ["WIS", "CON", "STR", "DEX", "INT"];
+
+export type ClassId = "paladin" | "rogue" | "fighter" | "cleric" | "wizard";
+
+/** The D&D class a player earns, keyed by the stat that carries them. */
+export const CLASS_FOR_STAT: Record<StatKey, ClassId> = {
+  CON: "paladin",
+  DEX: "rogue",
+  STR: "fighter",
+  WIS: "cleric",
+  INT: "wizard",
+};
+
+export const CLASS_META: Record<ClassId, { name: string; icon: string; blurb: string }> = {
+  paladin: { name: "Paladin", icon: "🛡️", blurb: "Your cushion is your oath. When life swings, you're still standing, and so is everyone behind you." },
+  rogue: { name: "Rogue", icon: "🗡️", blurb: "Quick hands with a budget. Money moves where you tell it to, and nothing slips out the back door." },
+  fighter: { name: "Fighter", icon: "⚔️", blurb: "Debt doesn't get a grip on you. Every dollar you earn fights for you, not against you." },
+  cleric: { name: "Cleric", icon: "🕯️", blurb: "You play the long game. Steady saving and patient investing are the kind of faith that pays out." },
+  wizard: { name: "Wizard", icon: "📜", blurb: "Knowledge is your spellbook. You read the fine print, know your numbers, and plan ahead of the plot." },
+};
+
 export type Modifiers = Partial<Record<StatKey, number>>;
 
 export interface AnswerOption {
@@ -63,6 +85,9 @@ export interface Profile {
   average: number;
   tier: TierId;
   weakestStat: StatKey | null;
+  /** The strongest active stat, which decides the class. */
+  strongestStat: StatKey | null;
+  classId: ClassId | null;
   /** The original 0 to 100 lead score. */
   leadScore: number;
 }
@@ -103,6 +128,15 @@ export function weakestOf(stats: Record<StatKey, number>, active: StatKey[]): St
   return best;
 }
 
+export function strongestOf(stats: Record<StatKey, number>, active: StatKey[]): StatKey | null {
+  let best: StatKey | null = null;
+  for (const k of STRONGEST_PRIORITY) {
+    if (!active.includes(k)) continue;
+    if (best === null || stats[k] > stats[best]) best = k;
+  }
+  return best;
+}
+
 /**
  * Recompute everything from the full answer set. Stats are derived, never
  * accumulated, so changing an earlier answer can never double count.
@@ -116,12 +150,15 @@ export function computeProfile(questions: ProfileQuestion[], answers: Answers): 
   const stats = { CON: clamp(raw.CON), DEX: clamp(raw.DEX), STR: clamp(raw.STR), WIS: clamp(raw.WIS), INT: clamp(raw.INT) };
   const activeStats = activeStatsFor(questions);
   const average = activeStats.length ? activeStats.reduce((s, k) => s + stats[k], 0) / activeStats.length : 0;
+  const strongestStat = strongestOf(stats, activeStats);
   return {
     stats,
     activeStats,
     average,
     tier: tierForAverage(average),
     weakestStat: weakestOf(stats, activeStats),
+    strongestStat,
+    classId: strongestStat ? CLASS_FOR_STAT[strongestStat] : null,
     leadScore: computeLeadScore(questions, answers),
   };
 }

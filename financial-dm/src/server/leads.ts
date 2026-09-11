@@ -29,6 +29,8 @@ export interface LeadData {
   // Financial health character sheet (all optional, additive; narrative only)
   /** Fresh Recruit, Seasoned Adventurer, or Legendary Hero. */
   character_tier?: string;
+  /** Paladin, Rogue, Fighter, Cleric, or Wizard. */
+  character_class?: string;
   weakest_stat?: string;
   /** JSON of the five stat values, e.g. {"CON":1,...}. */
   stats_json?: string;
@@ -90,6 +92,7 @@ function cleanLeadInput(d: Partial<LeadData> | undefined): LeadData {
     quiz_type: text(d?.quiz_type, 40) || "insurance",
     quiz_result: text(d?.quiz_result, 120),
     character_tier: text(d?.character_tier, 60),
+    character_class: text(d?.character_class, 40),
     weakest_stat: text(d?.weakest_stat, 8),
     stats_json: text(d?.stats_json, 200),
     twist_answer: text(d?.twist_answer, 40),
@@ -144,7 +147,7 @@ async function migrateLeadsTable() {
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS household_income TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_result TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_score INTEGER`;
-  for (const col of ["character_tier", "weakest_stat", "stats_json", "twist_answer", "twist_scenario", "save_event", "save_outcome"]) {
+  for (const col of ["character_tier", "character_class", "weakest_stat", "stats_json", "twist_answer", "twist_scenario", "save_event", "save_outcome"]) {
     await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
 }
@@ -165,10 +168,10 @@ export const saveLead = createServerFn({ method: "POST" })
     try {
       await ensureLeadsTable();
       await sql()`
-        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome)
+        INSERT INTO leads (name, email, phone, age_range, dependents, has_insurance, biggest_concern, timeline, coverage_amount, health, tobacco, monthly_budget, household_income, utm_source, utm_medium, utm_campaign, quiz_type, quiz_result, quiz_score, character_tier, character_class, weakest_stat, stats_json, twist_answer, twist_scenario, save_event, save_outcome)
         VALUES (${data.name}, ${data.email}, ${data.phone}, ${data.age_range}, ${data.dependents}, ${data.has_insurance}, ${data.biggest_concern}, ${data.timeline}, ${data.coverage_amount || ""}, ${data.health || ""}, ${data.tobacco || ""}, ${data.monthly_budget || ""}, ${data.household_income || ""}, ${data.utm_source}, ${data.utm_medium}, ${data.utm_campaign}, ${data.quiz_type || "insurance"}, ${data.quiz_result || ""}, ${
           typeof data.quiz_score === "number" && Number.isFinite(data.quiz_score) ? Math.round(data.quiz_score) : null
-        }, ${data.character_tier || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null})
+        }, ${data.character_tier || null}, ${data.character_class || null}, ${data.weakest_stat || null}, ${data.stats_json || null}, ${data.twist_answer || null}, ${data.twist_scenario || null}, ${data.save_event || null}, ${data.save_outcome || null})
       `;
       return { ok: true };
     } catch (e) {
@@ -200,6 +203,7 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
     quiz_result: String(r.quiz_result ?? ""),
     quiz_score: r.quiz_score === null || r.quiz_score === undefined ? null : Number(r.quiz_score),
     character_tier: r.character_tier ? String(r.character_tier) : undefined,
+    character_class: r.character_class ? String(r.character_class) : undefined,
     weakest_stat: r.weakest_stat ? String(r.weakest_stat) : undefined,
     stats_json: r.stats_json ? String(r.stats_json) : undefined,
     twist_answer: r.twist_answer ? String(r.twist_answer) : undefined,

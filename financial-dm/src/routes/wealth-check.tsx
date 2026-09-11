@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import D20Dice from "~/components/D20Dice";
 import LeadModal from "~/components/LeadModal";
-import { WEALTH_QUESTIONS, computeScore, scoresFromAnswers, tierForScore } from "~/components/WealthReport";
+import { WEALTH_QUESTIONS, computeScore, scoresFromAnswers } from "~/components/WealthReport";
 import StatSheet, { FloatingMods, centerOf, type FloatingMod } from "~/components/wealth/StatSheet";
 import WealthResults from "~/components/wealth/WealthResults";
 import { NATURAL_1_HEADLINE, NATURAL_20_HEADLINE, OPENING_BUTTON, SAVE_OUTCOME_COPY, openingRollCopy } from "~/components/wealth/wealthCopy";
-import { STAT_META, TIER_META, computeProfile, formatMod, type Answers, type StatKey } from "~/lib/wealthProfile";
+import { CLASS_META, STAT_META, TIER_META, computeProfile, formatMod, type Answers, type StatKey } from "~/lib/wealthProfile";
 import { createScriptedRng, defaultRng, type Rng } from "~/lib/wealthRng";
 import {
   SAVE_DC,
@@ -311,9 +311,11 @@ function WealthCheckPage() {
           timeline: "",
           ...finalUtm,
           quiz_type: "financial-health",
-          quiz_result: tierForScore(computeScore(scores)).name,
+          // Short outcome for the dashboard: class and tier (the dragon is retired).
+          quiz_result: `${profile.classId ? CLASS_META[profile.classId].name : "Adventurer"}, ${TIER_META[profile.tier].title}`,
           quiz_score: computeScore(scores),
           character_tier: TIER_META[profile.tier].title,
+          character_class: profile.classId ? CLASS_META[profile.classId].name : "",
           weakest_stat: profile.weakestStat ?? "",
           stats_json: JSON.stringify(profile.stats),
           twist_answer: state.answers.twist ?? "",
@@ -429,7 +431,7 @@ function WealthCheckPage() {
           </button>
 
           <p className="text-[#606080] text-xs text-center max-w-xs font-fantasy leading-relaxed">
-            Ten questions build your character sheet. You can't control the roll, but you can stack your modifiers.
+            Ten questions build your character sheet and reveal your class. You can't control the roll, but you can stack your modifiers.
           </p>
         </div>
       )}
@@ -734,7 +736,7 @@ function WealthCheckPage() {
 
       {/* Phase: Result (no dice here; everything comes from the answers) */}
       {state.phase === "result" && (
-        <WealthResults profile={profile} answers={state.answers} onCTA={handleCTA} showDragon={!(DEBUG_ROLLS_ENABLED && new URLSearchParams(window.location.search).get("dragon") === "0")} />
+        <WealthResults profile={profile} answers={state.answers} onCTA={handleCTA} />
       )}
 
       {/* Lead capture modal */}

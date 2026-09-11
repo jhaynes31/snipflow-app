@@ -48,3 +48,12 @@ describe("computeProfile", () => {
     }
   });
 });
+
+describe("class", () => {
+  test("the strongest stat picks the class, WIS wins ties", () => {
+    const p = computeProfile(WEALTH_QUESTIONS, pick(3));
+    expect(p.classId).toBe("cleric");
+    const debtFree = { ...pick(1), debt_burden: WEALTH_QUESTIONS[2].options[3].id };
+    expect(computeProfile(WEALTH_QUESTIONS, debtFree).classId).toBe("fighter");
+  });
+});

@@ -1,61 +1,49 @@
-import { useMemo } from "react";
-import { WEALTH_QUESTIONS, computeScore, scoresFromAnswers, tierForScore } from "~/components/WealthReport";
+import { WEALTH_QUESTIONS } from "~/components/WealthReport";
 import StatSheet from "~/components/wealth/StatSheet";
-import { QUESTS, RESULTS_CTA, SHOW_DRAGON } from "~/components/wealth/wealthCopy";
-import { STAT_META, TIER_META, formatMod, type Answers, type Profile } from "~/lib/wealthProfile";
+import { QUESTS, RESULTS_CTA } from "~/components/wealth/wealthCopy";
+import { CLASS_META, STAT_META, TIER_META, formatMod, type Answers, type Profile } from "~/lib/wealthProfile";
 
 /**
  * The results screen. No dice here: everything comes from the profile,
- * which is computed from the answers alone. Tier title and line, the full
- * character sheet, the quest for the weakest stat, and the CTA. The dragon
- * artwork (chosen by the original 0 to 100 score) is optional via
- * SHOW_DRAGON in wealthCopy.ts.
+ * which is computed from the answers alone. Class (from the strongest
+ * stat), tier title and line, the full character sheet, the quest for the
+ * weakest stat, and the CTA.
  */
 export default function WealthResults({
   profile,
   answers,
   onCTA,
-  showDragon = SHOW_DRAGON,
 }: {
   profile: Profile;
   answers: Answers;
   onCTA: () => void;
-  showDragon?: boolean;
 }) {
   const tier = TIER_META[profile.tier];
-  const scores = useMemo(() => scoresFromAnswers(answers), [answers]);
-  const score = computeScore(scores);
-  const dragon = tierForScore(score);
+  const cls = profile.classId ? CLASS_META[profile.classId] : null;
   const weakest = profile.weakestStat;
 
   return (
     <div className="w-full max-w-lg mx-auto flex flex-col items-center gap-6 animate-slide-in">
-      {showDragon ? (
-        <div className="relative w-full max-w-sm">
-          <div className="absolute inset-0 rounded-full opacity-60 blur-2xl" style={{ background: "radial-gradient(circle, rgba(192,128,32,0.35) 0%, transparent 70%)" }} />
-          <img src={dragon.image} alt={dragon.name} className="relative w-full h-auto rounded-2xl shadow-2xl shadow-black/50 border border-[#406080]/30" />
-        </div>
-      ) : (
+      <div className="relative">
+        <div className="absolute inset-0 rounded-full opacity-70 blur-2xl" style={{ background: "radial-gradient(circle, rgba(192,128,32,0.4) 0%, transparent 70%)" }} />
         <div
-          className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-[#c08020]/70 flex items-center justify-center text-6xl sm:text-7xl shadow-2xl shadow-[#c08020]/20"
+          className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-[#c08020]/70 flex items-center justify-center text-7xl sm:text-8xl shadow-2xl shadow-[#c08020]/20"
           style={{ background: "radial-gradient(circle, #1f3050 0%, #0d1520 75%)" }}
           aria-hidden="true"
         >
-          {profile.tier === "legendary" ? "👑" : profile.tier === "seasoned" ? "🛡️" : "🗡️"}
+          {cls?.icon ?? "🎲"}
         </div>
-      )}
+      </div>
 
       <div className="text-center">
-        <p className="text-xs font-fantasy uppercase tracking-widest text-[#a0a0a0]">Your character</p>
-        <h2 className="mt-1 text-3xl sm:text-4xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 30px rgba(192,128,32,0.4)" }}>
-          {tier.title}
+        <p className="text-xs font-fantasy uppercase tracking-widest text-[#a0a0a0]">{tier.title}</p>
+        <h2 className="mt-1 text-4xl sm:text-5xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 30px rgba(192,128,32,0.4)" }}>
+          {cls?.name ?? "Adventurer"}
         </h2>
-        <p className="mt-2 text-[#e0e0e0] font-fantasy max-w-sm mx-auto leading-relaxed">{tier.line}</p>
-        {showDragon && (
-          <p className="mt-2 text-[#a0a0a0] text-xs font-fantasy">
-            {dragon.emoji} {dragon.name} hoard · {score}/100
-          </p>
+        {cls && profile.strongestStat && (
+          <p className="mt-2 text-[#e0e0e0] font-fantasy max-w-sm mx-auto leading-relaxed">{cls.blurb}</p>
         )}
+        <p className="mt-3 text-[#a0a0a0] text-sm font-fantasy max-w-sm mx-auto leading-relaxed">{tier.line}</p>
       </div>
 
       <div className="w-full">
