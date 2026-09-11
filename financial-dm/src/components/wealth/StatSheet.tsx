@@ -79,7 +79,7 @@ function AcSlot() {
         <div className="text-[10px] sm:text-xs font-fantasy tracking-widest text-[#a0a0a0]">
           <span aria-hidden="true">🛡️ </span>AC
         </div>
-        <div className="text-base sm:text-xl font-bold font-fantasy leading-tight truncate">{AC_SHORT[armor] ?? armor}</div>
+        <div className="text-[11px] sm:text-xl font-bold font-fantasy leading-tight whitespace-nowrap overflow-hidden">{AC_SHORT[armor] ?? armor}</div>
       </a>
     );
   }
