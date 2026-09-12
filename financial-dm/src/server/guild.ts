@@ -24,6 +24,7 @@ import {
 } from "~/lib/guildConfig";
 import { parseStatusHistory, type StatusChange } from "~/lib/attribution";
 import { parseQuestLog, type QuestLog } from "~/lib/questLog";
+import { GUILD_STARTER_ANSWERS } from "~/lib/guildStarterAnswers";
 
 /**
  * The Guild, Phase 1 (recruiting spec, Section 5, trust-first amendment):
@@ -81,6 +82,10 @@ function ensureTables(): Promise<void> {
       // Phase 5: the Quest Log lives on the recruit row (older databases get the columns here).
       await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log TEXT`;
       await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log_token TEXT`;
+      // John's relayed answers fill facts that have never been saved. A row that exists, even empty, is left alone.
+      for (const a of GUILD_STARTER_ANSWERS) {
+        await sql()`INSERT INTO guild_facts (key, value, confirmed) VALUES (${a.key}, ${a.value}, ${a.confirmed}) ON CONFLICT (key) DO NOTHING`;
+      }
     })().catch((e) => {
       ready = null;
       throw e;

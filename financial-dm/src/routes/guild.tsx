@@ -144,6 +144,7 @@ function GuildHall({ data }: { data: GuildPublic }) {
             <Answer label="Does it cost anything to interview?"><Fact facts={f} k="costToInterview" /></Answer>
             <Answer label="What do recruits pay for to get started?"><Fact facts={f} k="recruitCosts" /></Answer>
             <Answer label="How is it paid?"><Fact facts={f} k="payBasis" /></Answer>
+            <Answer label="What is the interview like?"><Fact facts={f} k="interviewFormat" /></Answer>
             <Answer label="Is a license required?">
               <Fact facts={f} k="licensingRequired" />
               <Fact facts={f} k="investmentPathExists" className="mt-2" />
