@@ -86,6 +86,9 @@ function ensureTables(): Promise<void> {
       // Phase 5: the Quest Log lives on the recruit row (older databases get the columns here).
       await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log TEXT`;
       await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log_token TEXT`;
+      // Sparring Dummy Phase 4: a recruit's practice link, granted and revoked by John (practice spec, Section 9).
+      await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS practice_token TEXT`;
+      await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS practice_granted_at TIMESTAMPTZ`;
       // John's relayed answers fill facts that have never been saved. A row that exists is left alone,
       // even empty, unless it still holds one of the earlier "TODO(John)" drafts from this file.
       for (const a of GUILD_STARTER_ANSWERS) {
@@ -261,6 +264,9 @@ export interface Recruit {
   emailConsent: boolean;
   questLog: QuestLog | null;
   questLogToken: string;
+  /** Sparring Dummy access: empty until John grants it. */
+  practiceToken: string;
+  practiceGrantedAt: string;
   isNew: boolean;
   createdAt: string;
 }
@@ -291,6 +297,8 @@ function rowToRecruit(r: Record<string, unknown>): Recruit {
     emailConsent: Boolean(r.email_consent),
     questLog: parseQuestLog(r.quest_log),
     questLogToken: String(r.quest_log_token ?? ""),
+    practiceToken: String(r.practice_token ?? ""),
+    practiceGrantedAt: r.practice_granted_at == null ? "" : String(r.practice_granted_at),
     isNew: r.seen_at == null,
     createdAt: String(r.created_at ?? ""),
   };

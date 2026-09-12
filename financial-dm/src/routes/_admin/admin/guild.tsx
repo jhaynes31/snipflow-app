@@ -18,6 +18,7 @@ import {
 import { deleteRecruit, getGuildFacts, getRecruits, markRecruitsSeen, quickAddRecruit, saveGuildFacts, setRecruitStage, updateRecruit, type Recruit } from "~/server/guild";
 import { getQuests, type Quest } from "~/server/quests";
 import QuestLogPanel, { questLogUrl, smsTo } from "~/components/guild/QuestLogPanel";
+import PracticePanel from "~/components/guild/PracticePanel";
 import { QUEST_LOG_STALE_DAYS, daysSince, needsNudge, nextStep, nudgeText, questLogProgress } from "~/lib/questLog";
 
 type View = "recruits" | "facts" | "questlogs";
@@ -335,6 +336,7 @@ function RecruitCard({ r, quests, onStage, onRemove, onSaved }: { r: Recruit; qu
             <input type="checkbox" checked={r.pursuingInvestment} onChange={(e) => toggleInvest(e.target.checked)} className="accent-[#c08020]" /> Pursuing investment licensing
           </label>
           <QuestLogPanel r={r} onSaved={onSaved} />
+          <PracticePanel r={r} onSaved={onSaved} />
           <div>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={saveNote} rows={2} maxLength={500} placeholder="Your notes (not shown to the recruit)" className={`${input} resize-none text-xs`} />
           </div>

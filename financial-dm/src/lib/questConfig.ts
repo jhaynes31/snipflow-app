@@ -47,7 +47,7 @@ export const QUEST_CONFIG = {
   complianceFlagWords: ["guaranteed", "risk-free", "best rate", "free money", "you will qualify", "no exam needed"],
   /** Paths a campaign link may never take: real routes and file folders. */
   reservedSlugs: [
-    "admin", "api", "loot", "quiz", "wealth-check", "login", "generator", "dashboard", "change-password", "quest-board", "guild", "guild-hall",
+    "admin", "api", "loot", "quiz", "wealth-check", "login", "generator", "dashboard", "change-password", "quest-board", "guild", "guild-hall", "quest-log", "practice",
     "carousel-generator", "meme-generator", "script-generator", "social-card-generator",
     "fonts", "themes", "logo.png", "favicon.png", "robots.txt", "sitemap.xml", "_serverFn", "assets",
   ],

@@ -1,10 +1,12 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import type { Conversation } from "~/lib/practiceConfig";
+import { outcomeLabel, temperamentById, type Conversation, type Outcome } from "~/lib/practiceConfig";
 import type { Presentation, PresentationSection } from "~/lib/practicePresentation";
+import { stageLabel } from "~/lib/guildConfig";
 import PracticeBanner from "~/components/practice/PracticeBanner";
 import SetupForm, { type SetupApi, type SetupData } from "~/components/practice/SetupForm";
-import { deletePersona, deletePresentation, generatePersona, getPracticeSetup, getPresentations, getRubrics, savePersona, savePresentation, saveRubric, startSession, type PracticeSetup, type Rubrics } from "~/server/practice";
+import { deletePersona, deletePresentation, deleteSession, generatePersona, getPracticeOverview, getPracticeSetup, getPresentations, getRubrics, savePersona, savePresentation, saveRubric, setSessionExample, startSession, type PracticeOverview, type PracticeSetup, type Rubrics, type SessionSummary } from "~/server/practice";
+import { listPracticeRecruits } from "~/server/practiceRecruit";
 
 /**
  * The Sparring Dummy setup screen (AI practice spec, Sections 1, 4, 5, 6).
@@ -14,6 +16,7 @@ import { deletePersona, deletePresentation, generatePersona, getPracticeSetup, g
  * Every screen says PRACTICE (Rule 2.6).
  */
 export const Route = createFileRoute("/_admin/admin/practice")({
+  validateSearch: (s: Record<string, unknown>): { view?: "sessions" } => ({ view: s.view === "sessions" ? "sessions" : undefined }),
   component: PracticePage,
 });
 
@@ -32,6 +35,7 @@ const adminSetupApi = (refresh: () => void): SetupApi => ({
 
 function PracticePage() {
   const navigate = useNavigate();
+  const { view } = Route.useSearch();
   const [setup, setSetup] = useState<PracticeSetup | null>(null);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [error, setError] = useState("");
@@ -53,23 +57,139 @@ function PracticePage() {
           <h1 className="text-2xl sm:text-3xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}>🥊 The Sparring Dummy</h1>
           <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">Rehearse a conversation with a fictional person before the real one. Reps, not evidence: AI personas are more patient and more articulate than real people, even on a rough day.</p>
         </div>
+        <nav className="flex gap-2" aria-label="Practice views" data-practice-views>
+          <Link to="/admin/practice" search={{}} className={viewChip(!view)} data-practice-view="setup" aria-current={!view ? "page" : undefined}>Set up a session</Link>
+          <Link to="/admin/practice" search={{ view: "sessions" }} className={viewChip(view === "sessions")} data-practice-view="sessions" aria-current={view === "sessions" ? "page" : undefined}>Sessions and recruits</Link>
+        </nav>
         {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy" data-practice-error>{error}</div>}
-        {!data ? (
-          <p className="text-xs text-[#a0a0a0] font-fantasy">Loading profiles...</p>
+        {view === "sessions" ? (
+          <SessionsView />
         ) : (
-          <SetupForm
-            data={data}
-            api={adminSetupApi(load)}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onStarted={(id) => navigate({ to: "/admin/practice/$id", params: { id: String(id) } } as any)}
-            sessionHref={(id) => `/admin/practice/${id}`}
-          />
+          <>
+            {!data ? (
+              <p className="text-xs text-[#a0a0a0] font-fantasy">Loading profiles...</p>
+            ) : (
+              <SetupForm
+                data={data}
+                api={adminSetupApi(load)}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onStarted={(id) => navigate({ to: "/admin/practice/$id", params: { id: String(id) } } as any)}
+                sessionHref={(id) => `/admin/practice/${id}`}
+              />
+            )}
+            <PresentationEditor presentations={presentations} onChange={loadPresentations} />
+            <RubricEditor />
+          </>
         )}
-
-        <PresentationEditor presentations={presentations} onChange={loadPresentations} />
-        <RubricEditor />
       </div>
     </main>
+  );
+}
+
+const viewChip = (on: boolean) => `px-3 py-1.5 rounded-lg border text-sm font-fantasy ${focus} ${on ? "bg-[#c08020] border-[#c08020] text-[#0d1520] font-bold" : "border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50"}`;
+const fmt = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" }) : "");
+
+/** Section 9: every session John has run, with the "share as an example" switch, and what his recruits have practiced (counts and outcomes; transcripts only where they shared). */
+function SessionsView() {
+  const [data, setData] = useState<PracticeOverview | null>(null);
+  const [recruits, setRecruits] = useState<Array<{ id: number; name: string; stage: string; granted: boolean }>>([]);
+  const [error, setError] = useState("");
+  const load = () => Promise.all([getPracticeOverview().then(setData), listPracticeRecruits().then(setRecruits)]).catch((e) => setError(String(e)));
+  useEffect(() => {
+    load();
+  }, []);
+  const toggleExample = async (s: SessionSummary) => {
+    const res = await setSessionExample({ data: { id: s.id, shared: !s.sharedAsExample } });
+    if (!res.ok) setError(res.error ?? "Could not change that.");
+    else load();
+  };
+  const remove = async (id: number) => {
+    if (!confirm("Delete this practice session? This cannot be undone.")) return;
+    await deleteSession({ data: { id } });
+    load();
+  };
+  const outcomesLine = (o: Partial<Record<Outcome, number>>) => Object.entries(o).map(([k, n]) => `${n} ${outcomeLabel(k).toLowerCase()}`).join(", ") || "none finished yet";
+  const rows = recruits.filter((r) => r.granted || data?.recruits.some((x) => x.recruitId === r.id));
+  const examples = data?.sessions.filter((s) => s.sharedAsExample).length ?? 0;
+
+  return (
+    <div className="space-y-4" data-sessions-view>
+      {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">{error}</div>}
+      <section className={`${card} p-4`} data-john-sessions>
+        <h2 className="font-fantasy text-[#c08020] text-sm mb-1">Your sessions</h2>
+        <p className="text-[11px] text-[#a0a0a0] mb-2">Mark a finished session as an example and every recruit with practice access can read it, debrief included. {examples ? `${examples} shared now.` : "None shared yet."}</p>
+        {!data ? (
+          <p className="text-xs text-[#a0a0a0]">Loading...</p>
+        ) : data.sessions.length === 0 ? (
+          <p className="text-xs text-[#a0a0a0]">No sessions yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-session-table>
+              <thead>
+                <tr className="text-left text-[11px] text-[#808080] font-fantasy border-b border-[#406080]/20">
+                  <th className="py-1 pr-3">When</th>
+                  <th className="py-1 pr-3">Who</th>
+                  <th className="py-1 pr-3">Conversation</th>
+                  <th className="py-1 pr-3">Level</th>
+                  <th className="py-1 pr-3">Exchanges</th>
+                  <th className="py-1 pr-3">How it ended</th>
+                  <th className="py-1 pr-3">Example</th>
+                  <th className="py-1"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.sessions.map((s) => (
+                  <tr key={s.id} className="border-b border-[#406080]/10" data-session-row={s.id}>
+                    <td className="py-1.5 pr-3 text-[#a0a0a0] text-xs whitespace-nowrap">{fmt(s.createdAt)}</td>
+                    <td className="py-1.5 pr-3 text-[#e0e0e0]"><a href={`/admin/practice/${s.id}`} className="underline underline-offset-2 hover:text-[#c08020]" data-session-open>{s.personaName}</a><span className="text-[11px] text-[#808080]"> · {temperamentById(s.temperament)?.label ?? s.temperament}</span></td>
+                    <td className="py-1.5 pr-3 text-xs text-[#a0a0a0]">{s.conversation === "recruiting" ? "Recruiting" : "Coverage"}{s.mode === "presentation" ? " · presentation" : ""}</td>
+                    <td className="py-1.5 pr-3 text-xs text-[#a0a0a0]">L{s.difficulty}</td>
+                    <td className="py-1.5 pr-3 text-xs text-[#a0a0a0]">{s.turns}</td>
+                    <td className="py-1.5 pr-3 text-xs text-[#a0a0a0]">{s.endedAt ? outcomeLabel(s.outcome ?? "ended_early") : "in progress"}</td>
+                    <td className="py-1.5 pr-3">
+                      <button type="button" onClick={() => toggleExample(s)} disabled={!s.endedAt} aria-pressed={s.sharedAsExample} className={`px-2 py-1 rounded border text-[11px] font-fantasy disabled:opacity-40 ${focus} ${s.sharedAsExample ? "bg-[#c08020] border-[#c08020] text-[#0d1520] font-bold" : "border-[#406080]/40 text-[#a0a0a0] hover:border-[#c08020]/50"}`} data-session-example>{s.sharedAsExample ? "Shared" : "Share"}</button>
+                    </td>
+                    <td className="py-1.5 text-right"><button type="button" onClick={() => remove(s.id)} className="text-[11px] text-[#606080] hover:text-red-300 font-fantasy" data-session-delete>Delete</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className={`${card} p-4`} data-recruit-practice-overview>
+        <h2 className="font-fantasy text-[#c08020] text-sm mb-1">Your recruits' practice</h2>
+        <p className="text-[11px] text-[#a0a0a0] mb-2">Give or take back access on each recruit's card in the <Link to="/admin/guild" search={{ view: "recruits" }} className="underline text-[#c08020]">Guild</Link>. You see how much they practiced and how it ended. Transcripts only when they share one.</p>
+        {!data ? (
+          <p className="text-xs text-[#a0a0a0]">Loading...</p>
+        ) : rows.length === 0 ? (
+          <p className="text-xs text-[#a0a0a0]">No recruit has practice access yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {rows.map((r) => {
+              const st = data.recruits.find((x) => x.recruitId === r.id);
+              return (
+                <li key={r.id} className="rounded-lg border border-[#406080]/30 px-3 py-2" data-recruit-practice={r.id}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm text-[#e0e0e0] font-fantasy">{r.name} <span className="text-[11px] text-[#808080] font-sans">· {stageLabel(r.stage)} · {r.granted ? "has access" : "access taken back"}</span></p>
+                    <p className="text-[11px] text-[#a0a0a0]" data-recruit-practice-count>{!st || st.sessions === 0 ? "No sessions yet" : `${st.sessions} session${st.sessions === 1 ? "" : "s"} · last ${fmt(st.lastAt)}`}</p>
+                  </div>
+                  {st && st.sessions > 0 && <p className="text-[11px] text-[#a0a0a0]">How they ended: {outcomesLine(st.outcomes)}</p>}
+                  {st && st.shared.length > 0 && (
+                    <ul className="mt-1 space-y-0.5">
+                      {st.shared.map((s) => (
+                        <li key={s.id}><a href={`/admin/practice/${s.id}`} className="text-[11px] text-[#c08020] underline underline-offset-2" data-recruit-shared={s.id}>Shared with you: {fmt(s.createdAt)} · {s.personaName} · {s.endedAt ? outcomeLabel(s.outcome ?? "ended_early") : "in progress"}</a></li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }
 

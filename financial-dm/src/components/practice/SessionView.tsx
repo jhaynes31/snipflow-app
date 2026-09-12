@@ -77,6 +77,20 @@ export default function SessionView({ initial, api, backTo, backLabel = "Practic
     );
   }
 
+  if (s.hidden) {
+    return (
+      <main className="min-h-dvh py-6 px-4" data-practice-session data-practice-private>
+        <PracticeBanner who={who} />
+        <div className="max-w-xl mx-auto mt-6 rounded-xl border border-[#406080]/30 bg-[#111a28] p-5 space-y-2 text-center">
+          <p className="text-[#e0e0e0] font-fantasy">This recruit kept this session private.</p>
+          <p className="text-xs text-[#a0a0a0]">You can see it happened and how it ended, not what was said. Practice should feel safe to be bad at.</p>
+          <p className="text-xs text-[#a0a0a0]">{s.persona.name} · {temperamentById(s.temperament)?.label ?? s.temperament} · Level {s.difficulty} · {s.endedAt ? outcomeLabel(s.outcome ?? "ended_early") : "in progress"}</p>
+          <a href={backTo} className="inline-block mt-2 underline text-[#c08020] text-sm">Back to {backLabel.toLowerCase()}</a>
+        </div>
+      </main>
+    );
+  }
+
   const over = Boolean(s.endedAt);
   const capped = !over && s.turns >= s.maxTurns;
   const pres = s.presentation;
@@ -325,7 +339,7 @@ function DebriefView({ session: s, api, backTo, backLabel, readOnly, onDebrief }
       )}
       <div className="flex flex-wrap items-center gap-2">
         <a href={backTo} className={btnPrimary}>{readOnly ? `Back to ${backLabel.toLowerCase()}` : "Practice again"}</a>
-        {api.shareWithJohn && !readOnly && <ShareToggle sessionId={s.id} api={api} />}
+        {api.shareWithJohn && !readOnly && <ShareToggle sessionId={s.id} api={api} initial={s.sharedWithJohn} />}
       </div>
     </section>
   );
@@ -440,8 +454,8 @@ function PresentationPanel({ session: s, api, onSession, onAllDone, voice }: { s
 
 
 /** Section 9: a recruit's transcript is private unless they choose to share it with John. */
-function ShareToggle({ sessionId, api }: { sessionId: number; api: SessionApi }) {
-  const [shared, setShared] = useState(false);
+function ShareToggle({ sessionId, api, initial }: { sessionId: number; api: SessionApi; initial: boolean }) {
+  const [shared, setShared] = useState(initial);
   const [busy, setBusy] = useState(false);
   const toggle = async () => {
     setBusy(true);
