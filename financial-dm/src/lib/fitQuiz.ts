@@ -115,7 +115,7 @@ export const FIT_QUESTIONS: FitQuestion[] = [
 export const FIT_SCORING = {
   strongAtLeast: 0.7,
   worthAtLeast: 0.4,
-  confirmedByJohn: false,
+  confirmedByJohn: true,
 };
 
 export const FIT_MAX_POINTS = FIT_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.options.map((o) => o.fit)), 0);

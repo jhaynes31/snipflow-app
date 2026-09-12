@@ -1,48 +1,40 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { logout } from "~/server/auth";
-import { getGuildBadge } from "~/server/guild";
+import { getApprovals, type ApprovalsSummary } from "~/server/approvals";
+import { ADMIN_TABS, activeTab, availableTabs, crumb } from "~/lib/adminShell";
 
 /**
- * One bar on every signed-in page, so John reaches everything from any
- * screen after a single login: leads, the Quest Board, every forge, both
- * quizzes, the guide, his password, and sign out. Sticky on desktop, wraps
- * to a second row on phones. Menus are plain <details> so they work with
- * the keyboard and need no state.
+ * The admin shell's navigation (Tavern Keeper's Morning spec, Section 3.2).
+ * One sticky top bar on every signed-in screen: logo, the tab set, the
+ * approvals badge, and John's menu. On phones the tabs move to a bottom bar
+ * with the five most-used and a More menu. Deep screens get a breadcrumb
+ * under the bar. Tabs come from one config, so adding a tool is one entry.
  */
 
-const FORGES: Array<{ tab: "script" | "meme" | "carousel" | "card" | "broll" | "guild"; label: string; blurb: string }> = [
-  { tab: "script", label: "📜 Script forge", blurb: "Video scripts and hooks" },
-  { tab: "carousel", label: "🎠 Carousel forge", blurb: "Swipe-through photo posts" },
-  { tab: "card", label: "🎨 Social card forge", blurb: "One stat or tip, one image" },
-  { tab: "meme", label: "🎭 Meme forge", blurb: "Relatable moments" },
-  { tab: "broll", label: "🎬 B Roll finder", blurb: "Clips to cut under a script" },
-  { tab: "guild", label: "🛡️ Guild forge", blurb: "Recruiting scripts, flyers, and job posts" },
-];
-
-const QUIZZES: Array<{ href: string; label: string; blurb: string }> = [
-  { href: "/quiz", label: "🛡️ Life Insurance Quiz", blurb: "Loaded Dice: armor, gap, loot" },
-  { href: "/wealth-check", label: "🐉 Wealth Check", blurb: "Financial health character sheet" },
-  { href: "/", label: "🏠 Home page", blurb: "What visitors see first" },
-];
-
-const pill = "px-3 py-1.5 rounded-lg border text-xs sm:text-sm font-fantasy transition-all whitespace-nowrap";
+const pill = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-fantasy transition-all whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1520]";
 const idle = `${pill} border-transparent text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#406080]/50`;
 const active = `${pill} border-[#c08020]/60 bg-[#c08020]/15 text-[#c08020]`;
+const menuPanel = "absolute right-0 mt-1 w-72 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50";
+const menuItem = "block px-3 py-2 rounded-lg hover:bg-[#204060]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020]";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const linkTo = (to: string, search?: Record<string, string>) => ({ to, search } as any);
 
 export default function AdminNav() {
   const { pathname } = useLocation();
-  const on = (p: string) => pathname === p || pathname.startsWith(p + "/");
-  // New recruits John has not looked at yet (recruiting spec, Section 5.3).
-  const [newRecruits, setNewRecruits] = useState(0);
+  const search = useSearch({ strict: false }) as Record<string, unknown>;
+  const current = activeTab(pathname);
+  const trail = crumb(pathname, search);
+
+  const [approvals, setApprovals] = useState<ApprovalsSummary | null>(null);
   useEffect(() => {
-    getGuildBadge()
-      .then((b) => setNewRecruits(b.newRecruits))
-      .catch(() => setNewRecruits(0));
+    getApprovals()
+      .then(setApprovals)
+      .catch(() => setApprovals(null));
   }, [pathname]);
 
-  // Menus close when you click anywhere else, open another menu, pick an
-  // item, or press Escape, so one never lingers open over the page.
+  // Menus close when you click anywhere else, open another menu, pick an item, or press Escape.
   useEffect(() => {
     const menus = () => Array.from(document.querySelectorAll<HTMLDetailsElement>("[data-nav-menu]"));
     const onPointerDown = (e: PointerEvent) => {
@@ -65,7 +57,7 @@ export default function AdminNav() {
       document.removeEventListener("keydown", onKey);
       for (const m of menus()) m.removeEventListener("toggle", onToggle);
     };
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -75,72 +67,137 @@ export default function AdminNav() {
     }
   };
 
+  const tabs = availableTabs();
+  const primary = tabs.filter((t) => t.mobilePrimary);
+  const more = tabs.filter((t) => !t.mobilePrimary);
+  const total = approvals?.total ?? 0;
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[#406080]/30 bg-[#0d1520]/95 backdrop-blur" data-admin-nav>
-      <nav aria-label="John's tools" className="max-w-6xl mx-auto px-3 sm:px-4 py-2 flex flex-wrap items-center gap-1 sm:gap-2">
-        <Link to="/dashboard" className="flex items-center gap-2 mr-1 sm:mr-3 shrink-0" title="Lead Dashboard">
-          <img src="/logo.png" alt="" className="h-8 w-8 rounded-full" />
-          <span className="hidden md:inline font-fantasy text-[#c08020] text-sm">The Financial DM</span>
-        </Link>
+    <>
+      <header className="sticky top-0 z-40 border-b border-[#406080]/30 bg-[#0d1520]/95 backdrop-blur" data-admin-nav>
+        <nav aria-label="John's tools" className="max-w-6xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-1 sm:gap-2">
+          <Link {...linkTo("/admin")} className="flex items-center gap-2 mr-1 sm:mr-3 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] rounded-full" title="The Tavern Keeper's Morning">
+            <img src="/logo.png" alt="" className="h-8 w-8 rounded-full" />
+            <span className="hidden lg:inline font-fantasy text-[#c08020] text-sm">The Financial DM</span>
+          </Link>
 
-        <Link to="/dashboard" className={on("/dashboard") ? active : idle} data-nav="leads">
-          ⚔️ Leads
-        </Link>
-        <Link to="/quest-board" search={{ section: "quests" }} className={on("/quest-board") ? active : idle} data-nav="quests">
-          🗺️ Quest Board
-        </Link>
+          {/* Desktop and tablet tabs */}
+          <div className="hidden md:flex items-center gap-1 flex-1 min-w-0" role="list">
+            {tabs.map((t) => {
+              const isOn = current?.id === t.id;
+              return (
+                <Link key={t.id} {...linkTo(t.to, t.search)} className={isOn ? active : idle} aria-current={isOn ? "page" : undefined} data-nav={t.id} role="listitem">
+                  <span aria-hidden="true">{t.icon}</span>
+                  <span className="hidden xl:inline">{t.id === "home" ? "Tavern Keeper" : t.label}</span>
+                  <span className="xl:hidden">{t.short}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <span className="flex-1 md:hidden" />
 
-        <details className="relative group" data-nav-menu="forge">
-          <summary className={`list-none cursor-pointer ${on("/generator") ? active : idle}`}>🧙 Content Forge ▾</summary>
-          <div className="absolute left-0 mt-1 w-64 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50">
-            {FORGES.map((f) => (
-              <Link key={f.tab} to="/generator" search={{ tab: f.tab, view: "forge" }} className="block px-3 py-2 rounded-lg hover:bg-[#204060]/30" onClick={closeMenus}>
-                <span className="block text-[#e0e0e0] text-sm font-fantasy">{f.label}</span>
-                <span className="block text-[#606080] text-[11px]">{f.blurb}</span>
+          {/* Approvals badge */}
+          <details className="relative" data-nav-menu="approvals">
+            <summary className={`list-none cursor-pointer ${total > 0 ? active : idle}`} aria-label={`${total} waiting on your approval`} data-approvals-badge data-count={total}>
+              <span aria-hidden="true">✅</span>
+              <span className="hidden sm:inline">Approvals</span>
+              {total > 0 && <span className="inline-flex items-center justify-center rounded-full bg-[#c08020] text-[#0d1520] text-[10px] font-bold px-1.5 min-w-[18px]" data-approvals-count>{total}</span>}
+            </summary>
+            <div className={menuPanel}>
+              {approvals === null ? (
+                <p className="px-3 py-2 text-xs text-[#a0a0a0] font-fantasy">Checking...</p>
+              ) : approvals.groups.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-[#a0a0a0] font-fantasy">Nothing waiting on you. Nice.</p>
+              ) : (
+                approvals.groups.map((g) => (
+                  <a key={g.id} href={g.href} className={menuItem} onClick={closeMenus} data-approvals-group={g.id}>
+                    <span className="block text-[#e0e0e0] text-sm font-fantasy">
+                      {g.blocking && <span className="text-[#c08020]" title="Blocking">⚑ </span>}
+                      {g.count} {g.type}
+                    </span>
+                    <span className="block text-[#606080] text-[11px]">{g.tool}{g.blocking ? " · blocking until done" : ""}</span>
+                  </a>
+                ))
+              )}
+              {approvals && approvals.errors.length > 0 && <p className="px-3 py-1 text-[10px] text-red-300 font-fantasy">Could not check: {approvals.errors.join(", ")}</p>}
+              <p className="px-3 py-2 text-[10px] text-[#606080] font-fantasy border-t border-[#406080]/20 mt-1">Approving happens on each tool's own screen.</p>
+            </div>
+          </details>
+
+          {/* John's menu */}
+          <details className="relative" data-nav-menu="account">
+            <summary className={`list-none cursor-pointer ${idle}`} data-nav="account">
+              <span aria-hidden="true">🧙‍♂️</span> John <span aria-hidden="true">▾</span>
+            </summary>
+            <div className={menuPanel}>
+              <Link {...linkTo("/admin/settings")} className={menuItem} onClick={closeMenus}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">⚙️ Settings</span>
               </Link>
-            ))}
-            <Link to="/generator" search={{ tab: "script", view: "saved" }} className="block px-3 py-2 rounded-lg hover:bg-[#204060]/30 border-t border-[#406080]/20 mt-1" onClick={closeMenus}>
-              <span className="block text-[#e0e0e0] text-sm font-fantasy">💾 Saved work</span>
-              <span className="block text-[#606080] text-[11px]">Everything the forges have made</span>
-            </Link>
+              <Link {...linkTo("/admin/settings/password")} className={menuItem} onClick={closeMenus}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">🔑 Password</span>
+              </Link>
+              <Link {...linkTo("/admin/quests", { section: "guide" })} className={menuItem} onClick={closeMenus}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">📖 Quest Board guide</span>
+              </Link>
+              <button type="button" onClick={handleLogout} className={`${menuItem} w-full text-left border-t border-[#406080]/20 mt-1`} data-nav="signout">
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">🚪 Sign out</span>
+              </button>
+            </div>
+          </details>
+        </nav>
+
+        {/* Breadcrumb for deep screens */}
+        {trail && trail.sub.length > 0 && (
+          <div className="border-t border-[#406080]/20 bg-[#0d1520]/80">
+            <nav aria-label="Where you are" className="max-w-6xl mx-auto px-3 sm:px-4 py-1.5 text-xs font-fantasy text-[#808080] flex items-center gap-1.5 flex-wrap" data-breadcrumb>
+              <Link {...linkTo(trail.tab.to, trail.tab.search)} className="text-[#a0a0a0] hover:text-[#c08020] underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] rounded">
+                ← {trail.tab.id === "home" ? "Home" : trail.tab.label}
+              </Link>
+              {trail.sub.map((s, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  <span aria-hidden="true">›</span>
+                  <span className={i === trail.sub.length - 1 ? "text-[#e0e0e0]" : ""}>{s}</span>
+                </span>
+              ))}
+            </nav>
           </div>
-        </details>
+        )}
+      </header>
 
-        <details className="relative" data-nav-menu="quizzes">
-          <summary className={`list-none cursor-pointer ${idle}`}>🎲 Quizzes ▾</summary>
-          <div className="absolute left-0 mt-1 w-64 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50">
-            {QUIZZES.map((q) => (
-              <a key={q.href} href={q.href} target="_blank" rel="noreferrer" className="block px-3 py-2 rounded-lg hover:bg-[#204060]/30" onClick={closeMenus}>
-                <span className="block text-[#e0e0e0] text-sm font-fantasy">{q.label} ↗</span>
-                <span className="block text-[#606080] text-[11px]">{q.blurb}</span>
-              </a>
-            ))}
-            <p className="px-3 py-2 text-[10px] text-[#606080] font-fantasy border-t border-[#406080]/20 mt-1">Opens in a new tab, as a visitor would see it. You stay signed in here.</p>
-          </div>
-        </details>
-
-        <Link to="/guild-hall" search={{ view: "recruits" }} className={`${on("/guild-hall") ? active : idle} relative`} data-nav="guild">
-          🛡️ Guild
-          {newRecruits > 0 && (
-            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-[#c08020] text-[#0d1520] text-[10px] font-bold px-1.5 min-w-[18px]" data-guild-badge>
-              {newRecruits}
-            </span>
-          )}
-        </Link>
-        <Link to="/quest-board" search={{ section: "guide" }} className={idle} data-nav="guide">
-          📖 Guide
-        </Link>
-
-        <span className="flex-1" />
-
-        <Link to="/change-password" className={on("/change-password") ? active : idle} title="Change the password for the private tools">
-          🔑 Password
-        </Link>
-        <button type="button" onClick={handleLogout} className={idle} title="Sign out of the private tools" data-nav="signout">
-          🚪 Sign out
-        </button>
+      {/* Phone bottom bar */}
+      <nav aria-label="John's tools, phone" className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-[#406080]/30 bg-[#0d1520]/95 backdrop-blur" data-admin-bottom-nav>
+        <div className="grid grid-cols-6 items-stretch">
+          {primary.map((t) => {
+            const isOn = current?.id === t.id;
+            return (
+              <Link key={t.id} {...linkTo(t.to, t.search)} aria-current={isOn ? "page" : undefined} className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-fantasy focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#c08020] ${isOn ? "text-[#c08020]" : "text-[#a0a0a0]"}`} data-bottom-nav={t.id}>
+                <span className="text-lg leading-none" aria-hidden="true">{t.icon}</span>
+                {t.short}
+              </Link>
+            );
+          })}
+          <details className="relative" data-nav-menu="more">
+            <summary className={`list-none cursor-pointer flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-fantasy ${more.some((t) => current?.id === t.id) ? "text-[#c08020]" : "text-[#a0a0a0]"}`} data-bottom-nav="more">
+              <span className="text-lg leading-none" aria-hidden="true">⋯</span>
+              More
+            </summary>
+            <div className="absolute bottom-full right-1 mb-1 w-60 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5">
+              {more.map((t) => (
+                <Link key={t.id} {...linkTo(t.to, t.search)} className={menuItem} onClick={closeMenus} aria-current={current?.id === t.id ? "page" : undefined} data-bottom-more={t.id}>
+                  <span className="block text-[#e0e0e0] text-sm font-fantasy">{t.icon} {t.label}</span>
+                </Link>
+              ))}
+              <Link {...linkTo("/admin/quests", { section: "guide" })} className={menuItem} onClick={closeMenus}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">📖 Quest Board guide</span>
+              </Link>
+              <button type="button" onClick={handleLogout} className={`${menuItem} w-full text-left border-t border-[#406080]/20 mt-1`}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">🚪 Sign out</span>
+              </button>
+            </div>
+          </details>
+        </div>
       </nav>
-    </header>
+    </>
   );
 }
 
@@ -150,3 +207,5 @@ function closeMenus() {
     d.open = false;
   });
 }
+
+export { ADMIN_TABS };

@@ -16,7 +16,7 @@ export default function CampaignBriefBanner({ brief, onClear }: { brief: Campaig
           </p>
         </div>
         <div className="flex gap-2">
-          <a href={`/quest-board?section=quests&quest=${brief.questId}`} className="px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] text-xs font-fantasy">
+          <a href={`/admin/quests?section=quests&quest=${brief.questId}`} className="px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] text-xs font-fantasy">
             ← Back to quest
           </a>
           <button type="button" onClick={onClear} className="px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] text-xs font-fantasy">

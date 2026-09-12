@@ -272,7 +272,7 @@ export const forgeGuildFlyer = createServerFn({ method: "POST" })
 // ── Saved outputs ─────────────────────────────────────────────────
 
 let outputsReady: Promise<void> | null = null;
-function ensureOutputs(): Promise<void> {
+export function ensureGuildOutputsTable(): Promise<void> {
   if (!outputsReady) {
     outputsReady = (async () => {
       await sql()`
@@ -328,7 +328,7 @@ export const saveGuildOutput = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string; id?: number }> => {
     try {
-      await ensureOutputs();
+      await ensureGuildOutputsTable();
       // Re-scan on the server so the stored flags cannot be trimmed client-side.
       const { facts } = await loadTrustFacts();
       const flags = scanRecruiting(plainOf(data.kind, data.body), { industry: facts.industry, describesMeeting: data.kind === "job_post" });
@@ -342,7 +342,7 @@ export const saveGuildOutput = createServerFn({ method: "POST" })
 export const getGuildOutputs = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<GuildOutput[]> => {
-    await ensureOutputs();
+    await ensureGuildOutputsTable();
     const rows = (await sql()`SELECT * FROM guild_outputs ORDER BY created_at DESC LIMIT 200`) as Array<Record<string, unknown>>;
     return rows.map(rowToOutput);
   });
@@ -351,7 +351,7 @@ export const acknowledgeGuildFlags = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean }> => {
-    await ensureOutputs();
+    await ensureGuildOutputsTable();
     await sql()`UPDATE guild_outputs SET flags_acknowledged = TRUE WHERE id = ${data.id}`;
     return { ok: true };
   });
@@ -361,7 +361,7 @@ export const setGuildOutputApproved = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number; approved: boolean }) => ({ id: Number(d?.id), approved: Boolean(d?.approved) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
-    await ensureOutputs();
+    await ensureGuildOutputsTable();
     if (data.approved) {
       const rows = (await sql()`SELECT flags, flags_acknowledged FROM guild_outputs WHERE id = ${data.id}`) as Array<{ flags: string; flags_acknowledged: boolean }>;
       if (!rows.length) return { ok: false, error: "That output no longer exists." };
@@ -376,7 +376,7 @@ export const deleteGuildOutput = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean }> => {
-    await ensureOutputs();
+    await ensureGuildOutputsTable();
     await sql()`DELETE FROM guild_outputs WHERE id = ${data.id}`;
     return { ok: true };
   });

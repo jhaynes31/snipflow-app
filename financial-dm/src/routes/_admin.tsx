@@ -34,7 +34,9 @@ function AdminLayout() {
   return (
     <>
       <AdminNav />
-      <Outlet />
+      <div className="pb-20 md:pb-0">
+        <Outlet />
+      </div>
     </>
   );
 }

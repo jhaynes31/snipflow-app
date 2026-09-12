@@ -136,7 +136,7 @@ export default function GuildForge({ brief }: { brief?: CampaignBrief }) {
         <h3 className="font-fantasy text-[#c08020] text-lg">🔒 Confirm the Guild facts first</h3>
         <p className="text-[#a0a0a0] text-sm font-fantasy mt-2">The recruiting forge only ever uses John's confirmed words, so it stays closed until every required fact and FAQ answer is confirmed in the Guild tab.</p>
         <p className="text-[#606080] text-xs font-fantasy mt-2">Still needed: {status.missing.slice(0, 6).join(", ")}{status.missing.length > 6 ? ` and ${status.missing.length - 6} more` : ""}</p>
-        <a href="/guild-hall?view=facts" className={`${btnPrimary} inline-block mt-4`}>Open the Guild facts</a>
+        <a href="/admin/guild?view=facts" className={`${btnPrimary} inline-block mt-4`}>Open the Guild facts</a>
       </section>
     );
   }

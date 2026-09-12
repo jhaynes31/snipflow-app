@@ -6,6 +6,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
  */
 export const Route = createFileRoute("/_admin/carousel-generator")({
   beforeLoad: () => {
-    throw redirect({ to: "/generator", search: { tab: "carousel", view: "forge" } });
+    throw redirect({ to: "/admin/forge", search: { tab: "carousel", view: "forge" } });
   },
 });

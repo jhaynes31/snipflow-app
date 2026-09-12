@@ -6,6 +6,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
  */
 export const Route = createFileRoute("/_admin/meme-generator")({
   beforeLoad: () => {
-    throw redirect({ to: "/generator", search: { tab: "meme", view: "forge" } });
+    throw redirect({ to: "/admin/forge", search: { tab: "meme", view: "forge" } });
   },
 });

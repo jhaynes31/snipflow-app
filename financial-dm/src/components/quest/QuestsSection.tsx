@@ -738,7 +738,7 @@ function SlotCard({ slot, recruiting = false, onEdit, onStatus, onDelete, onAckF
   const guildOk = recruiting && ["script", "carousel", "social_card"].includes(slot.generator);
   const canOpen = (recruiting ? guildOk : Boolean(g?.available && g.forgeTab)) && !slot.madeElsewhere;
   const forgeTab = recruiting ? "guild" : g?.forgeTab;
-  const savedView = forgeTab ? `/generator?tab=${forgeTab}&view=saved` : null;
+  const savedView = forgeTab ? `/admin/forge?tab=${forgeTab}&view=saved` : null;
   return (
     <article className={`rounded-lg border p-3 space-y-1.5 ${slot.status === "skipped" ? "border-[#406080]/20 opacity-60" : "border-[#406080]/30"} bg-[#111a28]`} data-slot={slot.id} data-slot-status={slot.status}>
       <div className="flex items-center justify-between gap-2">
@@ -781,7 +781,7 @@ function SlotCard({ slot, recruiting = false, onEdit, onStatus, onDelete, onAckF
       )}
       <div className="flex items-center gap-2 pt-1 flex-wrap">
         {canOpen ? (
-          <a href={`/generator?tab=${forgeTab}&view=forge&slot=${slot.id}`} className={`${btn} border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15`} data-open-generator>
+          <a href={`/admin/forge?tab=${forgeTab}&view=forge&slot=${slot.id}`} className={`${btn} border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15`} data-open-generator>
             {recruiting ? "🛡️ Open in the Guild forge" : "🧙 Open in generator"}
           </a>
         ) : slot.madeElsewhere ? null : (

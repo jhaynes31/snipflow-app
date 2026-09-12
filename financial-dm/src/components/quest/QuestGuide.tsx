@@ -71,10 +71,10 @@ export default function QuestGuide() {
           ))}
         </ul>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link to="/quest-board" search={{ section: "profiles" }} className="px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm">
+          <Link to="/admin/quests" search={{ section: "profiles" }} className="px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm">
             Start with a profile →
           </Link>
-          <Link to="/quest-board" search={{ section: "quests" }} className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 font-fantasy text-sm">
+          <Link to="/admin/quests" search={{ section: "quests" }} className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 font-fantasy text-sm">
             Go to Quests
           </Link>
         </div>

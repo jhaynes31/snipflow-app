@@ -9,7 +9,7 @@ import { getAuthStatus, loginWithPassword } from "~/server/auth";
 export function safeRedirectTarget(raw: unknown): string {
   const s = typeof raw === "string" ? raw : "";
   if (s.startsWith("/") && !s.startsWith("//") && !s.includes("\\")) return s;
-  return "/dashboard";
+  return "/admin";
 }
 
 export const Route = createFileRoute("/login")({

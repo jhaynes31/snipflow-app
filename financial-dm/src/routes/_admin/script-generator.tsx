@@ -6,6 +6,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
  */
 export const Route = createFileRoute("/_admin/script-generator")({
   beforeLoad: () => {
-    throw redirect({ to: "/generator", search: { tab: "script", view: "forge" } });
+    throw redirect({ to: "/admin/forge", search: { tab: "script", view: "forge" } });
   },
 });
