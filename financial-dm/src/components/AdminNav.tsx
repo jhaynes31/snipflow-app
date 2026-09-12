@@ -75,7 +75,7 @@ export default function AdminNav() {
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-[#406080]/30 bg-[#0d1520]/95 backdrop-blur" data-admin-nav>
-        <nav aria-label="John's tools" className="max-w-6xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-1 sm:gap-2">
+        <nav aria-label="John's tools" className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-1 sm:gap-2">
           <Link {...linkTo("/admin")} className="flex items-center gap-2 mr-1 sm:mr-3 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] rounded-full" title="The Tavern Keeper's Morning">
             <img src="/logo.png" alt="" className="h-8 w-8 rounded-full" />
             <span className="hidden lg:inline font-fantasy text-[#c08020] text-sm">The Financial DM</span>
@@ -85,14 +85,31 @@ export default function AdminNav() {
           <div className="hidden md:flex items-center gap-1 flex-1 min-w-0" role="list">
             {tabs.map((t) => {
               const isOn = current?.id === t.id;
-              return (
+              // Section 3.2: labels shorten first; on narrower desktops the least-used tabs fold into More. Home, Leads, and Quest Board never fold.
+              const link = (
                 <Link key={t.id} {...linkTo(t.to, t.search)} className={isOn ? active : idle} aria-current={isOn ? "page" : undefined} data-nav={t.id} role="listitem">
                   <span aria-hidden="true">{t.icon}</span>
-                  <span className="hidden xl:inline">{t.id === "home" ? "Tavern Keeper" : t.label}</span>
-                  <span className="xl:hidden">{t.short}</span>
+                  <span className="hidden 2xl:inline">{t.id === "home" ? "Tavern Keeper" : t.label}</span>
+                  <span className="2xl:hidden">{t.short}</span>
                 </Link>
               );
+              // A wrapper does the hiding, so the pill's own display class cannot override it.
+              return t.mobilePrimary ? link : <span key={t.id} className="hidden xl:contents">{link}</span>;
             })}
+            {more.length > 0 && (
+              <details className="relative xl:hidden" data-nav-menu="desktop-more" role="listitem">
+                <summary className={`list-none cursor-pointer ${more.some((t) => current?.id === t.id) ? active : idle}`} data-nav-more>
+                  <span aria-hidden="true">⋯</span> More
+                </summary>
+                <div className="absolute left-0 mt-1 w-56 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50">
+                  {more.map((t) => (
+                    <Link key={t.id} {...linkTo(t.to, t.search)} className={menuItem} onClick={closeMenus} aria-current={current?.id === t.id ? "page" : undefined} data-nav-more-item={t.id}>
+                      <span className="block text-[#e0e0e0] text-sm font-fantasy">{t.icon} {t.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
           <span className="flex-1 md:hidden" />
 
@@ -100,7 +117,7 @@ export default function AdminNav() {
           <details className="relative" data-nav-menu="approvals">
             <summary className={`list-none cursor-pointer ${total > 0 ? active : idle}`} aria-label={`${total} waiting on your approval`} data-approvals-badge data-count={total}>
               <span aria-hidden="true">✅</span>
-              <span className="hidden sm:inline">Approvals</span>
+              <span className="hidden lg:inline">Approvals</span>
               {total > 0 && <span className="inline-flex items-center justify-center rounded-full bg-[#c08020] text-[#0d1520] text-[10px] font-bold px-1.5 min-w-[18px]" data-approvals-count>{total}</span>}
             </summary>
             <div className={menuPanel}>
@@ -149,7 +166,7 @@ export default function AdminNav() {
         {/* Breadcrumb for deep screens */}
         {trail && trail.sub.length > 0 && (
           <div className="border-t border-[#406080]/20 bg-[#0d1520]/80">
-            <nav aria-label="Where you are" className="max-w-6xl mx-auto px-3 sm:px-4 py-1.5 text-xs font-fantasy text-[#808080] flex items-center gap-1.5 flex-wrap" data-breadcrumb>
+            <nav aria-label="Where you are" className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 text-xs font-fantasy text-[#808080] flex items-center gap-1.5 flex-wrap" data-breadcrumb>
               <Link {...linkTo(trail.tab.to, trail.tab.search)} className="text-[#a0a0a0] hover:text-[#c08020] underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] rounded">
                 ← {trail.tab.id === "home" ? "Home" : trail.tab.label}
               </Link>
