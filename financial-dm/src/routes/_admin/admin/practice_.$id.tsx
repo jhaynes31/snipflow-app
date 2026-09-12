@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { OUTCOMES, difficultyById, outcomeLabel, temperamentById, type Outcome } from "~/lib/practiceConfig";
 import { endSession, getDebrief, getSession, pauseHint, sectionEvent, sendTurn, type PracticeSession } from "~/server/practice";
 import { midpointSeconds } from "~/lib/practicePresentation";
+import { useVoice, type VoiceState } from "~/components/practice/useVoice";
+import VoiceBar from "~/components/practice/VoiceBar";
 import type { Debrief } from "~/lib/practiceDebrief";
 import { PracticeBanner } from "./practice";
 
@@ -36,6 +38,32 @@ function SessionPage() {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [s?.transcript.length]);
 
+  // Voice: what John says is sent (or dropped into the box); new persona lines are read aloud.
+  const sendRef = useRef<(text: string) => void>(() => {});
+  const voice = useVoice((text) => sendRef.current(text));
+  const spoken = useRef<number>(s?.transcript.length ?? 0);
+  useEffect(() => {
+    if (!s || !voice.prefs.enabled) {
+      spoken.current = s?.transcript.length ?? 0;
+      return;
+    }
+    const fresh = s.transcript.slice(spoken.current);
+    spoken.current = s.transcript.length;
+    const toRead = fresh.filter((m) => m.role === "persona" || (m.role === "system" && m.kind === "hint" && voice.prefs.readHints));
+    if (toRead.length) voice.speak(toRead.map((m) => (m.kind === "hint" ? `Hint. ${m.text}` : m.text)).join(" "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s?.transcript.length, voice.prefs.enabled]);
+  // Turning voice on reads the persona's latest line once, so John hears where things stand.
+  const wasEnabled = useRef(false);
+  useEffect(() => {
+    if (voice.prefs.enabled && !wasEnabled.current && s) {
+      const last = [...s.transcript].reverse().find((m) => m.role === "persona");
+      if (last && !s.endedAt) voice.speak(last.text);
+    }
+    wasEnabled.current = voice.prefs.enabled;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.prefs.enabled]);
+
   if (!s) {
     return (
       <main className="min-h-dvh py-6 px-4" data-practice-session>
@@ -52,8 +80,7 @@ function SessionPage() {
   const t = temperamentById(s.temperament);
   const d = difficultyById(s.difficulty);
 
-  const say = async () => {
-    const text = draft.trim();
+  const sendText = async (text: string) => {
     if (!text || busy) return;
     setBusy("say");
     setError("");
@@ -69,6 +96,11 @@ function SessionPage() {
     } finally {
       setBusy("");
     }
+  };
+  const say = () => sendText(draft.trim());
+  sendRef.current = (text) => {
+    if (voice.prefs.autoSend) void sendText(text);
+    else setDraft((d) => `${d ? `${d} ` : ""}${text}`);
   };
   const hint = async () => {
     setBusy("hint");
@@ -108,8 +140,9 @@ function SessionPage() {
         </header>
 
         <div className={pres && !over ? "grid gap-3 lg:grid-cols-[1fr_1.1fr] items-start" : ""}>
-        {pres && !over && <PresentationPanel session={s} onSession={(next) => setS(next)} onAllDone={() => setEnding(true)} />}
+        {pres && !over && <PresentationPanel session={s} onSession={(next) => setS(next)} onAllDone={() => setEnding(true)} voice={voice} />}
         <div className="space-y-3">
+        {!over && <VoiceBar v={voice} personaName={s.persona.name} />}
         <section className={`${card} p-3 sm:p-4`} aria-label="Practice transcript">
           <ol className="space-y-2" data-transcript>
             {s.transcript.map((m, i) => (
@@ -122,6 +155,9 @@ function SessionPage() {
                   <p className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-line ${m.role === "john" ? "bg-[#c08020]/20 text-[#e0e0e0]" : m.kind === "interrupt" || m.kind === "drift" ? "bg-[#c08020]/10 border border-[#c08020]/50 text-[#e0e0e0]" : "bg-[#0d1520]/70 border border-[#406080]/30 text-[#e0e0e0]"}`}>
                     <span className="block text-[10px] uppercase tracking-wider text-[#808080] font-fantasy mb-0.5">{m.role === "john" ? (m.kind === "said" ? "You (during the section)" : "You") : m.kind === "interrupt" ? `${s.persona.name} · interrupts` : m.kind === "drift" ? `${s.persona.name} · drifts` : s.persona.name}</span>
                     {m.text}
+                    {m.role === "persona" && voice.prefs.enabled && voice.supported.speak && (
+                      <button type="button" onClick={() => voice.speak(m.text)} className="ml-2 text-[11px] text-[#808080] hover:text-[#c08020]" aria-label="Hear this again" data-replay>🔈</button>
+                    )}
                   </p>
                 )}
               </li>
@@ -149,7 +185,15 @@ function SessionPage() {
         ) : (
           <section className={`${card} p-3`}>
             <textarea value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); say(); } }} rows={3} maxLength={2000} placeholder={`Say something to ${s.persona.name}... (Enter to send, Shift+Enter for a new line)`} className={`w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm resize-none ${focus}`} disabled={Boolean(busy)} data-say-input />
+            {voice.prefs.enabled && voice.listening && (
+              <p className="mt-1 text-xs text-[#e0c080] min-h-[1.25rem]" aria-live="polite" data-voice-interim>{voice.interim || "Listening..."}</p>
+            )}
             <div className="flex flex-wrap items-center gap-2 mt-2">
+              {voice.prefs.enabled && voice.supported.listen && (
+                <button type="button" onClick={() => (voice.listening ? voice.stopListening() : voice.startListening())} disabled={Boolean(busy) && !voice.listening} className={`${btnPrimary} ${voice.listening ? "ring-2 ring-[#e0c080] animate-pulse" : ""}`} aria-pressed={voice.listening} data-talk>
+                  {voice.listening ? "● Listening… tap when done" : "🎤 Talk"}
+                </button>
+              )}
               <button type="button" onClick={say} disabled={!draft.trim() || Boolean(busy)} className={btnPrimary} data-say-send>Say it</button>
               <button type="button" onClick={hint} disabled={Boolean(busy)} className={btnGhost} data-pause-hint>{busy === "hint" ? "Thinking..." : "⏸ Pause for a hint"}</button>
               <span className="flex-1" />
@@ -282,7 +326,7 @@ function DebriefView({ session: s, onDebrief }: { session: PracticeSession; onDe
 
 
 /** Section 7.2: the current section beside the chat. Start, a mid-section window where the persona may interrupt, then Delivered or Skip. */
-function PresentationPanel({ session: s, onSession, onAllDone }: { session: PracticeSession; onSession: (next: PracticeSession) => void; onAllDone: () => void }) {
+function PresentationPanel({ session: s, onSession, onAllDone, voice }: { session: PracticeSession; onSession: (next: PracticeSession) => void; onAllDone: () => void; voice: VoiceState }) {
   const pres = s.presentation!;
   const closed = (id: string) => s.progress.find((p) => p.sectionId === id && p.status !== "open");
   const currentIdx = pres.sections.findIndex((sec) => !closed(sec.id));
@@ -372,6 +416,9 @@ function PresentationPanel({ session: s, onSession, onAllDone }: { session: Prac
             </p>
           )}
           <textarea value={said} onChange={(e) => setSaid(e.target.value)} rows={2} maxLength={2000} placeholder="Optional: the key lines you said out loud, so the debrief can check the wording" className={`w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-xs resize-none ${focus}`} data-section-said />
+          {voice.prefs.enabled && voice.supported.listen && (
+            <button type="button" onClick={() => (voice.listening ? voice.stopListening() : voice.startListening((text) => setSaid((d) => `${d ? `${d} ` : ""}${text}`)))} className={`${btnGhost} ${voice.listening ? "ring-2 ring-[#e0c080]" : ""}`} data-said-talk>{voice.listening ? "● Listening… tap when done" : "🎤 Dictate what you said"}</button>
+          )}
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => finish("delivered")} disabled={Boolean(busy) || s.pendingInterrupt} className={btnPrimary} data-section-delivered title={s.pendingInterrupt ? `Answer ${s.persona.name} first` : ""}>{busy === "delivered" ? "Marking..." : "✓ Delivered"}</button>
             <button type="button" onClick={() => finish("skipped")} disabled={Boolean(busy)} className={btnGhost} data-section-skip>Skip this section</button>
