@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { dayLine, dayWord, daysUntil, isCold, waitingFor, weekStartIso } from "./home";
+import { clockTime, dayLine, dayWord, daysUntil, isCold, waitingFor, weekStartIso, ymdInZone } from "./home";
 
 describe("home helpers", () => {
   test("the week starts Monday at midnight Central, whatever day it is", () => {
@@ -44,5 +44,13 @@ describe("home helpers", () => {
     const full = dayLine({ ...base, newLeads: 1, filmSoon: 1, coldLeads: 1, recruitsWaiting: 1, questsEnding: ["2026-09-13"], needsRetro: 2 })!;
     expect(full.split(",").length).toBeLessThanOrEqual(4);
     expect(full).not.toMatch(/urgent|hurry|asap|now!|don't miss/i);
+  });
+
+  test("today's calls lead the day line, and clock times read in Central time", () => {
+    const base = { newLeads: 1, filmSoon: 0, coldLeads: 0, recruitsWaiting: 0, questsEnding: [] as string[], needsRetro: 0, todayYmd: "2026-09-12" };
+    expect(dayLine({ ...base, appointmentsToday: 2 })).toBe("2 calls today and one new lead.");
+    expect(dayLine({ ...base, appointmentsToday: 1, newLeads: 0 })).toBe("One call today.");
+    expect(clockTime("2026-09-12T19:00:00Z")).toBe("2:00 PM");
+    expect(ymdInZone("2026-09-13T04:30:00Z")).toBe("2026-09-12");
   });
 });

@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { availableTabs, greetingWord, TOOLS_BUILT } from "~/lib/adminShell";
 import { dayLine, quietLine, todayYmd, type HomeCard, type HomeItem } from "~/lib/home";
-import { getHomeApprovals, getHomeColdLeads, getHomeFilmNext, getHomeNewLeads, getHomeNumbers, getHomeQuestStatus, getHomeRecruits, type HomeNumbers, type QuestStatusCard } from "~/server/home";
+import { getHomeAppointments, getHomeApprovals, getHomeColdLeads, getHomeFilmNext, getHomeNewLeads, getHomeNumbers, getHomeQuestStatus, getHomeRecruits, type AppointmentsCard, type HomeNumbers, type QuestStatusCard } from "~/server/home";
 import { dismissHomeItem, type SnoozeLength } from "~/server/homeState";
 
 /**
@@ -52,6 +52,8 @@ function HomePage() {
 
   const none = () => Promise.resolve(null);
   const newLeads = useCard(() => (TOOLS_BUILT.leads ? getHomeNewLeads() : none()));
+  // Card 2 decides its own availability on the server: no booking source, no card.
+  const appointments = useCard(() => getHomeAppointments());
   const recruits = useCard(() => (TOOLS_BUILT.guild ? getHomeRecruits() : none()));
   const approvals = useCard(() => (TOOLS_BUILT.approvals ? getHomeApprovals() : none()));
   const film = useCard(() => (TOOLS_BUILT.quests ? getHomeFilmNext() : none()));
@@ -59,9 +61,11 @@ function HomePage() {
   const quests = useCard(() => (TOOLS_BUILT.quests ? getHomeQuestStatus() : none()));
   const numbers = useCard(() => getHomeNumbers());
 
-  // Section 5: fixed priority order. Card 2 (appointments) joins in Phase 4.
+  // Section 5: fixed priority order.
+  const apptLoaded: Loaded<HomeCard | null> = appointments.state === "ok" && appointments.data && !appointments.data.available ? { state: "ok", data: null } : appointments.state === "ok" && appointments.data?.error ? { state: "error", message: appointments.data.error } : (appointments as Loaded<HomeCard | null>);
   const cards = [
     { key: "new-leads", title: "New leads waiting", icon: "⚔️", loaded: newLeads, viewAll: "Leads" },
+    { key: "appointments", title: "Appointments coming up", icon: "📅", loaded: apptLoaded, viewAll: "Leads" },
     { key: "recruits", title: "Recruits waiting", icon: "🛡️", loaded: recruits, viewAll: "Guild" },
     { key: "approvals", title: "Waiting on your approval", icon: "✅", loaded: approvals, viewAll: "the Approvals queue" },
     { key: "film", title: "Film these next", icon: "🎬", loaded: film, viewAll: "Quest Board" },
@@ -82,6 +86,7 @@ function HomePage() {
   const qs = quests.state === "ok" ? (quests.data as QuestStatusCard | null) : null;
   const line = allSettled
     ? dayLine({
+        appointmentsToday: appointments.state === "ok" ? (appointments.data as AppointmentsCard | null)?.today ?? 0 : 0,
         newLeads: liveCount(newLeads),
         filmSoon: liveCount(film),
         coldLeads: liveCount(cold),
@@ -154,7 +159,7 @@ function NeedsCard({ id, title, icon, loaded, viewAll, hiddenKeys, onHide }: { i
     return (
       <div className={`${card} p-4 border-red-700/30`} data-home-card={id} data-card-error>
         <p className="text-[#e0e0e0] font-fantasy text-sm">{icon} {title}</p>
-        <p className="text-red-300 text-xs mt-1">Could not load this one. The rest of the page still works.</p>
+        <p className="text-red-300 text-xs mt-1">{loaded.message && /Calendly/.test(loaded.message) ? loaded.message : "Could not load this one. The rest of the page still works."}</p>
       </div>
     );
   }

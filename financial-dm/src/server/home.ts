@@ -8,7 +8,8 @@ import { parseStatusHistory } from "~/lib/attribution";
 import { needsNudge, parseQuestLog, stageIndex } from "~/lib/questLog";
 import { sourceLabel } from "~/lib/guildConfig";
 import { SHELL_CONFIG } from "~/lib/adminShell";
-import { EMPTY_CARD, daysUntil, dayWord, isCold, todayYmd, waitingFor, weekStartIso, type HomeCard, type HomeItem } from "~/lib/home";
+import { EMPTY_CARD, clockTime, daysUntil, dayWord, isCold, todayYmd, waitingFor, weekStartIso, ymdInZone, type HomeCard, type HomeItem } from "~/lib/home";
+import { calendlyAvailable, upcomingAppointments } from "~/server/calendly.server";
 import { isDismissed, loadDismissals, type Dismissals } from "~/server/homeState";
 import { collectApprovals } from "~/server/approvals";
 
@@ -170,6 +171,50 @@ export const getHomeQuestStatus = createServerFn()
     if (!live.length) return { ...EMPTY_CARD, endingSoon: [], needsRetro: 0 };
     const liveActive = live.filter((it) => !it.tag).length;
     return { count: live.length, href: "/admin/quests?section=quests", items: live.slice(0, Math.max(LIMIT, liveActive)), endingSoon, needsRetro: live.length - liveActive };
+  });
+
+export interface AppointmentsCard extends HomeCard {
+  /** False when no booking source is connected: the card does not render (Rule 2.2). */
+  available: boolean;
+  error?: string;
+  today: number;
+}
+
+/** Card 2: today's and tomorrow's Calendly appointments, matched to leads by email where possible. */
+export const getHomeAppointments = createServerFn()
+  .middleware([requireAdmin])
+  .handler(async (): Promise<AppointmentsCard> => {
+    if (!calendlyAvailable()) return { ...EMPTY_CARD, available: false, today: 0 };
+    const [d, cal] = await Promise.all([loadDismissals(), upcomingAppointments()]);
+    if (cal.error) return { ...EMPTY_CARD, available: true, error: cal.error, today: 0 };
+    await ensureLeadsTable();
+    const emails = cal.appointments.map((a) => a.inviteeEmail).filter(Boolean);
+    const leads = new Map<string, { id: number; quiz: string; result: string }>();
+    if (emails.length) {
+      // One query per email keeps the shim and Postgres both happy at these volumes.
+      for (const e of Array.from(new Set(emails)).slice(0, 20)) {
+        const rows = (await sql()`SELECT id, quiz_type, quiz_result FROM leads WHERE lower(email) = ${e} ORDER BY created_at DESC LIMIT 1`) as Array<Record<string, unknown>>;
+        if (rows[0]) leads.set(e, { id: n(rows[0].id), quiz: quizTypeLabel(s(rows[0].quiz_type)), result: s(rows[0].quiz_result) });
+      }
+    }
+    const today = todayYmd();
+    const items: HomeItem[] = cal.appointments.map((a) => {
+      const day = ymdInZone(a.startIso) === today ? "today" : "tomorrow";
+      const lead = a.inviteeEmail ? leads.get(a.inviteeEmail) : undefined;
+      return {
+        id: 0,
+        title: a.inviteeName || a.eventName || "Appointment",
+        meta: [`${clockTime(a.startIso)} ${day}`, a.eventName, lead ? [lead.quiz, lead.result].filter(Boolean).join(", ") : "not from a quiz"].filter(Boolean).join(" · "),
+        href: lead ? `/admin/leads?lead=${lead.id}` : "/admin/leads",
+        key: `appt:${a.id}`,
+        sig: a.startIso,
+        ...(day === "today" ? { tag: "today" } : {}),
+      };
+    });
+    const live = items.filter((it) => !isDismissed(d, it.key, it.sig));
+    const todayCount = live.filter((it) => it.tag === "today").length;
+    if (!live.length) return { ...EMPTY_CARD, available: true, today: 0 };
+    return { count: live.length, href: "/admin/leads", items: live.slice(0, LIMIT), available: true, today: todayCount };
   });
 
 /** Card 4: counts by type from the shared approvals registry, linking to the queue. */

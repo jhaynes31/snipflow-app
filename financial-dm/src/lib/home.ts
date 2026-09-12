@@ -92,6 +92,8 @@ export function dayWord(dateYmd: string, todayYmd: string): string {
 }
 
 export interface DayLineCounts {
+  /** Appointments today (Card 2), when a booking source is connected. */
+  appointmentsToday?: number;
   newLeads: number;
   filmSoon: number;
   coldLeads: number;
@@ -111,6 +113,7 @@ const plural = (n: number, one: string, many: string) => `${n === 1 ? "one" : n}
  */
 export function dayLine(c: DayLineCounts): string | null {
   const parts: string[] = [];
+  if (c.appointmentsToday) parts.push(plural(c.appointmentsToday, "call today", "calls today"));
   if (c.newLeads) parts.push(plural(c.newLeads, "new lead", "new leads"));
   if (c.filmSoon) parts.push(plural(c.filmSoon, "post to film", "posts to film"));
   if (c.coldLeads) parts.push(plural(c.coldLeads, "lead going cold", "leads going cold"));
@@ -122,6 +125,16 @@ export function dayLine(c: DayLineCounts): string | null {
   const shown = parts.slice(0, 4);
   const text = shown.length === 1 ? shown[0] : shown.length === 2 ? `${shown[0]} and ${shown[1]}` : `${shown.slice(0, -1).join(", ")}, and ${shown[shown.length - 1]}`;
   return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+}
+
+/** "2:00 PM" in John's time zone. */
+export function clockTime(iso: string, timeZone: string = SHELL_CONFIG.weekStart.timeZone): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+}
+
+/** YYYY-MM-DD of an instant in John's time zone. */
+export function ymdInZone(iso: string, timeZone: string = SHELL_CONFIG.weekStart.timeZone): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
 }
 
 export function quietLine(word: string): string {
