@@ -39,7 +39,7 @@ function useCard<T>(fetcher: () => Promise<T>): Loaded<T> {
 }
 
 const QUICK_ACTIONS: Array<{ label: string; icon: string; to: string; search?: Record<string, string>; blurb: string; built: boolean }> = [
-  { label: "Leads", icon: "⚔️", to: "/admin/leads", blurb: "Leads arrive from the quizzes; a manual add is not built yet", built: TOOLS_BUILT.leads },
+  { label: "Add a lead", icon: "⚔️", to: "/admin/leads", search: { add: "1" }, blurb: "Someone who called, texted, or was referred", built: TOOLS_BUILT.leads },
   { label: "Add a recruit", icon: "🛡️", to: "/admin/guild", search: { view: "recruits", add: "1" }, blurb: "Someone who texted INTERVIEW", built: TOOLS_BUILT.guild },
   { label: "New quest", icon: "🗺️", to: "/admin/quests", search: { section: "quests", new: "1" }, blurb: "Start a campaign", built: TOOLS_BUILT.quests },
   { label: "Open the Content Forge", icon: "🧙", to: "/admin/forge", search: { tab: "script", view: "forge" }, blurb: "Scripts, carousels, cards, memes", built: TOOLS_BUILT.forge },

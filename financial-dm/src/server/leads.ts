@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { notifyJohn } from "~/server/mail.server";
+import { newLeadEmail } from "~/lib/mailTemplates";
 import { requireAdmin } from "~/server/auth";
 import { allowRequest, clientAddress } from "~/server/rateLimit.server";
 import { checkEmail, checkName, checkPhone } from "~/lib/contactValidation";
@@ -100,12 +102,15 @@ export interface Lead extends LeadData {
   campaign_platform: string;
   /** Every status change with its time, oldest first. */
   status_history: StatusChange[];
+  /** John's own note, for leads he adds by hand. */
+  note: string;
   not_a_fit_reason: string;
   product_type: string;
 }
 
 const QUIZ_TYPES: Record<string, string> = {
   "financial-health": "Financial Health",
+  manual: "Added by John",
 };
 
 export function quizTypeLabel(quizType: string): string {
@@ -227,6 +232,7 @@ async function migrateLeadsTable() {
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_result TEXT`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_score INTEGER`;
   await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS retakes INTEGER DEFAULT 0`;
+  await sql()`ALTER TABLE leads ADD COLUMN IF NOT EXISTS note TEXT DEFAULT ''`;
   // Campaign attribution and outcomes (Quest Board spec, Section 8).
   for (const col of ["quest_id", "series_id", "slot_id"]) {
     await sql().query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${col} INTEGER`);
@@ -308,6 +314,11 @@ export const saveLead = createServerFn({ method: "POST" })
         RETURNING id
       `) as Array<{ id: number }>;
       await linkCharacterSheet(data, inserted[0]?.id ?? null);
+      // John's heads-up. Never blocks or fails the lead; quietly skipped when email is not set up.
+      await notifyJohn({
+        template: "new_lead",
+        ...newLeadEmail({ id: Number(inserted[0]?.id ?? 0), name: data.name, phone: data.phone, email: data.email, quizLabel: quizTypeLabel(data.quiz_type ?? "insurance"), result: data.quiz_result || "", source: data.found_via || (attr?.slug ? `/${attr.slug}` : "") }),
+      });
       return { ok: true, lootId: data.loot_id || undefined, repeat: false };
     } catch (e) {
       console.error("[leads] insert failed:", e);
@@ -346,6 +357,42 @@ async function linkCharacterSheet(data: LeadData, newId: number | null): Promise
     console.warn("[leads] character sheet link skipped:", e);
   }
 }
+
+export const MANUAL_LEAD_SOURCES = [
+  { id: "call", label: "Called John" },
+  { id: "text", label: "Texted John" },
+  { id: "referral", label: "Referral" },
+  { id: "in_person", label: "Met in person" },
+  { id: "other", label: "Other" },
+] as const;
+
+/** A lead John types in himself: someone who called, texted, or was referred. Lands at New like any other. */
+export const addLeadManually = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .validator((d: { name: string; phone?: string; email?: string; source?: string; note?: string }) => ({
+    name: String(d?.name ?? "").trim().slice(0, 120),
+    phone: String(d?.phone ?? "").trim().slice(0, 40),
+    email: String(d?.email ?? "").trim().toLowerCase().slice(0, 200),
+    source: (MANUAL_LEAD_SOURCES.some((x) => x.id === d?.source) ? String(d?.source) : "other"),
+    note: String(d?.note ?? "").trim().slice(0, 500),
+  }))
+  .handler(async ({ data }): Promise<{ ok: boolean; id?: number; error?: string; field?: string }> => {
+    if (!data.name) return { ok: false, error: "A name is needed.", field: "name" };
+    if (!data.phone && !data.email) return { ok: false, error: "A phone number or an email is needed.", field: "phone" };
+    if (data.phone && data.phone.replace(/\D/g, "").length < 10) return { ok: false, error: "That phone number looks short.", field: "phone" };
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return { ok: false, error: "That email does not look right.", field: "email" };
+    try {
+      await ensureLeadsTable();
+      const label = MANUAL_LEAD_SOURCES.find((x) => x.id === data.source)?.label ?? "Other";
+      const rows = (await sql()`
+        INSERT INTO leads (name, email, phone, quiz_type, quiz_result, status, found_via, note, status_history)
+        VALUES (${data.name}, ${data.email}, ${data.phone}, 'manual', '', 'New', ${label}, ${data.note}, ${JSON.stringify([{ status: "New", at: new Date().toISOString() }])})
+        RETURNING id`) as Array<{ id: number }>;
+      return { ok: true, id: Number(rows[0]?.id) };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
+  });
 
 export const getLeads = createServerFn().middleware([requireAdmin]).handler(async (): Promise<Lead[]> => {
   await ensureLeadsTable();
@@ -406,6 +453,7 @@ export const getLeads = createServerFn().middleware([requireAdmin]).handler(asyn
     campaign_slug: String(r.campaign_slug ?? ""),
     campaign_platform: String(r.campaign_platform ?? ""),
     status_history: parseStatusHistory(r.status_history),
+    note: String(r.note ?? ""),
     not_a_fit_reason: String(r.not_a_fit_reason ?? ""),
     product_type: String(r.product_type ?? ""),
   })) as Lead[];

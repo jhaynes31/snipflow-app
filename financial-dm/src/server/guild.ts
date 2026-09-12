@@ -24,6 +24,10 @@ import {
 } from "~/lib/guildConfig";
 import { parseStatusHistory, type StatusChange } from "~/lib/attribution";
 import { parseQuestLog, type QuestLog } from "~/lib/questLog";
+import { notifyJohn, sendMail } from "~/server/mail.server";
+import { fitResultEmail, newRecruitEmail } from "~/lib/mailTemplates";
+import { MEETING_COVERS_DRAFT } from "~/lib/guildConfig";
+import type { FitLevel } from "~/lib/fitQuiz";
 import { GUILD_STARTER_ANSWERS } from "~/lib/guildStarterAnswers";
 
 /**
@@ -215,6 +219,16 @@ export const submitGuildInterest = createServerFn({ method: "POST" })
           ${attr?.questId ?? null}, ${attr?.seriesId ?? null}, ${attr?.slotId ?? null}, ${attr?.slug ?? ""}, ${attr?.platform ?? ""}, ${c.heardAbout},
           ${input.source === "fit_quiz" ? input.fitClass : ""}, ${input.source === "fit_quiz" ? input.fitLevel : ""},
           'interested', ${JSON.stringify(history)}, ${c.emailConsent})`;
+      // Notifications never block or fail the submission; both are skipped when email is not set up.
+      const sends: Array<Promise<unknown>> = [
+        notifyJohn({ template: "new_recruit", ...newRecruitEmail({ name: c.name, phone: c.phone, email: c.email, source: input.source, fitClass: input.source === "fit_quiz" ? input.fitClass : "", fitLevel: input.source === "fit_quiz" ? input.fitLevel : "", bestTime: c.bestTime }) }),
+      ];
+      if (input.source === "fit_quiz" && c.emailConsent && c.email && input.fitClass) {
+        const facts = await loadFacts();
+        const level = (["strong", "worth_a_conversation", "not_right_now"].includes(input.fitLevel) ? input.fitLevel : "worth_a_conversation") as FitLevel;
+        sends.push(sendMail({ template: "fit_result", to: c.email, ...fitResultEmail({ firstName: c.name.trim().split(/\s+/)[0] ?? "", guildClass: input.fitClass, fitLevel: level, johnName: facts.johnFullName?.value || "John", meetingCovers: facts.meetingCovers?.value || MEETING_COVERS_DRAFT }) }));
+      }
+      await Promise.all(sends);
       return { ok: true };
     } catch (e) {
       console.error("[guild] interest insert failed:", e);

@@ -34,12 +34,20 @@ export function calendlyAvailable(): boolean {
 
 let cache: { at: number; value: CalendlyResult } | null = null;
 
+/** Which token scope each call needs, so a refusal can say exactly what to tick. */
+function scopeFor(path: string): string {
+  if (path.startsWith("/users/me")) return "User management: read the current user (users:read)";
+  if (path.includes("/invitees")) return "Scheduling: read invitees (invitees:read)";
+  return "Scheduling: read scheduled events (scheduled_events:read)";
+}
+
 async function call<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
   if (!res.ok) {
+    const step = path.split("?")[0];
     if (res.status === 401) throw new Error("Calendly rejected the token. Check CALENDLY_TOKEN in Vercel.");
-    if (res.status === 403) throw new Error("Calendly said the token lacks permission. It needs the scheduled events read and users read scopes.");
-    throw new Error(`Calendly answered ${res.status}.`);
+    if (res.status === 403) throw new Error(`Calendly refused the ${step} call. The token needs this scope: ${scopeFor(path)}. Add it to the token in Calendly (or make a new token with it) and update CALENDLY_TOKEN.`);
+    throw new Error(`Calendly answered ${res.status} on ${step}.`);
   }
   return (await res.json()) as T;
 }

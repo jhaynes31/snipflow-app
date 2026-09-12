@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, type Lead } from "~/server/leads";
+import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, addLeadManually, MANUAL_LEAD_SOURCES, type Lead } from "~/server/leads";
 import { LEAD_STATUSES, NOT_A_FIT_REASONS, PRODUCT_TYPES, productLabel, reasonLabel, sourceSummary } from "~/lib/attribution";
 
 export const Route = createFileRoute("/_admin/admin/leads")({
-  validateSearch: (s: Record<string, unknown>): { lead?: number } => ({ lead: Number(s.lead) > 0 ? Number(s.lead) : undefined }),
+  validateSearch: (s: Record<string, unknown>): { lead?: number; add?: number } => ({ lead: Number(s.lead) > 0 ? Number(s.lead) : undefined, add: Number(s.add) === 1 ? 1 : undefined }),
   component: DashboardPage,
 });
 
@@ -26,7 +26,8 @@ type QuestFilter = "all" | "none" | `q:${number}`;
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   // A Home card can point at one lead: scroll to it and light it up for a moment.
-  const { lead: focusLead } = Route.useSearch();
+  const { lead: focusLead, add } = Route.useSearch();
+  const [showAdd, setShowAdd] = useState(add === 1);
   useEffect(() => {
     if (!focusLead || !leads.length) return;
     const row = document.querySelector<HTMLElement>(`[data-lead-row='${focusLead}']`);
@@ -207,8 +208,12 @@ function DashboardPage() {
             >
               {loading ? "Scrying..." : "🔄 Refresh"}
             </button>
+            <button type="button" onClick={() => setShowAdd(true)} className="px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm" data-add-lead>
+              ➕ Add a lead
+            </button>
           </div>
         </div>
+        {showAdd && <AddLeadForm onDone={() => { setShowAdd(false); fetchLeads(); }} onCancel={() => setShowAdd(false)} />}
 
         {/* Error */}
         {error && (
@@ -455,5 +460,52 @@ function OutcomeDialog({ status, name, onCancel, onConfirm }: { status: string; 
         </div>
       </div>
     </div>
+  );
+}
+
+
+/** Someone who called, texted, or was referred: John types them in and they land at New like any quiz lead. */
+function AddLeadForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [source, setSource] = useState<string>(MANUAL_LEAD_SOURCES[0].id);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const input = "w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm focus:outline-none focus:border-[#c08020]/50 placeholder:text-[#606080]";
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await addLeadManually({ data: { name, phone, email, source, note } });
+      if (res.ok) onDone();
+      else setError(res.error ?? "Could not add the lead.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={submit} className="mb-4 rounded-xl border border-[#c08020]/40 bg-[#111a28] p-4 space-y-3" data-add-lead-form>
+      <h2 className="font-fantasy text-[#c08020]">Add a lead</h2>
+      <p className="text-[11px] text-[#a0a0a0] font-fantasy">For someone who called, texted, or was sent your way. They start at New, same as a quiz lead. No email goes out for leads you add yourself.</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" maxLength={120} className={input} required autoFocus data-add-lead-name />
+        <select value={source} onChange={(e) => setSource(e.target.value)} className={input} aria-label="How they found you" data-add-lead-source>
+          {MANUAL_LEAD_SOURCES.map((s) => (
+            <option key={s.id} value={s.id} className="bg-gray-900">{s.label}</option>
+          ))}
+        </select>
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" type="tel" maxLength={40} className={input} data-add-lead-phone />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" type="email" maxLength={200} className={input} data-add-lead-email />
+      </div>
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={500} placeholder="A note for yourself (optional)" className={`${input} resize-none`} data-add-lead-note />
+      {error && <p className="text-red-300 text-xs" data-add-lead-error>{error}</p>}
+      <div className="flex gap-2">
+        <button type="submit" disabled={busy} className="px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm disabled:opacity-50" data-add-lead-submit>{busy ? "Adding..." : "Add lead"}</button>
+        <button type="button" onClick={onCancel} className="px-3 py-2 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] font-fantasy text-sm">Cancel</button>
+      </div>
+    </form>
   );
 }

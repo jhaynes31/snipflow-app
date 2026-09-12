@@ -10,6 +10,9 @@ import { QUEST_CONFIG } from "~/lib/questConfig";
 import { GUILD_CONFIG } from "~/lib/guildConfig";
 import { REVIEW_ITEMS, flattenConfig, type SettingsViewId } from "~/lib/reviewItems";
 import { getSignoffs, setSignoff, type Signoffs } from "~/server/homeState";
+import { getMailStatus } from "~/server/mail";
+import type { MailStatus } from "~/server/mail.server";
+import { MAIL_TEMPLATES } from "~/lib/mailTemplates";
 
 /**
  * Settings (Tavern Keeper's Morning spec, Section 7): a hub that points at
@@ -19,7 +22,7 @@ import { getSignoffs, setSignoff, type Signoffs } from "~/server/homeState";
  */
 export const Route = createFileRoute("/_admin/admin/settings")({
   validateSearch: (s: Record<string, unknown>): { view?: SettingsViewId } => ({
-    view: s.view === "quizzes" || s.view === "loot" || s.view === "flags" || s.view === "platforms" ? s.view : undefined,
+    view: s.view === "quizzes" || s.view === "loot" || s.view === "flags" || s.view === "platforms" || s.view === "email" ? s.view : undefined,
   }),
   component: SettingsPage,
 });
@@ -103,7 +106,7 @@ const ENTRIES: Array<{ label: string; blurb: string; to?: string; search?: Recor
   { label: "Compliance and flag word lists", blurb: "Words the forges flag: earnings hype, hiring-safe, titles, scam patterns.", view: "flags" },
   { label: "Platform list", blurb: "Where posts go, and the quest planning defaults.", view: "platforms" },
   { label: "Password", blurb: "Change the password for these private tools.", to: "/admin/settings/password" },
-  { label: "Email templates and mailing address", blurb: "Nothing is sent by email yet; there is no email provider connected.", soon: "Not built. Needs an email provider first." },
+  { label: "Email notifications and templates", blurb: "Where John's notifications go, whether sending is set up, and the wording of every email the site can send.", view: "email" },
 ];
 
 function SettingsPage() {
@@ -116,7 +119,7 @@ function SettingsPage() {
           <h1 className="text-2xl sm:text-3xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}>⚙️ Settings</h1>
           <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">Where everything is set. Each entry opens the screen that owns it; file-based config is shown read-only.</p>
         </div>
-        {def ? <ConfigView def={def} /> : <Hub />}
+        {view === "email" ? <EmailView /> : def ? <ConfigView def={def} /> : <Hub />}
       </div>
     </main>
   );
@@ -206,6 +209,52 @@ function ConfigView({ def }: { def: ViewDef }) {
           </div>
         </section>
       ))}
+    </div>
+  );
+}
+
+
+/** Section 7: email status and templates, read-only. Templates live in the mail templates file. */
+function EmailView() {
+  const [status, setStatus] = useState<MailStatus | null>(null);
+  useEffect(() => {
+    getMailStatus().then(setStatus).catch(() => setStatus(null));
+  }, []);
+  return (
+    <div className="space-y-4" data-settings-view="email">
+      <Link {...linkTo("/admin/settings")} className="text-xs font-fantasy text-[#a0a0a0] hover:text-[#c08020]">← All settings</Link>
+      <section className={`${card} p-4`} data-mail-status data-configured={status?.configured ? "true" : "false"}>
+        <h2 className="font-fantasy text-[#e0e0e0] text-lg">Email notifications</h2>
+        {!status ? (
+          <p className="text-[#a0a0a0] text-xs mt-1">Checking...</p>
+        ) : status.configured ? (
+          <p className="text-[#7fd08a] text-sm mt-1">Sending is set up. From <span className="text-[#e0e0e0]">{status.from}</span> via <span className="text-[#e0e0e0]">{status.host}</span>. John's notifications go to <span className="text-[#e0e0e0]">{status.notifyTo}</span>.</p>
+        ) : (
+          <div className="text-sm mt-1 space-y-1">
+            <p className="text-[#e0c080]">Sending is not set up yet, so no email goes out. Everything else works normally.</p>
+            <p className="text-[#a0a0a0] text-xs">Missing in Vercel: <span className="font-mono text-[#e0e0e0]">{status.missing.join(", ")}</span>. Notifications will go to <span className="text-[#e0e0e0]">{status.notifyTo}</span> once they do.</p>
+          </div>
+        )}
+        <p className="text-[11px] text-[#606080] mt-2">Plain SMTP, so it works with Proton's SMTP submission (business plans with a custom domain), Resend, or any other provider. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, and optionally NOTIFY_TO.</p>
+      </section>
+      {MAIL_TEMPLATES.map((t) => {
+        const sample = t.sample();
+        return (
+          <section key={t.id} className={`${card} overflow-hidden`} data-mail-template={t.id}>
+            <div className="px-4 py-3 border-b border-[#406080]/20">
+              <h3 className="font-fantasy text-[#c08020] text-sm">{t.name}</h3>
+              <p className="text-[11px] text-[#a0a0a0] mt-0.5">To: {t.to} · When: {t.when}</p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-[#808080]">Sample subject</p>
+              <p className="text-sm text-[#e0e0e0]">{sample.subject}</p>
+              <p className="text-xs text-[#808080] mt-3">Sample body</p>
+              <pre className="text-xs text-[#c9d3e3] whitespace-pre-wrap font-sans mt-1">{sample.text}</pre>
+            </div>
+          </section>
+        );
+      })}
+      <p className="text-[11px] text-[#606080]">Wording lives in the mail templates file. Tell Jen or Claude what to change.</p>
     </div>
   );
 }
