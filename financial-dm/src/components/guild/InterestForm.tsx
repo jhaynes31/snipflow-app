@@ -72,7 +72,7 @@ export default function InterestForm({ source = "interest_form", fitResult }: { 
       {errors.contact && <p role="alert" className="sm:col-span-2 text-[#a33a2a] text-sm -mt-2">{errors.contact}</p>}
       <div>
         <label htmlFor={id("state")} className={label}>State you live in</label>
-        <input id={id("state")} className={input} value={form.state} onChange={(e) => set("state", e.target.value)} autoComplete="address-level1" maxLength={40} placeholder="e.g. Kansas" />
+        <input id={id("state")} className={input} value={form.state} onChange={(e) => set("state", e.target.value)} autoComplete="address-level1" maxLength={40} placeholder="Your state" />
       </div>
       <div>
         <label htmlFor={id("time")} className={label}>Best time to talk</label>
