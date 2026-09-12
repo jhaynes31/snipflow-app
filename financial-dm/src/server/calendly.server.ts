@@ -28,8 +28,13 @@ export interface CalendlyResult {
   appointments: CalendlyAppointment[];
 }
 
+/** The token, with any stray whitespace from copy and paste removed. */
+function token(): string {
+  return (process.env.CALENDLY_TOKEN ?? "").trim();
+}
+
 export function calendlyAvailable(): boolean {
-  return Boolean(process.env.CALENDLY_TOKEN);
+  return Boolean(token());
 }
 
 let cache: { at: number; value: CalendlyResult } | null = null;
@@ -65,21 +70,21 @@ function window(now: Date): { min: string; max: string } {
 
 /** Today's and tomorrow's active appointments, cached for a minute so Home stays instant. */
 export async function upcomingAppointments(now: Date = new Date()): Promise<CalendlyResult> {
-  const token = process.env.CALENDLY_TOKEN;
-  if (!token) return { available: false, appointments: [] };
+  const tok = token();
+  if (!tok) return { available: false, appointments: [] };
   if (cache && now.getTime() - cache.at < TTL_MS) return cache.value;
   try {
-    const me = await call<{ resource: { uri: string } }>("/users/me", token);
+    const me = await call<{ resource: { uri: string } }>("/users/me", tok);
     const { min, max } = window(now);
     const q = new URLSearchParams({ user: me.resource.uri, min_start_time: min, max_start_time: max, status: "active", sort: "start_time:asc", count: "20" });
-    const events = await call<{ collection: Array<{ uri: string; name: string; start_time: string; end_time: string; location?: { join_url?: string } }> }>(`/scheduled_events?${q}`, token);
+    const events = await call<{ collection: Array<{ uri: string; name: string; start_time: string; end_time: string; location?: { join_url?: string } }> }>(`/scheduled_events?${q}`, tok);
     const appointments: CalendlyAppointment[] = [];
     for (const ev of events.collection.slice(0, 10)) {
       const uuid = ev.uri.split("/").pop() ?? "";
       let inviteeName = "";
       let inviteeEmail = "";
       try {
-        const inv = await call<{ collection: Array<{ name?: string; email?: string; status?: string }> }>(`/scheduled_events/${uuid}/invitees?count=1`, token);
+        const inv = await call<{ collection: Array<{ name?: string; email?: string; status?: string }> }>(`/scheduled_events/${uuid}/invitees?count=1`, tok);
         const first = inv.collection.find((i) => i.status !== "canceled") ?? inv.collection[0];
         inviteeName = String(first?.name ?? "");
         inviteeEmail = String(first?.email ?? "").toLowerCase();
