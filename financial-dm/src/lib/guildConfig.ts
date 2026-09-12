@@ -31,7 +31,7 @@ export const GUILD_CONFIG = {
   hiringSafeFlagWords: ["young", "energetic", "recent grad", "recent grads", "retiree", "retirees", "moms", "dads", "digital native", "digital natives", "guys"],
   /** Legally protected titles: never used for anyone. */
   titleFlagWords: ["investment adviser", "investment advisor", "registered investment adviser", "certified financial planner"],
-  /** Fine for John himself (confirmed 12 Sep 2026). Flagged only when a post describes the role offered to recruits this way, since recruits start as the role title. */
+  /** Flagged on their own, or when offered as the recruit's role. John's exact second title, "Pre-Certified Financial Advisor", passes; a bare "financial advisor" implies a registered advisor. */
   roleTitleFlagWords: ["financial advisor", "financial planner", "wealth manager"],
   /** Amendment, Section 6: phrases that make a legitimate post read as a scam. */
   scamPatternFlagWords: ["no experience needed, we'll show you everything", "no experience needed, we will show you everything", "message me for details", "dm me for details", "life-changing opportunity", "life changing opportunity", "not a job, a lifestyle"],
@@ -73,7 +73,7 @@ export const MEETING_COVERS_DRAFT =
 export const GUILD_FACT_FIELDS: FactField[] = [
   // Trust facts (required, public)
   { key: "industry", label: "The industry, in plain words", help: "For example \"life insurance and financial services\". Naming the field is the first thing careful people check.", tier: "trust", required: true, multiline: false, usedIn: "What this is" },
-  { key: "roleTitle", label: "Role title", help: "The name of the role a recruit starts in. John can call himself a Financial Advisor, but the role offered should be what a new recruit actually is on day one. Investment Adviser and Certified Financial Planner are legally protected; leave those out. The flyer says \"Remote Financial Services Positions\".", tier: "trust", required: true, multiline: false, usedIn: "Hero" },
+  { key: "roleTitle", label: "Role title", help: "The name of the role a recruit starts in, which is what a new recruit actually is on day one. John's own titles are set separately and used exactly. Investment Adviser and Certified Financial Planner are legally protected; leave those out. The flyer says \"Remote Financial Services Positions\".", tier: "trust", required: true, multiline: false, usedIn: "Hero" },
   { key: "roleSummary", label: "What the work involves", help: "One or two plain sentences.", tier: "trust", required: true, multiline: true, usedIn: "What this is" },
   { key: "workArrangement", label: "Work arrangement", help: "Independent contractor or employee, and how recruits relate to The Foster Financial Group.", tier: "trust", required: true, multiline: true, usedIn: "What this is" },
   { key: "meetingCovers", label: "What the conversation covers", help: "The key piece. Say plainly that the meeting covers the opportunity, and that you can also help with the person's own coverage or financial questions if useful. This disclosure must stay in whatever you write.", tier: "trust", required: true, multiline: true, usedIn: "What the conversation covers, FAQ", suggested: MEETING_COVERS_DRAFT },

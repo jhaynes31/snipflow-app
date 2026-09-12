@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import InterestForm from "~/components/guild/InterestForm";
 import { GUILD_CONFIG, GUILD_FAQ, GUILD_FACT_FIELDS, factLabel, smsLink } from "~/lib/guildConfig";
 import { getGuildPublic, type GuildPublic } from "~/server/guild";
+import { JOHN_TITLE_LINE } from "~/lib/johnTitles";
 
 /**
  * The Guild Hall (recruiting spec, Section 5.1, as revised by the
@@ -163,7 +164,7 @@ function GuildHall({ data }: { data: GuildPublic }) {
               <div className="text-xl text-[#1c3660]" style={DISPLAY} data-john-name>
                 <Fact facts={f} k="johnFullName" />
               </div>
-              <p className="text-[#2a3442]">Licensed Term Life Agent · The Financial DM, a division of {GUILD_CONFIG.presentedBy}</p>
+              <p className="text-[#2a3442]" data-john-titles>{JOHN_TITLE_LINE} · The Financial DM, a division of {GUILD_CONFIG.presentedBy}</p>
               {has("licenseLookup") && (
                 <a href={f.licenseLookup} target="_blank" rel="noreferrer" className="inline-block text-[#1c3660] underline underline-offset-4">
                   Verify John's license ↗

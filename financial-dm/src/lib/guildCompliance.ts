@@ -41,10 +41,11 @@ function phraseHits(text: string, words: string[]): string[] {
 }
 
 /**
- * "Financial advisor" is fine for John, who is registered to use it. It is
- * flagged only when the text offers it as the recruit's role ("become a
- * financial advisor", "financial advisor positions"), because a new recruit
- * starts as the role title, not as an advisor.
+ * A bare "financial advisor" implies a registered advisor, so it is flagged
+ * unless it is part of John's exact title ("Pre-Certified Financial
+ * Advisor"). Offering it as the recruit's role ("become a financial
+ * advisor", "financial advisor positions") is flagged as well, because a
+ * new recruit starts as the role title.
  */
 function roleOfferedAs(text: string, titles: string[]): string[] {
   const found: string[] = [];
@@ -53,7 +54,14 @@ function roleOfferedAs(text: string, titles: string[]): string[] {
     const before = new RegExp(`\\b(become|becoming|be|as|hire|hiring|hired|seeking|looking for|need|needs|want|wanted|join(?:ing)? (?:us |the team )?as|new|our|remote|part[- ]time|full[- ]time|work as)\\s+(?:an?\\s+)?(?:new\\s+|remote\\s+|licensed\\s+)?${p}s?\\b`, "i");
     const after = new RegExp(`\\b${p}s?\\s+(position|positions|job|jobs|role|roles|opening|openings|career|careers|wanted|needed|opportunity|opportunities)\\b`, "i");
     const m = before.exec(text) ?? after.exec(text);
-    if (m) found.push(`"${m[0].trim()}" offers ${t} as the role`);
+    if (m) {
+      found.push(`"${m[0].trim()}" offers ${t} as the role`);
+      continue;
+    }
+    // Bare use, outside John's exact title.
+    const bare = new RegExp(`(^|[^a-z0-9-])(?!pre[- ]certified[ ])${p}s?\\b`, "i");
+    const stripped = text.replace(new RegExp(`pre[- ]certified\\s+${p}`, "gi"), "");
+    if (bare.test(stripped)) found.push(`"${t}" on its own (John's title is "Pre-Certified Financial Advisor")`);
   }
   return found;
 }

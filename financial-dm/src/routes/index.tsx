@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { JOHN_TITLE_LINE } from "~/lib/johnTitles";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -13,7 +14,7 @@ function Home() {
       <img src="/logo.png" alt="The Financial DM" className="h-40 sm:h-52 w-auto mx-auto mb-2 drop-shadow-lg" />
       <p className="text-[#c9a25a] text-xs sm:text-sm font-fantasy tracking-wide -mt-1 mb-3">Protect what matters most, because life is unpredictable.</p>
       <span className="rounded-full bg-[#204060]/30 px-3 py-1 text-sm font-fantasy text-[#c08020] border border-[#406080]/30">
-        Licensed Term Life Agent
+        {JOHN_TITLE_LINE}
       </span>
       <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-6xl font-fantasy text-[#e0e0e0]"
         style={{ textShadow: "0 0 30px rgba(192, 128, 32, 0.2)" }}

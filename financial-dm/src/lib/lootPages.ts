@@ -1,3 +1,4 @@
+import { JOHN_TITLE_LINE } from "./johnTitles";
 /**
  * Loot pages: each downloadable item as content, rendered by one template
  * (components/loot/LootPage.tsx) as a web page at /loot/<id> and printed to
@@ -5,7 +6,7 @@
  *
  * Rules (loot pages spec, Section 2): only the allowed facts listed per item
  * may appear; nothing a reader types is ever collected; no sensitive fields;
- * warm and practical; John's title is exactly "Licensed Term Life Agent";
+ * warm and practical; John's titles are exactly JOHN_TITLES;
  * the disclaimer is a per-item field. All copy is a DRAFT for John's review.
  */
 
@@ -49,7 +50,7 @@ export const BOOKING_URL = "https://calendly.com/thefinancialdm-proton/30min";
 const FOOTER = {
   brand: "The Financial DM",
   agent: "John",
-  agentTitle: "Licensed Term Life Agent",
+  agentTitle: JOHN_TITLE_LINE,
   // DRAFT for John's approval (loot pages spec, Section 2.6).
   disclaimer: "For educational purposes only. Not a quote, a recommendation, or legal or tax advice. Coverage details vary by policy and employer.",
 };

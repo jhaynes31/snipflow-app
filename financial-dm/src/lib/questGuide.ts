@@ -1,4 +1,5 @@
 import { QUEST_CONFIG } from "~/lib/questConfig";
+import { JOHN_TITLE_LINE } from "./johnTitles";
 
 /**
  * The Quest Board guide for John: one source of truth, shown inside the
@@ -111,7 +112,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       { do: "Set the status to Posted and paste the TikTok URL into \"Post link\".", note: "You can type views, likes, comments, shares, and saves into the slot at any time. That is optional, and bookings matter more." },
       { do: "Change your mind? Approved can go back to Drafted, and any slot can be Skipped." },
     ],
-    tip: "Your title is exactly \"Licensed Term Life Agent\". No promises of returns, rates, or approval, in any post.",
+    tip: `Your titles are exactly "${JOHN_TITLE_LINE}". No promises of returns, rates, or approval, in any post.`,
   },
   {
     id: "links",
@@ -164,6 +165,6 @@ export const GUIDE_RULES: string[] = [
   "Profiles are life moments and money worries, never identities.",
   `The link word is the whole tracking system: ${D}/word, said out loud and shown on screen.`,
   "Memes stay a small share. Scripts carry the quest.",
-  "Your title is \"Licensed Term Life Agent\". No promised rates, returns, or approvals.",
+  `Your titles are "${JOHN_TITLE_LINE}". No promised rates, returns, or approvals.`,
   "Lead names, emails, and answers never go to the AI. The coach only ever sees counts.",
 ];

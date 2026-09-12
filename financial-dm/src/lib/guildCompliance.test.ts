@@ -12,9 +12,9 @@ describe("recruiting flag scan", () => {
     expect(f.some((x) => x.kind === "title" && /become a financial advisor/i.test(x.text))).toBe(true);
     expect(f.some((x) => x.kind === "scam" && x.text === "message me for details")).toBe(true);
   });
-  test("John may be called a financial advisor; offering it as the recruit's role is flagged; protected titles always are", () => {
-    expect(scanRecruiting("John Haynes, a financial advisor with The Foster Financial Group, is expanding his life insurance team.").filter((x) => x.kind === "title")).toEqual([]);
-    expect(scanRecruiting("I'm a financial advisor and I'm looking for people who like helping families.").filter((x) => x.kind === "title")).toEqual([]);
+  test("John's exact second title passes; a bare financial advisor, the role offered that way, and protected titles are flagged", () => {
+    expect(scanRecruiting("John Haynes, Licensed Term Life Agent and Pre-Certified Financial Advisor with The Foster Financial Group, is expanding his life insurance team.").filter((x) => x.kind === "title")).toEqual([]);
+    expect(scanRecruiting("John Haynes, a financial advisor with The Foster Financial Group, is expanding his team.").some((x) => x.kind === "title" && /on its own/.test(x.text))).toBe(true);
     expect(scanRecruiting("Remote financial advisor positions open now.").some((x) => x.kind === "title")).toBe(true);
     expect(scanRecruiting("Want to work as a financial planner?").some((x) => x.kind === "title")).toBe(true);
     expect(scanRecruiting("Talk to our investment adviser John.").some((x) => x.kind === "title" && x.text === "investment adviser")).toBe(true);
