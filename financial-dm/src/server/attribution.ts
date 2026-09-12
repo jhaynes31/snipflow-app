@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { QuizId } from "~/lib/questConfig";
+import type { TrackedQuiz } from "~/lib/quizEvents";
 import { currentAttribution, recordCampaignEvent, type CampaignEventKind } from "~/server/attribution.server";
 import { allowRequest, clientAddress } from "~/server/rateLimit.server";
 
@@ -11,8 +11,8 @@ import { allowRequest, clientAddress } from "~/server/rateLimit.server";
  * no answers or personal details are ever sent here.
  */
 export const recordQuizEvent = createServerFn({ method: "POST" })
-  .validator((d: { quiz: QuizId; kind: "quiz_start" | "quiz_complete" }) => ({
-    quiz: (d?.quiz === "financial" ? "financial" : "life_insurance") as QuizId,
+  .validator((d: { quiz: TrackedQuiz; kind: "quiz_start" | "quiz_complete" }) => ({
+    quiz: (d?.quiz === "financial" ? "financial" : d?.quiz === "fit_quiz" ? "fit_quiz" : "life_insurance") as TrackedQuiz,
     kind: (d?.kind === "quiz_complete" ? "quiz_complete" : "quiz_start") as CampaignEventKind,
   }))
   .handler(async ({ data }): Promise<{ ok: boolean }> => {

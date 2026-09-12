@@ -203,6 +203,17 @@ function GuildHall({ data }: { data: GuildPublic }) {
           </dl>
         </Section>
 
+        {/* 9. Fit quiz teaser: only once John has approved the quiz copy */}
+        {(f.fitQuizApproved === "yes" || !data.live) && (
+          <div className="rounded-xl border-2 border-[#c8a24b]/60 bg-[#faf7f0] p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4" data-fit-quiz-teaser>
+            <div>
+              <p className="text-xl text-[#1c3660]" style={DISPLAY}>Not sure yet?</p>
+              <p className="text-[#2a3442]">Take the 2-minute quiz. Seven questions about how you like to work, nothing about you personally.</p>
+            </div>
+            <a href="/guild/quiz" className="px-5 py-3 rounded-lg bg-[#1c3660] hover:bg-[#14294a] text-white font-semibold">🎲 Is This Quest for You?</a>
+          </div>
+        )}
+
         {/* 8. Interest form */}
         <Section title="Request an Interview" id="interest">
           <p className="mb-5 text-[#2a3442]">Prefer a form? John reads every one himself and replies personally, usually by text or phone.</p>

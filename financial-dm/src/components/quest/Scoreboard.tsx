@@ -165,6 +165,7 @@ export default function Scoreboard({ onOpenQuest }: { onOpenQuest: (questId: num
                   <th className="px-3 py-2">Quest</th>
                   <th className="px-3 py-2 text-right">Posts</th>
                   <th className="px-3 py-2 text-right">Visits</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">Fit quiz done</th>
                   <th className="px-3 py-2 text-right">Recruits</th>
                   <th className="px-3 py-2 text-right whitespace-nowrap">Interview booked</th>
                   <th className="px-3 py-2 text-right">Interviewed</th>
@@ -188,6 +189,7 @@ export default function Scoreboard({ onOpenQuest }: { onOpenQuest: (questId: num
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{q.posts}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{q.visits}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{q.fitQuizCompletes}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]" data-recruit-count>{q.recruits}<span className="block text-[10px] text-[#606080]">{q.forms} form · {q.texts} text{q.fitQuiz ? ` · ${q.fitQuiz} quiz` : ""}</span></td>
                     {q.reached.map((r) => (
                       <td key={r.stage} className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{r.count}</td>
@@ -204,6 +206,7 @@ export default function Scoreboard({ onOpenQuest }: { onOpenQuest: (questId: num
                     Unattributed
                     {data.unattributedRecruits.length > 0 && <span className="block text-[11px] text-[#606080]">{data.unattributedRecruits.map((u) => `${u.label}: ${u.recruits}${u.wins ? ` (${u.wins} won)` : ""}`).join(" · ")}</span>}
                   </td>
+                  <td className="px-3 py-2 text-right text-[#606080]">—</td>
                   <td className="px-3 py-2 text-right text-[#606080]">—</td>
                   <td className="px-3 py-2 text-right text-[#606080]">—</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{data.unattributedRecruitsTotal}</td>

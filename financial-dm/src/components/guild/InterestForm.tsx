@@ -9,7 +9,7 @@ import { submitGuildInterest } from "~/server/guild";
  */
 const EMPTY: InterestInput = { name: "", email: "", phone: "", state: "", bestTime: "", heardAbout: "", note: "", confirmed18: false, emailConsent: false };
 
-export default function InterestForm() {
+export default function InterestForm({ source = "interest_form", fitResult }: { source?: "interest_form" | "fit_quiz"; fitResult?: { guildClass: string; fitLevel: string } }) {
   const [form, setForm] = useState<InterestInput>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -26,7 +26,7 @@ export default function InterestForm() {
     if (!check.ok) return;
     setBusy(true);
     try {
-      const res = await submitGuildInterest({ data: check.clean });
+      const res = await submitGuildInterest({ data: { ...check.clean, source, fitResult } });
       if (res.ok) setDone(true);
       else setErrors({ [res.field ?? "form"]: res.error ?? "Please check the form." });
     } catch {

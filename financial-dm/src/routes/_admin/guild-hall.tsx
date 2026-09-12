@@ -62,6 +62,9 @@ function GuildHallAdmin() {
           <a href="/guild" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] font-fantasy text-sm">
             👁️ Preview the Guild Hall ↗
           </a>
+          <a href="/guild/quiz" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] font-fantasy text-sm" data-preview-fit-quiz>
+            🎲 Preview the fit quiz ↗
+          </a>
         </nav>
         {view === "recruits" ? <RecruitsSection /> : <FactsSection />}
       </div>

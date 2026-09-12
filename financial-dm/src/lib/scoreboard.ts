@@ -58,6 +58,8 @@ export interface EventRow {
   questId: number | null;
   seriesId: number | null;
   slotId: number | null;
+  /** Which quiz, when known: financial, life_insurance, or fit_quiz. */
+  quiz?: string;
 }
 
 export interface RecruitRow {
@@ -164,6 +166,8 @@ export interface RecruitQuestScore extends Engagement, Traffic {
   forms: number;
   texts: number;
   fitQuiz: number;
+  /** Fit quiz completions tagged with this quest (recruiting spec, Section 7.2). */
+  fitQuizCompletes: number;
   /** Counts of recruits who reached at least each stage, in pipeline order. */
   reached: Array<{ stage: string; label: string; count: number }>;
   notMoving: number;
@@ -309,6 +313,7 @@ export function buildScoreboard(input: ScoreboardInput): Scoreboard {
       forms: rows.filter((r) => r.source === "interest_form").length,
       texts: rows.filter((r) => r.source === "text" || r.source === "manual").length,
       fitQuiz: rows.filter((r) => r.source === "fit_quiz").length,
+      fitQuizCompletes: events.filter((e) => e.questId === q.id && e.kind === "quiz_complete" && e.quiz === "fit_quiz").length,
       reached: f.reached,
       notMoving: f.notMoving,
       reasons: f.reasons,

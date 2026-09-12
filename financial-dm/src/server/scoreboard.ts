@@ -32,7 +32,7 @@ export const getScoreboard = createServerFn()
       sql()`SELECT id, quest_id, generator, series_id, status, post_slug, stats, topic, date FROM content_slots` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT id, name, kind, quest_id, slug FROM quest_series` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT quest_id, series_id, slot_id, status, not_a_fit_reason, found_via FROM leads` as Promise<Array<Record<string, unknown>>>,
-      sql()`SELECT kind, quest_id, series_id, slot_id FROM campaign_events` as Promise<Array<Record<string, unknown>>>,
+      sql()`SELECT kind, quest_id, series_id, slot_id, quiz FROM campaign_events` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT quest_id, series_id, slot_id, source, stage, not_moving_reason, found_via FROM recruits` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT value FROM guild_facts WHERE key = 'winStage'` as Promise<Array<Record<string, unknown>>>,
     ]);
@@ -76,7 +76,7 @@ export const getScoreboard = createServerFn()
     }));
     const events: EventRow[] = eRows
       .filter((r) => r.kind === "visit" || r.kind === "quiz_start" || r.kind === "quiz_complete")
-      .map((r) => ({ kind: r.kind as EventRow["kind"], questId: num(r.quest_id), seriesId: num(r.series_id), slotId: num(r.slot_id) }));
+      .map((r) => ({ kind: r.kind as EventRow["kind"], questId: num(r.quest_id), seriesId: num(r.series_id), slotId: num(r.slot_id), quiz: String(r.quiz ?? "") }));
 
     const recruits: RecruitRow[] = rRows.map((r) => ({
       questId: num(r.quest_id),

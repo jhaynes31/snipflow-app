@@ -253,8 +253,11 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
           <div>
             <span className={label}>Where the link goes</span>
             <div className="flex flex-wrap gap-2">
-              <span className={`${btn} bg-[#c08020]/20 border-[#c08020] text-[#c08020]`}>🛡️ The Guild Hall</span>
-              <span className={`${btn} border-[#406080]/30 text-[#606080] cursor-not-allowed`} title="Arrives with Phase 4">🎲 Fit quiz (coming)</span>
+              {([["guild_hall", "🛡️ The Guild Hall"], ["fit_quiz", "🎲 The fit quiz"]] as Array<[QuestInput["recruitOffer"], string]>).map(([o, lbl]) => (
+                <button key={o} type="button" onClick={() => set("recruitOffer", o)} aria-pressed={form.recruitOffer === o} className={`${btn} ${form.recruitOffer === o ? "bg-[#c08020]/20 border-[#c08020] text-[#c08020]" : "border-[#406080]/40 text-[#a0a0a0]"}`} data-recruit-offer={o}>
+                  {lbl}
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -646,7 +649,7 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
         </p>
         <p className="text-[#a0a0a0] text-sm font-fantasy" data-quest-offer>
           {quest.goal === "recruits" ? (
-            <>Recruiting quest · Offer: The Guild Hall · Say it: <span className="text-[#7fd08a]">“{recruitCta(quest.slug)}”</span></>
+            <>Recruiting quest · Offer: {quest.recruitOffer === "fit_quiz" ? "the fit quiz" : "The Guild Hall"} · Say it: <span className="text-[#7fd08a]">“{recruitCta(quest.slug)}”</span></>
           ) : (
             <>Offer: {QUEST_CONFIG.quizzes[quest.offerQuiz].label}{quest.lootHighlight ? ` · Loot: ${quest.lootHighlight}` : ""} · Say it: <span className="text-[#7fd08a]">“Take the free quiz at {QUEST_CONFIG.siteDomain}/{quest.slug}.”</span></>
           )}

@@ -137,6 +137,8 @@ export interface GuildPublic {
   live: boolean;
   /** Signed-in admin or a dev build: show the page with placeholders and a warning. */
   preview: boolean;
+  /** True for John (signed in) and in development: unpublished things like the unapproved fit quiz may be shown with a warning, even once the Guild Hall is live. */
+  canPreview: boolean;
   facts: Record<string, string>;
   missing: string[];
 }
@@ -144,24 +146,23 @@ export interface GuildPublic {
 export const getGuildPublic = createServerFn().handler(async (): Promise<GuildPublic> => {
   const facts = await loadFacts();
   const live = guildIsLive(facts);
-  let preview = false;
-  if (!live) {
-    const dev = process.env.NODE_ENV !== "production";
-    let admin = false;
-    try {
-      admin = await isAuthenticated();
-    } catch {
-      admin = false;
-    }
-    preview = dev || admin;
+  const dev = process.env.NODE_ENV !== "production";
+  let admin = false;
+  try {
+    admin = await isAuthenticated();
+  } catch {
+    admin = false;
   }
-  if (live) return { live, preview: false, facts: publicFacts(facts), missing: [] };
-  if (!preview) return { live, preview, facts: {}, missing: [] };
+  const canPreview = dev || admin;
+  const preview = !live && canPreview;
+  if (live) return { live, preview: false, canPreview, facts: publicFacts(facts), missing: [] };
+  if (!preview) return { live, preview, canPreview, facts: {}, missing: [] };
   // Preview: public keys only, confirmed or not, so John can see the draft. Presentation facts never leave the server.
   const allowed = new Set(publicFactKeys());
   return {
     live,
     preview,
+    canPreview,
     facts: Object.fromEntries(Object.values(facts).filter((f) => allowed.has(f.key)).map((f) => [f.key, f.value])),
     missing: missingFacts(facts),
   };
@@ -173,8 +174,15 @@ const MAX_INTEREST = 5;
 const INTEREST_WINDOW_MS = 60 * 60 * 1000;
 
 export const submitGuildInterest = createServerFn({ method: "POST" })
-  .validator((d: Partial<InterestInput>) => checkInterest(d))
-  .handler(async ({ data }): Promise<{ ok: boolean; error?: string; field?: string }> => {
+  .validator((d: Partial<InterestInput> & { source?: string; fitResult?: { guildClass?: string; fitLevel?: string } }) => ({
+    check: checkInterest(d),
+    // Section 8.4: the fit quiz's contact step creates a recruit with its result attached.
+    source: (d?.source === "fit_quiz" ? "fit_quiz" : "interest_form") as "fit_quiz" | "interest_form",
+    fitClass: text(d?.fitResult?.guildClass, 20),
+    fitLevel: text(d?.fitResult?.fitLevel, 30),
+  }))
+  .handler(async ({ data: input }): Promise<{ ok: boolean; error?: string; field?: string }> => {
+    const data = input.check;
     if (!data.ok) {
       const [field, message] = Object.entries(data.errors)[0] ?? ["form", "Please check the form."];
       return { ok: false, error: message, field };
@@ -192,9 +200,10 @@ export const submitGuildInterest = createServerFn({ method: "POST" })
       const attr = currentAttribution()?.tag ?? null;
       const history: StatusChange[] = [{ status: "interested", at: new Date().toISOString() }];
       await sql()`
-        INSERT INTO recruits (name, email, phone, state, best_time, note, confirmed_18, source, quest_id, series_id, slot_id, campaign_slug, campaign_platform, found_via, stage, stage_history, email_consent)
-        VALUES (${c.name}, ${c.email}, ${c.phone}, ${c.state}, ${c.bestTime}, ${c.note}, ${c.confirmed18}, 'interest_form',
+        INSERT INTO recruits (name, email, phone, state, best_time, note, confirmed_18, source, quest_id, series_id, slot_id, campaign_slug, campaign_platform, found_via, fit_class, fit_level, stage, stage_history, email_consent)
+        VALUES (${c.name}, ${c.email}, ${c.phone}, ${c.state}, ${c.bestTime}, ${c.note}, ${c.confirmed18}, ${input.source},
           ${attr?.questId ?? null}, ${attr?.seriesId ?? null}, ${attr?.slotId ?? null}, ${attr?.slug ?? ""}, ${attr?.platform ?? ""}, ${c.heardAbout},
+          ${input.source === "fit_quiz" ? input.fitClass : ""}, ${input.source === "fit_quiz" ? input.fitLevel : ""},
           'interested', ${JSON.stringify(history)}, ${c.emailConsent})`;
       return { ok: true };
     } catch (e) {

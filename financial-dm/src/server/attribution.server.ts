@@ -56,7 +56,7 @@ export function ensureEventsTable(): Promise<void> {
 }
 
 /** Never throws: a counting failure must not break a redirect or a lead save. */
-export async function recordCampaignEvent(kind: CampaignEventKind, tag: CampaignTag, quiz: QuizId | "" = ""): Promise<void> {
+export async function recordCampaignEvent(kind: CampaignEventKind, tag: CampaignTag, quiz: QuizId | "fit_quiz" | "" = ""): Promise<void> {
   try {
     await ensureEventsTable();
     await sql()`

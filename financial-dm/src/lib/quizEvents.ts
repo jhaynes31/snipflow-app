@@ -1,5 +1,8 @@
 import { CAMPAIGN_MARKER_COOKIE } from "~/lib/attribution";
 import type { QuizId } from "~/lib/questConfig";
+
+/** The quizzes that report starts and completions: the two client quizzes and the Guild fit quiz. */
+export type TrackedQuiz = QuizId | "fit_quiz";
 import { recordQuizEvent } from "~/server/attribution";
 
 /**
@@ -8,7 +11,7 @@ import { recordQuizEvent } from "~/server/attribution";
  * cookie says so). Fire and forget: the quiz never waits on it, and nothing
  * about the person or their answers is sent.
  */
-export function reportQuizEvent(quiz: QuizId, kind: "quiz_start" | "quiz_complete"): void {
+export function reportQuizEvent(quiz: TrackedQuiz, kind: "quiz_start" | "quiz_complete"): void {
   if (typeof document === "undefined") return;
   if (!new RegExp(`(?:^|;\\s*)${CAMPAIGN_MARKER_COOKIE}=1`).test(document.cookie)) return;
   const key = `fdm_ev_${quiz}_${kind}`;
