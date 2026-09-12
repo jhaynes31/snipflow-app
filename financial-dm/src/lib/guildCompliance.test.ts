@@ -9,9 +9,17 @@ describe("recruiting flag scan", () => {
     const f = scanRecruiting(t);
     expect(f.some((x) => x.kind === "earnings" && x.text === "unlimited income")).toBe(true);
     expect(f.filter((x) => x.kind === "hiring").map((x) => x.text)).toEqual(expect.arrayContaining(["young", "energetic", "recent grads"]));
-    expect(f.some((x) => x.kind === "title" && x.text === "financial advisor")).toBe(true);
+    expect(f.some((x) => x.kind === "title" && /become a financial advisor/i.test(x.text))).toBe(true);
     expect(f.some((x) => x.kind === "scam" && x.text === "message me for details")).toBe(true);
   });
+  test("John may be called a financial advisor; offering it as the recruit's role is flagged; protected titles always are", () => {
+    expect(scanRecruiting("John Haynes, a financial advisor with The Foster Financial Group, is expanding his life insurance team.").filter((x) => x.kind === "title")).toEqual([]);
+    expect(scanRecruiting("I'm a financial advisor and I'm looking for people who like helping families.").filter((x) => x.kind === "title")).toEqual([]);
+    expect(scanRecruiting("Remote financial advisor positions open now.").some((x) => x.kind === "title")).toBe(true);
+    expect(scanRecruiting("Want to work as a financial planner?").some((x) => x.kind === "title")).toBe(true);
+    expect(scanRecruiting("Talk to our investment adviser John.").some((x) => x.kind === "title" && x.text === "investment adviser")).toBe(true);
+  });
+
   test("dollar amounts or percentages near pay words are flagged; other numbers are not", () => {
     expect(kinds("You can earn $5,000 a month here.")).toContain("pay_figure");
     expect(kinds("Commission is 80% on every policy.")).toContain("pay_figure");

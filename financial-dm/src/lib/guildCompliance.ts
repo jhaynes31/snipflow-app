@@ -19,7 +19,7 @@ export interface RecruitFlag {
 export const FLAG_KIND_LABEL: Record<RecruitFlagKind, string> = {
   earnings: "Earnings hype",
   hiring: "Hiring-safe wording",
-  title: "Regulated title",
+  title: "Title check",
   scam: "Reads like a scam post",
   pay_figure: "A figure tied to pay",
   industry: "Does not name the industry",
@@ -36,6 +36,24 @@ function phraseHits(text: string, words: string[]): string[] {
     if (!phrase) continue;
     const re = new RegExp(`(^|[^a-z0-9])${escape(phrase).replace(/[- ]/g, "[- ]").replace(/'/g, "['’]?")}(?=$|[^a-z0-9])`, "i");
     if (re.test(hay)) found.push(w);
+  }
+  return found;
+}
+
+/**
+ * "Financial advisor" is fine for John, who is registered to use it. It is
+ * flagged only when the text offers it as the recruit's role ("become a
+ * financial advisor", "financial advisor positions"), because a new recruit
+ * starts as the role title, not as an advisor.
+ */
+function roleOfferedAs(text: string, titles: string[]): string[] {
+  const found: string[] = [];
+  for (const t of titles) {
+    const p = escape(t.toLowerCase()).replace(/[- ]/g, "[- ]");
+    const before = new RegExp(`\\b(become|becoming|be|as|hire|hiring|hired|seeking|looking for|need|needs|want|wanted|join(?:ing)? (?:us |the team )?as|new|our|remote|part[- ]time|full[- ]time|work as)\\s+(?:an?\\s+)?(?:new\\s+|remote\\s+|licensed\\s+)?${p}s?\\b`, "i");
+    const after = new RegExp(`\\b${p}s?\\s+(position|positions|job|jobs|role|roles|opening|openings|career|careers|wanted|needed|opportunity|opportunities)\\b`, "i");
+    const m = before.exec(text) ?? after.exec(text);
+    if (m) found.push(`"${m[0].trim()}" offers ${t} as the role`);
   }
   return found;
 }
@@ -62,6 +80,7 @@ export function scanRecruiting(text: string, opts: ScanOptions = {}): RecruitFla
   for (const t of phraseHits(body, GUILD_CONFIG.earningsFlagWords)) flags.push({ kind: "earnings", text: t });
   for (const t of phraseHits(body, GUILD_CONFIG.hiringSafeFlagWords)) flags.push({ kind: "hiring", text: t });
   for (const t of phraseHits(body, GUILD_CONFIG.titleFlagWords)) flags.push({ kind: "title", text: t });
+  for (const t of roleOfferedAs(body, GUILD_CONFIG.roleTitleFlagWords)) flags.push({ kind: "title", text: t });
   for (const t of phraseHits(body, GUILD_CONFIG.scamPatternFlagWords)) flags.push({ kind: "scam", text: t });
   for (const t of phraseHits(body, QUEST_CONFIG.complianceFlagWords)) flags.push({ kind: "earnings", text: t });
   // Any dollar amount or percentage near pay words (Section 6.2: "any dollar amount or percentage tied to pay").
