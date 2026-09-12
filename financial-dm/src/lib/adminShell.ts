@@ -103,8 +103,8 @@ export const SHELL_CONFIG = {
   stallDays: QUEST_LOG_STALE_DAYS,
   /** "none" until CALENDLY_TOKEN is set; Phase 4 reads Calendly. */
   bookingSource: "calendly" as "none" | "calendly",
-  /** John's week starts Monday at midnight, Central time (assumed; easy to change). */
-  weekStart: { weekday: 1, hour: 0, timeZone: "America/Chicago" },
+  /** John's week starts Monday at midnight, Eastern time (confirmed by Jen, 12 Sep 2026). Every "today" and clock time on Home uses this zone. */
+  weekStart: { weekday: 1, hour: 0, timeZone: "America/New_York" },
 } as const;
 
 /** Section 5.2: time-aware and plain. */

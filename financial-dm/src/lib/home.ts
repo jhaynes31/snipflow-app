@@ -29,7 +29,7 @@ export interface HomeCard {
 export const EMPTY_CARD: HomeCard = { count: 0, items: [], href: "" };
 
 /** The first moment of John's current week, as an ISO string, from the configured weekday, hour, and time zone. */
-export function weekStartIso(now: Date = new Date(), cfg = SHELL_CONFIG.weekStart): string {
+export function weekStartIso(now: Date = new Date(), cfg: { weekday: number; hour: number; timeZone: string } = SHELL_CONFIG.weekStart): string {
   const dtf = new Intl.DateTimeFormat("en-US", { timeZone: cfg.timeZone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric", weekday: "short" });
   const parts = Object.fromEntries(dtf.formatToParts(now).map((p) => [p.type, p.value]));
   const y = Number(parts.year), mo = Number(parts.month), d = Number(parts.day), h = Number(parts.hour), mi = Number(parts.minute), s = Number(parts.second);
@@ -127,7 +127,7 @@ export function dayLine(c: DayLineCounts): string | null {
   return text.charAt(0).toUpperCase() + text.slice(1) + ".";
 }
 
-/** "2:00 PM" in John's time zone. */
+/** "3:00 PM" in John's time zone. */
 export function clockTime(iso: string, timeZone: string = SHELL_CONFIG.weekStart.timeZone): string {
   return new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }

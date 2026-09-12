@@ -46,11 +46,12 @@ describe("home helpers", () => {
     expect(full).not.toMatch(/urgent|hurry|asap|now!|don't miss/i);
   });
 
-  test("today's calls lead the day line, and clock times read in Central time", () => {
+  test("today's calls lead the day line, and clock times read in Eastern time", () => {
     const base = { newLeads: 1, filmSoon: 0, coldLeads: 0, recruitsWaiting: 0, questsEnding: [] as string[], needsRetro: 0, todayYmd: "2026-09-12" };
     expect(dayLine({ ...base, appointmentsToday: 2 })).toBe("2 calls today and one new lead.");
     expect(dayLine({ ...base, appointmentsToday: 1, newLeads: 0 })).toBe("One call today.");
-    expect(clockTime("2026-09-12T19:00:00Z")).toBe("2:00 PM");
-    expect(ymdInZone("2026-09-13T04:30:00Z")).toBe("2026-09-12");
+    // Eastern time: 19:00 UTC is 3:00 PM, and 03:30 UTC is still the previous evening.
+    expect(clockTime("2026-09-12T19:00:00Z")).toBe("3:00 PM");
+    expect(ymdInZone("2026-09-13T03:30:00Z")).toBe("2026-09-12");
   });
 });
