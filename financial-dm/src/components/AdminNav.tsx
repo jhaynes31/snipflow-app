@@ -11,12 +11,13 @@ import { getGuildBadge } from "~/server/guild";
  * the keyboard and need no state.
  */
 
-const FORGES: Array<{ tab: "script" | "meme" | "carousel" | "card" | "broll"; label: string; blurb: string }> = [
+const FORGES: Array<{ tab: "script" | "meme" | "carousel" | "card" | "broll" | "guild"; label: string; blurb: string }> = [
   { tab: "script", label: "📜 Script forge", blurb: "Video scripts and hooks" },
   { tab: "carousel", label: "🎠 Carousel forge", blurb: "Swipe-through photo posts" },
   { tab: "card", label: "🎨 Social card forge", blurb: "One stat or tip, one image" },
   { tab: "meme", label: "🎭 Meme forge", blurb: "Relatable moments" },
   { tab: "broll", label: "🎬 B Roll finder", blurb: "Clips to cut under a script" },
+  { tab: "guild", label: "🛡️ Guild forge", blurb: "Recruiting scripts, flyers, and job posts" },
 ];
 
 const QUIZZES: Array<{ href: string; label: string; blurb: string }> = [

@@ -1,3 +1,4 @@
+import GuildForge, { SavedGuildOutputs } from "~/components/guild/GuildForge";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -40,6 +41,7 @@ export const GENERATOR_TABS = [
   "carousel",
   "card",
   "broll",
+  "guild",
 ] as const;
 export type GeneratorTab = (typeof GENERATOR_TABS)[number];
 type View = "forge" | "saved";
@@ -82,6 +84,13 @@ const TAB_META: Record<
     blurb:
       "Forge the script, then get real footage for every line of it, ready to download and edit, plus your own clip library.",
     saved: "📁 My B Roll Library",
+  },
+  guild: {
+    label: "🛡️ Guild",
+    title: "Guild Forge (recruiting)",
+    blurb:
+      "Scripts, Trap or Treasure cards, carousels, flyers, job posts, and text posts for recruiting, built only from the confirmed Guild facts.",
+    saved: "🛡️ Saved Guild Pieces",
   },
 };
 
@@ -280,6 +289,15 @@ function GeneratorHub() {
             {tab === "carousel" && <SavedCarousels />}
             {tab === "card" && <SavedSocialCards />}
             {tab === "broll" && <BrollLibraryView />}
+            {tab === "guild" && <SavedGuildOutputs />}
+          </div>
+        ) : tab === "guild" ? (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="font-fantasy text-[#e0e0e0] text-lg">{meta.title}</h2>
+              <p className="text-[#606080] text-xs font-fantasy mt-1">{meta.blurb}</p>
+            </div>
+            <GuildForge campaignSlug={brief?.url ? brief.url.split("/").pop() : undefined} />
           </div>
         ) : (
           <div className="space-y-6">
