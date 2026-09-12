@@ -40,6 +40,32 @@ export default function AdminNav() {
       .catch(() => setNewRecruits(0));
   }, [pathname]);
 
+  // Menus close when you click anywhere else, open another menu, pick an
+  // item, or press Escape, so one never lingers open over the page.
+  useEffect(() => {
+    const menus = () => Array.from(document.querySelectorAll<HTMLDetailsElement>("[data-nav-menu]"));
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      for (const m of menus()) if (m.open && !m.contains(t)) m.open = false;
+    };
+    const onToggle = (e: Event) => {
+      const opened = e.target as HTMLDetailsElement;
+      if (!opened.open) return;
+      for (const m of menus()) if (m !== opened) m.open = false;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMenus();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    for (const m of menus()) m.addEventListener("toggle", onToggle);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+      for (const m of menus()) m.removeEventListener("toggle", onToggle);
+    };
+  }, []);
+
   const handleLogout = async () => {
     try {
       await logout();
