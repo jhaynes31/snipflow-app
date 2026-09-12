@@ -46,7 +46,7 @@ async function call<T>(path: string, token: string): Promise<T> {
   if (!res.ok) {
     const step = path.split("?")[0];
     if (res.status === 401) throw new Error("Calendly rejected the token. Check CALENDLY_TOKEN in Vercel.");
-    if (res.status === 403) throw new Error(`Calendly refused the ${step} call. The token needs this scope: ${scopeFor(path)}. Add it to the token in Calendly (or make a new token with it) and update CALENDLY_TOKEN.`);
+    if (res.status === 403) throw new Error(`Calendly refused the ${step} call. The token needs this scope: ${scopeFor(path)}. Add it to the token in Calendly (or make a new token with all the read scopes), update CALENDLY_TOKEN in Vercel, then redeploy so the site picks it up.`);
     throw new Error(`Calendly answered ${res.status} on ${step}.`);
   }
   return (await res.json()) as T;
