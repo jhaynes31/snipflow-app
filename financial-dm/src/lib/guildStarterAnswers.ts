@@ -21,4 +21,12 @@ export const GUILD_STARTER_ANSWERS: Array<{ key: string; value: string; confirme
   { key: "licensingRequired", value: "A state life insurance license is required.", confirmed: true },
   { key: "interviewFormat", value: "On Zoom, about 45 minutes.", confirmed: true },
   { key: "johnFullName", value: "John Haynes", confirmed: true },
+  // John approved the fit quiz copy and scoring as built (relayed by Jen, 12 Sep 2026).
+  { key: "fitQuizApproved", value: "yes", confirmed: true },
+  // Fair questions, relayed the same day. The costs answer waits on the missing recruitCosts fact, so it is left unconfirmed.
+  { key: "faq_legit", value: "The Foster Financial Group is an agency inside Primerica, which you can look up. I'm John Haynes, a licensed life insurance agent, and the interview is a Zoom call where you can ask me anything.", confirmed: true },
+  { key: "faq_experience_license", value: "No experience needed. A state life insurance license is required to do the work, and getting one is part of getting started.", confirmed: true },
+  { key: "faq_costs", value: "Interviewing costs nothing, and you will never be asked for payment or financial information to interview. Getting started does have costs, which you pay yourself. TODO(John): say plainly what they are, for example the pre-licensing course and the state exam fee.", confirmed: false },
+  { key: "faq_pay", value: "Pay is commission-based, not a salary. The details of how that works are what the conversation is for.", confirmed: true },
+  { key: "faq_interview", value: "It's a Zoom call, about 45 minutes. We get to know each other, and I walk through the licensing, the fees, and the process. If it's helpful, I can also answer questions about your own coverage or finances. No pressure either way.", confirmed: true },
 ];
