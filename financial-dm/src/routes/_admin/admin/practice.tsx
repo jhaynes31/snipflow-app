@@ -2,7 +2,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_DIFFICULTY, DIFFICULTY_LEVELS, DIFFICULTY_NOTE, outcomeLabel, temperamentById, temperamentsFor, type Conversation, type Difficulty } from "~/lib/practiceConfig";
 import type { Persona } from "~/lib/practicePrompts";
-import { deletePersona, generatePersona, getPracticeSetup, savePersona, startSession, type PracticeSetup } from "~/server/practice";
+import { deletePersona, generatePersona, getPracticeSetup, getRubrics, savePersona, saveRubric, startSession, type PracticeSetup, type Rubrics } from "~/server/practice";
 
 /**
  * The Sparring Dummy setup screen (AI practice spec, Sections 1, 4, 5, 6).
@@ -252,7 +252,50 @@ function PracticePage() {
             </section>
           </div>
         </div>
+
+        <RubricEditor />
       </div>
     </main>
+  );
+}
+
+/** Section 8.2: the things John wants noticed, one per line, separately for Coverage and Recruiting. The debrief judges only against these. */
+function RubricEditor() {
+  const [rubrics, setRubrics] = useState<Rubrics | null>(null);
+  const [drafts, setDrafts] = useState<Record<Conversation, string>>({ coverage: "", recruiting: "" });
+  const [saved, setSaved] = useState("");
+  useEffect(() => {
+    getRubrics().then((r) => { setRubrics(r); setDrafts({ coverage: r.coverage.join("\n"), recruiting: r.recruiting.join("\n") }); }).catch(() => setRubrics({ coverage: [], recruiting: [] }));
+  }, []);
+  const save = async (c: Conversation) => {
+    const res = await saveRubric({ data: { conversation: c, items: drafts[c] } });
+    if (res.ok) {
+      setRubrics((prev) => (prev ? { ...prev, [c]: res.items } : prev));
+      setDrafts((prev) => ({ ...prev, [c]: res.items.join("\n") }));
+      setSaved(c);
+      setTimeout(() => setSaved(""), 1500);
+    }
+  };
+  return (
+    <details className={`${card} p-4`} data-rubric-editor>
+      <summary className="font-fantasy text-[#c08020] cursor-pointer">📋 Your rubric: what the debrief should notice</summary>
+      <p className="text-[11px] text-[#a0a0a0] mt-2">One thing per line, in your words. The debrief judges only against these and the content rules; it never brings its own theory of selling. Lines that start with "Example: edit or delete" are starters.</p>
+      {!rubrics ? (
+        <p className="text-xs text-[#a0a0a0] mt-2">Loading...</p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 mt-3">
+          {(["coverage", "recruiting"] as Conversation[]).map((c) => (
+            <div key={c} data-rubric={c}>
+              <label className="block text-xs font-fantasy text-[#e0e0e0] mb-1">{c === "coverage" ? "🛡️ Coverage" : "🧭 Recruiting"} · {rubrics[c].length} item{rubrics[c].length === 1 ? "" : "s"}</label>
+              <textarea value={drafts[c]} onChange={(e) => setDrafts((prev) => ({ ...prev, [c]: e.target.value }))} rows={6} className={`w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`} data-rubric-input />
+              <div className="flex items-center gap-2 mt-1">
+                <button type="button" onClick={() => save(c)} className={btnGhost} data-rubric-save>Save</button>
+                {saved === c && <span className="text-[11px] text-[#7fd08a] font-fantasy">Saved</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </details>
   );
 }

@@ -4,7 +4,8 @@ import { requireAdmin } from "~/server/auth";
 import { ensureQuestBoardTables, rowToProfile, type ClientProfile } from "~/server/questBoard";
 import { callClaudeChat, parseJsonObject } from "~/server/aiChat.server";
 import { DEFAULT_DIFFICULTY, MAX_TURNS, OUTCOMES, PRACTICE_MODEL_DEFAULT, temperamentById, temperamentsFor, type Conversation, type Difficulty, type Outcome, type PracticeMode } from "~/lib/practiceConfig";
-import { OPENING_CUE, hintSystemPrompt, hintUserPrompt, personaSystemPrompt, personaUserPrompt, playSystemPrompt, profileSnapshot, recruitingTrustBlock, type Persona, type ProfileDescription } from "~/lib/practicePrompts";
+import { OPENING_CUE, debriefSystemPrompt, debriefUserPrompt, hintSystemPrompt, hintUserPrompt, personaSystemPrompt, personaUserPrompt, playSystemPrompt, profileSnapshot, recruitingTrustBlock, type Persona, type ProfileDescription } from "~/lib/practicePrompts";
+import { RUBRIC_SEEDS, normalizeRubric, scanJohnLines, validateDebrief, type AiDebrief, type Debrief } from "~/lib/practiceDebrief";
 
 /**
  * The Sparring Dummy, server side (AI practice spec, Phase 1). Practice
@@ -44,6 +45,7 @@ export function ensurePracticeTables(): Promise<void> {
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         )`;
+      await sql()`CREATE TABLE IF NOT EXISTS practice_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '', updated_at TIMESTAMPTZ DEFAULT NOW())`;
       await sql()`
         CREATE TABLE IF NOT EXISTS practice_personas (
           id SERIAL PRIMARY KEY,
@@ -81,6 +83,7 @@ export interface PracticeSession {
   difficulty: Difficulty;
   transcript: TranscriptEntry[];
   outcome: Outcome | null;
+  debrief: Debrief | null;
   practitioner: "john" | "recruit";
   sharedAsExample: boolean;
   turns: number;
@@ -115,6 +118,15 @@ const parseTranscript = (raw: unknown): TranscriptEntry[] => {
   }
 };
 const isOutcome = (v: unknown): v is Outcome => OUTCOMES.some((o) => o.id === v);
+const parseDebrief = (raw: unknown): Debrief | null => {
+  if (raw == null || raw === "") return null;
+  try {
+    const o = (typeof raw === "string" ? JSON.parse(raw) : raw) as Debrief;
+    return o && Array.isArray(o.flags) ? o : null;
+  } catch {
+    return null;
+  }
+};
 const johnTurns = (t: TranscriptEntry[]) => t.filter((m) => m.role === "john").length;
 
 function rowToSession(r: Record<string, unknown>): PracticeSession {
@@ -131,6 +143,7 @@ function rowToSession(r: Record<string, unknown>): PracticeSession {
     difficulty: (d >= 1 && d <= 4 ? d : DEFAULT_DIFFICULTY) as Difficulty,
     transcript,
     outcome: isOutcome(r.outcome) ? r.outcome : null,
+    debrief: parseDebrief(r.debrief),
     practitioner: r.practitioner === "recruit" ? "recruit" : "john",
     sharedAsExample: r.shared_as_example === true || r.shared_as_example === "t",
     turns: johnTurns(transcript),
@@ -389,4 +402,74 @@ export const deleteSession = createServerFn({ method: "POST" })
     await ensurePracticeTables();
     await sql()`DELETE FROM practice_sessions WHERE id = ${data.id}`;
     return { ok: true };
+  });
+
+
+// ── Rubrics (Section 8.2) ───────────────────────────────────────────
+
+export type Rubrics = Record<Conversation, string[]>;
+
+async function loadRubrics(): Promise<Rubrics> {
+  await ensurePracticeTables();
+  const rows = (await sql()`SELECT key, value FROM practice_settings WHERE key IN ('rubric_coverage', 'rubric_recruiting')`) as Array<{ key: string; value: string }>;
+  const get = (k: Conversation) => {
+    const row = rows.find((r) => r.key === `rubric_${k}`);
+    if (!row) return RUBRIC_SEEDS[k];
+    try {
+      return normalizeRubric(JSON.parse(row.value));
+    } catch {
+      return RUBRIC_SEEDS[k];
+    }
+  };
+  return { coverage: get("coverage"), recruiting: get("recruiting") };
+}
+
+export const getRubrics = createServerFn()
+  .middleware([requireAdmin])
+  .handler(async (): Promise<Rubrics> => loadRubrics());
+
+/** John's own list of things to notice. Saved as typed; an empty list is allowed and means "no rubric notes". */
+export const saveRubric = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .validator((d: { conversation: string; items: string[] | string }) => ({ conversation: (d?.conversation === "recruiting" ? "recruiting" : "coverage") as Conversation, items: normalizeRubric(d?.items) }))
+  .handler(async ({ data }): Promise<{ ok: boolean; items: string[] }> => {
+    await ensurePracticeTables();
+    const key = `rubric_${data.conversation}`;
+    await sql()`INSERT INTO practice_settings (key, value, updated_at) VALUES (${key}, ${JSON.stringify(data.items)}, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`;
+    return { ok: true, items: data.items };
+  });
+
+// ── Debrief (Section 8) ─────────────────────────────────────────────
+
+/** Builds the debrief once a session has ended and stores it. Idempotent: a stored debrief is returned as is. */
+export const getDebrief = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .validator((d: { id: number; refresh?: boolean }) => ({ id: Number(d?.id), refresh: Boolean(d?.refresh) }))
+  .handler(async ({ data }): Promise<{ ok: boolean; error?: string; debrief?: Debrief }> => {
+    const s = await loadSession(data.id);
+    if (!s) return { ok: false, error: "That session is gone." };
+    if (!s.endedAt) return { ok: false, error: "The session has not ended yet." };
+    if (s.debrief && !data.refresh) return { ok: true, debrief: s.debrief };
+    const johnLines = s.transcript.filter((m) => m.role === "john").map((m) => m.text);
+    const rubric = (await loadRubrics())[s.conversation];
+    const outcome = s.outcome ?? "ended_early";
+    // Deterministic flags first: the project's own word lists, applied to John's lines only.
+    const flags = scanJohnLines(johnLines, s.conversation);
+    const reply = await callClaudeChat({ system: debriefSystemPrompt(), messages: [{ role: "user", content: debriefUserPrompt({ conversation: s.conversation, persona: s.persona, outcome, rubric, transcript: s.transcript }) }], maxTokens: 900, model: MODEL(), tag: "practice-debrief" });
+    const ai = parseJsonObject<AiDebrief>(reply);
+    const v = validateDebrief(ai, rubric, johnLines);
+    const debrief: Debrief = {
+      outcome,
+      summary: v.summary || (ai ? "" : "The reviewer was not available, so this debrief has the rule checks only."),
+      flags: [...flags, ...(s.conversation === "recruiting" ? v.dodges : [])],
+      concern: s.persona.concern,
+      concernAddressed: v.concernAddressed,
+      concernNote: v.concernNote,
+      rubric: v.rubric,
+      hintsUsed: s.transcript.filter((m) => m.kind === "hint").length,
+      tryNext: v.tryNext,
+      generatedAt: new Date().toISOString(),
+    };
+    await sql()`UPDATE practice_sessions SET debrief = ${JSON.stringify(debrief)}, updated_at = NOW() WHERE id = ${s.id}`;
+    return { ok: true, debrief };
   });

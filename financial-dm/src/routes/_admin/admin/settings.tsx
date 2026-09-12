@@ -107,6 +107,7 @@ const ENTRIES: Array<{ label: string; blurb: string; to?: string; search?: Recor
   { label: "Loot table and loot content", blurb: "The armor loot pages and the ten Wealth Check guides.", view: "loot" },
   { label: "Compliance and flag word lists", blurb: "Words the forges flag: earnings hype, hiring-safe, titles, scam patterns.", view: "flags" },
   { label: "Platform list", blurb: "Where posts go, and the quest planning defaults.", view: "platforms" },
+  { label: "Practice rubrics", blurb: "What the Sparring Dummy's debrief notices, for Coverage and for Recruiting. John's words, edited on the Practice page.", to: "/admin/practice" },
   { label: "Password", blurb: "Change the password for these private tools.", to: "/admin/settings/password" },
   { label: "Email notifications and templates", blurb: "Where John's notifications go, whether sending is set up, and the wording of every email the site can send.", view: "email" },
 ];

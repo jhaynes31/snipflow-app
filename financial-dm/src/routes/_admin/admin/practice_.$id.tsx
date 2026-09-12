@@ -1,7 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { OUTCOMES, difficultyById, outcomeLabel, temperamentById, type Outcome } from "~/lib/practiceConfig";
-import { endSession, getSession, pauseHint, sendTurn, type PracticeSession } from "~/server/practice";
+import { endSession, getDebrief, getSession, pauseHint, sendTurn, type PracticeSession } from "~/server/practice";
+import type { Debrief } from "~/lib/practiceDebrief";
 import { PracticeBanner } from "./practice";
 
 /**
@@ -127,14 +128,7 @@ function SessionPage() {
         {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy" data-session-error>{error}</div>}
 
         {over ? (
-          <section className={`${card} p-4`} data-session-over>
-            <p className="text-[#e0e0e0] font-fantasy">Practice over · {outcomeLabel(s.outcome ?? "ended_early")}</p>
-            <p className="text-xs text-[#a0a0a0] mt-1">What {s.persona.name} was really worried about: <span className="text-[#e0e0e0]">{s.persona.concern}</span></p>
-            <p className="text-[11px] text-[#606080] mt-2">The full debrief, with compliance flags and your rubric, arrives in Phase 2. No scores, ever.</p>
-            <div className="flex gap-2 mt-3">
-              <Link {...linkTo("/admin/practice")} className={btnPrimary}>Practice again</Link>
-            </div>
-          </section>
+          <DebriefView session={s} onDebrief={(d) => setS((prev) => (prev ? { ...prev, debrief: d } : prev))} />
         ) : ending || capped ? (
           <section className={`${card} p-4`} data-outcome-picker>
             <p className="text-[#e0e0e0] font-fantasy text-sm">{capped ? `Cap reached. How did it end?` : "How did it end?"}</p>
@@ -159,5 +153,99 @@ function SessionPage() {
         )}
       </div>
     </main>
+  );
+}
+
+
+const MET_LABEL: Record<string, string> = { yes: "Yes", partly: "Partly", no: "Not this time", not_seen: "Not seen" };
+
+/** Section 8: outcome, compliance flags quoting John, the persona's real concern, rubric notes, one thing to try. Never a score. */
+function DebriefView({ session: s, onDebrief }: { session: PracticeSession; onDebrief: (d: Debrief) => void }) {
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(!s.debrief);
+  useEffect(() => {
+    if (s.debrief) return;
+    let alive = true;
+    getDebrief({ data: { id: s.id } })
+      .then((r) => {
+        if (!alive) return;
+        if (r.ok && r.debrief) onDebrief(r.debrief);
+        else setError(r.error ?? "Could not build the debrief.");
+      })
+      .catch((e) => alive && setError(String(e)))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.id, Boolean(s.debrief)]);
+  const d = s.debrief;
+  return (
+    <section className={`${card} p-4 space-y-4`} data-session-over data-debrief={d ? "ready" : loading ? "loading" : "error"}>
+      <div>
+        <p className="text-[#e0e0e0] font-fantasy text-lg">Debrief · {outcomeLabel(s.outcome ?? "ended_early")}</p>
+        {d?.summary && <p className="text-sm text-[#c9d3e3] mt-1" data-debrief-summary>{d.summary}</p>}
+        {loading && <p className="text-xs text-[#a0a0a0] mt-1">Reading the transcript...</p>}
+        {error && <p className="text-xs text-red-300 mt-1">{error}</p>}
+      </div>
+
+      {d && (
+        <>
+          <div data-debrief-flags>
+            <h3 className="font-fantasy text-[#c08020] text-sm">Compliance flags</h3>
+            {d.flags.length === 0 ? (
+              <p className="text-xs text-[#7fd08a] mt-1">Nothing you said broke a content rule.</p>
+            ) : (
+              <ul className="mt-1 space-y-2">
+                {d.flags.map((f, i) => (
+                  <li key={i} className="rounded-lg border border-[#c08020]/40 bg-[#c08020]/10 px-3 py-2" data-debrief-flag={f.ruleId}>
+                    <p className="text-sm text-[#e0e0e0]">"{f.quote}"</p>
+                    <p className="text-[11px] text-[#e0c080] mt-1">{f.ruleId === "dodge" ? `Deferred ${f.matched}` : f.matched.startsWith('"') ? f.matched : `"${f.matched}"`} · {f.rule}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div data-debrief-concern>
+            <h3 className="font-fantasy text-[#c08020] text-sm">What {s.persona.name} was actually worried about</h3>
+            <p className="text-sm text-[#e0e0e0] mt-1">{d.concern}</p>
+            <p className={`text-xs mt-1 ${d.concernAddressed ? "text-[#7fd08a]" : "text-[#e0c080]"}`}>{d.concernAddressed ? "Addressed." : "Not really addressed."} {d.concernNote}</p>
+          </div>
+
+          <div data-debrief-rubric>
+            <h3 className="font-fantasy text-[#c08020] text-sm">Against your rubric</h3>
+            {d.rubric.length === 0 ? (
+              <p className="text-xs text-[#a0a0a0] mt-1">No rubric items yet. Add some under Practice, and the next debrief will use them.</p>
+            ) : (
+              <ul className="mt-1 divide-y divide-[#406080]/15">
+                {d.rubric.map((r, i) => (
+                  <li key={i} className="py-2 flex items-start justify-between gap-3" data-rubric-note={r.met}>
+                    <div className="min-w-0">
+                      <p className="text-sm text-[#e0e0e0]">{r.item.replace(/^Example: edit or delete · /, "")}</p>
+                      {r.evidence && <p className="text-[11px] text-[#808080] mt-0.5">"{r.evidence}"</p>}
+                    </div>
+                    <span className={`shrink-0 text-[11px] font-fantasy px-2 py-0.5 rounded ${r.met === "yes" ? "bg-[#7fd08a]/15 text-[#7fd08a]" : r.met === "partly" ? "bg-[#c08020]/15 text-[#e0c080]" : "bg-[#406080]/20 text-[#a0a0a0]"}`}>{MET_LABEL[r.met]}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {d.hintsUsed > 0 && <p className="text-[11px] text-[#808080]" data-debrief-hints>You paused for a hint {d.hintsUsed === 1 ? "once" : `${d.hintsUsed} times`}. Fine to do; worth noticing.</p>}
+
+          {d.tryNext && (
+            <div className="rounded-lg border border-[#406080]/40 bg-[#0d1520]/60 px-3 py-2" data-debrief-try>
+              <p className="text-[11px] uppercase tracking-wider text-[#c08020] font-fantasy">One thing to try</p>
+              <p className="text-sm text-[#e0e0e0] mt-0.5">{d.tryNext}</p>
+            </div>
+          )}
+          <p className="text-[11px] text-[#606080]">This is a note, not a score. Nothing here is graded or ranked.</p>
+        </>
+      )}
+      <div className="flex gap-2">
+        <Link {...linkTo("/admin/practice")} className={btnPrimary}>Practice again</Link>
+      </div>
+    </section>
   );
 }

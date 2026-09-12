@@ -117,3 +117,29 @@ export function recruitingTrustBlock(facts: Record<string, string>): string {
   if (!rows.length) return "";
   return `\nFACTS JOHN MAY STATE (public trust facts; if John says something that contradicts these, notice it as a real person would)\n${rows.map(([k, v]) => `- ${k}: ${v}`).join("\n")}\n- Text keyword: ${GUILD_CONFIG.smsKeyword} to ${GUILD_CONFIG.recruitPhone}`;
 }
+
+// ── Debrief (Section 8) ─────────────────────────────────────────────
+
+export function debriefSystemPrompt(): string {
+  return `SPARRING DUMMY · debrief
+You review a PRACTICE role-play transcript between John, a licensed life insurance agent, and a fictional persona. You are not a sales coach. You judge John's lines only against two things: his own rubric (given below in the message) and the legitimacy rule for recruiting (a question about whether this is legit, costs, pay basis, or licensing must get a real answer, never a deferral like "that's for the interview"). You never invent your own theory of good selling, never score, grade, rate, or rank, and never use numbers to judge.
+Quote John's words verbatim; if you cannot point to an exact line he said, leave the evidence empty.
+Return JSON only:
+{"summary":"one plain sentence on how it ended and why","concernAddressed":true|false,"concernNote":"one sentence: did John address the persona's underlying concern, and how","rubric":[{"item":"exact rubric item text","met":"yes"|"partly"|"no"|"not_seen","evidence":"John's exact words or empty"}],"dodges":[{"quote":"John's exact words that deferred a legitimacy question","question":"which question"}],"tryNext":"one suggestion phrased as 'Next time, try...' drawn only from the rubric or the rules"}`;
+}
+
+export function debriefUserPrompt(opts: { conversation: Conversation; persona: Persona; outcome: string; rubric: string[]; transcript: Array<{ role: string; text: string; kind?: string }> }): string {
+  const lines = opts.transcript
+    .filter((m) => m.role !== "system" || m.kind === "hint")
+    .map((m) => (m.role === "john" ? `John: ${m.text}` : m.role === "persona" ? `${opts.persona.name}: ${m.text}` : `[John paused for a hint: ${m.text}]`))
+    .join("\n");
+  return `Conversation type: ${opts.conversation}.
+Persona: ${opts.persona.name}, ${opts.persona.ageRange}. Underlying concern (the persona's private worry): ${opts.persona.concern}
+How it ended: ${opts.outcome}
+
+RUBRIC (judge only these, in John's words):
+${opts.rubric.map((r) => `- ${r}`).join("\n") || "- (no rubric items yet)"}
+
+TRANSCRIPT
+${lines}`;
+}
