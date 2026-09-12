@@ -1,5 +1,5 @@
 import { Link, useLocation, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { logout } from "~/server/auth";
 import { getApprovals, type ApprovalsSummary } from "~/server/approvals";
 import { ADMIN_TABS, activeTab, availableTabs, crumb } from "~/lib/adminShell";
@@ -70,6 +70,30 @@ export default function AdminNav() {
   const tabs = availableTabs();
   const primary = tabs.filter((t) => t.mobilePrimary);
   const more = tabs.filter((t) => !t.mobilePrimary);
+
+  // Section 3.2 fallback order: shorten labels first (CSS), then fold the least-used tabs. Home, Leads, and Quest Board never fold.
+  const FOLD_ORDER = ["settings", "quizzes", "practice", "guild", "forge"];
+  const foldable = FOLD_ORDER.map((id) => tabs.find((t) => t.id === id)).filter((t): t is (typeof tabs)[number] => Boolean(t));
+  // Stage 0: full labels where the screen is wide enough. Stage 1: short labels everywhere. Stage 2+: short labels and (stage - 1) tabs folded.
+  const [stage, setStage] = useState(0);
+  const fullLabels = stage === 0;
+  const folded = Math.max(0, stage - 1);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const foldedIds = new Set(foldable.slice(0, folded).map((t) => t.id));
+  const visibleTabs = tabs.filter((t) => !foldedIds.has(t.id));
+  const menuTabs = foldable.filter((t) => foldedIds.has(t.id));
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    if (row.scrollWidth > row.clientWidth + 1 && stage < foldable.length + 1) setStage(stage + 1);
+  });
+  useEffect(() => {
+    const reset = () => setStage(0);
+    window.addEventListener("resize", reset);
+    // Web fonts arriving late change widths, so measure again once they are in.
+    document.fonts?.ready.then(reset).catch(() => {});
+    return () => window.removeEventListener("resize", reset);
+  }, []);
   const total = approvals?.total ?? 0;
 
   return (
@@ -81,28 +105,31 @@ export default function AdminNav() {
             <span className="hidden lg:inline font-fantasy text-[#c08020] text-sm">The Financial DM</span>
           </Link>
 
-          {/* Desktop and tablet tabs */}
-          <div className="hidden md:flex items-center gap-1 flex-1 min-w-0" role="list">
-            {tabs.map((t) => {
+          {/* Desktop and tablet tabs. The row measures itself: when the tabs would run under the badge, the least-used fold into More, one at a time, whatever the font or width. */}
+          <div ref={rowRef} className="hidden md:flex items-center gap-1 flex-1 min-w-0" role="list" data-tab-row data-folded={folded}>
+            {visibleTabs.map((t) => {
               const isOn = current?.id === t.id;
-              // Section 3.2: labels shorten first; on narrower desktops the least-used tabs fold into More. Home, Leads, and Quest Board never fold.
-              const link = (
+              return (
                 <Link key={t.id} {...linkTo(t.to, t.search)} className={isOn ? active : idle} aria-current={isOn ? "page" : undefined} data-nav={t.id} role="listitem">
                   <span aria-hidden="true">{t.icon}</span>
-                  <span className="hidden 2xl:inline">{t.id === "home" ? "Tavern Keeper" : t.label}</span>
-                  <span className="2xl:hidden">{t.short}</span>
+                  {fullLabels ? (
+                    <>
+                      <span className="hidden 2xl:inline">{t.id === "home" ? "Tavern Keeper" : t.label}</span>
+                      <span className="2xl:hidden">{t.short}</span>
+                    </>
+                  ) : (
+                    <span>{t.short}</span>
+                  )}
                 </Link>
               );
-              // A wrapper does the hiding, so the pill's own display class cannot override it.
-              return t.mobilePrimary ? link : <span key={t.id} className="hidden xl:contents">{link}</span>;
             })}
-            {more.length > 0 && (
-              <details className="relative xl:hidden" data-nav-menu="desktop-more" role="listitem">
-                <summary className={`list-none cursor-pointer ${more.some((t) => current?.id === t.id) ? active : idle}`} data-nav-more>
+            {menuTabs.length > 0 && (
+              <details className="relative" data-nav-menu="desktop-more" role="listitem">
+                <summary className={`list-none cursor-pointer ${menuTabs.some((t) => current?.id === t.id) ? active : idle}`} data-nav-more>
                   <span aria-hidden="true">⋯</span> More
                 </summary>
                 <div className="absolute left-0 mt-1 w-56 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50">
-                  {more.map((t) => (
+                  {menuTabs.map((t) => (
                     <Link key={t.id} {...linkTo(t.to, t.search)} className={menuItem} onClick={closeMenus} aria-current={current?.id === t.id ? "page" : undefined} data-nav-more-item={t.id}>
                       <span className="block text-[#e0e0e0] text-sm font-fantasy">{t.icon} {t.label}</span>
                     </Link>
