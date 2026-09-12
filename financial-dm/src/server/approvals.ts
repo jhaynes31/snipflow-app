@@ -8,6 +8,8 @@ import { factLabel, missingFacts, type GuildFacts } from "~/lib/guildConfig";
 import { FIT_SCORING } from "~/lib/fitQuiz";
 import * as armor from "~/lib/armorConfig";
 import { SHELL_CONFIG } from "~/lib/adminShell";
+import { REVIEW_ITEMS } from "~/lib/reviewItems";
+import { loadSignoffs } from "~/server/homeState";
 
 /**
  * The shared pending-approvals interface (Tavern Keeper's Morning spec,
@@ -128,8 +130,27 @@ const quizConfig: Contributor = {
   },
 };
 
+/** One-time reviews of copy and numbers that live in code, shown read-only under Settings. Never blocking. */
+const configReviews: Contributor = {
+  id: "config_reviews",
+  async run(limit) {
+    const signed = await loadSignoffs();
+    const open = REVIEW_ITEMS.filter((r) => !signed[r.key]);
+    if (!open.length) return null;
+    return {
+      id: "config_reviews",
+      tool: "Settings",
+      type: open.length === 1 ? "config review" : "config reviews",
+      count: open.length,
+      blocking: false,
+      href: "/admin/settings",
+      items: open.slice(0, limit).map((r) => ({ label: r.label, detail: `${r.tool} · mark reviewed under Settings`, href: `/admin/settings?view=${r.view}` })),
+    };
+  },
+};
+
 /** Section 6.3: tools register here. A new tool adds one entry and the badge, card, and queue pick it up. */
-const CONTRIBUTORS: Contributor[] = [guildFacts, quizConfig, draftedSlots, guildOutputs];
+const CONTRIBUTORS: Contributor[] = [guildFacts, quizConfig, draftedSlots, guildOutputs, configReviews];
 
 export async function collectApprovals(limit: number = SHELL_CONFIG.cardItemLimit): Promise<ApprovalsSummary> {
   const results = await Promise.allSettled(CONTRIBUTORS.map((c) => c.run(limit)));

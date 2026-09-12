@@ -14,6 +14,10 @@ export interface HomeItem {
   href: string;
   /** Optional small tag such as "missed" or "ended". */
   tag?: string;
+  /** Dismissal key, e.g. "lead:12". */
+  key: string;
+  /** Signature of the item's underlying state; a dismissal only holds while this matches (Section 6.4). */
+  sig: string;
 }
 
 export interface HomeCard {

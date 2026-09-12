@@ -1,4 +1,4 @@
-import { RECRUIT_STAGES, type RecruitStage } from "./guildConfig";
+import { GUILD_CONFIG, RECRUIT_STAGES, type RecruitStage } from "./guildConfig";
 
 /**
  * The Quest Log (recruiting spec, Phase 5): an onboarding checklist for a
@@ -8,7 +8,8 @@ import { RECRUIT_STAGES, type RecruitStage } from "./guildConfig";
  * recruit, and nothing here is shown to the public.
  */
 
-export const QUEST_LOG_STALE_DAYS = 7;
+/** One stall threshold for the whole Guild (recruiting spec config, reused by Home per the shell spec). */
+export const QUEST_LOG_STALE_DAYS = GUILD_CONFIG.stallDays;
 
 export interface QuestLogStep {
   id: string;
@@ -113,7 +114,7 @@ export function daysSince(iso: string, now: Date = new Date()): number {
   return Math.max(0, Math.floor((now.getTime() - t) / 86_400_000));
 }
 
-/** Nothing ticked for a week and steps still left: worth a friendly text. */
+/** Nothing ticked for the stall threshold and steps still left: worth a friendly text. */
 export function needsNudge(log: QuestLog, now: Date = new Date(), staleDays: number = QUEST_LOG_STALE_DAYS): boolean {
   if (isQuestLogComplete(log)) return false;
   return daysSince(log.lastProgressAt || log.startedAt, now) >= staleDays;

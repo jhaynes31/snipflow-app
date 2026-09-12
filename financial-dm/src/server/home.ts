@@ -9,6 +9,8 @@ import { needsNudge, parseQuestLog, stageIndex } from "~/lib/questLog";
 import { sourceLabel } from "~/lib/guildConfig";
 import { SHELL_CONFIG } from "~/lib/adminShell";
 import { EMPTY_CARD, daysUntil, dayWord, isCold, todayYmd, waitingFor, weekStartIso, type HomeCard, type HomeItem } from "~/lib/home";
+import { isDismissed, loadDismissals, type Dismissals } from "~/server/homeState";
+import { collectApprovals } from "~/server/approvals";
 
 /**
  * The Tavern Keeper's Morning, data side (spec, Sections 5 and 6). One
@@ -20,36 +22,44 @@ import { EMPTY_CARD, daysUntil, dayWord, isCold, todayYmd, waitingFor, weekStart
  */
 
 const LIMIT = SHELL_CONFIG.cardItemLimit;
+/** Rows fetched per card before dismissals are applied, so the count stays honest at John's volumes. */
+const WINDOW = 50;
 const n = (v: unknown) => Number(v ?? 0);
 const s = (v: unknown) => String(v ?? "");
+
+/** Drops dismissed items (whose state has not changed) and builds the card from what is left. */
+function finish(items: HomeItem[], href: string, d: Dismissals, extra?: Record<string, unknown>): HomeCard & Record<string, unknown> {
+  const live = items.filter((it) => !isDismissed(d, it.key, it.sig));
+  if (!live.length) return { ...EMPTY_CARD, ...(extra ?? {}) };
+  return { count: live.length, href, items: live.slice(0, LIMIT), ...(extra ?? {}) };
+}
 
 /** Card 1: leads at New, newest first. */
 export const getHomeNewLeads = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<HomeCard> => {
-    await ensureLeadsTable();
-    const [c] = (await sql()`SELECT count(*)::int AS n FROM leads WHERE status = 'New'`) as Array<{ n: number }>;
-    const count = n(c?.n);
-    if (!count) return EMPTY_CARD;
-    const rows = (await sql()`SELECT id, name, quiz_type, quiz_result, created_at FROM leads WHERE status = 'New' ORDER BY created_at DESC LIMIT ${LIMIT}`) as Array<Record<string, unknown>>;
+    const [d] = await Promise.all([loadDismissals(), ensureLeadsTable()]);
+    const rows = (await sql()`SELECT id, name, quiz_type, quiz_result, created_at FROM leads WHERE status = 'New' ORDER BY created_at DESC LIMIT ${WINDOW}`) as Array<Record<string, unknown>>;
     const now = new Date();
-    return {
-      count,
-      href: "/admin/leads",
-      items: rows.map((r) => ({
+    return finish(
+      rows.map((r) => ({
         id: n(r.id),
         title: s(r.name),
         meta: [quizTypeLabel(s(r.quiz_type)), s(r.quiz_result), `waiting ${waitingFor(s(r.created_at), now)}`].filter(Boolean).join(" · "),
         href: `/admin/leads?lead=${n(r.id)}`,
+        key: `lead:${n(r.id)}`,
+        sig: `New|${s(r.created_at)}`,
       })),
-    };
+      "/admin/leads",
+      d,
+    );
   });
 
 /** Card 6: leads at Contacted with no status change for the cold threshold. Oldest first. */
 export const getHomeColdLeads = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<HomeCard> => {
-    await ensureLeadsTable();
+    const [d] = await Promise.all([loadDismissals(), ensureLeadsTable()]);
     const rows = (await sql()`SELECT id, name, quiz_type, status_history, created_at FROM leads WHERE status = 'Contacted' ORDER BY created_at ASC LIMIT 200`) as Array<Record<string, unknown>>;
     const now = new Date();
     const cold = rows
@@ -60,57 +70,50 @@ export const getHomeColdLeads = createServerFn()
       })
       .filter((x) => isCold(x.last, now))
       .sort((a, b) => Date.parse(a.last) - Date.parse(b.last));
-    if (!cold.length) return EMPTY_CARD;
-    return {
-      count: cold.length,
-      href: "/admin/leads",
-      items: cold.slice(0, LIMIT).map(({ r, last }) => ({
+    return finish(
+      cold.map(({ r, last }) => ({
         id: n(r.id),
         title: s(r.name),
         meta: `${quizTypeLabel(s(r.quiz_type))} · contacted ${waitingFor(last, now)} ago`,
         href: `/admin/leads?lead=${n(r.id)}`,
+        key: `lead:${n(r.id)}`,
+        sig: `Contacted|${last}`,
       })),
-    };
+      "/admin/leads",
+      d,
+    );
   });
 
 /** Card 3: recruits at Interested, plus anyone whose Quest Log has gone quiet. */
 export const getHomeRecruits = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<HomeCard> => {
-    await ensureGuildTables();
+    const [d] = await Promise.all([loadDismissals(), ensureGuildTables()]);
     const now = new Date();
     const waiting = (await sql()`SELECT id, name, source, created_at FROM recruits WHERE stage = 'interested' ORDER BY created_at DESC LIMIT 50`) as Array<Record<string, unknown>>;
     const logs = (await sql()`SELECT id, name, quest_log FROM recruits WHERE quest_log IS NOT NULL AND stage <> 'not_moving_forward' LIMIT 200`) as Array<Record<string, unknown>>;
-    const stalled = logs.filter((r) => {
-      const log = parseQuestLog(r.quest_log);
-      return log && needsNudge(log, now);
-    });
-    const count = waiting.length + stalled.length;
-    if (!count) return EMPTY_CARD;
+    const stalled = logs
+      .map((r) => ({ r, log: parseQuestLog(r.quest_log) }))
+      .filter((x) => x.log && needsNudge(x.log, now));
     const items: HomeItem[] = [
-      ...waiting.map((r) => ({ id: n(r.id), title: s(r.name), meta: `${sourceLabel(s(r.source))} · waiting ${waitingFor(s(r.created_at), now)}`, href: "/admin/guild?view=recruits" })),
-      ...stalled.map((r) => ({ id: n(r.id), title: s(r.name), meta: "Quest Log quiet for a week", href: "/admin/guild?view=questlogs", tag: "stalled" })),
+      ...waiting.map((r) => ({ id: n(r.id), title: s(r.name), meta: `${sourceLabel(s(r.source))} · waiting ${waitingFor(s(r.created_at), now)}`, href: "/admin/guild?view=recruits", key: `recruit:${n(r.id)}`, sig: `interested|${s(r.created_at)}` })),
+      ...stalled.map(({ r, log }) => ({ id: n(r.id), title: s(r.name), meta: `Quest Log quiet for ${SHELL_CONFIG.stallDays} days`, href: "/admin/guild?view=questlogs", tag: "stalled", key: `recruitlog:${n(r.id)}`, sig: `stalled|${log!.lastProgressAt}` })),
     ];
-    return { count, href: "/admin/guild?view=recruits", items: items.slice(0, LIMIT) };
+    return finish(items, "/admin/guild?view=recruits", d);
   });
 
 /** Card 5: approved posts due within the film window, and approved posts whose date has passed unposted. */
 export const getHomeFilmNext = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<HomeCard> => {
-    await ensureQuestTables();
+    const [d] = await Promise.all([loadDismissals(), ensureQuestTables()]);
     const today = todayYmd();
     const horizon = new Date(Date.parse(`${today}T12:00:00Z`) + SHELL_CONFIG.filmWindowDays * 86_400_000).toISOString().slice(0, 10);
-    const [c] = (await sql()`SELECT count(*)::int AS n FROM content_slots WHERE status = 'approved' AND date <= ${horizon}`) as Array<{ n: number }>;
-    const count = n(c?.n);
-    if (!count) return EMPTY_CARD;
     const rows = (await sql()`
       SELECT sl.id, sl.quest_id, sl.topic, sl.date, sl.platform, q.name FROM content_slots sl LEFT JOIN quests q ON q.id = sl.quest_id
-      WHERE sl.status = 'approved' AND sl.date <= ${horizon} ORDER BY sl.date ASC LIMIT ${LIMIT}`) as Array<Record<string, unknown>>;
-    return {
-      count,
-      href: "/admin/quests?section=quests",
-      items: rows.map((r) => {
+      WHERE sl.status = 'approved' AND sl.date <= ${horizon} ORDER BY sl.date ASC LIMIT ${WINDOW}`) as Array<Record<string, unknown>>;
+    return finish(
+      rows.map((r) => {
         const missed = daysUntil(s(r.date), today) < 0;
         return {
           id: n(r.id),
@@ -118,9 +121,13 @@ export const getHomeFilmNext = createServerFn()
           meta: [s(r.name), s(r.platform), missed ? `was due ${dayWord(s(r.date), today)}` : `post ${dayWord(s(r.date), today)}`].filter(Boolean).join(" · "),
           href: `/admin/quests?section=quests&quest=${n(r.quest_id)}`,
           ...(missed ? { tag: "missed" } : {}),
+          key: `slot:${n(r.id)}`,
+          sig: `approved|${s(r.date)}`,
         };
       }),
-    };
+      "/admin/quests?section=quests",
+      d,
+    );
   });
 
 export interface QuestStatusCard extends HomeCard {
@@ -133,7 +140,7 @@ export interface QuestStatusCard extends HomeCard {
 export const getHomeQuestStatus = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<QuestStatusCard> => {
-    await Promise.all([ensureQuestTables(), ensureLeadsTable()]);
+    const [d] = await Promise.all([loadDismissals(), ensureQuestTables(), ensureLeadsTable()]);
     const today = todayYmd();
     const active = (await sql()`SELECT id, name, end_date FROM quests WHERE status = 'active' ORDER BY end_date ASC LIMIT 20`) as Array<Record<string, unknown>>;
     const slotRows = (await sql()`SELECT sl.quest_id, sl.status FROM content_slots sl JOIN quests q ON q.id = sl.quest_id WHERE q.status = 'active'`) as Array<Record<string, unknown>>;
@@ -155,15 +162,34 @@ export const getHomeQuestStatus = createServerFn()
       if (left !== null && left >= 0 && left <= 7) endingSoon.push(end);
       const leftText = left === null ? "no end date" : left < 0 ? `ended ${dayWord(end, today)}` : left === 0 ? "ends today" : `${left} day${left === 1 ? "" : "s"} left`;
       const b = booked.get(id) ?? 0;
-      return { id, title: s(r.name), meta: `${leftText} · ${posted.get(id) ?? 0} of ${planned.get(id) ?? 0} posts published · ${b} booked`, href: `/admin/quests?section=quests&quest=${id}` };
+      const p = posted.get(id) ?? 0;
+      return { id, title: s(r.name), meta: `${leftText} · ${p} of ${planned.get(id) ?? 0} posts published · ${b} booked`, href: `/admin/quests?section=quests&quest=${id}`, key: `quest:${id}`, sig: `active|${end}|${p}|${b}` };
     });
-    const activeIds = new Set(items.map((i) => i.id));
-    const retroItems: HomeItem[] = retro
-      .filter((r) => !activeIds.has(n(r.id)) || true)
-      .map((r) => ({ id: n(r.id), title: s(r.name), meta: "Ended. Write the wrap-up so the next quest starts smarter.", href: "/admin/quests?section=scoreboard", tag: "wrap-up" }));
-    const all = [...items, ...retroItems];
-    if (!all.length) return { ...EMPTY_CARD, endingSoon: [], needsRetro: 0 };
-    return { count: all.length, href: "/admin/quests?section=quests", items: all.slice(0, Math.max(LIMIT, items.length)), endingSoon, needsRetro: retroItems.length };
+    const retroItems: HomeItem[] = retro.map((r) => ({ id: n(r.id), title: s(r.name), meta: "Ended. Write the wrap-up so the next quest starts smarter.", href: "/admin/quests?section=scoreboard", tag: "wrap-up", key: `questretro:${n(r.id)}`, sig: "needs-retro" }));
+    const live = [...items, ...retroItems].filter((it) => !isDismissed(d, it.key, it.sig));
+    if (!live.length) return { ...EMPTY_CARD, endingSoon: [], needsRetro: 0 };
+    const liveActive = live.filter((it) => !it.tag).length;
+    return { count: live.length, href: "/admin/quests?section=quests", items: live.slice(0, Math.max(LIMIT, liveActive)), endingSoon, needsRetro: live.length - liveActive };
+  });
+
+/** Card 4: counts by type from the shared approvals registry, linking to the queue. */
+export const getHomeApprovals = createServerFn()
+  .middleware([requireAdmin])
+  .handler(async (): Promise<HomeCard> => {
+    const [d, sum] = await Promise.all([loadDismissals(), collectApprovals()]);
+    const items: HomeItem[] = sum.groups.map((g, i) => ({
+      id: i + 1,
+      title: `${g.count} ${g.type}`,
+      meta: `${g.tool}${g.blocking ? " · blocking until done" : ""}`,
+      href: g.href,
+      ...(g.blocking ? { tag: "blocking" } : {}),
+      key: `approvals:${g.id}`,
+      sig: `${g.count}`,
+    }));
+    const live = items.filter((it) => !isDismissed(d, it.key, it.sig));
+    if (!live.length) return EMPTY_CARD;
+    const count = sum.groups.filter((g) => live.some((it) => it.key === `approvals:${g.id}`)).reduce((t, g) => t + g.count, 0);
+    return { count, href: "/admin/approvals", items: live.slice(0, LIMIT) };
   });
 
 export interface HomeNumbers {
