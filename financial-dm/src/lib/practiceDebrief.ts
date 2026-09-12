@@ -48,6 +48,8 @@ export interface Debrief {
   rubric: RubricNote[];
   hintsUsed: number;
   tryNext: string;
+  /** Presentation mode only. */
+  presentation?: import("./practicePresentation").PresentationSummary;
   generatedAt: string;
 }
 

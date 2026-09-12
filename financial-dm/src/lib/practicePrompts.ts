@@ -128,7 +128,7 @@ Return JSON only:
 {"summary":"one plain sentence on how it ended and why","concernAddressed":true|false,"concernNote":"one sentence: did John address the persona's underlying concern, and how","rubric":[{"item":"exact rubric item text","met":"yes"|"partly"|"no"|"not_seen","evidence":"John's exact words or empty"}],"dodges":[{"quote":"John's exact words that deferred a legitimacy question","question":"which question"}],"tryNext":"one suggestion phrased as 'Next time, try...' drawn only from the rubric or the rules"}`;
 }
 
-export function debriefUserPrompt(opts: { conversation: Conversation; persona: Persona; outcome: string; rubric: string[]; transcript: Array<{ role: string; text: string; kind?: string }> }): string {
+export function debriefUserPrompt(opts: { conversation: Conversation; persona: Persona; outcome: string; rubric: string[]; transcript: Array<{ role: string; text: string; kind?: string }>; presentationLines?: string[] }): string {
   const lines = opts.transcript
     .filter((m) => m.role !== "system" || m.kind === "hint")
     .map((m) => (m.role === "john" ? `John: ${m.text}` : m.role === "persona" ? `${opts.persona.name}: ${m.text}` : `[John paused for a hint: ${m.text}]`))
@@ -136,10 +136,38 @@ export function debriefUserPrompt(opts: { conversation: Conversation; persona: P
   return `Conversation type: ${opts.conversation}.
 Persona: ${opts.persona.name}, ${opts.persona.ageRange}. Underlying concern (the persona's private worry): ${opts.persona.concern}
 How it ended: ${opts.outcome}
-
+${opts.presentationLines?.length ? `\nPRESENTATION NOTES (facts from the section tracker; use them for the summary and tryNext, do not invent others):\n${opts.presentationLines.map((l) => `- ${l}`).join("\n")}\n` : ""}
 RUBRIC (judge only these, in John's words):
 ${opts.rubric.map((r) => `- ${r}`).join("\n") || "- (no rubric items yet)"}
 
 TRANSCRIPT
 ${lines}`;
+}
+
+// ── Presentation Practice (Section 7.2) ─────────────────────────────
+
+import type { PresentationSection } from "./practicePresentation";
+
+/** Added to the play prompt in presentation mode: the outline, never the deck. */
+export function presentationBlock(name: string, sections: PresentationSection[]): string {
+  return `\nPRESENTATION
+John is walking you through his "${name}" section by section. You are the listener. The outline:
+${sections.map((s, i) => `${i + 1}. ${s.title} (${s.minMinutes === s.maxMinutes ? `${s.minMinutes} min` : `${s.minMinutes} to ${s.maxMinutes} min`}): ${s.points.join("; ")}`).join("\n")}
+React between sections like a real person: a question, a nod, a doubt. When a cue tells you to interrupt, do it in character with one real question, and do not apologize for it. When a cue tells you John finished, keep your reaction short so he can move on.`;
+}
+
+export function presentationOpeningCue(first: PresentationSection): string {
+  return `[Practice begins. John is about to start his presentation with the section "${first.title}". Greet him briefly in character and let him begin.]`;
+}
+
+export function sectionReactionCue(section: PresentationSection, said: string, isLast: boolean): string {
+  return `[John just finished the section "${section.title}" (covering: ${section.points.join("; ")}).${said ? ` Key lines he said, in his words: "${said}"` : ""} React briefly in character: one or two sentences, a question, a nod, or a doubt.${isLast ? " That was his last section, so react to the whole thing and say where you stand." : " Do not end the conversation."}]`;
+}
+
+export function interruptionCue(current: PresentationSection, target: PresentationSection): string {
+  return `[Interrupt John part-way through "${current.title}". Jump ahead to "${target.title}" (which covers: ${target.points.join("; ")}) with one real question about it, the way a person who is impatient for that part would. One or two sentences, in character. Do not answer it yourself.]`;
+}
+
+export function disengageCue(current: PresentationSection): string {
+  return `[You have drifted during "${current.title}": you glanced at your phone, mentioned the time, or gave a half-answer. One short line that shows John has lost you, in character. Do not ask a question.]`;
 }

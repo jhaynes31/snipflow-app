@@ -1,7 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { OUTCOMES, difficultyById, outcomeLabel, temperamentById, type Outcome } from "~/lib/practiceConfig";
-import { endSession, getDebrief, getSession, pauseHint, sendTurn, type PracticeSession } from "~/server/practice";
+import { endSession, getDebrief, getSession, pauseHint, sectionEvent, sendTurn, type PracticeSession } from "~/server/practice";
+import { midpointSeconds } from "~/lib/practicePresentation";
 import type { Debrief } from "~/lib/practiceDebrief";
 import { PracticeBanner } from "./practice";
 
@@ -46,6 +47,8 @@ function SessionPage() {
 
   const over = Boolean(s.endedAt);
   const capped = !over && s.turns >= s.maxTurns;
+  const pres = s.presentation;
+  const allSectionsDone = Boolean(pres && pres.sections.every((sec) => s.progress.some((q) => q.sectionId === sec.id && q.status !== "open")));
   const t = temperamentById(s.temperament);
   const d = difficultyById(s.difficulty);
 
@@ -91,7 +94,7 @@ function SessionPage() {
 
   return (
     <main className="min-h-dvh py-4 px-4" style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }} data-practice-session data-ended={over ? "true" : "false"}>
-      <div className="max-w-3xl mx-auto space-y-3">
+      <div className={`${pres ? "max-w-6xl" : "max-w-3xl"} mx-auto space-y-3`}>
         <PracticeBanner />
         <header className={`${card} p-3 flex flex-wrap items-center justify-between gap-2`}>
           <div className="min-w-0">
@@ -104,17 +107,20 @@ function SessionPage() {
           </div>
         </header>
 
+        <div className={pres && !over ? "grid gap-3 lg:grid-cols-[1fr_1.1fr] items-start" : ""}>
+        {pres && !over && <PresentationPanel session={s} onSession={(next) => setS(next)} onAllDone={() => setEnding(true)} />}
+        <div className="space-y-3">
         <section className={`${card} p-3 sm:p-4`} aria-label="Practice transcript">
           <ol className="space-y-2" data-transcript>
             {s.transcript.map((m, i) => (
               <li key={i} className={m.role === "john" ? "flex justify-end" : m.role === "system" ? "flex justify-center" : "flex justify-start"} data-line={m.role} data-kind={m.kind ?? "say"}>
                 {m.role === "system" ? (
-                  <p className={`max-w-[85%] rounded-lg px-3 py-1.5 text-xs ${m.kind === "hint" ? "bg-[#c08020]/15 border border-[#c08020]/40 text-[#e0c080]" : "text-[#606080] italic"}`}>
-                    {m.kind === "hint" ? "Hint · " : ""}{m.text}
+                  <p className={`max-w-[85%] rounded-lg px-3 py-1.5 text-xs ${m.kind === "hint" ? "bg-[#c08020]/15 border border-[#c08020]/40 text-[#e0c080]" : m.kind === "section" ? "text-[#a0a0a0] font-fantasy" : "text-[#606080] italic"}`}>
+                    {m.kind === "hint" ? "Hint · " : m.kind === "section" ? "— " : ""}{m.text}{m.kind === "section" ? " —" : ""}
                   </p>
                 ) : (
-                  <p className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-line ${m.role === "john" ? "bg-[#c08020]/20 text-[#e0e0e0]" : "bg-[#0d1520]/70 border border-[#406080]/30 text-[#e0e0e0]"}`}>
-                    <span className="block text-[10px] uppercase tracking-wider text-[#808080] font-fantasy mb-0.5">{m.role === "john" ? "You" : s.persona.name}</span>
+                  <p className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-line ${m.role === "john" ? "bg-[#c08020]/20 text-[#e0e0e0]" : m.kind === "interrupt" || m.kind === "drift" ? "bg-[#c08020]/10 border border-[#c08020]/50 text-[#e0e0e0]" : "bg-[#0d1520]/70 border border-[#406080]/30 text-[#e0e0e0]"}`}>
+                    <span className="block text-[10px] uppercase tracking-wider text-[#808080] font-fantasy mb-0.5">{m.role === "john" ? (m.kind === "said" ? "You (during the section)" : "You") : m.kind === "interrupt" ? `${s.persona.name} · interrupts` : m.kind === "drift" ? `${s.persona.name} · drifts` : s.persona.name}</span>
                     {m.text}
                   </p>
                 )}
@@ -129,15 +135,15 @@ function SessionPage() {
 
         {over ? (
           <DebriefView session={s} onDebrief={(d) => setS((prev) => (prev ? { ...prev, debrief: d } : prev))} />
-        ) : ending || capped ? (
+        ) : ending || capped || allSectionsDone ? (
           <section className={`${card} p-4`} data-outcome-picker>
-            <p className="text-[#e0e0e0] font-fantasy text-sm">{capped ? `Cap reached. How did it end?` : "How did it end?"}</p>
+            <p className="text-[#e0e0e0] font-fantasy text-sm">{capped ? `Cap reached. How did it end?` : allSectionsDone ? "You reached the end of the presentation. How did it go?" : "How did it end?"}</p>
             <p className="text-[11px] text-[#606080] mb-2">Your honest read. It is a note for the debrief, not a score.</p>
             <div className="flex flex-wrap gap-2">
               {OUTCOMES.map((o) => (
                 <button key={o.id} type="button" onClick={() => finish(o.id)} disabled={busy === "end"} className={btnGhost} data-outcome={o.id}>{o.label}</button>
               ))}
-              {!capped && <button type="button" onClick={() => setEnding(false)} className="text-[11px] text-[#606080] hover:text-[#e0e0e0]">Keep going</button>}
+              {!capped && !allSectionsDone && <button type="button" onClick={() => setEnding(false)} className="text-[11px] text-[#606080] hover:text-[#e0e0e0]">Keep going</button>}
             </div>
           </section>
         ) : (
@@ -151,6 +157,8 @@ function SessionPage() {
             </div>
           </section>
         )}
+        </div>
+        </div>
       </div>
     </main>
   );
@@ -232,6 +240,28 @@ function DebriefView({ session: s, onDebrief }: { session: PracticeSession; onDe
             )}
           </div>
 
+          {d.presentation && (
+            <div data-debrief-presentation>
+              <h3 className="font-fantasy text-[#c08020] text-sm">The presentation</h3>
+              <p className="text-xs text-[#e0e0e0] mt-1">Covered: {d.presentation.covered.join(", ") || "none"}.{d.presentation.skipped.length ? ` Skipped: ${d.presentation.skipped.join(", ")}.` : ""}{d.presentation.notStarted.length ? ` Not reached: ${d.presentation.notStarted.join(", ")}.` : ""}</p>
+              {d.presentation.derailed.length > 0 && (
+                <ul className="mt-1 space-y-1">
+                  {d.presentation.derailed.map((x, i) => (
+                    <li key={i} className="text-xs" data-derailed={x.recovered ? "recovered" : "lost"}>
+                      <span className="text-[#e0e0e0]">{x.section}:</span> <span className="text-[#a0a0a0]">{x.kind === "drift" ? "they drifted" : `they jumped ahead to ${x.jumpedTo || "a later section"}`}.</span> <span className={x.recovered ? "text-[#7fd08a]" : "text-[#e0c080]"}>{x.recovered ? "You came back and finished it." : "You did not come back to it."}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {d.presentation.pacing.length > 0 && (
+                <ul className="mt-1 flex flex-wrap gap-1.5" data-pacing>
+                  {d.presentation.pacing.map((x, i) => (
+                    <li key={i} className={`text-[11px] px-2 py-0.5 rounded border ${x.verdict === "on" ? "border-[#406080]/40 text-[#a0a0a0]" : "border-[#c08020]/40 text-[#e0c080]"}`}>{x.section}: {x.minutes} min <span className="text-[#606080]">(target {x.target})</span></li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           {d.hintsUsed > 0 && <p className="text-[11px] text-[#808080]" data-debrief-hints>You paused for a hint {d.hintsUsed === 1 ? "once" : `${d.hintsUsed} times`}. Fine to do; worth noticing.</p>}
 
           {d.tryNext && (
@@ -247,5 +277,109 @@ function DebriefView({ session: s, onDebrief }: { session: PracticeSession; onDe
         <Link {...linkTo("/admin/practice")} className={btnPrimary}>Practice again</Link>
       </div>
     </section>
+  );
+}
+
+
+/** Section 7.2: the current section beside the chat. Start, a mid-section window where the persona may interrupt, then Delivered or Skip. */
+function PresentationPanel({ session: s, onSession, onAllDone }: { session: PracticeSession; onSession: (next: PracticeSession) => void; onAllDone: () => void }) {
+  const pres = s.presentation!;
+  const closed = (id: string) => s.progress.find((p) => p.sectionId === id && p.status !== "open");
+  const currentIdx = pres.sections.findIndex((sec) => !closed(sec.id));
+  const current = currentIdx >= 0 ? pres.sections[currentIdx] : null;
+  const open = current ? s.progress.find((p) => p.sectionId === current.id && p.status === "open") : undefined;
+  const [said, setSaid] = useState("");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  // Start the section when it becomes current; schedule the interruption window.
+  useEffect(() => {
+    if (!current) {
+      onAllDone();
+      return;
+    }
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const go = async () => {
+      if (!open) {
+        const r = await sectionEvent({ data: { id: s.id, sectionId: current.id, event: "start" } });
+        if (alive && r.session) onSession(r.session);
+      }
+      timer = setTimeout(async () => {
+        const r = await sectionEvent({ data: { id: s.id, sectionId: current.id, event: "midpoint" } });
+        if (alive && r.session) onSession(r.session);
+      }, midpointSeconds(current, s.fast) * 1000);
+    };
+    void go();
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id]);
+  const elapsed = open ? Math.max(0, Math.round((Date.now() - Date.parse(open.startedAt)) / 1000)) : 0;
+  void tick;
+  const finish = async (event: "delivered" | "skipped") => {
+    if (!current) return;
+    setBusy(event);
+    setError("");
+    try {
+      const r = await sectionEvent({ data: { id: s.id, sectionId: current.id, event, said: event === "delivered" ? said : "", seconds: elapsed } });
+      if (r.session) onSession(r.session);
+      if (!r.ok) setError(r.error ?? "Could not record that.");
+      else setSaid("");
+    } finally {
+      setBusy("");
+    }
+  };
+  const mm = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  return (
+    <aside className={`${card} p-3 sm:p-4 space-y-3 lg:sticky lg:top-24`} data-presentation-panel>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-fantasy text-[#c08020] text-sm">🎤 {pres.name}</p>
+        <p className="text-[11px] text-[#606080]">v{pres.version}</p>
+      </div>
+      <ol className="space-y-1" data-section-list>
+        {pres.sections.map((sec, i) => {
+          const p = s.progress.find((x) => x.sectionId === sec.id);
+          const state = p?.status === "delivered" ? "done" : p?.status === "skipped" ? "skipped" : i === currentIdx ? "current" : "todo";
+          return (
+            <li key={sec.id} className={`flex items-center gap-2 text-xs rounded px-2 py-1 ${state === "current" ? "bg-[#c08020]/15 text-[#e0e0e0]" : state === "done" ? "text-[#7fd08a]" : state === "skipped" ? "text-[#808080] line-through" : "text-[#a0a0a0]"}`} data-section-state={state} data-section={sec.id}>
+              <span className="w-4 text-center" aria-hidden="true">{state === "done" ? "✓" : state === "skipped" ? "–" : state === "current" ? "▶" : i + 1}</span>
+              <span className="flex-1 truncate">{sec.title}</span>
+              {p?.interrupted && <span className="text-[10px] uppercase tracking-wider text-[#c08020] font-fantasy" title="Interrupted here">{p.recovered ? "recovered" : p.status === "open" ? "interrupted" : "lost"}</span>}
+              <span className="text-[#606080]">{sec.minMinutes === sec.maxMinutes ? `${sec.minMinutes}m` : `${sec.minMinutes}–${sec.maxMinutes}m`}</span>
+            </li>
+          );
+        })}
+      </ol>
+      {current && (
+        <div className="rounded-lg border border-[#c08020]/40 bg-[#0d1520]/60 p-3 space-y-2" data-current-section={current.id}>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[#e0e0e0] font-fantasy">{currentIdx + 1}. {current.title}</p>
+            <p className="text-xs tabular-nums text-[#a0a0a0]" data-section-timer>{mm(elapsed)} <span className="text-[#606080]">/ {current.minMinutes === current.maxMinutes ? `${current.minMinutes}` : `${current.minMinutes}–${current.maxMinutes}`} min</span></p>
+          </div>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {current.points.map((pt, i) => <li key={i} className="text-sm text-[#c9d3e3]">{pt}</li>)}
+          </ul>
+          {s.pendingInterrupt && (
+            <p className="rounded border border-[#c08020]/50 bg-[#c08020]/15 px-2 py-1.5 text-xs text-[#e0c080]" data-interrupt-banner>
+              {s.persona.name} jumped in. Answer them in the chat, then come back and finish this section.
+            </p>
+          )}
+          <textarea value={said} onChange={(e) => setSaid(e.target.value)} rows={2} maxLength={2000} placeholder="Optional: the key lines you said out loud, so the debrief can check the wording" className={`w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-xs resize-none ${focus}`} data-section-said />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => finish("delivered")} disabled={Boolean(busy) || s.pendingInterrupt} className={btnPrimary} data-section-delivered title={s.pendingInterrupt ? `Answer ${s.persona.name} first` : ""}>{busy === "delivered" ? "Marking..." : "✓ Delivered"}</button>
+            <button type="button" onClick={() => finish("skipped")} disabled={Boolean(busy)} className={btnGhost} data-section-skip>Skip this section</button>
+          </div>
+          {error && <p className="text-xs text-red-300" data-section-error>{error}</p>}
+          <p className="text-[10px] text-[#606080]">Present out loud, then mark it. Only what you type in the box can be checked for wording.</p>
+        </div>
+      )}
+    </aside>
   );
 }

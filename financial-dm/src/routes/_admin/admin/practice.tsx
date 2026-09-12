@@ -2,7 +2,9 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_DIFFICULTY, DIFFICULTY_LEVELS, DIFFICULTY_NOTE, outcomeLabel, temperamentById, temperamentsFor, type Conversation, type Difficulty } from "~/lib/practiceConfig";
 import type { Persona } from "~/lib/practicePrompts";
-import { deletePersona, generatePersona, getPracticeSetup, getRubrics, savePersona, saveRubric, startSession, type PracticeSetup, type Rubrics } from "~/server/practice";
+import { deletePersona, deletePresentation, generatePersona, getPracticeSetup, getPresentations, getRubrics, savePersona, savePresentation, saveRubric, startSession, type PracticeSetup, type Rubrics } from "~/server/practice";
+import type { Presentation, PresentationSection } from "~/lib/practicePresentation";
+import type { PracticeMode } from "~/lib/practiceConfig";
 
 /**
  * The Sparring Dummy setup screen (AI practice spec, Sections 1, 4, 5, 6).
@@ -42,8 +44,12 @@ function PracticePage() {
   const [snapshot, setSnapshot] = useState("");
   const [rerolled, setRerolled] = useState<string[]>([]);
   const [busy, setBusy] = useState("");
+  const [mode, setMode] = useState<PracticeMode>("objection");
+  const [presentations, setPresentations] = useState<Presentation[]>([]);
+  const [presentationId, setPresentationId] = useState<number | null>(null);
+  const loadPresentations = () => getPresentations().then(setPresentations).catch(() => setPresentations([]));
 
-  const load = () => getPracticeSetup().then(setSetup).catch((e) => setError(String(e)));
+  const load = () => Promise.all([getPracticeSetup().then(setSetup), loadPresentations()]).catch((e) => setError(String(e)));
   useEffect(() => {
     load();
   }, []);
@@ -51,6 +57,11 @@ function PracticePage() {
   const profiles = useMemo(() => (setup?.profiles ?? []).filter((p) => (conversation === "recruiting" ? p.kind === "recruit" : p.kind === "client")), [setup, conversation]);
   const saved = useMemo(() => (setup?.savedPersonas ?? []).filter((p) => p.conversation === conversation), [setup, conversation]);
   const temps = temperamentsFor(conversation);
+  const presForConversation = presentations.filter((x) => x.conversation === conversation);
+  useEffect(() => {
+    if (!presForConversation.some((x) => x.id === presentationId)) setPresentationId(presForConversation[0]?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presentations, conversation]);
   useEffect(() => {
     // Switching the conversation resets what depends on it.
     setProfileId(null);
@@ -93,7 +104,7 @@ function PracticePage() {
     setBusy("start");
     setError("");
     try {
-      const res = await startSession({ data: { conversation, profileId, profileSnapshot: snapshot, persona, temperament, difficulty } });
+      const res = await startSession({ data: { conversation, profileId, profileSnapshot: snapshot, persona, temperament, difficulty, mode, presentationId: mode === "presentation" ? presentationId ?? undefined : undefined } });
       if (!res.ok || !res.session) setError(res.error ?? "Could not start.");
       else navigate({ ...linkTo("/admin/practice/$id", { id: String(res.session.id) }) });
     } finally {
@@ -215,17 +226,30 @@ function PracticePage() {
             {/* Mode + start */}
             <section className={`${card} p-4`}>
               <h2 className="font-fantasy text-[#c08020] text-sm mb-2">6 · Mode</h2>
-              <div className="space-y-2">
-                <div className="rounded-lg border border-[#c08020] bg-[#c08020]/10 px-3 py-2">
+              <div className="space-y-2" role="radiogroup" aria-label="Mode">
+                <button type="button" role="radio" aria-checked={mode === "objection"} onClick={() => setMode("objection")} className={`w-full text-left rounded-lg border px-3 py-2 ${focus} ${mode === "objection" ? "border-[#c08020] bg-[#c08020]/10" : "border-[#406080]/40 hover:border-[#c08020]/50"}`} data-mode="objection">
                   <p className="text-[#e0e0e0] text-sm font-fantasy">💬 Objection Practice</p>
                   <p className="text-[11px] text-[#a0a0a0]">Open back-and-forth. Short reps on handling pushback. Pause any time for a hint.</p>
-                </div>
-                <div className="rounded-lg border border-dashed border-[#406080]/40 px-3 py-2 opacity-70">
-                  <p className="text-[#a0a0a0] text-sm font-fantasy">🎤 Presentation Practice</p>
-                  <p className="text-[11px] text-[#808080]">Coming in Phase 3, once there are scripts to practice against.</p>
-                </div>
+                </button>
+                <button type="button" role="radio" aria-checked={mode === "presentation"} onClick={() => setMode("presentation")} className={`w-full text-left rounded-lg border px-3 py-2 ${focus} ${mode === "presentation" ? "border-[#c08020] bg-[#c08020]/10" : "border-[#406080]/40 hover:border-[#c08020]/50"}`} data-mode="presentation">
+                  <p className="text-[#e0e0e0] text-sm font-fantasy">🎤 Presentation Practice</p>
+                  <p className="text-[11px] text-[#a0a0a0]">Walk through your outline section by section while they react, interrupt, and jump ahead. Getting back on track is the skill.</p>
+                </button>
+                {mode === "presentation" && (
+                  <div className="pl-3">
+                    {presForConversation.length === 0 ? (
+                      <p className="text-[11px] text-[#e0c080]">No {conversation} presentation yet. Add one under "Your presentations" below.</p>
+                    ) : (
+                      <select value={presentationId ?? ""} onChange={(e) => setPresentationId(Number(e.target.value))} className={`w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`} aria-label="Presentation" data-presentation-pick>
+                        {presForConversation.map((x) => (
+                          <option key={x.id} value={x.id} className="bg-gray-900">{x.name} · {x.sections.length} sections · v{x.version}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
               </div>
-              <button type="button" onClick={start} disabled={!persona || !temperament || busy === "start"} className={`${btnPrimary} mt-3 w-full`} data-practice-start>
+              <button type="button" onClick={start} disabled={!persona || !temperament || busy === "start" || (mode === "presentation" && !presentationId)} className={`${btnPrimary} mt-3 w-full`} data-practice-start>
                 {busy === "start" ? "Setting the scene..." : `Start practice with ${persona?.name ?? "..."}`}
               </button>
               {(!persona || !temperament) && <p className="text-[11px] text-[#606080] mt-1">Needs a person and a temperament.</p>}
@@ -253,6 +277,7 @@ function PracticePage() {
           </div>
         </div>
 
+        <PresentationEditor presentations={presentations} onChange={loadPresentations} />
         <RubricEditor />
       </div>
     </main>
@@ -294,6 +319,84 @@ function RubricEditor() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </details>
+  );
+}
+
+
+const blankSection = (): PresentationSection => ({ id: "", title: "", minMinutes: 5, maxMinutes: 10, points: [] });
+
+/** Section 7.2: John's outline in his own words, never the deck. Sections, target minutes, points. */
+function PresentationEditor({ presentations, onChange }: { presentations: Presentation[]; onChange: () => void }) {
+  const [editing, setEditing] = useState<{ id: number | null; name: string; conversation: Conversation; sections: Array<PresentationSection & { pointsText: string }> } | null>(null);
+  const [msg, setMsg] = useState("");
+  const input = `px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`;
+  const open = (pres?: Presentation) => setEditing(pres
+    ? { id: pres.id, name: pres.name, conversation: pres.conversation, sections: pres.sections.map((x) => ({ ...x, pointsText: x.points.join("\n") })) }
+    : { id: null, name: "", conversation: "recruiting", sections: [{ ...blankSection(), pointsText: "" }] });
+  const upd = (i: number, patch: Partial<PresentationSection & { pointsText: string }>) => setEditing((e) => (e ? { ...e, sections: e.sections.map((x, j) => (j === i ? { ...x, ...patch } : x)) } : e));
+  const move = (i: number, dir: -1 | 1) => setEditing((e) => { if (!e) return e; const a = [...e.sections]; const j = i + dir; if (j < 0 || j >= a.length) return e; [a[i], a[j]] = [a[j], a[i]]; return { ...e, sections: a }; });
+  const save = async () => {
+    if (!editing) return;
+    const res = await savePresentation({ data: { id: editing.id ?? undefined, name: editing.name, conversation: editing.conversation, sections: editing.sections.map((x) => ({ id: x.id, title: x.title, minMinutes: x.minMinutes, maxMinutes: x.maxMinutes, points: x.pointsText.split("\n") })) } });
+    if (res.ok) { setMsg(`Saved · version ${res.presentation?.version}`); setEditing(null); onChange(); setTimeout(() => setMsg(""), 2000); }
+    else setMsg(res.error ?? "Could not save.");
+  };
+  return (
+    <details className={`${card} p-4`} data-presentation-editor>
+      <summary className="font-fantasy text-[#c08020] cursor-pointer">🎤 Your presentations: the outlines you practice</summary>
+      <p className="text-[11px] text-[#a0a0a0] mt-2">An outline in your own words: sections in order, how long each should take, and the points you make. Not the deck itself. Editing one saves a new version; past sessions keep the version they were practiced against.</p>
+      {msg && <p className="text-[11px] text-[#7fd08a] font-fantasy mt-1" data-presentation-msg>{msg}</p>}
+      {!editing ? (
+        <div className="mt-3 space-y-2">
+          {presentations.map((x) => (
+            <div key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#406080]/30 px-3 py-2" data-presentation={x.id}>
+              <div>
+                <p className="text-sm text-[#e0e0e0] font-fantasy">{x.name} <span className="text-[11px] text-[#808080] font-sans">· {x.conversation} · {x.sections.length} sections · v{x.version}</span></p>
+                <p className="text-[11px] text-[#808080]">{x.sections.map((sec) => sec.title).join(" → ")}</p>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => open(x)} className={btnGhost} data-presentation-edit>Edit</button>
+                <button type="button" onClick={async () => { if (confirm("Delete this presentation? Past sessions keep their copy.")) { await deletePresentation({ data: { id: x.id } }); onChange(); } }} className="text-[11px] text-[#606080] hover:text-red-300 font-fantasy">Delete</button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={() => open()} className={btnGhost} data-presentation-new>➕ New presentation</button>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3" data-presentation-form>
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Presentation name" maxLength={120} className={input} data-presentation-name />
+            <select value={editing.conversation} onChange={(e) => setEditing({ ...editing, conversation: e.target.value as Conversation })} className={input} aria-label="Conversation">
+              <option value="recruiting" className="bg-gray-900">Recruiting</option>
+              <option value="coverage" className="bg-gray-900">Coverage</option>
+            </select>
+          </div>
+          <ol className="space-y-2">
+            {editing.sections.map((sec, i) => (
+              <li key={i} className="rounded-lg border border-[#406080]/30 p-3 space-y-2" data-section-row={i}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] text-[#808080] font-fantasy w-5">{i + 1}.</span>
+                  <input value={sec.title} onChange={(e) => upd(i, { title: e.target.value })} placeholder="Section title" maxLength={120} className={`${input} flex-1 min-w-[10rem]`} data-section-title />
+                  <label className="text-[11px] text-[#a0a0a0]">min <input type="number" min={0} max={120} value={sec.minMinutes} onChange={(e) => upd(i, { minMinutes: Number(e.target.value) })} className={`${input} w-16 py-1`} /></label>
+                  <label className="text-[11px] text-[#a0a0a0]">max <input type="number" min={0} max={180} value={sec.maxMinutes} onChange={(e) => upd(i, { maxMinutes: Number(e.target.value) })} className={`${input} w-16 py-1`} /></label>
+                  <span className="text-[11px] text-[#808080]">minutes</span>
+                  <button type="button" onClick={() => move(i, -1)} className="text-[#606080] hover:text-[#e0e0e0] text-xs" aria-label="Move up">↑</button>
+                  <button type="button" onClick={() => move(i, 1)} className="text-[#606080] hover:text-[#e0e0e0] text-xs" aria-label="Move down">↓</button>
+                  <button type="button" onClick={() => setEditing({ ...editing, sections: editing.sections.filter((_, j) => j !== i) })} className="text-[#606080] hover:text-red-300 text-xs" aria-label="Remove section">×</button>
+                </div>
+                <textarea value={sec.pointsText} onChange={(e) => upd(i, { pointsText: e.target.value })} rows={3} placeholder="The points you make in this section, one per line" className={`${input} w-full resize-none`} data-section-points />
+              </li>
+            ))}
+          </ol>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setEditing({ ...editing, sections: [...editing.sections, { ...blankSection(), pointsText: "" }] })} className={btnGhost}>➕ Add a section</button>
+            <span className="flex-1" />
+            <button type="button" onClick={() => setEditing(null)} className={btnGhost}>Cancel</button>
+            <button type="button" onClick={save} className={btnPrimary} data-presentation-save>Save presentation</button>
+          </div>
         </div>
       )}
     </details>
