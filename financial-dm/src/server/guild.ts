@@ -82,9 +82,10 @@ function ensureTables(): Promise<void> {
       // Phase 5: the Quest Log lives on the recruit row (older databases get the columns here).
       await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log TEXT`;
       await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log_token TEXT`;
-      // John's relayed answers fill facts that have never been saved. A row that exists, even empty, is left alone.
+      // John's relayed answers fill facts that have never been saved. A row that exists is left alone,
+      // even empty, unless it still holds one of the earlier "TODO(John)" drafts from this file.
       for (const a of GUILD_STARTER_ANSWERS) {
-        await sql()`INSERT INTO guild_facts (key, value, confirmed) VALUES (${a.key}, ${a.value}, ${a.confirmed}) ON CONFLICT (key) DO NOTHING`;
+        await sql()`INSERT INTO guild_facts (key, value, confirmed) VALUES (${a.key}, ${a.value}, ${a.confirmed}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, confirmed = EXCLUDED.confirmed WHERE guild_facts.value LIKE '%TODO(John)%'`;
       }
     })().catch((e) => {
       ready = null;

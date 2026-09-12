@@ -6,16 +6,29 @@ const allConfirmed = (): GuildFacts => Object.fromEntries(requiredFactKeys().map
 describe("guild facts gate", () => {
   test("every required trust fact and every FAQ answer must be filled and confirmed", () => {
     expect(requiredFactKeys().length).toBe(GUILD_FACT_FIELDS.filter((f) => f.tier === "trust" && f.required).length + GUILD_FAQ.length);
-    for (const k of ["industry", "johnFullName", "recruitCosts", "costToInterview", "meetingCovers", "payBasis"]) expect(requiredFactKeys()).toContain(k);
+    for (const k of ["industry", "johnFullName", "licensingRequired", "costToInterview", "meetingCovers", "payBasis"]) expect(requiredFactKeys()).toContain(k);
+    // John keeps startup costs for the interview, so these two are optional.
+    expect(requiredFactKeys()).not.toContain("recruitCosts");
+    expect(requiredFactKeys()).not.toContain("investmentPathExists");
     expect(GUILD_FAQ.length).toBe(5);
     expect(guildIsLive({})).toBe(false);
     expect(guildIsLive(allConfirmed())).toBe(true);
   });
   test("a filled but unconfirmed fact keeps the page hidden", () => {
     const facts = allConfirmed();
-    facts.recruitCosts = { key: "recruitCosts", value: "None", confirmed: false };
-    expect(missingFacts(facts)).toEqual(["recruitCosts"]);
+    facts.costToInterview = { key: "costToInterview", value: "Free", confirmed: false };
+    expect(missingFacts(facts)).toEqual(["costToInterview"]);
     expect(guildIsLive(facts)).toBe(false);
+  });
+
+  test("the pause switch hides the page without touching the answers", () => {
+    const facts = allConfirmed();
+    expect(guildIsLive(facts)).toBe(true);
+    facts.guildHallPaused = { key: "guildHallPaused", value: "yes", confirmed: true };
+    expect(guildIsLive(facts)).toBe(false);
+    expect(missingFacts(facts)).toEqual([]);
+    facts.guildHallPaused = { key: "guildHallPaused", value: "no", confirmed: false };
+    expect(guildIsLive(facts)).toBe(true);
   });
   test("a confirmed but empty fact keeps the page hidden", () => {
     const facts = allConfirmed();
@@ -24,6 +37,7 @@ describe("guild facts gate", () => {
   });
   test("optional trust facts and presentation notes never block going live", () => {
     expect(requiredFactKeys()).not.toContain("licenseLookup");
+    expect(requiredFactKeys()).not.toContain("guildHallPaused");
     expect(requiredFactKeys()).not.toContain("statesServed");
     for (const f of GUILD_FACT_FIELDS.filter((x) => x.tier === "presentation")) expect(requiredFactKeys()).not.toContain(f.key);
   });

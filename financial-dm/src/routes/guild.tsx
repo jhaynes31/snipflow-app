@@ -142,12 +142,12 @@ function GuildHall({ data }: { data: GuildPublic }) {
         <Section title="Straight Answers" id="answers">
           <dl className="grid gap-3 sm:grid-cols-2">
             <Answer label="Does it cost anything to interview?"><Fact facts={f} k="costToInterview" /></Answer>
-            <Answer label="What do recruits pay for to get started?"><Fact facts={f} k="recruitCosts" /></Answer>
+            {has("recruitCosts") && <Answer label="What do recruits pay for to get started?"><Fact facts={f} k="recruitCosts" /></Answer>}
             <Answer label="How is it paid?"><Fact facts={f} k="payBasis" /></Answer>
             <Answer label="What is the interview like?"><Fact facts={f} k="interviewFormat" /></Answer>
             <Answer label="Is a license required?">
               <Fact facts={f} k="licensingRequired" />
-              <Fact facts={f} k="investmentPathExists" className="mt-2" />
+              {has("investmentPathExists") && <Fact facts={f} k="investmentPathExists" className="mt-2" />}
             </Answer>
             {has("statesServed") && (
               <Answer label="Where can recruits work?"><Fact facts={f} k="statesServed" /></Answer>

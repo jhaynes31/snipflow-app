@@ -75,14 +75,15 @@ export const GUILD_FACT_FIELDS: FactField[] = [
   { key: "workArrangement", label: "Work arrangement", help: "Independent contractor or employee, and how recruits relate to The Foster Financial Group.", tier: "trust", required: true, multiline: true, usedIn: "What this is" },
   { key: "meetingCovers", label: "What the conversation covers", help: "The key piece. Say plainly that the meeting covers the opportunity, and that you can also help with the person's own coverage or financial questions if useful. This disclosure must stay in whatever you write.", tier: "trust", required: true, multiline: true, usedIn: "What the conversation covers, FAQ", suggested: MEETING_COVERS_DRAFT },
   { key: "costToInterview", label: "Cost to interview", help: "Confirm that interviewing is free and that no payment or financial information is ever requested to interview.", tier: "trust", required: true, multiline: true, usedIn: "Straight answers" },
-  { key: "recruitCosts", label: "What recruits pay for to get started", help: "Courses, exams, fingerprinting, or license fees, or \"None\". Say it plainly and stay honest; hidden startup costs are the most common reason this kind of role gets called a scam.", tier: "trust", required: true, multiline: true, usedIn: "Straight answers" },
+  { key: "recruitCosts", label: "What recruits pay for to get started (optional)", help: "John keeps the figures for the interview, so the page and the FAQ say there are startup costs you pay yourself and that he goes through them on the call. Fill this in only if you decide to put them on the page.", tier: "trust", required: false, multiline: true, usedIn: "Straight answers, only if filled in" },
   { key: "payBasis", label: "Pay basis", help: "Commission-based, salaried, or something else. General only: no figures and no details. The details are for the conversation.", tier: "trust", required: true, multiline: false, usedIn: "Straight answers, FAQ" },
   { key: "licensingRequired", label: "Is a license required?", help: "Whether a license is required, and whether recruits can get one with your help. One or two sentences.", tier: "trust", required: true, multiline: true, usedIn: "Straight answers" },
-  { key: "investmentPathExists", label: "The optional investment path", help: "One sentence saying an optional investment licensing path exists. No returns, performance, or products.", tier: "trust", required: true, multiline: false, usedIn: "Straight answers" },
+  { key: "investmentPathExists", label: "The optional investment path (optional)", help: "One sentence saying an optional investment licensing path exists, if there is one. No returns, performance, or products. Leave blank and the page will not mention it.", tier: "trust", required: false, multiline: false, usedIn: "Straight answers, only if filled in" },
   { key: "interviewFormat", label: "Interview format", help: "Video or phone, and roughly how long.", tier: "trust", required: true, multiline: false, usedIn: "Straight answers, FAQ" },
   { key: "johnFullName", label: "Your full name", help: "Required. A real name is one of the strongest trust signals. Confirm you are happy for it to be public.", tier: "trust", required: true, multiline: false, usedIn: "Meet John" },
   { key: "licenseLookup", label: "License lookup link (optional)", help: "A web address where people can verify your license, such as your state insurance department's lookup.", tier: "trust", required: false, multiline: false, usedIn: "Meet John and FAQ" },
   { key: "statesServed", label: "States recruits can work in (optional)", help: "Only if limited. Leave blank if not.", tier: "trust", required: false, multiline: false, usedIn: "Straight answers" },
+  { key: "guildHallPaused", label: "Pause the public page", help: "Set to Yes to hide the Guild Hall, the fit quiz, and the Guild forge without touching any of your answers. Set it back to No to bring them back.", tier: "trust", required: false, multiline: false, options: [{ id: "no", label: "No, keep it public" }, { id: "yes", label: "Yes, hide it for now" }], usedIn: "On/off switch" },
   { key: "fitQuizApproved", label: "Fit quiz copy approved", help: "The \"Is This Quest for You?\" quiz at /guild/quiz stays hidden until you have read its questions, results, and scoring and are happy with them. Use the \"Preview the fit quiz\" link at the top of this page (only you can see it before it goes public), then set this to Yes.", tier: "trust", required: false, multiline: false, options: [{ id: "yes", label: "Yes, the quiz can go public" }, { id: "no", label: "Not yet" }], usedIn: "Fit quiz" },
   // Presentation facts (John's reference, never published)
   { key: "compensationDetails", label: "How pay actually works", help: "Your interview notes. Never shown to the public or to any generator.", tier: "presentation", required: false, multiline: true, usedIn: "Never published" },
@@ -137,8 +138,9 @@ export function missingFacts(facts: GuildFacts): string[] {
   return requiredFactKeys().filter((k) => !(facts[k]?.value ?? "").trim() || !facts[k]?.confirmed);
 }
 
+/** Every required answer confirmed, and John has not paused the page. */
 export function guildIsLive(facts: GuildFacts): boolean {
-  return missingFacts(facts).length === 0;
+  return missingFacts(facts).length === 0 && facts.guildHallPaused?.value !== "yes";
 }
 
 export function factLabel(key: string): string {

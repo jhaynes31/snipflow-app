@@ -277,14 +277,15 @@ function Recap({ facts }: { facts: Record<string, string> }) {
     ["How you'd work with us", facts.workArrangement],
     ["How it's paid", facts.payBasis],
     ["Licensing", facts.licensingRequired],
+    ["The interview", facts.costToInterview],
     ["What it costs to get started", facts.recruitCosts],
-  ];
+  ].filter(([, v]) => (v ?? "").trim().length > 0) as Array<[string, string]>;
   return (
     <dl className="grid gap-2 sm:grid-cols-2">
       {rows.map(([k, v]) => (
         <div key={k} className="rounded-lg bg-white/60 border border-[#1c3660]/10 px-3 py-2">
           <dt className="text-[11px] uppercase tracking-wider text-[#1c3660]" style={DISPLAY}>{k}</dt>
-          <dd className="text-sm text-[#2a3442] whitespace-pre-line">{v || `TODO(John): ${k}`}</dd>
+          <dd className="text-sm text-[#2a3442] whitespace-pre-line">{v}</dd>
         </div>
       ))}
     </dl>
