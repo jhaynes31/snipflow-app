@@ -4,6 +4,7 @@ import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, 
 import { LEAD_STATUSES, NOT_A_FIT_REASONS, PRODUCT_TYPES, productLabel, reasonLabel, sourceSummary } from "~/lib/attribution";
 
 export const Route = createFileRoute("/_admin/admin/leads")({
+  validateSearch: (s: Record<string, unknown>): { lead?: number } => ({ lead: Number(s.lead) > 0 ? Number(s.lead) : undefined }),
   component: DashboardPage,
 });
 
@@ -24,6 +25,17 @@ type QuestFilter = "all" | "none" | `q:${number}`;
 
 function DashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  // A Home card can point at one lead: scroll to it and light it up for a moment.
+  const { lead: focusLead } = Route.useSearch();
+  useEffect(() => {
+    if (!focusLead || !leads.length) return;
+    const row = document.querySelector<HTMLElement>(`[data-lead-row='${focusLead}']`);
+    if (!row) return;
+    row.scrollIntoView({ block: "center" });
+    row.classList.add("ring-2", "ring-[#c08020]");
+    const t = setTimeout(() => row.classList.remove("ring-2", "ring-[#c08020]"), 4000);
+    return () => clearTimeout(t);
+  }, [focusLead, leads]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState<number | null>(null);

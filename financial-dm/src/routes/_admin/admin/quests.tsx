@@ -16,7 +16,8 @@ type Section = "profiles" | "quests" | "scoreboard" | "guide";
  * later phases.
  */
 export const Route = createFileRoute("/_admin/admin/quests")({
-  validateSearch: (s: Record<string, unknown>): { section?: Section; quest?: number } => ({
+  validateSearch: (s: Record<string, unknown>): { section?: Section; quest?: number; new?: number } => ({
+    new: Number(s.new) === 1 ? 1 : undefined,
     section: s.section === "quests" || s.section === "scoreboard" || s.section === "guide" ? s.section : s.section === "profiles" ? "profiles" : undefined,
     quest: Number.isFinite(Number(s.quest)) && Number(s.quest) > 0 ? Number(s.quest) : undefined,
   }),
@@ -31,7 +32,7 @@ const SECTIONS: Array<{ id: Section; label: string; blurb: string }> = [
 ];
 
 function QuestBoardPage() {
-  const { section = "profiles", quest } = Route.useSearch();
+  const { section = "profiles", quest, new: startNew } = Route.useSearch();
   const navigate = useNavigate();
   return (
     <main className="min-h-dvh py-6 px-4" style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }}>
@@ -65,7 +66,7 @@ function QuestBoardPage() {
         </nav>
 
         {section === "profiles" && <ProfilesSection />}
-        {section === "quests" && <QuestsSection questId={quest ?? null} onSelectQuest={(id) => navigate({ to: "/admin/quests", search: { section: "quests", quest: id ?? undefined } })} />}
+        {section === "quests" && <QuestsSection questId={quest ?? null} startNew={startNew === 1} onSelectQuest={(id) => navigate({ to: "/admin/quests", search: { section: "quests", quest: id ?? undefined } })} />}
         {section === "scoreboard" && <Scoreboard onOpenQuest={(id) => navigate({ to: "/admin/quests", search: { section: "quests", quest: id } })} />}
         {section === "guide" && <QuestGuide />}
       </div>

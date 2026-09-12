@@ -28,7 +28,7 @@ type View = "recruits" | "facts" | "questlogs";
  * the public Guild Hall is allowed to make.
  */
 export const Route = createFileRoute("/_admin/admin/guild")({
-  validateSearch: (s: Record<string, unknown>): { view?: View } => ({ view: s.view === "facts" ? "facts" : s.view === "recruits" ? "recruits" : s.view === "questlogs" ? "questlogs" : undefined }),
+  validateSearch: (s: Record<string, unknown>): { view?: View; add?: number } => ({ view: s.view === "facts" ? "facts" : s.view === "recruits" ? "recruits" : s.view === "questlogs" ? "questlogs" : undefined, add: Number(s.add) === 1 ? 1 : undefined }),
   component: GuildHallAdmin,
 });
 
@@ -85,7 +85,8 @@ function RecruitsSection() {
   const [stageFilter, setStageFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [questFilter, setQuestFilter] = useState("all");
-  const [showAdd, setShowAdd] = useState(false);
+  const { add } = Route.useSearch();
+  const [showAdd, setShowAdd] = useState(add === 1);
   const [pending, setPending] = useState<{ id: number; name: string } | null>(null);
 
   const load = useCallback(async () => {

@@ -41,13 +41,13 @@ const fmtDate = (iso: string) => {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 };
 
-export default function QuestsSection({ questId, onSelectQuest }: { questId: number | null; onSelectQuest: (id: number | null) => void }) {
+export default function QuestsSection({ questId, onSelectQuest, startNew = false }: { questId: number | null; onSelectQuest: (id: number | null) => void; startNew?: boolean }) {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [series, setSeries] = useState<Series[]>([]);
   const [profiles, setProfiles] = useState<ClientProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState<Partial<QuestInput> | null>(null);
+  const [editing, setEditing] = useState<Partial<QuestInput> | null>(startNew ? {} : null);
 
   const load = useCallback(async () => {
     setLoading(true);
