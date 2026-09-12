@@ -1,5 +1,6 @@
 import { QUEST_CONFIG, generatorById, type GeneratorId } from "~/lib/questConfig";
 import { foundViaLabel, reasonLabel } from "~/lib/attribution";
+import { RECRUIT_STAGES, heardAboutLabel, reasonLabelRecruit, stageLabel } from "~/lib/guildConfig";
 
 /**
  * Scoreboard arithmetic (Quest Board spec, Section 9). Pure functions over
@@ -14,6 +15,8 @@ export interface QuestRow {
   id: number;
   name: string;
   slug: string;
+  /** Client quests count booked calls; recruiting quests count recruits reaching the win stage. */
+  goal: "booked_calls" | "recruits";
   status: "planning" | "active" | "complete";
   startDate: string;
   endDate: string;
@@ -57,12 +60,26 @@ export interface EventRow {
   slotId: number | null;
 }
 
+export interface RecruitRow {
+  questId: number | null;
+  seriesId: number | null;
+  slotId: number | null;
+  source: string;
+  stage: string;
+  notMovingReason: string;
+  foundVia: string;
+}
+
 export interface ScoreboardInput {
   quests: QuestRow[];
   slots: SlotRow[];
   series: SeriesRow[];
   leads: LeadRow[];
   events: EventRow[];
+  /** Recruit records (recruiting spec, Section 7.2). */
+  recruits?: RecruitRow[];
+  /** John's win stage from the Guild facts; defaults to contracted. */
+  winStage?: "contracted" | "first_sale";
   /** ISO date (YYYY-MM-DD) for "today", so wrap-up prompts are testable. */
   today: string;
 }
@@ -136,6 +153,36 @@ export interface UnattributedRow {
   sold: number;
 }
 
+/** One recruiting quest's numbers (recruiting spec, Section 7.2). */
+export interface RecruitQuestScore extends Engagement, Traffic {
+  questId: number;
+  name: string;
+  slug: string;
+  status: QuestRow["status"];
+  profileName: string;
+  recruits: number;
+  forms: number;
+  texts: number;
+  fitQuiz: number;
+  /** Counts of recruits who reached at least each stage, in pipeline order. */
+  reached: Array<{ stage: string; label: string; count: number }>;
+  notMoving: number;
+  reasons: Array<{ reason: string; label: string; count: number }>;
+  /** Recruits at or past John's win stage. */
+  wins: number;
+  winLabel: string;
+  /** First sales, shown as a bonus when the win stage is contracted. */
+  firstSales: number;
+  rates: { visitsToRecruits: string; recruitsToWins: string; tooEarly: boolean };
+}
+
+export interface UnattributedRecruitRow {
+  foundVia: string;
+  label: string;
+  recruits: number;
+  wins: number;
+}
+
 export interface WrapUpPrompt {
   questId: number;
   name: string;
@@ -144,7 +191,12 @@ export interface WrapUpPrompt {
 }
 
 export interface Scoreboard {
+  /** Client quests only; recruiting quests never mix with them (Section 7.2). */
   quests: QuestScore[];
+  recruitQuests: RecruitQuestScore[];
+  unattributedRecruits: UnattributedRecruitRow[];
+  unattributedRecruitsTotal: number;
+  winStage: "contracted" | "first_sale";
   unattributed: UnattributedRow[];
   unattributedTotal: number;
   series: GroupScore[];
@@ -208,12 +260,71 @@ export function rankByBookings<T extends { booked: number; sold: number; leads: 
   return [...rows].sort((a, b) => b.booked - a.booked || b.sold - a.sold || b.leads - a.leads || a.name.localeCompare(b.name));
 }
 
-// ── The whole board ───────────────────────────────────────────────
+/** Pipeline stages in order, without the exit stage. */
+const PIPELINE = RECRUIT_STAGES.filter((s) => s.id !== "not_moving_forward").map((s) => s.id);
+const stageIndex = (stage: string) => PIPELINE.indexOf(stage as (typeof PIPELINE)[number]);
+
+/** Counts of recruits at or past each stage, plus wins and exits. */
+export function recruitFunnel(rows: RecruitRow[], winStage: "contracted" | "first_sale") {
+  const active = rows.filter((r) => r.stage !== "not_moving_forward");
+  const reached = PIPELINE.slice(1).map((stage) => ({ stage, label: stageLabel(stage), count: active.filter((r) => stageIndex(r.stage) >= stageIndex(stage)).length }));
+  const winIdx = stageIndex(winStage);
+  const wins = active.filter((r) => stageIndex(r.stage) >= winIdx).length;
+  const firstSales = active.filter((r) => r.stage === "first_sale").length;
+  const exits = rows.filter((r) => r.stage === "not_moving_forward");
+  const counts = new Map<string, number>();
+  for (const r of exits) counts.set(r.notMovingReason || "other", (counts.get(r.notMovingReason || "other") ?? 0) + 1);
+  const reasons = [...counts.entries()].map(([reason, count]) => ({ reason, label: reasonLabelRecruit(reason) || "Other", count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  return { reached, wins, firstSales, notMoving: exits.length, reasons };
+}
+
+// -- The whole board --------------------------------------------------
 
 export function buildScoreboard(input: ScoreboardInput): Scoreboard {
-  const { quests, slots, series, leads, events, today } = input;
+  const { slots, series, leads, events, today } = input;
+  const recruits = input.recruits ?? [];
+  const winStage = input.winStage ?? "contracted";
   const min = QUEST_CONFIG.minLeadsForRates;
   const slotById = new Map(slots.map((s) => [s.id, s]));
+  const clientQuests = input.quests.filter((q) => q.goal !== "recruits");
+  const recruitingQuests = input.quests.filter((q) => q.goal === "recruits");
+  const quests = clientQuests;
+
+  // Recruiting quests (Section 7.2), ranked by the win stage.
+  const recruitScores: RecruitQuestScore[] = recruitingQuests.map((q) => {
+    const rows = recruits.filter((r) => r.questId === q.id);
+    const f = recruitFunnel(rows, winStage);
+    const traffic = trafficOf(events.filter((e) => e.questId === q.id));
+    const eng = engagementOf(slots.filter((s) => s.questId === q.id));
+    const tooEarly = rows.length < min;
+    return {
+      questId: q.id,
+      name: q.name,
+      slug: q.slug,
+      status: q.status,
+      profileName: q.profileName,
+      ...eng,
+      ...traffic,
+      recruits: rows.length,
+      forms: rows.filter((r) => r.source === "interest_form").length,
+      texts: rows.filter((r) => r.source === "text" || r.source === "manual").length,
+      fitQuiz: rows.filter((r) => r.source === "fit_quiz").length,
+      reached: f.reached,
+      notMoving: f.notMoving,
+      reasons: f.reasons,
+      wins: f.wins,
+      winLabel: stageLabel(winStage),
+      firstSales: f.firstSales,
+      rates: { visitsToRecruits: rateText(rows.length, traffic.visits, rows.length, min), recruitsToWins: rateText(f.wins, rows.length, rows.length, min), tooEarly },
+    };
+  });
+  const rankedRecruit = [...recruitScores].sort((a, b) => b.wins - a.wins || b.firstSales - a.firstSales || b.recruits - a.recruits || a.name.localeCompare(b.name));
+  const unRecruits = recruits.filter((r) => r.questId == null);
+  const byHeard = new Map<string, RecruitRow[]>();
+  for (const r of unRecruits) byHeard.set(r.foundVia || "", [...(byHeard.get(r.foundVia || "") ?? []), r]);
+  const unattributedRecruits: UnattributedRecruitRow[] = [...byHeard.entries()]
+    .map(([foundVia, rows]) => ({ foundVia, label: foundVia ? heardAboutLabel(foundVia) : "No answer", recruits: rows.length, wins: recruitFunnel(rows, winStage).wins }))
+    .sort((a, b) => b.wins - a.wins || b.recruits - a.recruits || a.label.localeCompare(b.label));
 
   const questScores: QuestScore[] = quests.map((q) => {
     const qSlots = slots.filter((s) => s.questId === q.id);
@@ -326,7 +437,7 @@ export function buildScoreboard(input: ScoreboardInput): Scoreboard {
     .filter((g) => g.posts > 0 || g.leads > 0);
 
   // Wrap-up prompts (Section 9.4): the end date has passed and there is no retro yet.
-  const wrapUps: WrapUpPrompt[] = quests
+  const wrapUps: WrapUpPrompt[] = input.quests
     .filter((q) => q.endDate && q.endDate < today && !q.retro.trim() && q.status !== "planning")
     .map((q) => ({ questId: q.id, name: q.name, endDate: q.endDate, status: q.status }))
     .sort((a, b) => b.endDate.localeCompare(a.endDate));
@@ -336,12 +447,16 @@ export function buildScoreboard(input: ScoreboardInput): Scoreboard {
   const ranked = rankByBookings(questScores);
   return {
     quests: ranked,
+    recruitQuests: rankedRecruit,
+    unattributedRecruits,
+    unattributedRecruitsTotal: unRecruits.length,
+    winStage,
     unattributed,
     unattributedTotal: un.length,
     series: rankGroups(seriesScores),
     generators: rankGroups(genScores),
     wrapUps,
     minLeadsForRates: min,
-    empty: ranked.every((q) => q.leads === 0 && q.visits === 0 && q.posts === 0) && un.length === 0,
+    empty: ranked.every((q) => q.leads === 0 && q.visits === 0 && q.posts === 0) && un.length === 0 && rankedRecruit.every((q) => q.recruits === 0 && q.visits === 0 && q.posts === 0) && unRecruits.length === 0,
   };
 }

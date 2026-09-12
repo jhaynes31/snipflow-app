@@ -3,10 +3,10 @@ import QuestsSection from "~/components/quest/QuestsSection";
 import SuggestField from "~/components/quest/SuggestField";
 import QuestGuide from "~/components/quest/QuestGuide";
 import Scoreboard from "~/components/quest/Scoreboard";
-import { LIFE_STAGES, PROFILE_NAMES, TRIGGERS, WORRIES } from "~/lib/questSuggestions";
+import { LIFE_STAGES, PROFILE_NAMES, RECRUIT_PROFILE_NAMES, RECRUIT_SITUATIONS, RECRUIT_TRIGGERS, RECRUIT_WORRIES, TRIGGERS, WORRIES } from "~/lib/questSuggestions";
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
-import { deleteProfile, draftProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput } from "~/server/questBoard";
+import { deleteProfile, draftProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput, type ProfileKind } from "~/server/questBoard";
 
 type Section = "profiles" | "quests" | "scoreboard" | "guide";
 
@@ -76,6 +76,7 @@ function QuestBoardPage() {
 // ── Profiles ────────────────────────────────────────────────────────
 
 const EMPTY: ProfileInput = {
+  kind: "client",
   name: "",
   lifeStage: "",
   triggers: [],
@@ -94,6 +95,7 @@ function ProfilesSection() {
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ProfileInput | null>(null);
   const [hint, setHint] = useState("");
+  const [kindTab, setKindTab] = useState<ProfileKind>("client");
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState("");
 
@@ -101,12 +103,12 @@ function ProfilesSection() {
     setDrafting(true);
     setDraftError("");
     try {
-      const res = await draftProfile({ data: { hint, existing: profiles.map((p) => p.name) } });
+      const res = await draftProfile({ data: { hint, existing: profiles.filter((p) => p.kind === kindTab).map((p) => p.name), kind: kindTab } });
       if (!res.ok || !res.profile) {
         setDraftError(res.error || "No draft came back.");
         return;
       }
-      setEditing({ ...res.profile, archived: false });
+      setEditing({ ...res.profile, kind: kindTab, archived: false });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setDraftError(String(e));
@@ -131,8 +133,9 @@ function ProfilesSection() {
     load();
   }, [load]);
 
-  const visible = profiles.filter((p) => showArchived || !p.archived);
+  const visible = profiles.filter((p) => (showArchived || !p.archived) && (kindTab === "recruit" ? p.kind === "recruit" : p.kind !== "recruit"));
   const archivedCount = profiles.filter((p) => p.archived).length;
+  const recruitCount = profiles.filter((p) => p.kind === "recruit" && !p.archived).length;
 
   const onSaved = async () => {
     setEditing(null);
@@ -164,22 +167,34 @@ function ProfilesSection() {
               {showArchived ? "Hide archived" : `Show archived (${archivedCount})`}
             </button>
           )}
-          <button type="button" onClick={() => setEditing({ ...EMPTY })} className="px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm" data-new-profile>
-            ➕ New profile
+          <button type="button" onClick={() => setEditing({ ...EMPTY, kind: kindTab })} className="px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm" data-new-profile>
+            ➕ New {kindTab === "recruit" ? "recruit " : ""}profile
           </button>
         </div>
       </div>
+
+      <nav className="flex gap-2 flex-wrap" aria-label="Profile kinds">
+        {([
+          ["client", "⚔️ Client profiles"],
+          ["recruit", `🛡️ Recruit profiles${recruitCount ? ` (${recruitCount})` : ""}`],
+        ] as Array<[ProfileKind, string]>).map(([k, lbl]) => (
+          <button key={k} type="button" onClick={() => setKindTab(k)} aria-pressed={kindTab === k} className={`px-3 py-1.5 rounded-lg border font-fantasy text-xs ${kindTab === k ? "bg-[#c08020]/20 border-[#c08020] text-[#c08020]" : "border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0]"}`} data-profile-kind-tab={k}>
+            {lbl}
+          </button>
+        ))}
+      </nav>
+      {kindTab === "recruit" && <p className="text-[#606080] text-xs font-fantasy">Recruit profiles describe a <span className="text-[#a0a0a0]">situation and interests</span>: wants remote work, changing careers, enjoys helping people. Never age, family status, or any protected trait.</p>}
 
       {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">{error}</div>}
 
       <div className="rounded-xl border border-[#406080]/30 bg-[#111a28] p-4 flex flex-wrap items-end gap-3" data-draft-profile>
         <label className="flex-1 min-w-[240px]">
-          <span className="block text-[#a0a0a0] text-xs font-fantasy mb-1">Need more variety? Describe a kind of client, or leave it blank for a fresh idea</span>
+          <span className="block text-[#a0a0a0] text-xs font-fantasy mb-1">Need more variety? Describe a kind of {kindTab === "recruit" ? "person who might join the team" : "client"}, or leave it blank for a fresh idea</span>
           <input
             className="w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm font-fantasy focus:outline-none focus:border-[#c08020]/50 placeholder:text-[#606080]"
             value={hint}
             onChange={(e) => setHint(e.target.value)}
-            placeholder="e.g. nurses on night shifts, people who just got a big raise, families with a new mortgage"
+            placeholder={kindTab === "recruit" ? "e.g. people leaving retail, side-hustle seekers, folks who want to work from home" : "e.g. nurses on night shifts, people who just got a big raise, families with a new mortgage"}
             maxLength={200}
             data-profile-hint
           />
@@ -231,7 +246,7 @@ function ProfileCard({ profile: p, onEdit, onArchive, onDelete }: { profile: Cli
       </div>
       {p.triggers.length > 0 && (
         <div>
-          <p className="text-[#606080] text-[10px] font-fantasy uppercase tracking-wider mb-1">Moments that create the need</p>
+          <p className="text-[#606080] text-[10px] font-fantasy uppercase tracking-wider mb-1">{p.kind === "recruit" ? "Moments that make someone look" : "Moments that create the need"}</p>
           <div className="flex flex-wrap gap-1">
             {p.triggers.map((t) => (
               <Chip key={t}>{t}</Chip>
@@ -299,6 +314,7 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
 
   const set = <K extends keyof ProfileInput>(k: K, v: ProfileInput[K]) => setForm((f) => ({ ...f, [k]: v }));
   const triggers = toList(triggersText);
+  const recruit = form.kind === "recruit";
 
   const addPain = (text: string) => {
     const t = text.trim();
@@ -310,7 +326,7 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
     setSuggesting(true);
     setSuggestNote("");
     try {
-      const res = await suggestPainPoints({ data: { lifeStage: form.lifeStage, triggers, existing: form.painPoints } });
+      const res = await suggestPainPoints({ data: { lifeStage: form.lifeStage, triggers, existing: form.painPoints, kind: form.kind } });
       if (!res.ok) setSuggestNote(res.error || "No suggestions this time.");
       setSuggestions(res.suggestions);
     } catch (e) {
@@ -343,16 +359,24 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
 
   return (
     <form onSubmit={submit} className="rounded-xl border border-[#c08020]/40 bg-[#111a28] p-5 space-y-4" data-profile-form>
-      <h2 className="font-fantasy text-[#c08020] text-lg">{form.id ? `Edit: ${initial.name}` : "New profile"}</h2>
-      <div className="grid gap-4 md:grid-cols-2">
-        <SuggestField name="name" label="Name *" value={form.name} onChange={(v) => set("name", v)} suggestions={PROFILE_NAMES} placeholder="e.g. New Parents" maxLength={80} required />
-        <SuggestField name="lifeStage" label="Life stage" value={form.lifeStage} onChange={(v) => set("lifeStage", v)} suggestions={LIFE_STAGES} placeholder="e.g. Just had, or expecting, a baby" maxLength={160} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-fantasy text-[#c08020] text-lg">{form.id ? `Edit: ${initial.name}` : recruit ? "New recruit profile" : "New profile"}</h2>
+        <div className="flex gap-2" data-profile-kind-picker>
+          {([["client", "⚔️ Client"], ["recruit", "🛡️ Recruit"]] as Array<[ProfileKind, string]>).map(([k, lbl]) => (
+            <button key={k} type="button" onClick={() => set("kind", k)} aria-pressed={form.kind === k} className={`px-3 py-1.5 rounded-lg border text-xs font-fantasy ${form.kind === k ? "bg-[#c08020]/20 border-[#c08020] text-[#c08020]" : "border-[#406080]/40 text-[#a0a0a0]"}`}>{lbl}</button>
+          ))}
+        </div>
       </div>
-      <SuggestField name="triggers" label="Moments that create the need (separate with commas)" value={triggersText} onChange={setTriggersText} suggestions={TRIGGERS} append placeholder="new baby, going from two incomes to one, naming a guardian" />
+      {recruit && <p className="text-[11px] text-[#606080] font-fantasy">Situations and interests only. The board refuses anything that describes who people are.</p>}
+      <div className="grid gap-4 md:grid-cols-2">
+        <SuggestField name="name" label="Name *" value={form.name} onChange={(v) => set("name", v)} suggestions={recruit ? RECRUIT_PROFILE_NAMES : PROFILE_NAMES} placeholder={recruit ? "e.g. Career Changer" : "e.g. New Parents"} maxLength={80} required />
+        <SuggestField name="lifeStage" label={recruit ? "Their situation" : "Life stage"} value={form.lifeStage} onChange={(v) => set("lifeStage", v)} suggestions={recruit ? RECRUIT_SITUATIONS : LIFE_STAGES} placeholder={recruit ? "e.g. Ready to leave a field that stopped fitting" : "e.g. Just had, or expecting, a baby"} maxLength={160} />
+      </div>
+      <SuggestField name="triggers" label={recruit ? "Moments that make someone look for a change (separate with commas)" : "Moments that create the need (separate with commas)"} value={triggersText} onChange={setTriggersText} suggestions={recruit ? RECRUIT_TRIGGERS : TRIGGERS} append placeholder={recruit ? "a layoff, burnout, a friend who got licensed" : "new baby, going from two incomes to one, naming a guardian"} />
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <span className={label}>Pain points, in their own words</span>
+          <span className={label}>{recruit ? "What they want from work and what holds them back, in their words" : "Pain points, in their own words"}</span>
           <button type="button" onClick={suggest} disabled={suggesting || (!form.lifeStage && triggers.length === 0)} className="px-3 py-1.5 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15 text-xs font-fantasy disabled:opacity-40" data-suggest>
             {suggesting ? "🔮 Thinking..." : "🔮 Suggest pain points"}
           </button>
@@ -422,7 +446,7 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
         )}
       </div>
 
-      <SuggestField name="worries" label="What keeps them up at night (one line, in their words)" value={form.worries} onChange={(v) => set("worries", v)} suggestions={WORRIES} placeholder="If something happened to one of us, could the other keep the house?" maxLength={600} />
+      <SuggestField name="worries" label={recruit ? "The one question they want answered before reaching out" : "What keeps them up at night (one line, in their words)"} value={form.worries} onChange={(v) => set("worries", v)} suggestions={recruit ? RECRUIT_WORRIES : WORRIES} placeholder="If something happened to one of us, could the other keep the house?" maxLength={600} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
@@ -444,7 +468,7 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
             })}
           </div>
         </div>
-        <div>
+        {recruit ? <div /> : <div>
           <span className={label}>Recommended quiz</span>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(QUEST_CONFIG.quizzes) as Array<keyof typeof QUEST_CONFIG.quizzes>).map((q) => (
@@ -459,7 +483,7 @@ function ProfileForm({ initial, onCancel, onSaved }: { initial: ProfileInput; on
               </button>
             ))}
           </div>
-        </div>
+        </div>}
       </div>
 
       <label className="block">

@@ -72,7 +72,19 @@ export async function recordCampaignEvent(kind: CampaignEventKind, tag: Campaign
 
 export interface ResolvedLink {
   tag: Omit<CampaignTag, "at">;
-  quiz: QuizId;
+  /** The quiz the link leads to, or "" for a recruiting quest. */
+  quiz: QuizId | "";
+  /** Where the redirect goes: a quiz, the Guild Hall, or the fit quiz. */
+  dest: string;
+}
+
+type QuestRowLite = { id: number; platforms: string; offer_quiz: string; goal?: string | null; recruit_offer?: string | null };
+
+/** A recruiting quest sends people to the Guild Hall (or the fit quiz); a client quest to its quiz (recruiting spec, Section 7.1). */
+function destinationOf(q: QuestRowLite | null): { quiz: QuizId | ""; dest: string } {
+  if (q?.goal === "recruits") return { quiz: "", dest: q.recruit_offer === "fit_quiz" ? "/guild/quiz" : "/guild" };
+  const quiz: QuizId = q?.offer_quiz === "financial" ? "financial" : "life_insurance";
+  return { quiz, dest: QUEST_CONFIG.quizzes[quiz].path };
 }
 
 const parseList = <T,>(v: unknown, fallback: T): T => {
@@ -95,41 +107,41 @@ export async function resolveCampaignSlug(raw: string): Promise<ResolvedLink | n
   if (!slug || slug.length > 40) return null;
   await ensureQuestTables();
 
-  const quests = (await sql()`SELECT id, platforms, offer_quiz FROM quests WHERE slug = ${slug} ORDER BY id DESC LIMIT 1`) as Array<{ id: number; platforms: string; offer_quiz: string }>;
+  const quests = (await sql()`SELECT id, platforms, offer_quiz, goal, recruit_offer FROM quests WHERE slug = ${slug} ORDER BY id DESC LIMIT 1`) as QuestRowLite[];
   if (quests.length) {
     const q = quests[0];
-    return { tag: { questId: Number(q.id), slug, platform: firstPlatform(q.platforms) }, quiz: q.offer_quiz === "financial" ? "financial" : "life_insurance" };
+    return { tag: { questId: Number(q.id), slug, platform: firstPlatform(q.platforms) }, ...destinationOf(q) };
   }
 
   const series = (await sql()`SELECT id, quest_id FROM quest_series WHERE slug = ${slug} ORDER BY id DESC LIMIT 1`) as Array<{ id: number; quest_id: number | null }>;
   if (series.length) {
     const s = series[0];
-    let questRow: { id: number; platforms: string; offer_quiz: string } | null = null;
+    let questRow: QuestRowLite | null = null;
     if (s.quest_id != null) {
-      const rows = (await sql()`SELECT id, platforms, offer_quiz FROM quests WHERE id = ${s.quest_id}`) as Array<{ id: number; platforms: string; offer_quiz: string }>;
+      const rows = (await sql()`SELECT id, platforms, offer_quiz, goal, recruit_offer FROM quests WHERE id = ${s.quest_id}`) as QuestRowLite[];
       questRow = rows[0] ?? null;
     } else {
       // A recurring show spans quests: credit the active quest that runs it,
       // or the newest one that ever did.
-      const rows = (await sql()`SELECT id, platforms, offer_quiz, status, show_ids FROM quests ORDER BY (status = 'active') DESC, id DESC`) as Array<{ id: number; platforms: string; offer_quiz: string; status: string; show_ids: string }>;
+      const rows = (await sql()`SELECT id, platforms, offer_quiz, goal, recruit_offer, status, show_ids FROM quests ORDER BY (status = 'active') DESC, id DESC`) as Array<QuestRowLite & { status: string; show_ids: string }>;
       questRow = rows.find((r) => parseList<number[]>(r.show_ids, []).map(Number).includes(Number(s.id))) ?? null;
     }
     return {
       tag: { questId: questRow ? Number(questRow.id) : null, slug, platform: questRow ? firstPlatform(questRow.platforms) : "tiktok", seriesId: Number(s.id) },
-      quiz: questRow?.offer_quiz === "financial" ? "financial" : "life_insurance",
+      ...destinationOf(questRow),
     };
   }
 
   const slots = (await sql()`
-    SELECT cs.id, cs.quest_id, cs.series_id, cs.platform, q.offer_quiz
+    SELECT cs.id, cs.quest_id, cs.series_id, cs.platform, q.offer_quiz, q.goal, q.recruit_offer
     FROM content_slots cs LEFT JOIN quests q ON q.id = cs.quest_id
     WHERE cs.post_slug = ${slug} ORDER BY cs.id DESC LIMIT 1
-  `) as Array<{ id: number; quest_id: number; series_id: number | null; platform: string; offer_quiz: string | null }>;
+  `) as Array<{ id: number; quest_id: number; series_id: number | null; platform: string; offer_quiz: string | null; goal: string | null; recruit_offer: string | null }>;
   if (slots.length) {
     const p = slots[0];
     return {
       tag: { questId: Number(p.quest_id), slug, platform: p.platform || "tiktok", slotId: Number(p.id), seriesId: p.series_id == null ? undefined : Number(p.series_id) },
-      quiz: p.offer_quiz === "financial" ? "financial" : "life_insurance",
+      ...destinationOf({ id: Number(p.quest_id), platforms: "", offer_quiz: p.offer_quiz ?? "", goal: p.goal, recruit_offer: p.recruit_offer }),
     };
   }
   return null;
@@ -186,7 +198,7 @@ export async function handleCampaignLink(rawSlug: string, request: Request): Pro
   headers.append("Set-Cookie", `${CAMPAIGN_COOKIE}=${encodeCampaignCookie(next)}; ${flags}; HttpOnly`);
   headers.append("Set-Cookie", `${CAMPAIGN_MARKER_COOKIE}=1; ${flags}`);
   headers.set("Cache-Control", "no-store");
-  const target = new URL(QUEST_CONFIG.quizzes[resolved.quiz].path, url.origin);
+  const target = new URL(resolved.dest, url.origin);
   target.searchParams.set("via", tag.slug);
   headers.set("Location", target.pathname + target.search);
   return new Response(null, { status: 302, headers });

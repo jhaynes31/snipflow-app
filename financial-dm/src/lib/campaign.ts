@@ -42,7 +42,9 @@ export interface CampaignBrief extends CampaignContext {
   painPoint: string;
   hookAngle: string;
   generator: GeneratorId;
-  forgeTab: "script" | "carousel" | "card" | "meme" | null;
+  forgeTab: "script" | "carousel" | "card" | "meme" | "guild" | null;
+  /** Recruiting quests open the Guild forge and end with the recruiting call to action. */
+  goal: "booked_calls" | "recruits";
   generatorAvailable: boolean;
   quizLabel: string;
   status: string;

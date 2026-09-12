@@ -1,3 +1,4 @@
+import { recruitCta } from "~/lib/guildCompliance";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
@@ -87,6 +88,10 @@ async function outputSummary(ref: string): Promise<string> {
       const r = (await sql()`SELECT title, hook FROM saved_scripts WHERE id = ${id}`) as Array<{ title: string; hook: string | null }>;
       return r[0] ? `${r[0].title}${r[0].hook ? `: ${r[0].hook}` : ""}` : "";
     }
+    if (kind === "guild") {
+      const r = (await sql()`SELECT title FROM guild_outputs WHERE id = ${id}`) as Array<{ title: string }>;
+      return r[0]?.title ?? "";
+    }
     if (kind === "carousel") {
       const r = (await sql()`SELECT title FROM saved_carousels WHERE id = ${id}`) as Array<{ title: string }>;
       return r[0]?.title ?? "";
@@ -109,6 +114,7 @@ export const getCampaignBrief = createServerFn()
     const q = quests[0];
     const generator = (generatorById(String(s.generator))?.id ?? "script") as GeneratorId;
     const gen = generatorById(generator)!;
+    const recruiting = q.goal === "recruits";
     const offerQuiz = q.offer_quiz === "financial" ? "financial" : "life_insurance";
 
     // The link the post should speak: the most specific one John set up
@@ -137,7 +143,7 @@ export const getCampaignBrief = createServerFn()
     }
 
     if (s.post_slug) slug = String(s.post_slug);
-    const spokenLine = spokenLineFor(slug);
+    const spokenLine = recruiting ? recruitCta(slug) : spokenLineFor(slug);
     const url = `https://${QUEST_CONFIG.siteDomain}/${slug}`;
 
     const triggers = parseJson<string[]>(q.triggers, []);
@@ -159,14 +165,15 @@ export const getCampaignBrief = createServerFn()
       profileSummary,
       profileName,
       lifeStage,
-      topic: String(s.topic ?? "") || topicPick.topic,
-      fact: topicPick.fact,
+      topic: String(s.topic ?? "") || (recruiting ? "" : topicPick.topic),
+      fact: recruiting ? "" : topicPick.fact,
       painPoint: String(s.pain_point ?? "") || pains[0] || "",
       hookAngle: String(s.hook_angle ?? ""),
       generator,
-      forgeTab: gen.forgeTab ?? null,
-      generatorAvailable: gen.available,
-      quizLabel: QUEST_CONFIG.quizzes[offerQuiz].label,
+      forgeTab: recruiting ? "guild" : (gen.forgeTab ?? null),
+      generatorAvailable: recruiting ? ["script", "carousel", "social_card"].includes(generator) : gen.available,
+      quizLabel: recruiting ? "The Guild Hall" : QUEST_CONFIG.quizzes[offerQuiz].label,
+      goal: recruiting ? "recruits" : "booked_calls",
       status: String(s.status ?? "idea"),
       generatorOutputRef: String(s.generator_output_ref ?? ""),
     };
@@ -182,7 +189,7 @@ export const attachOutputToSlot = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { slotId: number; ref: string; text: string }) => ({ slotId: Number(d?.slotId), ref: text(d?.ref, 80), text: text(d?.text, 20000) }))
   .handler(async ({ data }): Promise<{ ok: boolean; flags: string[]; status?: string; error?: string }> => {
-    if (!data.slotId || !/^(script|carousel|cards|meme):\d+$/.test(data.ref)) return { ok: false, flags: [], error: "Nothing to attach." };
+    if (!data.slotId || !/^(script|carousel|cards|meme|guild):\d+$/.test(data.ref)) return { ok: false, flags: [], error: "Nothing to attach." };
     try {
       const rows = (await sql()`SELECT status, generator_output_ref, output_history, flags FROM content_slots WHERE id = ${data.slotId}`) as Array<Record<string, unknown>>;
       if (!rows.length) return { ok: false, flags: [], error: "That slot no longer exists." };

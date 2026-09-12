@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { callClaude, parseJsonReply } from "~/server/contentVoice";
 import { QUEST_CONFIG, generatorById, type GeneratorId, type QuizId } from "~/lib/questConfig";
+import { GUILD_CAROUSEL_TOPICS, GUILD_SCRIPT_TOPICS } from "~/lib/guildCompliance";
 import { SLOT_STATUSES, enforcePlan, normalizeSlug, scheduleDates, slugProblem, targetMix, weekdayOf, type PlannedSlot, type SlotStatus } from "~/lib/questPlan";
 
 /**
@@ -13,13 +14,19 @@ import { SLOT_STATUSES, enforcePlan, normalizeSlug, scheduleDates, slugProblem, 
  */
 
 export type QuestStatus = "planning" | "active" | "complete";
+/** What a quest is for (recruiting spec, Section 7.1). */
+export type QuestGoal = "booked_calls" | "recruits";
+/** Where a recruiting quest's link sends people. */
+export type RecruitOffer = "guild_hall" | "fit_quiz";
 
 export interface Quest {
   id: number;
   name: string;
   profileId: number | null;
   profileName: string;
-  goal: "booked_calls";
+  goal: QuestGoal;
+  /** Recruiting quests only: the Guild Hall, or the fit quiz once it exists. */
+  recruitOffer: RecruitOffer;
   offerQuiz: QuizId;
   lootHighlight: string;
   testing: string;
@@ -35,7 +42,7 @@ export interface Quest {
   createdAt: string;
 }
 
-export type QuestInput = Omit<Quest, "id" | "profileName" | "createdAt" | "goal"> & { id?: number };
+export type QuestInput = Omit<Quest, "id" | "profileName" | "createdAt"> & { id?: number };
 
 export interface Series {
   id: number;
@@ -180,6 +187,7 @@ function ensureTables(): Promise<void> {
       `;
       await sql()`CREATE TABLE IF NOT EXISTS quest_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`;
       await sql()`ALTER TABLE content_slots ADD COLUMN IF NOT EXISTS output_history TEXT DEFAULT '[]'`;
+      await sql()`ALTER TABLE quests ADD COLUMN IF NOT EXISTS recruit_offer TEXT DEFAULT 'guild_hall'`;
       await sql()`ALTER TABLE content_slots ADD COLUMN IF NOT EXISTS flags_acknowledged BOOLEAN DEFAULT FALSE`;
       await seedShowsOnce();
     })().catch((e) => {
@@ -210,7 +218,8 @@ function rowToQuest(r: Record<string, unknown>, profileName = ""): Quest {
     name: String(r.name ?? ""),
     profileId: r.profile_id == null ? null : Number(r.profile_id),
     profileName,
-    goal: "booked_calls",
+    goal: r.goal === "recruits" ? "recruits" : "booked_calls",
+    recruitOffer: r.recruit_offer === "fit_quiz" ? "fit_quiz" : "guild_hall",
     offerQuiz: r.offer_quiz === "financial" ? "financial" : "life_insurance",
     lootHighlight: String(r.loot_highlight ?? ""),
     testing: String(r.testing ?? ""),
@@ -281,6 +290,8 @@ function cleanQuest(d: Partial<QuestInput> | undefined): QuestInput {
     id: typeof d?.id === "number" ? d.id : undefined,
     name: text(d?.name, 80),
     profileId: d?.profileId == null ? null : Number(d.profileId),
+    goal: d?.goal === "recruits" ? "recruits" : "booked_calls",
+    recruitOffer: d?.recruitOffer === "fit_quiz" ? "fit_quiz" : "guild_hall",
     offerQuiz: d?.offerQuiz === "financial" ? "financial" : "life_insurance",
     lootHighlight: text(d?.lootHighlight, 120),
     testing: text(d?.testing, 300),
@@ -328,7 +339,7 @@ export const saveQuest = createServerFn({ method: "POST" })
     try {
       if (data.id) {
         await sql()`
-          UPDATE quests SET name = ${data.name}, profile_id = ${data.profileId}, offer_quiz = ${data.offerQuiz}, loot_highlight = ${data.lootHighlight},
+          UPDATE quests SET name = ${data.name}, profile_id = ${data.profileId}, goal = ${data.goal}, recruit_offer = ${data.recruitOffer}, offer_quiz = ${data.offerQuiz}, loot_highlight = ${data.lootHighlight},
             testing = ${data.testing}, platforms = ${JSON.stringify(data.platforms)}, posts_per_week = ${data.postsPerWeek}, start_date = ${data.startDate},
             end_date = ${data.endDate}, slug = ${data.slug}, status = ${data.status}, retro = ${data.retro}, show_ids = ${JSON.stringify(data.showIds)}, updated_at = NOW()
           WHERE id = ${data.id}
@@ -336,8 +347,8 @@ export const saveQuest = createServerFn({ method: "POST" })
         return { ok: true, id: data.id };
       }
       const rows = (await sql()`
-        INSERT INTO quests (name, profile_id, offer_quiz, loot_highlight, testing, platforms, posts_per_week, start_date, end_date, slug, status, retro, show_ids)
-        VALUES (${data.name}, ${data.profileId}, ${data.offerQuiz}, ${data.lootHighlight}, ${data.testing}, ${JSON.stringify(data.platforms)}, ${data.postsPerWeek}, ${data.startDate}, ${data.endDate}, ${data.slug}, ${data.status}, ${data.retro}, ${JSON.stringify(data.showIds)})
+        INSERT INTO quests (name, profile_id, goal, recruit_offer, offer_quiz, loot_highlight, testing, platforms, posts_per_week, start_date, end_date, slug, status, retro, show_ids)
+        VALUES (${data.name}, ${data.profileId}, ${data.goal}, ${data.recruitOffer}, ${data.offerQuiz}, ${data.lootHighlight}, ${data.testing}, ${JSON.stringify(data.platforms)}, ${data.postsPerWeek}, ${data.startDate}, ${data.endDate}, ${data.slug}, ${data.status}, ${data.retro}, ${JSON.stringify(data.showIds)})
         RETURNING id
       `) as Array<{ id: number }>;
       return { ok: true, id: rows[0]?.id };
@@ -592,6 +603,20 @@ export const draftPlan = createServerFn({ method: "POST" })
     const showLines = shows.length ? shows.map((s) => `- "${s.name}" on ${s.defaultWeekday}s, generator ${s.defaultGenerator}: ${s.description}`).join("\n") : "(none switched on)";
     const dateLines = dates.map((d) => `${d} (${weekdayOf(d)})`).join(", ");
 
+    const recruiting = quest.goal === "recruits";
+    const recruitSystem = `You plan short-form recruiting campaigns for John "The Financial DM", a licensed term life agent with The Foster Financial Group who is adding people to his team. Posts are friendly and straight, in a tavern-bartender voice. Success is people reaching the win stage (contracted or first sale), not views.
+
+Return JSON only:
+{"slots":[{"date":"YYYY-MM-DD","generator":"script|carousel|social_card","generatorReason":"one line","topic":"...","painPoint":"...","hookAngle":"...","seriesName":"optional","seriesKind":"multi_part|recurring","partNumber":1,"totalParts":3}]}
+
+Rules:
+- Use exactly the dates given, one slot each, in order.
+- Generators: script (most posts), carousel, and social_card (which means Trap or Treasure recruiting cards). Never meme or insight_card for recruiting.
+- Topics come only from this list, reworded freely: ${GUILD_SCRIPT_TOPICS.map((t) => t.label).join("; ")}; ${GUILD_CAROUSEL_TOPICS.map((t) => t.label).join("; ")}.
+- Every slot speaks to one thing the profile says they want or worry about (quote or closely paraphrase it) and points toward a free, no-pressure conversation with John.
+- Hiring-safe: describe situations and interests only, never age, family status, or any protected trait. No earnings figures, income ranges, or lifestyle promises. Never call the role financial advisor or similar.
+- At most ${QUEST_CONFIG.maxMultiPartSeriesPerQuest} multi-part series (2 to 4 parts, scripts, in date order, named like "Road to Licensed").
+- Use the recurring shows on their weekday when a date matches, with seriesKind "recurring" and the show's generator.`;
     const system = `You plan short-form content campaigns for John "The Financial DM", a licensed term life agent who posts friendly, genuinely useful, lesser-known financial education on TikTok in a tavern-bartender voice. Success is booked calls, not views.
 
 Return JSON only:
@@ -607,7 +632,7 @@ Rules:
 - Topics stay within: coverage, income protection, debt, saving, budgeting, benefits, beneficiaries and wills, and what happens to the family if something goes wrong.`;
     const user = `Quest: ${quest.name}
 What we're testing: ${quest.testing}
-Quiz offer: ${quiz.label}${quest.lootHighlight ? ` (loot to highlight: ${quest.lootHighlight})` : ""}
+${recruiting ? "Offer: a free conversation with John, via the Guild Hall page" : `Quiz offer: ${quiz.label}${quest.lootHighlight ? ` (loot to highlight: ${quest.lootHighlight})` : ""}`}
 Platform: ${quest.platforms.map((p) => QUEST_CONFIG.platforms.find((x) => x.id === p)?.label ?? p).join(", ")}
 Dates (${dates.length} posts): ${dateLines}
 Generators:
@@ -617,7 +642,7 @@ ${showLines}
 
 ${profileText(profile)}`;
 
-    const reply = await callClaude({ system, user, maxTokens: 3000, tag: "quest-plan" });
+    const reply = await callClaude({ system: recruiting ? recruitSystem : system, user, maxTokens: 3000, tag: "quest-plan" });
     const parsed = parseJsonReply<{ slots?: unknown }>(reply, "quest-plan");
     let source: "ai" | "fallback" = "ai";
     let proposed: PlannedSlot[] = [];
@@ -645,7 +670,9 @@ ${profileText(profile)}`;
       source = "fallback";
       const pains = parseJson<string[]>(profile?.pain_points, []);
       const order: GeneratorId[] = [];
-      for (const [g, n] of Object.entries(mix) as Array<[GeneratorId, number]>) for (let i = 0; i < n; i++) order.push(g);
+      if (recruiting) order.push("script", "script", "carousel", "social_card");
+      else for (const [g, n] of Object.entries(mix) as Array<[GeneratorId, number]>) for (let i = 0; i < n; i++) order.push(g);
+      const recruitTopics = [...GUILD_SCRIPT_TOPICS.map((t) => t.label), ...GUILD_CAROUSEL_TOPICS.map((t) => t.label)];
       proposed = dates.map((date, i) => {
         const show = shows.find((s) => s.defaultWeekday === weekdayOf(date));
         const generator = show ? show.defaultGenerator : order[i % order.length] ?? "script";
@@ -654,7 +681,7 @@ ${profileText(profile)}`;
           platform: quest.platforms[0] ?? "tiktok",
           generator,
           generatorReason: show ? `${show.name} always uses this format.` : `${generatorById(generator)?.bestFor ?? "A good fit"}.`,
-          topic: "Pick a topic in the forge",
+          topic: recruiting ? recruitTopics[i % recruitTopics.length] : "Pick a topic in the forge",
           painPoint: pains[i % Math.max(1, pains.length)] ?? "",
           hookAngle: "",
           seriesName: show?.name,

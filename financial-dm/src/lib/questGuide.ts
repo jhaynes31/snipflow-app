@@ -47,6 +47,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     intro: "A profile is a kind of client described by their life moment and money worries, never by who they are. Every quest aims at exactly one profile, and the forge writes to that person.",
     steps: [
       { do: "Look through the ten example profiles that come built in, like New Parents, Job Changers, Single Parents, and Small Business Owners.", note: "Each one is marked \"Example: edit or delete\". Change anything, or delete the ones you will never use." },
+      { do: "The Recruit profiles tab holds people who might join the team, like Career Changer and Wants Remote Work. Those describe a situation and interests, never who someone is." },
       { do: "To add your own, press ➕ New profile and fill in the name, life stage, the moments that create the need, and what keeps them up at night.", note: "Under every box there are \"Pick or type\" chips. Tap one to fill the box, or type your own words." },
       { do: "Press 🔮 Suggest pain points to get a few lines in the person's own words. Accept the ones that ring true.", note: "Nothing is added until you accept it." },
       { do: "Short on ideas? Type a hint like \"nurses on night shifts\" in the box at the top and press 🔮 Draft a profile. Or leave the hint blank for a fresh one.", note: "The draft opens in the form for you to edit. Nothing is saved until you press Save." },
@@ -60,6 +61,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     where: "Quest Board → Quests → ➕ New quest",
     intro: "A quest is a short campaign, usually three weeks, aimed at one profile and testing one idea. The one thing that matters at the end is booked calls.",
     steps: [
+      { do: "Choose what the quest is for: booked calls with clients, or recruits for the Guild.", note: "A recruiting quest picks from the recruit profiles, sends its link to the Guild Hall, opens the Guild forge for every post, and gets its own section on the Scoreboard." },
       { do: "Give it a name and pick the profile.", note: "The name chips suggest names built from the profile, like New Parent Armor." },
       { do: "Choose the quiz offer: the Life Insurance Quiz or the Financial Health Quiz. Optionally name a loot item to highlight.", note: "The chips list the real loot for the quiz you picked." },
       { do: "Write \"What we're testing\" as one question, for example \"Do job-change hooks book calls?\"", note: "One idea per quest. If you want to test two ideas, run two quests." },

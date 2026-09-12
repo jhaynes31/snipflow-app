@@ -3,8 +3,9 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { ensureEventsTable } from "~/server/attribution.server";
 import { ensureLeadsTable } from "~/server/leads";
+import { ensureGuildTables } from "~/server/guild";
 import { ensureQuestTables } from "~/server/quests";
-import { buildScoreboard, type EventRow, type LeadRow, type QuestRow, type Scoreboard, type SeriesRow, type SlotRow } from "~/lib/scoreboard";
+import { buildScoreboard, type EventRow, type LeadRow, type QuestRow, type RecruitRow, type Scoreboard, type SeriesRow, type SlotRow } from "~/lib/scoreboard";
 import { generatorById, type GeneratorId } from "~/lib/questConfig";
 
 /**
@@ -25,19 +26,22 @@ const num = (v: unknown): number | null => (v === null || v === undefined ? null
 export const getScoreboard = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<Scoreboard> => {
-    await Promise.all([ensureQuestTables(), ensureLeadsTable(), ensureEventsTable()]);
-    const [qRows, sRows, srRows, lRows, eRows] = await Promise.all([
-      sql()`SELECT q.id, q.name, q.slug, q.status, q.start_date, q.end_date, q.retro, p.name AS profile_name FROM quests q LEFT JOIN client_profiles p ON p.id = q.profile_id` as Promise<Array<Record<string, unknown>>>,
+    await Promise.all([ensureQuestTables(), ensureLeadsTable(), ensureEventsTable(), ensureGuildTables()]);
+    const [qRows, sRows, srRows, lRows, eRows, rRows, wRows] = await Promise.all([
+      sql()`SELECT q.id, q.name, q.slug, q.status, q.goal, q.start_date, q.end_date, q.retro, p.name AS profile_name FROM quests q LEFT JOIN client_profiles p ON p.id = q.profile_id` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT id, quest_id, generator, series_id, status, post_slug, stats, topic, date FROM content_slots` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT id, name, kind, quest_id, slug FROM quest_series` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT quest_id, series_id, slot_id, status, not_a_fit_reason, found_via FROM leads` as Promise<Array<Record<string, unknown>>>,
       sql()`SELECT kind, quest_id, series_id, slot_id FROM campaign_events` as Promise<Array<Record<string, unknown>>>,
+      sql()`SELECT quest_id, series_id, slot_id, source, stage, not_moving_reason, found_via FROM recruits` as Promise<Array<Record<string, unknown>>>,
+      sql()`SELECT value FROM guild_facts WHERE key = 'winStage'` as Promise<Array<Record<string, unknown>>>,
     ]);
 
     const quests: QuestRow[] = qRows.map((r) => ({
       id: Number(r.id),
       name: String(r.name ?? ""),
       slug: String(r.slug ?? ""),
+      goal: r.goal === "recruits" ? "recruits" : "booked_calls",
       status: r.status === "active" || r.status === "complete" ? r.status : "planning",
       startDate: String(r.start_date ?? ""),
       endDate: String(r.end_date ?? ""),
@@ -74,7 +78,17 @@ export const getScoreboard = createServerFn()
       .filter((r) => r.kind === "visit" || r.kind === "quiz_start" || r.kind === "quiz_complete")
       .map((r) => ({ kind: r.kind as EventRow["kind"], questId: num(r.quest_id), seriesId: num(r.series_id), slotId: num(r.slot_id) }));
 
-    return buildScoreboard({ quests, slots, series, leads, events, today: new Date().toISOString().slice(0, 10) });
+    const recruits: RecruitRow[] = rRows.map((r) => ({
+      questId: num(r.quest_id),
+      seriesId: num(r.series_id),
+      slotId: num(r.slot_id),
+      source: String(r.source ?? "manual"),
+      stage: String(r.stage ?? "interested"),
+      notMovingReason: String(r.not_moving_reason ?? ""),
+      foundVia: String(r.found_via ?? ""),
+    }));
+    const winStage = wRows[0]?.value === "first_sale" ? "first_sale" : "contracted";
+    return buildScoreboard({ quests, slots, series, leads, events, recruits, winStage, today: new Date().toISOString().slice(0, 10) });
   });
 
 /** Quest wrap-up (Section 9.4): store John's retro and, if asked, close the quest. */

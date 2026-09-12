@@ -27,6 +27,7 @@ describe("recruiting flag scan", () => {
     expect(kinds("The interview covers the work and how it's paid, and I can also answer questions about your own coverage or finances.")).not.toContain("disclosure");
     expect(kinds("Here is what a day looks like: calls, follow-ups, and paperwork.")).not.toContain("disclosure");
     expect(kinds("Come say hi.", { describesMeeting: true })).toContain("disclosure");
+    expect(kinds("I help families with life insurance. Text INTERVIEW to 316-633-3330, or visit thefinancialdm.com/guild.")).not.toContain("disclosure");
   });
   test("clean copy passes", () => {
     const t = "I help families with life insurance. Text INTERVIEW to 316-633-3330 and we'll talk about whether it fits, and I can answer questions about your own coverage or finances too.";

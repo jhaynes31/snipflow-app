@@ -297,7 +297,9 @@ function GeneratorHub() {
               <h2 className="font-fantasy text-[#e0e0e0] text-lg">{meta.title}</h2>
               <p className="text-[#606080] text-xs font-fantasy mt-1">{meta.blurb}</p>
             </div>
-            <GuildForge campaignSlug={brief?.url ? brief.url.split("/").pop() : undefined} />
+            {brief && <CampaignBriefBanner brief={brief} onClear={() => navigate({ search: { tab, view: "forge", slot: undefined } })} />}
+            {briefError && <p className="text-red-300 text-xs font-fantasy text-center">{briefError}</p>}
+            <GuildForge brief={brief ?? undefined} />
           </div>
         ) : (
           <div className="space-y-6">

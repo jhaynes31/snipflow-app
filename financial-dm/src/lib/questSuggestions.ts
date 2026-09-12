@@ -111,3 +111,28 @@ export const GENERATOR_REASONS: Record<string, string[]> = {
 };
 
 export const SLOT_NOTES = ["Film outdoors if the light's good.", "Pin the quiz link in the first comment.", "Reply to comments within the hour.", "Reuse the hook from the best-performing post."];
+
+
+// -- Recruit profiles (recruiting spec, Section 7.1): situations and interests only --
+
+export const RECRUIT_PROFILE_NAMES = ["Wants Remote Work", "Career Changer", "Customer Service Pro", "Side Hustle Seeker", "Helper at Heart", "Sales Pro Wanting Purpose", "Back to Work After a Break", "Small Town, Big Reach"];
+
+export const RECRUIT_SITUATIONS = [
+  "Wants work they can do from home, on a schedule they set",
+  "Ready to leave a field that stopped fitting",
+  "Good with people all day and wants that skill to lead somewhere",
+  "Wants something on the side that could grow",
+  "Enjoys helping people and wants that to be the job",
+  "Already sells something and wants to sell something that matters",
+  "Returning to work and wants flexibility",
+];
+
+export const RECRUIT_TRIGGERS = ["a layoff or a restructure", "burnout in the current job", "a long commute that stopped making sense", "a schedule with no say in it", "a friend who got licensed", "hitting a pay ceiling", "a move to a new town", "wanting to be home more", "a customer conversation that felt like real help"];
+
+export const RECRUIT_WORRIES = [
+  "Is this a real job, and will anyone actually help me learn it?",
+  "What would the first few months actually look like?",
+  "Is this commission-only, and what does it cost to start?",
+  "Would the skills I already have carry over?",
+  "Can I do this alongside what I do now?",
+];

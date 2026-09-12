@@ -10,6 +10,8 @@ import {
 } from "~/lib/guildCompliance";
 import { GUILD_CONFIG } from "~/lib/guildConfig";
 import { downloadElementPng } from "~/lib/exportPng";
+import type { CampaignBrief } from "~/lib/campaign";
+import { attachOutputToSlot } from "~/server/campaign";
 import {
   acknowledgeGuildFlags,
   deleteGuildOutput,
@@ -46,9 +48,23 @@ const btnPrimary = "px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#
 const btnGhost = "px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs";
 const select = "px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm focus:outline-none focus:border-[#c08020]/50";
 
-export default function GuildForge({ campaignSlug }: { campaignSlug?: string }) {
+/** Which Guild output a quest slot's generator maps to (recruiting spec, Section 7.1). */
+function kindForBrief(brief?: CampaignBrief): GuildOutputKind {
+  if (!brief) return "script";
+  if (brief.generator === "carousel") return "carousel";
+  if (brief.generator === "social_card" || brief.generator === "insight_card") return "cards";
+  return "script";
+}
+
+export default function GuildForge({ brief }: { brief?: CampaignBrief }) {
+  const campaignSlug = brief?.url ? brief.url.split("/").pop() : undefined;
   const [status, setStatus] = useState<{ ready: boolean; missing: string[] } | null>(null);
-  const [kind, setKind] = useState<GuildOutputKind>("script");
+  const [kind, setKind] = useState<GuildOutputKind>(() => kindForBrief(brief));
+  const [questState, setQuestState] = useState<"idle" | "saving" | "saved">("idle");
+  const [questNote, setQuestNote] = useState("");
+  useEffect(() => {
+    if (brief) setKind(kindForBrief(brief));
+  }, [brief]);
   const [scriptTopic, setScriptTopic] = useState<string>(GUILD_SCRIPT_TOPICS[0].id);
   const [carouselTopic, setCarouselTopic] = useState<string>(GUILD_CAROUSEL_TOPICS[0].id);
   const [platform, setPlatform] = useState<"job_board" | "facebook">("job_board");
@@ -65,6 +81,8 @@ export default function GuildForge({ campaignSlug }: { campaignSlug?: string }) 
     setBusy(true);
     setError("");
     setSaved("idle");
+    setQuestState("idle");
+    setQuestNote("");
     try {
       const data = { campaignSlug };
       const res =
@@ -83,12 +101,33 @@ export default function GuildForge({ campaignSlug }: { campaignSlug?: string }) 
     }
   };
 
-  const save = async () => {
-    if (!draft) return;
+  const save = async (): Promise<number | null> => {
+    if (!draft) return null;
     setSaved("saving");
     const res = await saveGuildOutput({ data: { kind: draft.kind, title: draft.title, body: draft.body, flags: draft.flags } });
     setSaved(res.ok ? "saved" : "idle");
     if (!res.ok) setError(res.error || "Could not save.");
+    return res.ok && res.id ? res.id : null;
+  };
+
+  /** Save, then attach to the quest slot: the slot moves to Drafted (recruiting spec, Section 7.1). */
+  const saveToQuest = async () => {
+    if (!draft || !brief) return;
+    setQuestState("saving");
+    setQuestNote("");
+    const id = await save();
+    if (!id) {
+      setQuestState("idle");
+      return;
+    }
+    const att = await attachOutputToSlot({ data: { slotId: brief.slotId, ref: `guild:${id}`, text: draft.plain } });
+    if (!att.ok) {
+      setQuestState("idle");
+      setQuestNote(att.error || "Could not save to the quest.");
+      return;
+    }
+    setQuestState("saved");
+    setQuestNote(draft.flags.length ? `⚠️ ${draft.flags.length} flag${draft.flags.length === 1 ? "" : "s"} to acknowledge before approval.` : "Slot moved to Drafted.");
   };
 
   if (status && !status.ready) {
@@ -148,11 +187,17 @@ export default function GuildForge({ campaignSlug }: { campaignSlug?: string }) 
             <h3 className="font-fantasy text-[#c08020] text-lg">{kindLabel(draft.kind)} · {draft.title}</h3>
             <div className="flex gap-2">
               <button type="button" onClick={() => navigator.clipboard?.writeText(draft.plain)} className={btnGhost}>📋 Copy text</button>
-              <button type="button" onClick={save} disabled={saved !== "idle"} className={btnPrimary} data-guild-save>
+              <button type="button" onClick={save} disabled={saved !== "idle"} className={brief ? btnGhost : btnPrimary} data-guild-save>
                 {saved === "saving" ? "Saving..." : saved === "saved" ? "✅ Saved" : "💾 Save"}
               </button>
+              {brief && (
+                <button type="button" onClick={saveToQuest} disabled={questState !== "idle"} className={btnPrimary} data-save-to-quest>
+                  {questState === "saving" ? "🗺️ Saving to quest..." : questState === "saved" ? "✅ Saved to quest" : "🗺️ Save to quest"}
+                </button>
+              )}
             </div>
           </div>
+          {questNote && <p className="text-xs font-fantasy text-[#a0a0a0]" data-quest-note>{questNote}</p>}
           <FlagPanel flags={draft.flags} />
           <OutputView kind={draft.kind} body={draft.body} />
         </section>

@@ -1,3 +1,4 @@
+import { recruitCta } from "~/lib/guildCompliance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { QUEST_CONFIG, generatorById, type GeneratorId } from "~/lib/questConfig";
 import { WEEKDAY_NAMES, defaultEndDate, groupByWeek, partOrderWarnings, generatorSummary, seriesBadge, slugProblem, suggestSlug, toISODate, weekdayOf, type PlannedSlot, type SlotStatus, SLOT_STATUSES } from "~/lib/questPlan";
@@ -121,7 +122,7 @@ export default function QuestsSection({ questId, onSelectQuest }: { questId: num
           {quests.map((q) => (
             <button key={q.id} type="button" onClick={() => onSelectQuest(q.id)} className="text-left rounded-xl border border-[#406080]/30 bg-[#111a28] p-4 hover:border-[#c08020]/50 transition-all space-y-2" data-quest={q.name}>
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-fantasy text-[#e0e0e0] text-lg leading-tight">{q.name}</h3>
+                <h3 className="font-fantasy text-[#e0e0e0] text-lg leading-tight">{q.goal === "recruits" ? "🛡️ " : ""}{q.name}</h3>
                 <Pill className={q.status === "active" ? "bg-green-900/40 text-green-300 border-green-700/40" : q.status === "complete" ? "bg-[#0d1520] text-[#a0a0a0] border-[#406080]/40" : "bg-[#c08020]/15 text-[#c08020] border-[#c08020]/40"}>{q.status}</Pill>
               </div>
               <p className="text-[#a0a0a0] text-xs font-fantasy">
@@ -150,6 +151,8 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
     id: initial.id,
     name: initial.name ?? "",
     profileId: initial.profileId ?? (profiles[0]?.id ?? null),
+    goal: initial.goal ?? "booked_calls",
+    recruitOffer: initial.recruitOffer ?? "guild_hall",
     offerQuiz: initial.offerQuiz ?? profiles[0]?.recommendedQuiz ?? "life_insurance",
     lootHighlight: initial.lootHighlight ?? "",
     testing: initial.testing ?? "",
@@ -166,6 +169,9 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
   const [error, setError] = useState("");
   const set = <K extends keyof QuestInput>(k: K, v: QuestInput[K]) => setForm((f) => ({ ...f, [k]: v }));
   const slugIssue = form.slug ? slugProblem(form.slug, takenSlugs) : null;
+  const recruiting = form.goal === "recruits";
+  // Recruiting quests pick from recruit profiles; client quests from client profiles (recruiting spec, Section 7.1).
+  const profilePool = profiles.filter((p) => (recruiting ? p.kind === "recruit" : p.kind !== "recruit") || p.id === form.profileId);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +194,24 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
   return (
     <form onSubmit={submit} className="rounded-xl border border-[#c08020]/40 bg-[#111a28] p-5 space-y-4" data-quest-form>
       <h2 className="font-fantasy text-[#c08020] text-lg">{form.id ? `Edit: ${initial.name}` : "New quest"}</h2>
+      <div>
+        <span className={label}>What this quest is for</span>
+        <div className="flex flex-wrap gap-2" data-goal-picker>
+          {([
+            ["booked_calls", "⚔️ Booked calls (clients)"],
+            ["recruits", "🛡️ Recruits (the Guild)"],
+          ] as Array<[QuestInput["goal"], string]>).map(([g, lbl]) => (
+            <button key={g} type="button" onClick={() => {
+              set("goal", g);
+              const pool = profiles.filter((p) => (g === "recruits" ? p.kind === "recruit" : p.kind !== "recruit"));
+              if (!pool.some((p) => p.id === form.profileId)) set("profileId", pool[0]?.id ?? null);
+            }} aria-pressed={form.goal === g} className={`${btn} ${form.goal === g ? "bg-[#c08020]/20 border-[#c08020] text-[#c08020]" : "border-[#406080]/40 text-[#a0a0a0]"}`} data-goal={g}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+        {recruiting && <p className="text-[11px] text-[#606080] font-fantasy mt-1">The link sends people to the Guild Hall, posts open the Guild forge, and the Scoreboard counts recruits who reach your win stage.</p>}
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <SuggestField
           name="questName"
@@ -215,7 +239,7 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
             }}
           >
             <option value="">Pick a profile</option>
-            {profiles.map((p) => (
+            {profilePool.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
@@ -225,6 +249,15 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
       </div>
       <SuggestField name="testing" label="What we're testing * (one idea per quest)" value={form.testing} onChange={(v) => set("testing", v)} suggestions={testingIdeas(profiles.find((p) => p.id === form.profileId)?.name ?? "")} placeholder="e.g. Do job-change hooks book calls?" maxLength={300} required />
       <div className="grid gap-4 md:grid-cols-3">
+        {recruiting ? (
+          <div>
+            <span className={label}>Where the link goes</span>
+            <div className="flex flex-wrap gap-2">
+              <span className={`${btn} bg-[#c08020]/20 border-[#c08020] text-[#c08020]`}>🛡️ The Guild Hall</span>
+              <span className={`${btn} border-[#406080]/30 text-[#606080] cursor-not-allowed`} title="Arrives with Phase 4">🎲 Fit quiz (coming)</span>
+            </div>
+          </div>
+        ) : (
         <div>
           <span className={label}>Quiz offer</span>
           <div className="flex flex-wrap gap-2">
@@ -235,7 +268,8 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
             ))}
           </div>
         </div>
-        <SuggestField name="loot" label="Loot to highlight (optional)" value={form.lootHighlight} onChange={(v) => set("lootHighlight", v)} suggestions={lootHighlights(form.offerQuiz)} placeholder="e.g. The Party Map" maxLength={120} />
+        )}
+        {recruiting ? <div /> : <SuggestField name="loot" label="Loot to highlight (optional)" value={form.lootHighlight} onChange={(v) => set("lootHighlight", v)} suggestions={lootHighlights(form.offerQuiz)} placeholder="e.g. The Party Map" maxLength={120} />}
         <div>
           <span className={label}>Platforms</span>
           <div className="flex flex-wrap gap-2">
@@ -286,7 +320,7 @@ function QuestForm({ initial, profiles, shows, takenSlugs, onCancel, onSaved }: 
           <span className="text-[#a0a0a0] text-sm font-fantasy shrink-0">{QUEST_CONFIG.siteDomain}/</span>
           <input className={input} value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="baby" maxLength={30} data-slug />
         </div>
-        {slugIssue ? <p className="text-red-300 text-xs font-fantasy mt-1" data-slug-problem>{slugIssue}</p> : form.slug ? <p className="text-[#7fd08a] text-xs font-fantasy mt-1">“Take the free quiz at {QUEST_CONFIG.siteDomain}/{form.slug}.”</p> : null}
+        {slugIssue ? <p className="text-red-300 text-xs font-fantasy mt-1" data-slug-problem>{slugIssue}</p> : form.slug ? <p className="text-[#7fd08a] text-xs font-fantasy mt-1">{recruiting ? `“${recruitCta(form.slug)}”` : `“Take the free quiz at ${QUEST_CONFIG.siteDomain}/${form.slug}.”`}</p> : null}
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           <span className="text-[#606080] text-[10px] font-fantasy uppercase tracking-wider self-center">Pick or type:</span>
           {slugIdeas(form.name, profiles.find((p) => p.id === form.profileId)?.name ?? "").filter((x) => !takenSlugs.includes(x)).map((x) => (
@@ -610,9 +644,12 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
           <span className="text-[#606080] text-[10px] uppercase tracking-wider font-fantasy mr-2">Testing</span>
           {quest.testing}
         </p>
-        <p className="text-[#a0a0a0] text-sm font-fantasy">
-          Offer: {QUEST_CONFIG.quizzes[quest.offerQuiz].label}
-          {quest.lootHighlight ? ` · Loot: ${quest.lootHighlight}` : ""} · Say it: <span className="text-[#7fd08a]">“Take the free quiz at {QUEST_CONFIG.siteDomain}/{quest.slug}.”</span>
+        <p className="text-[#a0a0a0] text-sm font-fantasy" data-quest-offer>
+          {quest.goal === "recruits" ? (
+            <>Recruiting quest · Offer: The Guild Hall · Say it: <span className="text-[#7fd08a]">“{recruitCta(quest.slug)}”</span></>
+          ) : (
+            <>Offer: {QUEST_CONFIG.quizzes[quest.offerQuiz].label}{quest.lootHighlight ? ` · Loot: ${quest.lootHighlight}` : ""} · Say it: <span className="text-[#7fd08a]">“Take the free quiz at {QUEST_CONFIG.siteDomain}/{quest.slug}.”</span></>
+          )}
         </p>
 
         {/* Generator list (Section 6.5) */}
@@ -681,7 +718,7 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
             <p className="text-[#a0a0a0] text-xs font-fantasy uppercase tracking-wider">{w.label} · from {fmtDate(w.weekStart)}</p>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
               {w.items.map((s) => (
-                <SlotCard key={s.id} slot={s} onEdit={() => setEditingSlot({ ...s })} onStatus={(st) => setStatus(s, st)} onDelete={() => removeSlot(s)} onAckFlags={() => ackFlags(s)} />
+                <SlotCard key={s.id} slot={s} recruiting={quest.goal === "recruits"} onEdit={() => setEditingSlot({ ...s })} onStatus={(st) => setStatus(s, st)} onDelete={() => removeSlot(s)} onAckFlags={() => ackFlags(s)} />
               ))}
             </div>
           </div>
@@ -691,11 +728,14 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
   );
 }
 
-function SlotCard({ slot, onEdit, onStatus, onDelete, onAckFlags }: { slot: ContentSlot; onEdit: () => void; onStatus: (s: SlotStatus) => void; onDelete: () => void; onAckFlags: () => void }) {
+function SlotCard({ slot, recruiting = false, onEdit, onStatus, onDelete, onAckFlags }: { slot: ContentSlot; recruiting?: boolean; onEdit: () => void; onStatus: (s: SlotStatus) => void; onDelete: () => void; onAckFlags: () => void }) {
   const g = generatorById(slot.generator);
   const badge = seriesBadge(slot);
-  const canOpen = Boolean(g?.available && g.forgeTab) && !slot.madeElsewhere;
-  const savedView = g?.forgeTab ? `/generator?tab=${g.forgeTab}&view=saved` : null;
+  // Recruiting quests open the Guild forge for scripts, carousels, and cards (recruiting spec, Section 7.1).
+  const guildOk = recruiting && ["script", "carousel", "social_card"].includes(slot.generator);
+  const canOpen = (recruiting ? guildOk : Boolean(g?.available && g.forgeTab)) && !slot.madeElsewhere;
+  const forgeTab = recruiting ? "guild" : g?.forgeTab;
+  const savedView = forgeTab ? `/generator?tab=${forgeTab}&view=saved` : null;
   return (
     <article className={`rounded-lg border p-3 space-y-1.5 ${slot.status === "skipped" ? "border-[#406080]/20 opacity-60" : "border-[#406080]/30"} bg-[#111a28]`} data-slot={slot.id} data-slot-status={slot.status}>
       <div className="flex items-center justify-between gap-2">
@@ -738,8 +778,8 @@ function SlotCard({ slot, onEdit, onStatus, onDelete, onAckFlags }: { slot: Cont
       )}
       <div className="flex items-center gap-2 pt-1 flex-wrap">
         {canOpen ? (
-          <a href={`/generator?tab=${g!.forgeTab}&view=forge&slot=${slot.id}`} className={`${btn} border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15`} data-open-generator>
-            🧙 Open in generator
+          <a href={`/generator?tab=${forgeTab}&view=forge&slot=${slot.id}`} className={`${btn} border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/15`} data-open-generator>
+            {recruiting ? "🛡️ Open in the Guild forge" : "🧙 Open in generator"}
           </a>
         ) : slot.madeElsewhere ? null : (
           <span className={`${btn} border-[#406080]/30 text-[#606080] cursor-not-allowed`} title="Switch the generator, or tick Made another way" data-open-generator-disabled>
@@ -817,9 +857,9 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
         <label className="block">
           <span className={label}>Generator</span>
           <select className={input} value={form.generator} onChange={(e) => set("generator", e.target.value as GeneratorId)} data-slot-generator>
-            {QUEST_CONFIG.generators.map((x) => (
+            {QUEST_CONFIG.generators.filter((x) => quest.goal !== "recruits" || ["script", "carousel", "social_card"].includes(x.id)).map((x) => (
               <option key={x.id} value={x.id}>
-                {x.label}
+                {quest.goal === "recruits" && x.id === "social_card" ? "Trap or Treasure cards" : x.label}
                 {x.available ? "" : " (not built yet)"}
               </option>
             ))}

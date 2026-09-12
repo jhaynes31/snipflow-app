@@ -12,8 +12,12 @@ import type { QuizId } from "~/lib/questConfig";
  * a profile's life stage and triggers to the model, never lead data.
  */
 
+/** Who a profile describes: a client John wants to help, or a person who might join the team (recruiting spec, Section 7.1). */
+export type ProfileKind = "client" | "recruit";
+
 export interface ClientProfile {
   id: number;
+  kind: ProfileKind;
   name: string;
   lifeStage: string;
   triggers: string[];
@@ -39,6 +43,7 @@ function cleanProfile(d: Partial<ProfileInput> | undefined): ProfileInput {
   const quiz: QuizId = d?.recommendedQuiz === "financial" ? "financial" : "life_insurance";
   return {
     id: typeof d?.id === "number" && Number.isFinite(d.id) ? d.id : undefined,
+    kind: d?.kind === "recruit" ? "recruit" : "client",
     name: text(d?.name, 80),
     lifeStage: text(d?.lifeStage, 160),
     triggers: list(d?.triggers, 12),
@@ -78,6 +83,7 @@ function ensureTables(): Promise<void> {
           value TEXT NOT NULL
         )
       `;
+      await sql()`ALTER TABLE client_profiles ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'client'`;
     })().catch((e) => {
       ready = null;
       throw e;
@@ -98,6 +104,7 @@ const parseList = (v: unknown): string[] => {
 function rowToProfile(r: Record<string, unknown>): ClientProfile {
   return {
     id: Number(r.id),
+    kind: r.kind === "recruit" ? "recruit" : "client",
     name: String(r.name ?? ""),
     lifeStage: String(r.life_stage ?? ""),
     triggers: parseList(r.triggers),
@@ -117,7 +124,9 @@ function rowToProfile(r: Record<string, unknown>): ClientProfile {
  * Starter profiles (spec, Section 5). Drafts built around life events and
  * the quiz topics; John edits or deletes them. Seeded once.
  */
-const EXAMPLE_PROFILES: Array<Omit<ProfileInput, "id" | "archived">> = [
+type SeedProfile = Omit<ProfileInput, "id" | "archived" | "kind"> & { kind?: ProfileKind };
+
+const EXAMPLE_PROFILES: SeedProfile[] = [
   {
     name: "New Parents",
     lifeStage: "Just had, or expecting, a baby",
@@ -188,7 +197,47 @@ const EXAMPLE_PROFILES: Array<Omit<ProfileInput, "id" | "archived">> = [
 const IDENTITY_WORDS = /\b(race|racial|ethnic|ethnicity|religio|christian|muslim|jewish|hindu|buddhist|catholic|nationality|immigrant|citizenship|gender|transgender|gay|lesbian|lgbt|sexual orientation|disab|handicap|black|white|asian|latino|latina|hispanic|men|women|male|female)\b/i;
 
 /** A second set of starters, for more variety. Seeded once, skipping any name John already has. */
-const MORE_EXAMPLE_PROFILES: Array<Omit<ProfileInput, "id" | "archived">> = [
+/**
+ * Recruit profiles (recruiting spec, Section 7.1): situations and interests
+ * only, never protected traits. Seeded once, labeled "Example: edit or delete".
+ */
+const RECRUIT_EXAMPLE_PROFILES: SeedProfile[] = [
+  {
+    kind: "recruit",
+    name: "Wants Remote Work",
+    lifeStage: "Wants work they can do from home, on a schedule they set",
+    triggers: ["a long commute that has stopped making sense", "a move to a new town", "wanting to be home more", "a job that went back to the office"],
+    painPoints: ["I want to work from home without it being a scam.", "I'd like to set my own hours but still have someone to learn from.", "Every remote job I find is either a call center or a pyramid thing.", "I don't know if I'd be good at this without a team around me.", "I want to know exactly what it costs before I say yes to anything."],
+    worries: "Is this a real job I can do from my kitchen table, and will anyone actually help me learn it?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "life_insurance",
+    notes: "",
+  },
+  {
+    kind: "recruit",
+    name: "Career Changer",
+    lifeStage: "Ready to leave a field that stopped fitting, and looking at what comes next",
+    triggers: ["a layoff or a restructure", "burnout in the current job", "a skill that no longer feels valued", "watching someone else make a switch"],
+    painPoints: ["I've got years of experience that don't seem to count anywhere else.", "I can't afford to start over at the bottom.", "I don't want another job I'll be tired of in two years.", "I'd like to help people for a living, not just move numbers around.", "How long before I'd actually be earning, and what does that depend on?"],
+    worries: "Can I really change fields at this point, and what would the first few months actually look like?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "life_insurance",
+    notes: "",
+  },
+  {
+    kind: "recruit",
+    name: "Customer Service Pro",
+    lifeStage: "Good with people all day, in retail, hospitality, or a call center, and wants that skill to lead somewhere",
+    triggers: ["another schedule change with no say in it", "a customer conversation that felt like real help", "a friend who got licensed", "hitting a pay ceiling"],
+    painPoints: ["I'm great with people but there's no next step where I am.", "I already talk to strangers all day; I'd rather do it for something that matters.", "I want to be judged on how I treat people, not how fast I close a ticket.", "Licensing sounds hard and I don't know where to start.", "I need to know if this is commission-only before I get excited."],
+    worries: "Would the people skills I already have actually carry over, and would I be on my own?",
+    whereTheyAre: ["tiktok"],
+    recommendedQuiz: "life_insurance",
+    notes: "",
+  },
+];
+
+const MORE_EXAMPLE_PROFILES: SeedProfile[] = [
   {
     name: "Single Parents",
     lifeStage: "Raising kids on one income",
@@ -288,14 +337,14 @@ const MORE_EXAMPLE_PROFILES: Array<Omit<ProfileInput, "id" | "archived">> = [
 ];
 
 async function seedExamplesOnce(): Promise<void> {
-  const flags = (await sql()`SELECT key FROM quest_settings WHERE key IN ('profiles_seeded', 'profiles_seeded_v2')`) as Array<{ key: string }>;
+  const flags = (await sql()`SELECT key FROM quest_settings WHERE key IN ('profiles_seeded', 'profiles_seeded_v2', 'profiles_seeded_recruits')`) as Array<{ key: string }>;
   const done = new Set(flags.map((f) => f.key));
   const existing = new Set(((await sql()`SELECT lower(name) AS name FROM client_profiles`) as Array<{ name: string }>).map((r) => r.name));
-  const insert = async (p: Omit<ProfileInput, "id" | "archived">) => {
+  const insert = async (p: SeedProfile) => {
     if (existing.has(p.name.toLowerCase())) return;
     await sql()`
-      INSERT INTO client_profiles (name, life_stage, triggers, pain_points, worries, where_they_are, recommended_quiz, notes, example)
-      VALUES (${p.name}, ${p.lifeStage}, ${JSON.stringify(p.triggers)}, ${JSON.stringify(p.painPoints)}, ${p.worries}, ${JSON.stringify(p.whereTheyAre)}, ${p.recommendedQuiz}, ${p.notes}, TRUE)
+      INSERT INTO client_profiles (name, kind, life_stage, triggers, pain_points, worries, where_they_are, recommended_quiz, notes, example)
+      VALUES (${p.name}, ${p.kind ?? "client"}, ${p.lifeStage}, ${JSON.stringify(p.triggers)}, ${JSON.stringify(p.painPoints)}, ${p.worries}, ${JSON.stringify(p.whereTheyAre)}, ${p.recommendedQuiz}, ${p.notes}, TRUE)
     `;
   };
   if (!done.has("profiles_seeded")) {
@@ -306,15 +355,25 @@ async function seedExamplesOnce(): Promise<void> {
     for (const p of MORE_EXAMPLE_PROFILES) await insert(p);
     await sql()`INSERT INTO quest_settings (key, value) VALUES ('profiles_seeded_v2', '1') ON CONFLICT (key) DO NOTHING`;
   }
+  if (!done.has("profiles_seeded_recruits")) {
+    for (const p of RECRUIT_EXAMPLE_PROFILES) await insert(p);
+    await sql()`INSERT INTO quest_settings (key, value) VALUES ('profiles_seeded_recruits', '1') ON CONFLICT (key) DO NOTHING`;
+  }
 }
 
 // ── Draft a whole profile ──────────────────────────────────────────
 
 export const draftProfile = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
-  .validator((d: { hint: string; existing: string[] }) => ({ hint: text(d?.hint, 200), existing: list(d?.existing, 40, 80) }))
+  .validator((d: { hint: string; existing: string[]; kind?: string }) => ({ hint: text(d?.hint, 200), existing: list(d?.existing, 40, 80), kind: (d?.kind === "recruit" ? "recruit" : "client") as ProfileKind }))
   .handler(async ({ data }): Promise<{ ok: boolean; profile?: Omit<ProfileInput, "id" | "archived">; error?: string }> => {
-    const system = `You help a licensed term life agent, John "The Financial DM", describe a kind of client he wants to help with friendly, genuinely useful financial education on TikTok.
+    const recruitSystem = `You help a licensed term life agent, John "The Financial DM", describe a kind of person who might want to join his team in life insurance and financial services.
+
+Return JSON only:
+{"name":"short plural group name","lifeStage":"their situation, one line","triggers":["4 to 6 moments that make someone look for a change"],"painPoints":["5 or 6 sentences in the person's own words about what they want from work and what holds them back, first person"],"worries":"the one question they would want answered before reaching out, in their words","recommendedQuiz":"life_insurance"}
+
+Rules (hiring-safe): describe situations and interests only, such as wants remote work, changing careers, enjoys helping people, has customer service experience. Never mention or imply age, race, religion, sex, national origin, disability, pregnancy, family status, sexual orientation, or gender identity, and never words like young, energetic, recent grad, retiree, moms, dads. No earnings figures or lifestyle promises. Plain language, no em dashes. Do not repeat a profile already on the list.`;
+    const system = data.kind === "recruit" ? recruitSystem : `You help a licensed term life agent, John "The Financial DM", describe a kind of client he wants to help with friendly, genuinely useful financial education on TikTok.
 
 Return JSON only:
 {"name":"short plural group name","lifeStage":"one line","triggers":["4 to 6 moments that create the need"],"painPoints":["5 or 6 sentences in the person's own words, first person"],"worries":"the one question that keeps them up at night, in their words","recommendedQuiz":"financial|life_insurance"}
@@ -334,6 +393,7 @@ Profiles he already has (do not repeat): ${data.existing.join("; ") || "(none)"}
       whereTheyAre: ["tiktok"],
       recommendedQuiz: parsed.recommendedQuiz === "financial" ? "financial" : "life_insurance",
       notes: "",
+      kind: data.kind,
     });
     const all = [profile.name, profile.lifeStage, profile.worries, ...profile.triggers, ...profile.painPoints].join(" ");
     if (IDENTITY_WORDS.test(all)) return { ok: false, error: "The draft described who people are rather than what they need. Try again with a hint about their situation." };
@@ -360,7 +420,7 @@ export const saveProfile = createServerFn({ method: "POST" })
       await ensureTables();
       if (data.id) {
         await sql()`
-          UPDATE client_profiles SET name = ${data.name}, life_stage = ${data.lifeStage}, triggers = ${JSON.stringify(data.triggers)},
+          UPDATE client_profiles SET name = ${data.name}, kind = ${data.kind}, life_stage = ${data.lifeStage}, triggers = ${JSON.stringify(data.triggers)},
             pain_points = ${JSON.stringify(data.painPoints)}, worries = ${data.worries}, where_they_are = ${JSON.stringify(data.whereTheyAre)},
             recommended_quiz = ${data.recommendedQuiz}, notes = ${data.notes}, archived = ${data.archived}, updated_at = NOW()
           WHERE id = ${data.id}
@@ -368,8 +428,8 @@ export const saveProfile = createServerFn({ method: "POST" })
         return { ok: true, id: data.id };
       }
       const rows = (await sql()`
-        INSERT INTO client_profiles (name, life_stage, triggers, pain_points, worries, where_they_are, recommended_quiz, notes, archived)
-        VALUES (${data.name}, ${data.lifeStage}, ${JSON.stringify(data.triggers)}, ${JSON.stringify(data.painPoints)}, ${data.worries}, ${JSON.stringify(data.whereTheyAre)}, ${data.recommendedQuiz}, ${data.notes}, ${data.archived})
+        INSERT INTO client_profiles (name, kind, life_stage, triggers, pain_points, worries, where_they_are, recommended_quiz, notes, archived)
+        VALUES (${data.name}, ${data.kind}, ${data.lifeStage}, ${JSON.stringify(data.triggers)}, ${JSON.stringify(data.painPoints)}, ${data.worries}, ${JSON.stringify(data.whereTheyAre)}, ${data.recommendedQuiz}, ${data.notes}, ${data.archived})
         RETURNING id
       `) as Array<{ id: number }>;
       return { ok: true, id: rows[0]?.id };
@@ -410,14 +470,15 @@ export const deleteProfile = createServerFn({ method: "POST" })
 
 export const suggestPainPoints = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
-  .validator((d: { lifeStage: string; triggers: string[]; existing: string[] }) => ({
+  .validator((d: { lifeStage: string; triggers: string[]; existing: string[]; kind?: string }) => ({
+    kind: (d?.kind === "recruit" ? "recruit" : "client") as ProfileKind,
     lifeStage: text(d?.lifeStage, 160),
     triggers: list(d?.triggers, 12),
     existing: list(d?.existing, 16, 200),
   }))
   .handler(async ({ data }): Promise<{ ok: boolean; suggestions: string[]; error?: string }> => {
     if (!data.lifeStage && data.triggers.length === 0) return { ok: false, suggestions: [], error: "Add a life stage or a trigger first." };
-    const system = `You help a licensed term life agent, John "The Financial DM", understand the money worries of the people he wants to help. He posts friendly, genuinely useful financial education on TikTok.
+    const system = data.kind === "recruit" ? `You help a licensed term life agent, John "The Financial DM", understand what people who might join his team in life insurance and financial services want from work and what holds them back. Hiring-safe: situations and interests only, never age, family status, or any protected trait; no earnings figures. Return JSON only: {"painPoints":["5 to 8 first-person sentences"]}` : `You help a licensed term life agent, John "The Financial DM", understand the money worries of the people he wants to help. He posts friendly, genuinely useful financial education on TikTok.
 
 Return JSON only: {"painPoints": ["...", "..."]} with 6 to 8 items.
 

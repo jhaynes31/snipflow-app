@@ -150,6 +150,89 @@ export default function Scoreboard({ onOpenQuest }: { onOpenQuest: (questId: num
         </section>
       )}
 
+
+      {(data.recruitQuests.length > 0 || data.unattributedRecruitsTotal > 0) && (
+        <section className="rounded-xl border border-[#406080]/30 bg-[#111a28] overflow-hidden" data-recruit-scoreboard>
+          <div className="px-4 py-3 border-b border-[#406080]/20 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-fantasy text-[#c08020] text-lg">🛡️ Recruiting quests</h2>
+            <p className="text-[#606080] text-xs font-fantasy">Ranked by recruits who reached your win stage: <span className="text-[#a0a0a0]">{data.recruitQuests[0]?.winLabel ?? (data.winStage === "first_sale" ? "First sale" : "Contracted")}</span>. Kept apart from client quests.</p>
+          </div>
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm text-left" data-recruit-table>
+              <thead>
+                <tr className="text-[#c08020] font-fantasy text-[11px] uppercase tracking-wider" style={{ background: "linear-gradient(180deg, #162030 0%, #0d1520 100%)" }}>
+                  <th className="px-3 py-2">#</th>
+                  <th className="px-3 py-2">Quest</th>
+                  <th className="px-3 py-2 text-right">Posts</th>
+                  <th className="px-3 py-2 text-right">Visits</th>
+                  <th className="px-3 py-2 text-right">Recruits</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">Interview booked</th>
+                  <th className="px-3 py-2 text-right">Interviewed</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">Getting licensed</th>
+                  <th className="px-3 py-2 text-right">Licensed</th>
+                  <th className="px-3 py-2 text-right">Contracted</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">First sale</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">Not moving</th>
+                  <th className="px-3 py-2 text-right">Wins</th>
+                  <th className="px-3 py-2 whitespace-nowrap">Visits → recruits</th>
+                  <th className="px-3 py-2 whitespace-nowrap">Recruits → wins</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#406080]/10">
+                {data.recruitQuests.map((q, i) => (
+                  <tr key={q.questId} className="hover:bg-[#204060]/10" data-recruit-quest={q.questId}>
+                    <td className="px-3 py-2 text-[#c08020] font-fantasy tabular-nums">{i + 1}</td>
+                    <td className="px-3 py-2">
+                      <button type="button" onClick={() => onOpenQuest(q.questId)} className="text-left text-[#e0e0e0] font-fantasy hover:text-[#c08020]">{q.name}</button>
+                      <span className="block text-[11px] text-[#606080] font-fantasy">{statusLabel(q.status)}{q.slug ? ` · /${q.slug}` : ""}{q.profileName ? ` · ${q.profileName}` : ""}</span>
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{q.posts}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{q.visits}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]" data-recruit-count>{q.recruits}<span className="block text-[10px] text-[#606080]">{q.forms} form · {q.texts} text{q.fitQuiz ? ` · ${q.fitQuiz} quiz` : ""}</span></td>
+                    {q.reached.map((r) => (
+                      <td key={r.stage} className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{r.count}</td>
+                    ))}
+                    <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{q.notMoving}{q.reasons.length ? <span className="block text-[10px] text-[#606080]">{q.reasons.map((r) => `${r.label} ${r.count}`).join(", ")}</span> : null}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-[#c08020] font-bold" data-recruit-wins>{q.wins}{data.winStage === "contracted" && q.firstSales ? <span className="block text-[10px] text-[#606080]">{q.firstSales} first sale</span> : null}</td>
+                    <td className="px-3 py-2 text-xs text-[#a0a0a0] font-fantasy whitespace-nowrap">{q.rates.visitsToRecruits}</td>
+                    <td className="px-3 py-2 text-xs text-[#a0a0a0] font-fantasy whitespace-nowrap">{q.rates.recruitsToWins}</td>
+                  </tr>
+                ))}
+                <tr className="bg-[#0d1520]/50" data-unattributed-recruits>
+                  <td className="px-3 py-2 text-[#606080] font-fantasy">—</td>
+                  <td className="px-3 py-2 text-[#a0a0a0] font-fantasy">
+                    Unattributed
+                    {data.unattributedRecruits.length > 0 && <span className="block text-[11px] text-[#606080]">{data.unattributedRecruits.map((u) => `${u.label}: ${u.recruits}${u.wins ? ` (${u.wins} won)` : ""}`).join(" · ")}</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right text-[#606080]">—</td>
+                  <td className="px-3 py-2 text-right text-[#606080]">—</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#e0e0e0]">{data.unattributedRecruitsTotal}</td>
+                  <td className="px-3 py-2 text-[#606080]" colSpan={10}>Recruits with no campaign link, by where they said they heard about the role.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="sm:hidden divide-y divide-[#406080]/10">
+            {data.recruitQuests.map((q, i) => (
+              <div key={q.questId} className="p-4 space-y-2" data-recruit-quest-card>
+                <button type="button" onClick={() => onOpenQuest(q.questId)} className="text-left">
+                  <span className="text-[#606080] font-fantasy text-xs">#{i + 1} · {statusLabel(q.status)}</span>
+                  <span className="block text-[#e0e0e0] font-fantasy">{q.name}</span>
+                </button>
+                <dl className="grid grid-cols-4 gap-2 text-center">
+                  <Stat label="Recruits" value={q.recruits} />
+                  <Stat label={q.winLabel} value={q.wins} strong />
+                  <Stat label="Visits" value={q.visits} />
+                  <Stat label="Not moving" value={q.notMoving} />
+                </dl>
+                <p className="text-[11px] text-[#606080] font-fantasy">{q.reached.map((r) => `${r.label} ${r.count}`).join(" · ")} · {q.rates.tooEarly ? "Too early to tell" : `visits → recruits ${q.rates.visitsToRecruits}`}</p>
+              </div>
+            ))}
+            <p className="p-4 text-xs text-[#a0a0a0] font-fantasy">Unattributed recruits: {data.unattributedRecruitsTotal}</p>
+          </div>
+        </section>
+      )}
+
       {compared.length >= 2 && (
         <section className="rounded-xl border border-[#c08020]/40 bg-[#111a28] p-4" data-compare>
           <div className="flex items-center justify-between gap-2 mb-3">

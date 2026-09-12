@@ -1,15 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { buildScoreboard, funnelOf, rankByBookings, rateText, type LeadRow, type ScoreboardInput } from "./scoreboard";
+import { buildScoreboard, funnelOf, rankByBookings, rateText, recruitFunnel, type LeadRow, type RecruitRow, type ScoreboardInput } from "./scoreboard";
 
 const lead = (over: Partial<LeadRow>): LeadRow => ({ questId: 1, seriesId: null, slotId: null, status: "New", notAFitReason: "", foundVia: "", ...over });
 
 const base = (): ScoreboardInput => ({
   today: "2026-10-01",
   quests: [
-    { id: 1, name: "New Parent Armor", slug: "baby", status: "active", startDate: "2026-09-01", endDate: "2026-09-21", retro: "", profileName: "New Parents" },
-    { id: 2, name: "Money Check", slug: "money", status: "complete", startDate: "2026-08-01", endDate: "2026-08-21", retro: "Learned a lot", profileName: "Job Changers" },
-    { id: 3, name: "Planned", slug: "plan", status: "planning", startDate: "2026-11-01", endDate: "2026-11-21", retro: "", profileName: "" },
+    { id: 1, name: "New Parent Armor", slug: "baby", goal: "booked_calls", status: "active", startDate: "2026-09-01", endDate: "2026-09-21", retro: "", profileName: "New Parents" },
+    { id: 2, name: "Money Check", slug: "money", goal: "booked_calls", status: "complete", startDate: "2026-08-01", endDate: "2026-08-21", retro: "Learned a lot", profileName: "Job Changers" },
+    { id: 3, name: "Planned", slug: "plan", goal: "booked_calls", status: "planning", startDate: "2026-11-01", endDate: "2026-11-21", retro: "", profileName: "" },
+    { id: 4, name: "Join the Guild", slug: "join", goal: "recruits", status: "active", startDate: "2026-09-01", endDate: "2026-09-30", retro: "", profileName: "Career Changer" },
   ],
+  recruits: [
+    { questId: 4, seriesId: null, slotId: null, source: "interest_form", stage: "contracted", notMovingReason: "", foundVia: "flyer" },
+    { questId: 4, seriesId: null, slotId: null, source: "text", stage: "first_sale", notMovingReason: "", foundVia: "" },
+    { questId: 4, seriesId: null, slotId: null, source: "interest_form", stage: "interviewed", notMovingReason: "", foundVia: "tiktok" },
+    { questId: 4, seriesId: null, slotId: null, source: "text", stage: "not_moving_forward", notMovingReason: "no_response", foundVia: "" },
+    { questId: null, seriesId: null, slotId: null, source: "interest_form", stage: "interested", notMovingReason: "", foundVia: "flyer" },
+  ] as RecruitRow[],
+  winStage: "contracted",
   series: [
     { id: 10, name: "Armor Series", kind: "multi_part", questId: 1, slug: "armor" },
     { id: 11, name: "Trap or Treasure Tuesday", kind: "recurring", questId: null, slug: "" },
@@ -109,13 +118,29 @@ describe("buildScoreboard", () => {
   });
 
   test("wrap-up prompts only for ended quests without a retro", () => {
-    expect(sb.wrapUps.map((w) => w.questId)).toEqual([1]);
+    expect(sb.wrapUps.map((w) => w.questId)).toEqual([4, 1]);
     expect(buildScoreboard({ ...base(), today: "2026-09-10" }).wrapUps).toEqual([]);
   });
 
   test("an untouched board is flagged empty", () => {
     const b = base();
-    expect(buildScoreboard({ ...b, slots: [], leads: [], events: [] }).empty).toBe(true);
+    expect(buildScoreboard({ ...b, slots: [], leads: [], events: [], recruits: [] }).empty).toBe(true);
     expect(sb.empty).toBe(false);
+  });
+
+  test("recruiting quests stay out of the client table and rank by the win stage", () => {
+    expect(sb.quests.map((q) => q.questId)).not.toContain(4);
+    const rq = sb.recruitQuests[0];
+    expect(rq.questId).toBe(4);
+    expect(rq).toMatchObject({ recruits: 4, forms: 2, texts: 2, wins: 2, firstSales: 1, notMoving: 1, winLabel: "Contracted" });
+    expect(rq.reached.find((r) => r.stage === "interviewed")?.count).toBe(3);
+    expect(rq.reasons[0]).toMatchObject({ label: "No response", count: 1 });
+    expect(rq.rates.tooEarly).toBe(true);
+    expect(sb.unattributedRecruits[0]).toMatchObject({ label: "A flyer", recruits: 1 });
+  });
+
+  test("win stage first_sale counts only first sales as wins", () => {
+    const f = recruitFunnel(base().recruits!.filter((r) => r.questId === 4), "first_sale");
+    expect(f.wins).toBe(1);
   });
 });

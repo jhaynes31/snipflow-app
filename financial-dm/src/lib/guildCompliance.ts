@@ -80,7 +80,9 @@ export function scanRecruiting(text: string, opts: ScanOptions = {}): RecruitFla
     if (!named) flags.push({ kind: "industry", text: "The industry is never named" });
   }
   // Describes the meeting but leaves out the dual-purpose disclosure (amendment, Section 4).
-  if ((opts.describesMeeting || MEETING_WORDS.test(body)) && !DISCLOSURE_HINT.test(body)) {
+  // The keyword in "Text INTERVIEW to ..." is the call to action, not a description of the meeting.
+  const bodySansKeyword = body.replace(/\bINTERVIEW\b/g, "");
+  if ((opts.describesMeeting || MEETING_WORDS.test(bodySansKeyword)) && !DISCLOSURE_HINT.test(body)) {
     flags.push({ kind: "disclosure", text: "Mentions the interview or meeting without saying it can also cover the person's own coverage or finances" });
   }
   // De-duplicate identical flags.
