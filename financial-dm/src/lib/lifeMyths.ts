@@ -3,7 +3,7 @@
  * quiz's only real randomness, and it never touches the estimate: the
  * engine (armorEngine.ts) knows nothing about myth cards.
  */
-import { ALWAYS_DEALT, CARDS_PER_GAME, MYTH_DECK, RIGHT_LINES, WRONG_LINES, type MythAnswer, type MythCard } from "~/components/life/mythDeck";
+import { ALWAYS_DEALT, CARDS_PER_GAME, MIN_TREASURES, MYTH_DECK, RIGHT_LINES, WRONG_LINES, type MythAnswer, type MythCard } from "~/components/life/mythDeck";
 import type { Rng } from "./wealthRng";
 
 export interface MythGame {
@@ -17,18 +17,35 @@ export interface MythGame {
 
 /**
  * Deal the cards: `work_coverage` always, the rest drawn at random from the
- * remaining deck without repeats. `forced` (from the debug param) pins the
- * hand; anything missing is filled at random.
+ * remaining deck without repeats. Every hand carries at least MIN_TREASURES
+ * true cards, so a game is never all traps; the random picks are shuffled
+ * so the treasure does not always land in the same seat. `forced` (from the
+ * debug param) pins the hand; anything missing is filled the same way.
  */
 export function dealMyths(rng: Rng, forced: string[] = []): string[] {
   const valid = forced.filter((id, i) => MYTH_DECK.some((c) => c.id === id) && forced.indexOf(id) === i);
   const hand = valid.includes(ALWAYS_DEALT) ? valid.slice(0, CARDS_PER_GAME) : [ALWAYS_DEALT, ...valid].slice(0, CARDS_PER_GAME);
+  const answerOf = (id: string) => MYTH_DECK.find((c) => c.id === id)?.answer;
+  const draw = (from: string[]): string => from.splice(rng.int(from.length) - 1, 1)[0];
   const pool = MYTH_DECK.map((c) => c.id).filter((id) => !hand.includes(id));
-  while (hand.length < CARDS_PER_GAME && pool.length > 0) {
-    const [picked] = pool.splice(rng.int(pool.length) - 1, 1);
-    hand.push(picked);
+  const picks: string[] = [];
+  // Guarantee the treasures first, then fill from whatever is left.
+  let treasuresNeeded = MIN_TREASURES - hand.filter((id) => answerOf(id) === "treasure").length;
+  while (hand.length + picks.length < CARDS_PER_GAME && treasuresNeeded > 0) {
+    const treasures = pool.filter((id) => answerOf(id) === "treasure");
+    if (!treasures.length) break;
+    const picked = draw(treasures);
+    pool.splice(pool.indexOf(picked), 1);
+    picks.push(picked);
+    treasuresNeeded -= 1;
   }
-  return hand;
+  while (hand.length + picks.length < CARDS_PER_GAME && pool.length > 0) picks.push(draw(pool));
+  // Shuffle the random picks among themselves; the forced cards keep their order.
+  for (let i = picks.length - 1; i > 0; i--) {
+    const j = rng.int(i + 1) - 1;
+    [picks[i], picks[j]] = [picks[j], picks[i]];
+  }
+  return [...hand, ...picks];
 }
 
 export function cardById(id: string): MythCard | undefined {

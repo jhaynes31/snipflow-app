@@ -31,8 +31,26 @@ describe("dealMyths", () => {
     expect(dealMyths(createSeededRng(1), ["taxes", "conversion", "stay_home", "too_expensive"])).toEqual(["work_coverage", "taxes", "conversion"]);
   });
 
-  test("the deck has eight cards, one always dealt, each with a reveal", () => {
-    expect(MYTH_DECK).toHaveLength(8);
+  test("no hand is ever all traps, and the treasure moves seats", () => {
+    const treasureSeats = new Set<number>();
+    for (let seed = 1; seed <= 500; seed++) {
+      const hand = dealMyths(createSeededRng(seed));
+      const answers = hand.map((id) => MYTH_DECK.find((c) => c.id === id)!.answer);
+      expect(answers.filter((a) => a === "treasure").length).toBeGreaterThanOrEqual(1);
+      answers.forEach((a, i) => a === "treasure" && treasureSeats.add(i));
+    }
+    // Never in seat 0 (that is work_coverage), but both other seats over many deals.
+    expect([...treasureSeats].sort()).toEqual([1, 2]);
+    // A pinned all-trap hand is respected as pinned, but a partial pin still gets its treasure.
+    const pinned = dealMyths(createSeededRng(2), ["taxes"]);
+    expect(pinned.slice(0, 2)).toEqual(["work_coverage", "taxes"]);
+    expect(MYTH_DECK.find((c) => c.id === pinned[2])!.answer).toBe("treasure");
+  });
+
+  test("the deck has fifteen cards, a fair mix, one always dealt, each with a reveal", () => {
+    expect(MYTH_DECK).toHaveLength(15);
+    expect(MYTH_DECK.filter((c) => c.answer === "treasure").length).toBe(7);
+    expect(new Set(MYTH_DECK.map((c) => c.id)).size).toBe(15);
     expect(MYTH_DECK.some((c) => c.id === ALWAYS_DEALT)).toBe(true);
     for (const c of MYTH_DECK) {
       expect(c.reveal.length).toBeGreaterThan(20);

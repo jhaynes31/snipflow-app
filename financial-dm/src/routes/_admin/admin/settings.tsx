@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import * as armor from "~/lib/armorConfig";
 import * as lifeMyths from "~/lib/lifeMyths";
+import { MYTH_DECK } from "~/components/life/mythDeck";
 import * as wealthProfile from "~/lib/wealthProfile";
 import * as armorLoot from "~/lib/armorLoot";
 import * as wealthLoot from "~/lib/wealthLoot";
@@ -56,6 +57,7 @@ const VIEWS: ViewDef[] = [
     where: "These live in the quiz config files in the site's code (armorConfig, lifeMyths, wealthProfile). Tell Jen or Claude what to change and it ships with the next deploy.",
     sections: [
       ...dataExports(armor as Record<string, unknown>).map(([k, v]) => ({ label: `Life Insurance Quiz · ${k}`, data: v })),
+      { label: "Life Insurance Quiz · Trap or Treasure deck", data: MYTH_DECK },
       ...dataExports(lifeMyths as Record<string, unknown>).map(([k, v]) => ({ label: `Life Insurance Quiz myths · ${k}`, data: v })),
       ...dataExports(wealthProfile as Record<string, unknown>, ["STAT_META", "TIER_CONFIG", "TIER_META", "CLASS_META"]).map(([k, v]) => ({ label: `Wealth Check · ${k}`, data: v })),
     ],
