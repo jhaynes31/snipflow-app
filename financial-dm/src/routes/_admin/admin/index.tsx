@@ -43,6 +43,7 @@ const QUICK_ACTIONS: Array<{ label: string; icon: string; to: string; search?: R
   { label: "Add a recruit", icon: "🛡️", to: "/admin/guild", search: { view: "recruits", add: "1" }, blurb: "Someone who texted INTERVIEW", built: TOOLS_BUILT.guild },
   { label: "New quest", icon: "🗺️", to: "/admin/quests", search: { section: "quests", new: "1" }, blurb: "Start a campaign", built: TOOLS_BUILT.quests },
   { label: "Open the Content Forge", icon: "🧙", to: "/admin/forge", search: { tab: "script", view: "forge" }, blurb: "Scripts, carousels, cards, memes", built: TOOLS_BUILT.forge },
+  { label: "Start a practice session", icon: "🥊", to: "/admin/practice", blurb: "Rehearse with a fictional client or recruit", built: TOOLS_BUILT.practice },
 ];
 
 function HomePage() {
@@ -127,7 +128,7 @@ function HomePage() {
 
         <section className={`${card} p-4`} aria-labelledby="quick-actions">
           <h2 id="quick-actions" className="font-fantasy text-[#c08020] text-lg mb-3">Quick actions</h2>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {QUICK_ACTIONS.filter((a) => a.built).map((a) => (
               <Link key={a.label} {...linkTo(a.to, a.search)} className={`rounded-lg border border-[#406080]/40 hover:border-[#c08020]/50 bg-[#0d1520]/60 px-3 py-3 ${focus}`} data-quick-action={a.label}>
                 <span className="block text-[#e0e0e0] font-fantasy text-sm">{a.icon} {a.label}</span>

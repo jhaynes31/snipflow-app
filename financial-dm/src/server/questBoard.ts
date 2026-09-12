@@ -101,7 +101,7 @@ const parseList = (v: unknown): string[] => {
   }
 };
 
-function rowToProfile(r: Record<string, unknown>): ClientProfile {
+export function rowToProfile(r: Record<string, unknown>): ClientProfile {
   return {
     id: Number(r.id),
     kind: r.kind === "recruit" ? "recruit" : "client",
@@ -403,6 +403,12 @@ Profiles he already has (do not repeat): ${data.existing.join("; ") || "(none)"}
     void _a;
     return { ok: true, profile: rest };
   });
+
+/** Tables plus the example profiles, for other tools (the Sparring Dummy) that read profiles directly. */
+export async function ensureQuestBoardTables(): Promise<void> {
+  await ensureTables();
+  await seedExamplesOnce();
+}
 
 export const getProfiles = createServerFn().middleware([requireAdmin]).handler(async (): Promise<ClientProfile[]> => {
   await ensureTables();
