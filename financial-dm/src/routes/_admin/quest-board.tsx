@@ -46,14 +46,6 @@ function QuestBoardPage() {
             </h1>
             <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">Plan campaigns, feed the forge, and see which quests book calls.</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Link to="/generator" search={{ tab: "script", view: "forge" }} className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 transition-all font-fantasy text-sm">
-              🧙 Content Forge
-            </Link>
-            <Link to="/dashboard" className="px-4 py-2 rounded-lg border border-[#406080]/40 text-[#e0e0e0] hover:bg-[#204060]/20 transition-all font-fantasy text-sm">
-              ⚔️ Lead Dashboard
-            </Link>
-          </div>
         </div>
 
         <nav className="flex gap-2 flex-wrap mb-6" aria-label="Quest Board sections">

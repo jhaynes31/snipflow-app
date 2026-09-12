@@ -1,5 +1,6 @@
-import { Link, Outlet, createFileRoute, redirect } from "@tanstack/react-router";
-import { getAuthStatus, logout } from "~/server/auth";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import AdminNav from "~/components/AdminNav";
+import { getAuthStatus } from "~/server/auth";
 
 /**
  * Pathless layout that guards every private page. Files under
@@ -24,34 +25,15 @@ export const Route = createFileRoute("/_admin")({
   component: AdminLayout,
 });
 
+/**
+ * Every private page gets the same navigation bar, so one login reaches the
+ * leads, the Quest Board, every forge, both quizzes, the guide, the password
+ * page, and sign out.
+ */
 function AdminLayout() {
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      window.location.assign("/login");
-    }
-  };
-
   return (
     <>
-      <div className="fixed top-3 right-3 z-40 flex gap-2">
-        <Link
-          to="/change-password"
-          className="px-3 py-1.5 rounded-lg bg-[#0d1520]/80 border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 text-xs font-fantasy transition-all backdrop-blur"
-          title="Change the password for the private tools"
-        >
-          🔑 Password
-        </Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="px-3 py-1.5 rounded-lg bg-[#0d1520]/80 border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 text-xs font-fantasy transition-all backdrop-blur"
-          title="Sign out of the private tools"
-        >
-          🚪 Sign out
-        </button>
-      </div>
+      <AdminNav />
       <Outlet />
     </>
   );

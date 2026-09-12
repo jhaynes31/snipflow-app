@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, type Lead } from "~/server/leads";
 import { LEAD_STATUSES, NOT_A_FIT_REASONS, PRODUCT_TYPES, productLabel, reasonLabel, sourceSummary } from "~/lib/attribution";
@@ -188,20 +188,6 @@ function DashboardPage() {
                 </select>
               </label>
             )}
-            <Link
-              to="/generator"
-              search={{ tab: "script", view: "forge" }}
-              className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 transition-all font-fantasy text-sm"
-            >
-              🧙 Content Forge
-            </Link>
-            <Link
-              to="/quest-board"
-              search={{ section: "profiles" }}
-              className="px-4 py-2 rounded-lg border border-[#c08020]/40 text-[#c08020] hover:bg-[#c08020]/10 transition-all font-fantasy text-sm"
-            >
-              🗺️ Quest Board
-            </Link>
             <button
               onClick={fetchLeads}
               disabled={loading}
