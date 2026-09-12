@@ -23,6 +23,7 @@ import {
   type RecruitStage,
 } from "~/lib/guildConfig";
 import { parseStatusHistory, type StatusChange } from "~/lib/attribution";
+import { parseQuestLog, type QuestLog } from "~/lib/questLog";
 
 /**
  * The Guild, Phase 1 (recruiting spec, Section 5, trust-first amendment):
@@ -77,6 +78,9 @@ function ensureTables(): Promise<void> {
           created_at TIMESTAMPTZ DEFAULT NOW()
         )
       `;
+      // Phase 5: the Quest Log lives on the recruit row (older databases get the columns here).
+      await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log TEXT`;
+      await sql()`ALTER TABLE recruits ADD COLUMN IF NOT EXISTS quest_log_token TEXT`;
     })().catch((e) => {
       ready = null;
       throw e;
@@ -235,6 +239,8 @@ export interface Recruit {
   pursuingInvestment: boolean;
   notMovingReason: string;
   emailConsent: boolean;
+  questLog: QuestLog | null;
+  questLogToken: string;
   isNew: boolean;
   createdAt: string;
 }
@@ -263,6 +269,8 @@ function rowToRecruit(r: Record<string, unknown>): Recruit {
     pursuingInvestment: Boolean(r.pursuing_investment),
     notMovingReason: String(r.not_moving_reason ?? ""),
     emailConsent: Boolean(r.email_consent),
+    questLog: parseQuestLog(r.quest_log),
+    questLogToken: String(r.quest_log_token ?? ""),
     isNew: r.seen_at == null,
     createdAt: String(r.created_at ?? ""),
   };

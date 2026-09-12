@@ -17,8 +17,10 @@ import {
 } from "~/lib/guildConfig";
 import { deleteRecruit, getGuildFacts, getRecruits, markRecruitsSeen, quickAddRecruit, saveGuildFacts, setRecruitStage, updateRecruit, type Recruit } from "~/server/guild";
 import { getQuests, type Quest } from "~/server/quests";
+import QuestLogPanel, { questLogUrl, smsTo } from "~/components/guild/QuestLogPanel";
+import { QUEST_LOG_STALE_DAYS, daysSince, needsNudge, nextStep, nudgeText, questLogProgress } from "~/lib/questLog";
 
-type View = "recruits" | "facts";
+type View = "recruits" | "facts" | "questlogs";
 
 /**
  * The Guild tab (recruiting spec, Section 5.4): the recruit pipeline with
@@ -26,7 +28,7 @@ type View = "recruits" | "facts";
  * the public Guild Hall is allowed to make.
  */
 export const Route = createFileRoute("/_admin/guild-hall")({
-  validateSearch: (s: Record<string, unknown>): { view?: View } => ({ view: s.view === "facts" ? "facts" : s.view === "recruits" ? "recruits" : undefined }),
+  validateSearch: (s: Record<string, unknown>): { view?: View } => ({ view: s.view === "facts" ? "facts" : s.view === "recruits" ? "recruits" : s.view === "questlogs" ? "questlogs" : undefined }),
   component: GuildHallAdmin,
 });
 
@@ -52,6 +54,7 @@ function GuildHallAdmin() {
           {(
             [
               ["recruits", "🧭 Recruits"],
+              ["questlogs", "🗺️ Quest Logs"],
               ["facts", "📜 Guild facts and FAQ"],
             ] as Array<[View, string]>
           ).map(([id, label]) => (
@@ -66,7 +69,7 @@ function GuildHallAdmin() {
             🎲 Preview the fit quiz ↗
           </a>
         </nav>
-        {view === "recruits" ? <RecruitsSection /> : <FactsSection />}
+        {view === "recruits" ? <RecruitsSection /> : view === "questlogs" ? <QuestLogsSection /> : <FactsSection />}
       </div>
     </main>
   );
@@ -183,6 +186,95 @@ function RecruitsSection() {
   );
 }
 
+// ── Quest Logs ──────────────────────────────────────────────────────
+
+/** Everyone with a Quest Log, quietest first, with a check-in text ready for anyone who has stalled (Phase 5). */
+function QuestLogsSection() {
+  const [recruits, setRecruits] = useState<Recruit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    (async () => {
+      try {
+        setRecruits(await getRecruits());
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+  const rows = recruits
+    .filter((r) => r.questLog && r.stage !== "not_moving_forward")
+    .map((r) => {
+      const log = r.questLog!;
+      const progress = questLogProgress(log);
+      return { r, log, progress, complete: progress.total > 0 && progress.done === progress.total, next: nextStep(log), quiet: daysSince(log.lastProgressAt || log.startedAt), nudge: needsNudge(log) };
+    })
+    .sort((a, b) => Number(b.nudge) - Number(a.nudge) || Number(a.complete) - Number(b.complete) || b.quiet - a.quiet);
+  const due = rows.filter((x) => x.nudge).length;
+  return (
+    <div className="space-y-4" data-quest-logs>
+      <section className={`${card} p-4`}>
+        <h2 className="font-fantasy text-[#c08020] text-lg">🗺️ Quest Logs</h2>
+        <p className="text-xs text-[#a0a0a0] font-fantasy mt-1">
+          Everyone who has a Quest Log, quietest first. Start one from a recruit's card once they say yes. After {QUEST_LOG_STALE_DAYS} days with no step ticked they are flagged here with a check-in text ready to send.
+          {rows.length > 0 && <span className="text-[#e0c080]" data-nudges-due> {due === 0 ? "Nobody needs a nudge right now." : `${due} need${due === 1 ? "s" : ""} a nudge.`}</span>}
+        </p>
+      </section>
+      {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">{error}</div>}
+      {loading ? (
+        <p className="text-[#a0a0a0] text-sm font-fantasy">Loading...</p>
+      ) : rows.length === 0 ? (
+        <section className={`${card} p-8 text-center`}>
+          <h2 className="font-fantasy text-[#c08020] text-xl">No Quest Logs yet</h2>
+          <p className="text-[#a0a0a0] text-sm font-fantasy mt-2 max-w-md mx-auto">Open a recruit's card under Recruits, press "more", then "Start their Quest Log". They get a private page with every step to get licensed and started.</p>
+        </section>
+      ) : (
+        <section className={`${card} overflow-x-auto`}>
+          <table className="w-full text-sm" data-quest-log-table>
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-[#808080] font-fantasy border-b border-[#406080]/20">
+                <th className="px-3 py-2">Recruit</th>
+                <th className="px-3 py-2">Progress</th>
+                <th className="px-3 py-2">Next step</th>
+                <th className="px-3 py-2">Last progress</th>
+                <th className="px-3 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ r, log, progress, complete, next, quiet, nudge }) => {
+                const url = questLogUrl(r.questLogToken);
+                return (
+                  <tr key={r.id} className={`border-b border-[#406080]/10 ${nudge ? "bg-[#c08020]/5" : ""}`} data-quest-log-row={r.id}>
+                    <td className="px-3 py-2 align-top">
+                      <p className="text-[#e0e0e0] font-fantasy">{nudge && <span className="text-[#c08020]" title="Needs a nudge">⚑ </span>}{r.name}</p>
+                      <p className="text-[11px] text-[#808080]">{stageLabel(r.stage)}{r.phone ? ` · ${r.phone}` : ""}</p>
+                    </td>
+                    <td className="px-3 py-2 align-top text-[#e0e0e0] tabular-nums whitespace-nowrap">
+                      {progress.done} of {progress.total}
+                      <div className="mt-1 h-1.5 w-24 rounded-full bg-[#1a2634] overflow-hidden"><div className="h-full bg-[#c08020]" style={{ width: `${progress.percent}%` }} /></div>
+                    </td>
+                    <td className="px-3 py-2 align-top text-[#a0a0a0]">{complete ? <span className="text-[#7fd08a]">Complete</span> : next?.title}</td>
+                    <td className="px-3 py-2 align-top text-[#a0a0a0] whitespace-nowrap">{complete ? "—" : quiet === 0 ? "Today" : `${quiet} day${quiet === 1 ? "" : "s"} ago`}</td>
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex flex-wrap gap-1.5 justify-end">
+                        {nudge && r.phone && <a href={smsTo(r.phone, nudgeText(r.name, log, url))} className="px-2 py-1 rounded bg-[#c08020] text-[#0d1520] text-[11px] font-bold font-fantasy" data-quest-log-nudge-sms>📱 Text a check-in</a>}
+                        <a href={url} target="_blank" rel="noreferrer" className={btnGhost}>Open ↗</a>
+                        <Link to="/guild-hall" search={{ view: "recruits" }} className={btnGhost}>Card</Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
+    </div>
+  );
+}
+
 function fmt(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -241,6 +333,7 @@ function RecruitCard({ r, quests, onStage, onRemove, onSaved }: { r: Recruit; qu
           <label className="flex items-center gap-2 text-xs text-[#a0a0a0] font-fantasy">
             <input type="checkbox" checked={r.pursuingInvestment} onChange={(e) => toggleInvest(e.target.checked)} className="accent-[#c08020]" /> Pursuing investment licensing
           </label>
+          <QuestLogPanel r={r} onSaved={onSaved} />
           <div>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={saveNote} rows={2} maxLength={500} placeholder="Your notes (not shown to the recruit)" className={`${input} resize-none text-xs`} />
           </div>
