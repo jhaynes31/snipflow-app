@@ -1,5 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { logout } from "~/server/auth";
+import { getGuildBadge } from "~/server/guild";
 
 /**
  * One bar on every signed-in page, so John reaches everything from any
@@ -30,6 +32,13 @@ const active = `${pill} border-[#c08020]/60 bg-[#c08020]/15 text-[#c08020]`;
 export default function AdminNav() {
   const { pathname } = useLocation();
   const on = (p: string) => pathname === p || pathname.startsWith(p + "/");
+  // New recruits John has not looked at yet (recruiting spec, Section 5.3).
+  const [newRecruits, setNewRecruits] = useState(0);
+  useEffect(() => {
+    getGuildBadge()
+      .then((b) => setNewRecruits(b.newRecruits))
+      .catch(() => setNewRecruits(0));
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -83,6 +92,14 @@ export default function AdminNav() {
           </div>
         </details>
 
+        <Link to="/guild-hall" search={{ view: "recruits" }} className={`${on("/guild-hall") ? active : idle} relative`} data-nav="guild">
+          🛡️ Guild
+          {newRecruits > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-[#c08020] text-[#0d1520] text-[10px] font-bold px-1.5 min-w-[18px]" data-guild-badge>
+              {newRecruits}
+            </span>
+          )}
+        </Link>
         <Link to="/quest-board" search={{ section: "guide" }} className={idle} data-nav="guide">
           📖 Guide
         </Link>
