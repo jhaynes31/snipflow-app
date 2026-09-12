@@ -30,6 +30,8 @@ export const GUILD_CONFIG = {
   earningsFlagWords: ["unlimited income", "six figures", "financial freedom", "passive income", "get rich", "be your own boss", "quit your job", "ground floor", "limited spots", "only a few openings"],
   hiringSafeFlagWords: ["young", "energetic", "recent grad", "recent grads", "retiree", "retirees", "moms", "dads", "digital native", "digital natives", "guys"],
   titleFlagWords: ["financial advisor", "financial planner", "investment adviser", "investment advisor", "wealth manager"],
+  /** Amendment, Section 6: phrases that make a legitimate post read as a scam. */
+  scamPatternFlagWords: ["no experience needed, we'll show you everything", "no experience needed, we will show you everything", "message me for details", "dm me for details", "life-changing opportunity", "life changing opportunity", "not a job, a lifestyle"],
 };
 
 /** The text link that opens a prefilled message on both iPhone and Android. */
@@ -37,55 +39,75 @@ export function smsLink(body = GUILD_CONFIG.smsKeyword): string {
   return `sms:${GUILD_CONFIG.recruitPhoneE164}?&body=${encodeURIComponent(body)}`;
 }
 
-// ── Guild facts (Section 3): John fills these in ──────────────────
+// ── Guild facts: John fills these in ──────────────────────────────
+// Trust-first amendment, Section 2: two tiers. Trust facts are required
+// and public. Presentation facts are John's own reference for the
+// interview and are never published anywhere.
+
+export type FactTier = "trust" | "presentation";
 
 export interface FactField {
   key: string;
   label: string;
   /** What John should cover, in plain words. */
   help: string;
+  tier: FactTier;
+  /** Must be filled and confirmed before the page goes public (trust tier only). */
   required: boolean;
   multiline: boolean;
   /** A fixed choice instead of free text. */
   options?: Array<{ id: string; label: string }>;
-  /** Where on the Guild Hall page it appears. */
+  /** Where on the Guild Hall page it appears, or "Never published". */
   usedIn: string;
+  /** A draft John may accept or rewrite. Never shown publicly until confirmed. */
+  suggested?: string;
 }
 
+/** The dual-purpose disclosure draft (amendment, Section 4). John may reword it; the substance must stay. */
+export const MEETING_COVERS_DRAFT =
+  "Here's what to expect: we'll walk through what the work actually involves, how it's paid, and whether it fits what you're looking for. If it's helpful, I can also answer questions about your own coverage or finances. No pressure either way, and it costs you nothing to find out.";
+
 export const GUILD_FACT_FIELDS: FactField[] = [
-  { key: "roleTitle", label: "Role title", help: "The name of the role. Avoid regulated titles like Financial Advisor or Investment Adviser unless confirmed allowed. The flyer says \"Remote Financial Services Positions\".", required: true, multiline: false, usedIn: "Hero" },
-  { key: "careerPaths", label: "Career paths", help: "The paths available: life insurance, financial services, and the optional investment path. One or two plain sentences on each.", required: true, multiline: true, usedIn: "What the work is" },
-  { key: "roleSummary", label: "What the work involves", help: "One to three plain sentences on the day-to-day work.", required: true, multiline: true, usedIn: "What the work is" },
-  { key: "workArrangement", label: "Work arrangement", help: "Independent contractor or employee, and how recruits relate to The Foster Financial Group.", required: true, multiline: true, usedIn: "What the work is" },
-  { key: "schedule", label: "Schedule", help: "How flexible the hours are.", required: true, multiline: true, usedIn: "What the work is" },
-  { key: "interviewFormat", label: "Interview format", help: "Video or phone, and roughly how long.", required: true, multiline: false, usedIn: "How it works" },
-  { key: "licensing", label: "Licensing", help: "Whether an insurance license is required, what getting one involves, and which states recruits can work in.", required: true, multiline: true, usedIn: "How it works" },
-  { key: "licensingSupport", label: "Licensing support", help: "What help you give with licensing, if any.", required: true, multiline: true, usedIn: "How it works" },
-  { key: "training", label: "Training", help: "What training or mentoring is provided, if any.", required: true, multiline: true, usedIn: "How it works" },
-  { key: "investmentLicensing", label: "Optional investment path", help: "Which licenses, how and when a recruit can pursue them (for example whether a firm sponsors them), and that it is optional. No returns, performance, or products.", required: true, multiline: true, usedIn: "How it works" },
-  { key: "payStructure", label: "How pay works", help: "General terms only, for example commission-based. No dollar figures, ranges, or percentages.", required: true, multiline: true, usedIn: "Straight answers" },
-  { key: "recruitCosts", label: "What recruits pay for", help: "Course, exam, fingerprinting, or license fees, or \"None\". Say it plainly.", required: true, multiline: true, usedIn: "Straight answers" },
-  { key: "winStage", label: "When a recruit counts as a win", help: "Used by the scoreboard.", required: true, multiline: false, options: [{ id: "contracted", label: "When they are contracted" }, { id: "first_sale", label: "At their first sale" }], usedIn: "Scoreboard" },
-  { key: "johnFullName", label: "Your full name (optional)", help: "Builds trust on the Meet John section.", required: false, multiline: false, usedIn: "Meet John" },
-  { key: "licenseLookup", label: "License lookup link (optional)", help: "A web address where people can verify your license, such as your state insurance department's lookup.", required: false, multiline: false, usedIn: "Meet John and FAQ" },
+  // Trust facts (required, public)
+  { key: "industry", label: "The industry, in plain words", help: "For example \"life insurance and financial services\". Naming the field is the first thing careful people check.", tier: "trust", required: true, multiline: false, usedIn: "What this is" },
+  { key: "roleTitle", label: "Role title", help: "The name of the role. Avoid regulated titles like Financial Advisor or Investment Adviser unless confirmed allowed. The flyer says \"Remote Financial Services Positions\".", tier: "trust", required: true, multiline: false, usedIn: "Hero" },
+  { key: "roleSummary", label: "What the work involves", help: "One or two plain sentences.", tier: "trust", required: true, multiline: true, usedIn: "What this is" },
+  { key: "workArrangement", label: "Work arrangement", help: "Independent contractor or employee, and how recruits relate to The Foster Financial Group.", tier: "trust", required: true, multiline: true, usedIn: "What this is" },
+  { key: "meetingCovers", label: "What the conversation covers", help: "The key piece. Say plainly that the meeting covers the opportunity, and that you can also help with the person's own coverage or financial questions if useful. This disclosure must stay in whatever you write.", tier: "trust", required: true, multiline: true, usedIn: "What the conversation covers, FAQ", suggested: MEETING_COVERS_DRAFT },
+  { key: "costToInterview", label: "Cost to interview", help: "Confirm that interviewing is free and that no payment or financial information is ever requested to interview.", tier: "trust", required: true, multiline: true, usedIn: "Straight answers" },
+  { key: "recruitCosts", label: "What recruits pay for to get started", help: "Courses, exams, fingerprinting, or license fees, or \"None\". Say it plainly and stay honest; hidden startup costs are the most common reason this kind of role gets called a scam.", tier: "trust", required: true, multiline: true, usedIn: "Straight answers" },
+  { key: "payBasis", label: "Pay basis", help: "Commission-based, salaried, or something else. General only: no figures and no details. The details are for the conversation.", tier: "trust", required: true, multiline: false, usedIn: "Straight answers, FAQ" },
+  { key: "licensingRequired", label: "Is a license required?", help: "Whether a license is required, and whether recruits can get one with your help. One or two sentences.", tier: "trust", required: true, multiline: true, usedIn: "Straight answers" },
+  { key: "investmentPathExists", label: "The optional investment path", help: "One sentence saying an optional investment licensing path exists. No returns, performance, or products.", tier: "trust", required: true, multiline: false, usedIn: "Straight answers" },
+  { key: "interviewFormat", label: "Interview format", help: "Video or phone, and roughly how long.", tier: "trust", required: true, multiline: false, usedIn: "FAQ" },
+  { key: "johnFullName", label: "Your full name", help: "Required. A real name is one of the strongest trust signals. Confirm you are happy for it to be public.", tier: "trust", required: true, multiline: false, usedIn: "Meet John" },
+  { key: "licenseLookup", label: "License lookup link (optional)", help: "A web address where people can verify your license, such as your state insurance department's lookup.", tier: "trust", required: false, multiline: false, usedIn: "Meet John and FAQ" },
+  { key: "statesServed", label: "States recruits can work in (optional)", help: "Only if limited. Leave blank if not.", tier: "trust", required: false, multiline: false, usedIn: "Straight answers" },
+  // Presentation facts (John's reference, never published)
+  { key: "compensationDetails", label: "How pay actually works", help: "Your interview notes. Never shown to the public or to any generator.", tier: "presentation", required: false, multiline: true, usedIn: "Never published" },
+  { key: "businessOwnership", label: "What building your own business here means", help: "Your interview notes.", tier: "presentation", required: false, multiline: true, usedIn: "Never published" },
+  { key: "growthPath", label: "Team structure and advancement", help: "Your interview notes.", tier: "presentation", required: false, multiline: true, usedIn: "Never published" },
+  { key: "trainingDetails", label: "Training and support, day to day", help: "Your interview notes.", tier: "presentation", required: false, multiline: true, usedIn: "Never published" },
+  { key: "licensingDetails", label: "The full licensing process, timelines, and support", help: "Your notes. The Quest Log may later show this to recruits who have already joined.", tier: "presentation", required: false, multiline: true, usedIn: "Never published (Quest Log later)" },
+  { key: "scheduleDetails", label: "Hours and flexibility", help: "Your interview notes.", tier: "presentation", required: false, multiline: true, usedIn: "Never published" },
+  { key: "winStage", label: "When a recruit counts as a win", help: "Used by the scoreboard only.", tier: "presentation", required: false, multiline: false, options: [{ id: "contracted", label: "When they are contracted" }, { id: "first_sale", label: "At their first sale" }], usedIn: "Scoreboard only" },
 ];
 
 export interface FaqItem {
   key: string;
   question: string;
-  /** The spec's one suggested wording; John must still confirm it. */
-  suggested?: string;
+  /** What John's answer should do (amendment, Section 5). */
+  guidance: string;
+  /** Legitimacy questions may never be deferred to the conversation. */
+  legitimacy: boolean;
 }
 
 export const GUILD_FAQ: FaqItem[] = [
-  { key: "faq_legit", question: "Is this legit? How can I check?", suggested: "Fair question, and you should ask it. Interviews are always free, and you'll never be asked to pay or share financial information to interview." },
-  { key: "faq_experience", question: "Do I need experience?" },
-  { key: "faq_license", question: "Do I need a license already?" },
-  { key: "faq_investments", question: "Can I work with investments?" },
-  { key: "faq_pay", question: "How does pay work?" },
-  { key: "faq_costs", question: "Does it cost anything to get started?" },
-  { key: "faq_time", question: "How much time does it take?" },
-  { key: "faq_interview", question: "What happens in the interview?" },
+  { key: "faq_legit", question: "Is this legit? How can I check?", guidance: "Name the industry and the company, and point to your license lookup link if you have one. Answer it fully; never save this one for the conversation.", legitimacy: true },
+  { key: "faq_experience_license", question: "Do I need experience or a license already?", guidance: "Answer directly.", legitimacy: true },
+  { key: "faq_costs", question: "Does it cost anything to interview or get started?", guidance: "Answer directly, matching your cost-to-interview and recruit-costs answers above. Never defer this one.", legitimacy: true },
+  { key: "faq_pay", question: "How does pay work?", guidance: "Your pay basis in one general sentence, then something like \"The details are what the conversation is for.\" A real partial answer first, never a bare deflection.", legitimacy: false },
+  { key: "faq_interview", question: "What happens in the interview?", guidance: "The format plus what the conversation covers, including that you can also help with their own coverage or finances if useful.", legitimacy: true },
 ];
 
 export interface GuildFact {
@@ -95,9 +117,18 @@ export interface GuildFact {
 }
 export type GuildFacts = Record<string, GuildFact>;
 
-/** Every key that must be filled and confirmed before the page can go live. */
+/** Every key that must be filled and confirmed before the page can go live: required trust facts and all FAQ answers. */
 export function requiredFactKeys(): string[] {
-  return [...GUILD_FACT_FIELDS.filter((f) => f.required).map((f) => f.key), ...GUILD_FAQ.map((f) => f.key)];
+  return [...GUILD_FACT_FIELDS.filter((f) => f.tier === "trust" && f.required).map((f) => f.key), ...GUILD_FAQ.map((f) => f.key)];
+}
+
+/** Keys the public page is allowed to see: trust facts and FAQ answers, and only when confirmed. */
+export function publicFactKeys(): string[] {
+  return [...GUILD_FACT_FIELDS.filter((f) => f.tier === "trust").map((f) => f.key), ...GUILD_FAQ.map((f) => f.key)];
+}
+
+export function isPresentationFact(key: string): boolean {
+  return GUILD_FACT_FIELDS.some((f) => f.key === key && f.tier === "presentation");
 }
 
 /** Keys still empty or unconfirmed. */
@@ -117,6 +148,16 @@ export function factValue(facts: GuildFacts | Record<string, string>, key: strin
   const v = facts[key];
   if (!v) return "";
   return typeof v === "string" ? v : v.value;
+}
+
+/** The facts a visitor may see: public keys only, confirmed only. Presentation facts never pass through here. */
+export function publicFacts(facts: GuildFacts): Record<string, string> {
+  const allowed = new Set(publicFactKeys());
+  return Object.fromEntries(
+    Object.values(facts)
+      .filter((f) => allowed.has(f.key) && f.confirmed && f.value.trim())
+      .map((f) => [f.key, f.value]),
+  );
 }
 
 // ── Recruits (Section 4) ──────────────────────────────────────────

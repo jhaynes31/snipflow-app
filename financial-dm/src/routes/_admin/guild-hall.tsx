@@ -31,7 +31,8 @@ export const Route = createFileRoute("/_admin/guild-hall")({
 });
 
 const card = "rounded-xl border border-[#406080]/30 bg-[#111a28]";
-const input = "w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm focus:outline-none focus:border-[#c08020]/50 placeholder:text-[#606080]";
+const inputBase = "px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm focus:outline-none focus:border-[#c08020]/50 placeholder:text-[#606080]";
+const input = `w-full ${inputBase}`;
 const btnPrimary = "px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm disabled:opacity-50";
 const btnGhost = "px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs";
 
@@ -125,19 +126,19 @@ function RecruitsSection() {
   return (
     <div className="space-y-5" data-recruits>
       <div className="flex flex-wrap items-center gap-2">
-        <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={`${input} w-auto`} aria-label="Filter by stage" data-filter-stage>
+        <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={inputBase} aria-label="Filter by stage" data-filter-stage>
           <option value="all">All stages</option>
           {RECRUIT_STAGES.map((s) => (
             <option key={s.id} value={s.id}>{s.label}</option>
           ))}
         </select>
-        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={`${input} w-auto`} aria-label="Filter by source" data-filter-source>
+        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={inputBase} aria-label="Filter by source" data-filter-source>
           <option value="all">All sources</option>
           {RECRUIT_SOURCES.map((s) => (
             <option key={s.id} value={s.id}>{s.label}</option>
           ))}
         </select>
-        <select value={questFilter} onChange={(e) => setQuestFilter(e.target.value)} className={`${input} w-auto`} aria-label="Filter by quest" data-filter-quest>
+        <select value={questFilter} onChange={(e) => setQuestFilter(e.target.value)} className={inputBase} aria-label="Filter by quest" data-filter-quest>
           <option value="all">All quests</option>
           <option value="none">No quest</option>
           {quests.map((q) => (
@@ -382,7 +383,7 @@ function FactsSection() {
     }
   };
 
-  const requiredTotal = GUILD_FACT_FIELDS.filter((f) => f.required).length + GUILD_FAQ.length;
+  const requiredTotal = GUILD_FACT_FIELDS.filter((f) => f.tier === "trust" && f.required).length + GUILD_FAQ.length;
   if (loading) return <p className="text-[#a0a0a0] font-fantasy text-sm py-8 text-center">Opening the ledger...</p>;
 
   return (
@@ -392,23 +393,32 @@ function FactsSection() {
           {live ? "✅ The Guild Hall is public." : `🔒 The Guild Hall is hidden from the public: ${requiredTotal - missing.length} of ${requiredTotal} required answers confirmed.`}
         </p>
         <p className="text-xs text-[#a0a0a0] font-fantasy mt-1">
-          Everything the page says about the role comes from these answers, in John's words. Write each one, tick Confirmed, and press Save. Editing an answer clears its tick until it is confirmed again. No pay figures, no promises, and describe situations rather than people.
+          Everything the page says about the role comes from the trust facts and FAQ answers below, in John's words. Write each one, tick Confirmed, and press Save. Editing an answer clears its tick until it is confirmed again. No pay figures, no promises, and describe situations rather than people. Presentation notes at the bottom are never published.
         </p>
       </section>
       {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">{error}</div>}
 
-      <section className={`${card} p-5 space-y-5`}>
-        <h2 className="font-fantasy text-[#c08020] text-lg">About the role</h2>
-        {GUILD_FACT_FIELDS.map((f) => (
-          <FactEditor key={f.key} label={f.label} help={f.help} required={f.required} usedIn={f.usedIn} fact={get(f.key)} multiline={f.multiline} options={f.options} onChange={(v) => setVal(f.key, v)} onConfirm={(c) => setConfirmed(f.key, c)} />
+      <section className={`${card} p-5 space-y-5`} data-trust-facts>
+        <h2 className="font-fantasy text-[#c08020] text-lg">Trust facts: public on the Guild Hall</h2>
+        <p className="text-xs text-[#a0a0a0] font-fantasy -mt-3">Be specific about legitimacy, general about the opportunity. These answer "what is this, who are you, will I be asked for money". Short and plain; if something needs a paragraph, it belongs in the conversation.</p>
+        {GUILD_FACT_FIELDS.filter((f) => f.tier === "trust").map((f) => (
+          <FactEditor key={f.key} label={f.label} help={f.help} required={f.required} usedIn={f.usedIn} fact={get(f.key)} multiline={f.multiline} options={f.options} suggestion={f.suggested} onChange={(v) => setVal(f.key, v)} onConfirm={(c) => setConfirmed(f.key, c)} />
         ))}
       </section>
 
       <section className={`${card} p-5 space-y-5`}>
         <h2 className="font-fantasy text-[#c08020] text-lg">Fair questions, your answers</h2>
-        <p className="text-xs text-[#a0a0a0] font-fantasy -mt-3">These eight questions are fixed. The answers are yours; none are written for you. The first one has a suggested wording you can accept or rewrite.</p>
+        <p className="text-xs text-[#a0a0a0] font-fantasy -mt-3">These five questions are fixed and the answers are yours; none are written for you. Legitimacy questions get a full answer. Only the pay question may end with "the details are what the conversation is for", and even then give a real answer first.</p>
         {GUILD_FAQ.map((q) => (
-          <FactEditor key={q.key} label={q.question} help={q.suggested ? `Suggested wording, yours to change: “${q.suggested}”` : ""} required usedIn="FAQ" fact={get(q.key)} multiline suggestion={q.suggested} onChange={(v) => setVal(q.key, v)} onConfirm={(c) => setConfirmed(q.key, c)} />
+          <FactEditor key={q.key} label={q.question} help={q.guidance} required usedIn={q.legitimacy ? "FAQ · legitimacy question, answer fully" : "FAQ · may point to the conversation after a real answer"} fact={get(q.key)} multiline onChange={(v) => setVal(q.key, v)} onConfirm={(c) => setConfirmed(q.key, c)} />
+        ))}
+      </section>
+
+      <section className={`${card} p-5 space-y-5 border-[#406080]/50`} data-presentation-facts>
+        <h2 className="font-fantasy text-[#a0a0a0] text-lg">🔒 For your eyes only: presentation notes</h2>
+        <p className="text-xs text-[#a0a0a0] font-fantasy -mt-3">Your reference for the interview. Nothing here is ever published on the page or given to any generator. Optional; fill in what helps you.</p>
+        {GUILD_FACT_FIELDS.filter((f) => f.tier === "presentation").map((f) => (
+          <FactEditor key={f.key} label={f.label} help={f.help} required={false} usedIn={f.usedIn} fact={get(f.key)} multiline={f.multiline} options={f.options} onChange={(v) => setVal(f.key, v)} onConfirm={(c) => setConfirmed(f.key, c)} />
         ))}
       </section>
 

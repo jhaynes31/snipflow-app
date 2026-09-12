@@ -4,21 +4,24 @@ import { GUILD_CONFIG, GUILD_FAQ, GUILD_FACT_FIELDS, factLabel, smsLink } from "
 import { getGuildPublic, type GuildPublic } from "~/server/guild";
 
 /**
- * The Guild Hall (recruiting spec, Section 5.1): the public careers page at
- * /guild, in the recruiting flyer's look. Every role detail on it is one of
- * John's confirmed facts. Until all required facts are confirmed the page
- * is hidden from the public and only a signed-in admin (or a dev build)
- * sees it, with placeholders and a warning.
+ * The Guild Hall (recruiting spec, Section 5.1, as revised by the
+ * trust-first amendment): the public careers page at /guild, in the
+ * recruiting flyer's look. Its job is to make reaching out feel safe:
+ * specific about legitimacy, general about the opportunity. Every role
+ * detail is one of John's confirmed trust facts; presentation facts never
+ * reach this page. Until all required facts are confirmed, visitors see a
+ * "being prepared" page and only a signed-in admin (or a dev build) sees
+ * the preview with placeholders and a warning.
  */
 export const Route = createFileRoute("/guild")({
   loader: () => getGuildPublic(),
   head: ({ loaderData }) => {
     const live = loaderData?.live ?? false;
-    const title = live ? `${loaderData?.facts.roleTitle || "The Guild Is Expanding"} · The Financial DM` : "The Guild Hall · The Financial DM";
+    const f = loaderData?.facts ?? {};
     return {
       meta: [
-        { title },
-        { name: "description", content: live ? `The Guild is expanding. ${loaderData?.facts.roleSummary ?? ""}`.trim().slice(0, 160) : "The Guild Hall is being prepared." },
+        { title: live ? `${f.roleTitle || "The Guild Is Expanding"} · The Financial DM` : "The Guild Hall · The Financial DM" },
+        { name: "description", content: live ? `The Guild is expanding. ${f.industry ? `${f.industry}. ` : ""}${f.roleSummary ?? ""}`.trim().slice(0, 160) : "The Guild Hall is being prepared." },
         ...(live ? [] : [{ name: "robots", content: "noindex, nofollow" }]),
         { property: "og:title", content: "The Guild Is Expanding" },
         { property: "og:image", content: "https://thefinancialdm.com/logo.png" },
@@ -69,16 +72,17 @@ function Fact({ facts, k, className = "" }: { facts: Record<string, string>; k: 
 function GuildHall({ data }: { data: GuildPublic }) {
   const f = data.facts;
   const sms = smsLink();
+  const has = (k: string) => (f[k] ?? "").trim().length > 0;
   const requiredMissing = data.missing.filter((k) => GUILD_FACT_FIELDS.some((x) => x.key === k && x.required) || GUILD_FAQ.some((x) => x.key === k));
   return (
     <main className="min-h-dvh bg-[#f3eee3] text-[#2a3442]" style={BODY}>
       {!data.live && (
         <div className="bg-[#b8860b] text-[#1c1a12] text-sm px-4 py-2 text-center" data-guild-preview-warning>
-          Preview only. {requiredMissing.length} required fact{requiredMissing.length === 1 ? "" : "s"} still need John's answer and confirmation before this page goes public. Visitors see a "being prepared" page.
+          Preview only. {requiredMissing.length} required answer{requiredMissing.length === 1 ? "" : "s"} still need John's words and confirmation before this page goes public. Visitors see a "being prepared" page.
         </div>
       )}
 
-      {/* Hero */}
+      {/* 1. Hero */}
       <header className="bg-[#1c3660] text-[#f3eee3] border-b-4 border-[#c8a24b]">
         <div className="max-w-5xl mx-auto px-5 py-10 sm:py-14 grid gap-8 sm:grid-cols-[1fr_auto] items-center">
           <div>
@@ -114,44 +118,61 @@ function GuildHall({ data }: { data: GuildPublic }) {
           </p>
         </div>
 
-        <Section title="Your Quest" id="work">
-          <Fact facts={f} k="roleSummary" className="text-lg" />
-          <div className="grid gap-4 sm:grid-cols-3 mt-6">
-            <Card title="The paths"><Fact facts={f} k="careerPaths" /></Card>
-            <Card title="How you work with us"><Fact facts={f} k="workArrangement" /></Card>
-            <Card title="Your hours"><Fact facts={f} k="schedule" /></Card>
+        {/* 2. What this is */}
+        <Section title="What This Is" id="what">
+          <div className="space-y-3 text-lg text-[#1c2b3a]">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="text-sm uppercase tracking-wider text-[#1c3660]" style={DISPLAY}>The field</span>
+              <Fact facts={f} k="industry" className="font-semibold" />
+            </div>
+            <Fact facts={f} k="roleSummary" />
+            <Fact facts={f} k="workArrangement" className="text-base text-[#2a3442]" />
           </div>
         </Section>
 
-        <Section title="How It Works" id="how">
-          <ol className="grid gap-4 sm:grid-cols-2">
-            <Step n={1} title="Send the text">
-              Text {GUILD_CONFIG.smsKeyword} and your name to {GUILD_CONFIG.recruitPhone}, or fill in the form below.
-            </Step>
-            <Step n={2} title="Meet John">
-              Have a short interview with John, a Licensed Term Life Agent. <Fact facts={f} k="interviewFormat" className="mt-1" />
-            </Step>
-            <Step n={3} title="Get licensed">
-              <Fact facts={f} k="licensing" />
-              <Fact facts={f} k="licensingSupport" className="mt-2" />
-            </Step>
-            <Step n={4} title="Train">
-              <Fact facts={f} k="training" />
-            </Step>
-            <Step n={5} title="Meet your first clients">Start helping families protect what matters most.</Step>
-            <Step n={6} title="Optional: the investment path">
-              <Fact facts={f} k="investmentLicensing" />
-            </Step>
-          </ol>
+        {/* 3. What the conversation covers */}
+        <Section title="What the Conversation Covers" id="conversation">
+          <div className="rounded-xl border-2 border-[#c8a24b]/60 bg-[#faf7f0] p-5 sm:p-6">
+            <p className="text-sm uppercase tracking-wider text-[#1c3660] mb-2" style={DISPLAY}>From John</p>
+            <Fact facts={f} k="meetingCovers" className="text-lg text-[#1c2b3a]" />
+          </div>
         </Section>
 
+        {/* 4. Straight answers */}
         <Section title="Straight Answers" id="answers">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card title="How pay works"><Fact facts={f} k="payStructure" /></Card>
-            <Card title="What it costs to get started"><Fact facts={f} k="recruitCosts" /></Card>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <Answer label="Does it cost anything to interview?"><Fact facts={f} k="costToInterview" /></Answer>
+            <Answer label="What do recruits pay for to get started?"><Fact facts={f} k="recruitCosts" /></Answer>
+            <Answer label="How is it paid?"><Fact facts={f} k="payBasis" /></Answer>
+            <Answer label="Is a license required?">
+              <Fact facts={f} k="licensingRequired" />
+              <Fact facts={f} k="investmentPathExists" className="mt-2" />
+            </Answer>
+            {has("statesServed") && (
+              <Answer label="Where can recruits work?"><Fact facts={f} k="statesServed" /></Answer>
+            )}
+          </dl>
+        </Section>
+
+        {/* 5. Meet John */}
+        <Section title="Meet John" id="john">
+          <div className="flex flex-col sm:flex-row gap-5 items-start">
+            <img src="/logo.png" alt="" className="h-20 w-20 rounded-full shadow" />
+            <div className="space-y-2">
+              <div className="text-xl text-[#1c3660]" style={DISPLAY} data-john-name>
+                <Fact facts={f} k="johnFullName" />
+              </div>
+              <p className="text-[#2a3442]">Licensed Term Life Agent · The Financial DM, a division of {GUILD_CONFIG.presentedBy}</p>
+              {has("licenseLookup") && (
+                <a href={f.licenseLookup} target="_blank" rel="noreferrer" className="inline-block text-[#1c3660] underline underline-offset-4">
+                  Verify John's license ↗
+                </a>
+              )}
+            </div>
           </div>
         </Section>
 
+        {/* 6. Requirements */}
         <Section title="Quest Requirements" id="requirements">
           <ul className="grid gap-3 sm:grid-cols-2">
             {GUILD_CONFIG.requirements.map((r) => (
@@ -165,21 +186,7 @@ function GuildHall({ data }: { data: GuildPublic }) {
           </ul>
         </Section>
 
-        <Section title="Meet John" id="john">
-          <div className="flex flex-col sm:flex-row gap-5 items-start">
-            <img src="/logo.png" alt="" className="h-20 w-20 rounded-full shadow" />
-            <div className="space-y-2">
-              <p className="text-xl text-[#1c3660]" style={DISPLAY}>{(f.johnFullName ?? "").trim() || "John"}</p>
-              <p className="text-[#2a3442]">Licensed Term Life Agent · The Financial DM, a division of {GUILD_CONFIG.presentedBy}</p>
-              {(f.licenseLookup ?? "").trim() && (
-                <a href={f.licenseLookup} target="_blank" rel="noreferrer" className="inline-block text-[#1c3660] underline underline-offset-4">
-                  Verify John's license ↗
-                </a>
-              )}
-            </div>
-          </div>
-        </Section>
-
+        {/* 7. FAQ */}
         <Section title="Fair Questions" id="faq">
           <dl className="divide-y divide-[#1c3660]/15 rounded-xl border border-[#1c3660]/20 bg-[#faf7f0]">
             {GUILD_FAQ.map((q) => (
@@ -187,7 +194,7 @@ function GuildHall({ data }: { data: GuildPublic }) {
                 <dt className="font-semibold text-[#1c3660]">{q.question}</dt>
                 <dd className="mt-1 text-[#2a3442]">
                   <Fact facts={f} k={q.key} />
-                  {q.key === "faq_legit" && (f.licenseLookup ?? "").trim() && (
+                  {q.key === "faq_legit" && has("licenseLookup") && (
                     <a href={f.licenseLookup} target="_blank" rel="noreferrer" className="inline-block mt-1 text-[#1c3660] underline underline-offset-4 text-sm">Look up John's license ↗</a>
                   )}
                 </dd>
@@ -196,6 +203,7 @@ function GuildHall({ data }: { data: GuildPublic }) {
           </dl>
         </Section>
 
+        {/* 8. Interest form */}
         <Section title="Request an Interview" id="interest">
           <p className="mb-5 text-[#2a3442]">Prefer a form? John reads every one himself and replies personally, usually by text or phone.</p>
           <div className="rounded-xl border-2 border-[#1c3660]/20 bg-[#faf7f0] p-5 sm:p-6">
@@ -219,7 +227,7 @@ function Section({ title, id, children }: { title: string; id: string; children:
   return (
     <section id={id} className="scroll-mt-6">
       <div className="flex items-center gap-4 mb-5">
-        <h2 className="text-2xl sm:text-3xl text-[#1c3660] whitespace-nowrap" style={DISPLAY}>{title}</h2>
+        <h2 className="text-2xl sm:text-3xl text-[#1c3660]" style={DISPLAY}>{title}</h2>
         <div className="h-px flex-1 bg-[#c8a24b]" />
       </div>
       {children}
@@ -227,23 +235,11 @@ function Section({ title, id, children }: { title: string; id: string; children:
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Answer({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-[#1c3660]/20 bg-[#faf7f0] p-5">
-      <h3 className="text-[#1c3660] font-semibold mb-2" style={DISPLAY}>{title}</h3>
-      <div className="text-[#2a3442]">{children}</div>
+      <dt className="text-[#1c3660] font-semibold mb-2" style={DISPLAY}>{label}</dt>
+      <dd className="text-[#2a3442]">{children}</dd>
     </div>
-  );
-}
-
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
-  return (
-    <li className="rounded-xl border border-[#1c3660]/20 bg-[#faf7f0] p-5">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#1c3660] text-[#c8a24b] font-bold" style={DISPLAY}>{n}</span>
-        <h3 className="text-[#1c3660] font-semibold" style={DISPLAY}>{title}</h3>
-      </div>
-      <div className="text-[#2a3442]">{children}</div>
-    </li>
   );
 }

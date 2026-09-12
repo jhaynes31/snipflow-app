@@ -13,6 +13,8 @@ import {
   guildIsLive,
   isRecruitStage,
   missingFacts,
+  publicFactKeys,
+  publicFacts,
   NOT_MOVING_REASONS,
   RECRUIT_SOURCES,
   type GuildFacts,
@@ -23,8 +25,9 @@ import {
 import { parseStatusHistory, type StatusChange } from "~/lib/attribution";
 
 /**
- * The Guild, Phase 1 (recruiting spec, Section 5): John's facts about the
- * role, the public interest form, and recruit records. Recruits are kept
+ * The Guild, Phase 1 (recruiting spec, Section 5, trust-first amendment):
+ * John's facts about the role in two tiers, the public interest form, and
+ * recruit records. Presentation-tier facts never leave the server. Recruits are kept
  * apart from client leads, and nothing here ever reaches an AI model.
  */
 
@@ -152,12 +155,15 @@ export const getGuildPublic = createServerFn().handler(async (): Promise<GuildPu
     }
     preview = dev || admin;
   }
-  const visible = live || preview;
+  if (live) return { live, preview: false, facts: publicFacts(facts), missing: [] };
+  if (!preview) return { live, preview, facts: {}, missing: [] };
+  // Preview: public keys only, confirmed or not, so John can see the draft. Presentation facts never leave the server.
+  const allowed = new Set(publicFactKeys());
   return {
     live,
     preview,
-    facts: visible ? Object.fromEntries(Object.entries(facts).map(([k, v]) => [k, v.value])) : {},
-    missing: visible ? missingFacts(facts) : [],
+    facts: Object.fromEntries(Object.values(facts).filter((f) => allowed.has(f.key)).map((f) => [f.key, f.value])),
+    missing: missingFacts(facts),
   };
 });
 
