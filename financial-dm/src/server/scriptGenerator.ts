@@ -371,6 +371,121 @@ ${previous.length ? previous.map((h) => `- ${h}`).join("\n") : "- none yet"}`;
     return hooks.length ? hooks : null;
   });
 
+// ── Re roll one section ─────────────────────────────────────────────
+
+export type ScriptPart = "title" | "script" | "callToAction" | "captions" | "hashtags";
+export const SCRIPT_PARTS: ScriptPart[] = ["title", "script", "callToAction", "captions", "hashtags"];
+
+export interface RegenerateSectionInput {
+  part: ScriptPart;
+  /** The package as it stands on screen. Everything but `part` is held fixed. */
+  result: ScriptResult;
+  campaign?: CampaignContext;
+}
+
+const PART_LABEL: Record<ScriptPart, string> = { title: "title", script: "script", callToAction: "call to action", captions: "caption options", hashtags: "hashtags" };
+
+function partRequirement(part: ScriptPart): string {
+  switch (part) {
+    case "title":
+      return `- TITLE: a short, catchy title for the post (a few words). It must be clearly different from the current title, not a light rewording.
+Respond with valid JSON only, with no other text and no markdown fences: { "title": "..." }`;
+    case "script":
+      return `- SCRIPT: a fresh full roughly 150 to 180 word script, about one minute read aloud, spoken by the bartender directly to the viewer. OPEN with the FIXED HOOK verbatim as the first spoken line. Speak to the pain point early so the viewer feels seen, teach the key point clearly using the supporting fact, and keep it engaging and honest. Take a different structure or angle from the current script, not a paraphrase of it. Also return "scriptBody": the exact same script with that first hook line removed.
+- The call to action, captions, and hashtags are fixed and must still fit; do not restate the call to action inside the script.
+Respond with valid JSON only, with no other text and no markdown fences: { "script": "full script opening with the fixed hook", "scriptBody": "the same script without the hook line" }`;
+    case "callToAction":
+      return `- CALL TO ACTION: one clear closing line telling the viewer to book a free call with John, a licensed life insurance agent, for example to review their coverage, ask a financial question, or plan for the future. A friendly, optional invitation in the same voice, worded differently from the current one.
+Respond with valid JSON only, with no other text and no markdown fences: { "callToAction": "..." }`;
+    case "captions":
+      return `${CAPTION_OPTIONS_RULES}
+Captions must not restate the hook's wording, and must not repeat or lightly reword the current captions.
+Respond with valid JSON only, with no other text and no markdown fences: { "captions": ["Caption option one", "Caption option two", "Caption option three"] }`;
+    case "hashtags":
+      return `${HASHTAG_RULES}
+Choose a noticeably different set from the current hashtags while staying on the same topic.
+Respond with valid JSON only, with no other text and no markdown fences: { "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"] }`;
+  }
+}
+
+function buildSectionSystemPrompt(part: ScriptPart, tone: string, dndThemed: boolean): string {
+  return `SCRIPT FORGE · section: ${part}
+You are rewriting ONE part of an existing posting package for John, a licensed life insurance agent and the creator of the brand "The Financial DM". John records short, roughly one minute long videos about financial literacy and life planning. Every other part of the package is FIXED and shown to you so the new ${PART_LABEL[part]} still reads as one cohesive set with the same voice, tone, topic, fact, and pain point. Do not rewrite anything except the ${PART_LABEL[part]}.
+
+${buildVoiceBlock({ tone, dndThemed, medium: "script" })}
+
+${partRequirement(part)}
+
+${FORMATTING_RULES}`;
+}
+
+/**
+ * Re roll ONE section: the title, the script, the call to action, the caption
+ * options, or the hashtags. Everything else is sent as fixed context and comes
+ * back untouched; the client merges the returned fields in.
+ */
+export const regenerateSection = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .validator((d: RegenerateSectionInput) => ({ ...d, part: (SCRIPT_PARTS.includes(d?.part) ? d.part : "script") as ScriptPart }))
+  .handler(async ({ data }): Promise<Partial<ScriptResult> | null> => {
+    const r = data.result;
+    const tone = normalizeTone(r.tone);
+    const dndThemed = Boolean(r.dndThemed);
+    const payoff = (r.payoff || "").trim() || r.fact;
+    const current: Record<ScriptPart, string> = {
+      title: cleanText(r.title) || "untitled",
+      script: cleanText(r.script),
+      callToAction: cleanText(r.callToAction),
+      captions: (r.captions || []).map(cleanText).filter(Boolean).map((c) => `- ${c}`).join("\n") || "- none",
+      hashtags: (r.hashtags || []).join(" ") || "none",
+    };
+    const fixed = (Object.keys(current) as ScriptPart[])
+      .filter((k) => k !== data.part)
+      .map((k) => `${PART_LABEL[k].toUpperCase()} (fixed):\n${current[k]}`)
+      .join("\n\n");
+    const user = [
+      scriptUserContent({ ...r, payoff }),
+      `FIXED HOOK (the script's first spoken line):\n${cleanText(r.hook)}`,
+      fixed,
+      `CURRENT ${PART_LABEL[data.part].toUpperCase()} (replace this with something different):\n${current[data.part]}`,
+      campaignPromptBlock(data.campaign, "script"),
+    ].filter(Boolean).join("\n\n");
+
+    const text = await callClaude({
+      tag: `scriptGenerator.${data.part}`,
+      system: buildSectionSystemPrompt(data.part, tone, dndThemed),
+      user,
+      maxTokens: data.part === "script" ? 1200 : 500,
+    });
+    const parsed = parseJsonReply<{ title?: unknown; script?: unknown; scriptBody?: unknown; callToAction?: unknown; captions?: unknown; caption?: unknown; hashtags?: unknown }>(text, `scriptGenerator.${data.part}`);
+    if (!parsed) return null;
+
+    switch (data.part) {
+      case "title": {
+        const title = cleanText(parsed.title);
+        return title ? { title } : null;
+      }
+      case "script": {
+        const hook = cleanText(r.hook);
+        const rawScript = cleanText(parsed.script);
+        const scriptBody = ensureSpokenEnding(cleanText(parsed.scriptBody) || stripLeadingHook(rawScript, hook), data.campaign);
+        return scriptBody ? { scriptBody, script: composeScript(hook, scriptBody) } : null;
+      }
+      case "callToAction": {
+        const callToAction = ensureCtaLine(cleanText(parsed.callToAction), data.campaign);
+        return callToAction ? { callToAction } : null;
+      }
+      case "captions": {
+        const captions = normalizeCaptions(parsed.captions, parsed.caption).map((c) => ensureCtaLine(c, data.campaign));
+        return captions.length ? { captions, caption: captions[0] } : null;
+      }
+      case "hashtags": {
+        const hashtags = normalizeHashtags(parsed.hashtags);
+        return hashtags.length ? { hashtags } : null;
+      }
+    }
+  });
+
 // ── Saved Script Library (database) ────────────────────────────────
 
 async function ensureScriptsTable(): Promise<void> {

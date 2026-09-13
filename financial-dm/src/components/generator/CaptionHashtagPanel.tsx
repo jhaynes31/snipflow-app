@@ -11,6 +11,10 @@ export default function CaptionHashtagPanel({
   hashtags,
   compact = false,
   onError,
+  onRegenerateCaptions,
+  onRegenerateHashtags,
+  regenerating = "",
+  regenerateDisabled = false,
 }: {
   captions: string[];
   caption: string;
@@ -18,6 +22,11 @@ export default function CaptionHashtagPanel({
   hashtags: string[];
   compact?: boolean;
   onError?: (message: string) => void;
+  /** Optional per section re rolls (the script forge passes these). */
+  onRegenerateCaptions?: () => void;
+  onRegenerateHashtags?: () => void;
+  regenerating?: "" | "captions" | "hashtags";
+  regenerateDisabled?: boolean;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -46,14 +55,28 @@ export default function CaptionHashtagPanel({
           <p className="text-[#c08020] font-bold font-fantasy text-sm">
             ✍️ Caption{options.length > 1 ? " options" : ""}
           </p>
-          <button
-            type="button"
-            onClick={() => copy("caption", caption)}
-            disabled={!caption}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-[#204060]/30 border border-[#406080]/30 text-[#e0e0e0] hover:bg-[#204060]/50 transition-all text-xs font-fantasy disabled:opacity-40"
-          >
-            {copied === "caption" ? "✅ Copied!" : "📋 Copy Caption"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => copy("caption", caption)}
+              disabled={!caption}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#204060]/30 border border-[#406080]/30 text-[#e0e0e0] hover:bg-[#204060]/50 transition-all text-xs font-fantasy disabled:opacity-40"
+            >
+              {copied === "caption" ? "✅ Copied!" : "📋 Copy Caption"}
+            </button>
+            {onRegenerateCaptions && (
+              <button
+                type="button"
+                onClick={onRegenerateCaptions}
+                disabled={regenerateDisabled || (regenerating !== "" && regenerating !== "captions")}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-[#c08020]/20 border border-[#c08020]/50 text-[#c08020] hover:bg-[#c08020]/30 transition-all text-xs font-fantasy disabled:opacity-50"
+                aria-label="New captions only"
+                data-regen="captions"
+              >
+                {regenerating === "captions" ? "Re rolling..." : "🎲 New Captions"}
+              </button>
+            )}
+          </div>
         </div>
         {options.length === 0 ? (
           <p className="text-[#606080] text-sm font-fantasy">No caption was generated.</p>
@@ -67,6 +90,7 @@ export default function CaptionHashtagPanel({
                   type="button"
                   onClick={() => onSelectCaption?.(opt)}
                   aria-pressed={selected}
+                  data-caption-option
                   className={`w-full text-left p-3 rounded-lg border transition-all ${
                     selected
                       ? "border-[#c08020] bg-[#c08020]/10"
@@ -98,15 +122,29 @@ export default function CaptionHashtagPanel({
       <div className={`rounded-lg border border-[#406080]/30 bg-[#111a28] ${compact ? "p-3" : "p-4"}`}>
         <div className="flex items-center justify-between gap-2 mb-2">
           <p className="text-[#c08020] font-bold font-fantasy text-sm">🏷️ Hashtags</p>
-          {hashtags.length > 0 && (
-            <button
-              type="button"
-              onClick={() => copy("hashtags", hashtags.join(" "))}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-[#204060]/30 border border-[#406080]/30 text-[#e0e0e0] hover:bg-[#204060]/50 transition-all text-xs font-fantasy"
-            >
-              {copied === "hashtags" ? "✅ Copied!" : "📋 Copy Hashtags"}
-            </button>
-          )}
+          <div className="flex gap-2">
+            {hashtags.length > 0 && (
+              <button
+                type="button"
+                onClick={() => copy("hashtags", hashtags.join(" "))}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-[#204060]/30 border border-[#406080]/30 text-[#e0e0e0] hover:bg-[#204060]/50 transition-all text-xs font-fantasy"
+              >
+                {copied === "hashtags" ? "✅ Copied!" : "📋 Copy Hashtags"}
+              </button>
+            )}
+            {onRegenerateHashtags && (
+              <button
+                type="button"
+                onClick={onRegenerateHashtags}
+                disabled={regenerateDisabled || (regenerating !== "" && regenerating !== "hashtags")}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-[#c08020]/20 border border-[#c08020]/50 text-[#c08020] hover:bg-[#c08020]/30 transition-all text-xs font-fantasy disabled:opacity-50"
+                aria-label="New hashtags only"
+                data-regen="hashtags"
+              >
+                {regenerating === "hashtags" ? "Re rolling..." : "🎲 New Hashtags"}
+              </button>
+            )}
+          </div>
         </div>
         {hashtags.length > 0 ? (
           <div className="flex flex-wrap gap-2">

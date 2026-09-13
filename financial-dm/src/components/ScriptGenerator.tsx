@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ScriptResult } from "~/server/scriptGenerator";
-import { generateScript, regenerateHooks, saveScript } from "~/server/scriptGenerator";
+import type { ScriptPart, ScriptResult } from "~/server/scriptGenerator";
+import { generateScript, regenerateHooks, regenerateSection, saveScript } from "~/server/scriptGenerator";
 import type { TopicSelection } from "~/server/topics";
 import {
   HOOK_TYPE_LABELS,
@@ -52,6 +52,8 @@ export default function ScriptGenerator({
   const [result, setResult] = useState<ScriptResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hooksLoading, setHooksLoading] = useState(false);
+  /** Which single section is being re rolled, if any. */
+  const [sectionLoading, setSectionLoading] = useState<ScriptPart | "">("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [hookCopied, setHookCopied] = useState(false);
@@ -173,6 +175,29 @@ export default function ScriptGenerator({
       setHooksLoading(false);
     }
   }, [result, hookType]);
+
+  /** Re roll ONE section; every other part of the package stays exactly as it is. */
+  const handleRegenerateSection = useCallback(
+    async (part: ScriptPart) => {
+      if (!result) return;
+      setSectionLoading(part);
+      setError("");
+      try {
+        const patch = await regenerateSection({ data: { part, result, campaign: campaign ? contextOf(campaign) : undefined } });
+        if (!patch) {
+          setError(`Could not forge a new ${SECTION_LABEL[part]} right now. Nothing was changed.`);
+          return;
+        }
+        setResult({ ...result, ...patch });
+        setSaved(false);
+      } catch {
+        setError(`Could not forge a new ${SECTION_LABEL[part]} right now. Nothing was changed.`);
+      } finally {
+        setSectionLoading("");
+      }
+    },
+    [result, campaign],
+  );
 
   const selectHook = useCallback(
     (idx: number) => {
@@ -382,7 +407,10 @@ export default function ScriptGenerator({
         {result && (
           <div className="p-5 rounded-xl border border-[#c08020]/30 bg-[#0d1520]/60 text-[#e0e0e0] space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h3 className="font-fantasy text-[#c08020] text-xl">📜 {result.title}</h3>
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="font-fantasy text-[#c08020] text-xl" data-script-title>📜 {result.title}</h3>
+                <RegenButton part="title" label="title" loading={sectionLoading} busy={loading || hooksLoading} onClick={handleRegenerateSection} />
+              </div>
               <div className="flex flex-wrap gap-2 shrink-0">
                 {campaign && <button
                   type="button"
@@ -458,6 +486,7 @@ export default function ScriptGenerator({
                       type="button"
                       onClick={() => selectHook(idx)}
                       aria-pressed={selected}
+                      data-hook-option
                       className={`w-full text-left p-3 rounded-lg border transition-all ${
                         selected
                           ? "border-[#c08020] bg-[#c08020]/10"
@@ -485,18 +514,25 @@ export default function ScriptGenerator({
             {/* Script */}
             {result.script && (
               <div className="p-4 rounded-lg border border-[#406080]/30 bg-[#111a28]">
-                <p className="text-[#c08020] font-bold font-fantasy text-sm mb-1">🎬 Script</p>
-                <p className="text-[#e0e0e0] leading-relaxed text-base font-fantasy whitespace-pre-wrap">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-[#c08020] font-bold font-fantasy text-sm">🎬 Script</p>
+                  <RegenButton part="script" label="script" loading={sectionLoading} busy={loading || hooksLoading} onClick={handleRegenerateSection} />
+                </div>
+                <p className="text-[#e0e0e0] leading-relaxed text-base font-fantasy whitespace-pre-wrap" data-script-text>
                   {result.script}
                 </p>
+                <p className="text-[#606080] text-xs font-fantasy mt-2">“New Script” keeps the chosen hook as the first line and leaves everything else alone.</p>
               </div>
             )}
 
             {/* Call to Action */}
             {result.callToAction && (
               <div className="p-3 rounded-lg border border-[#406080]/30 bg-[#204060]/10">
-                <p className="text-[#c08020] font-bold font-fantasy text-sm mb-1">🎯 Call to Action</p>
-                <p className="text-[#e0e0e0] leading-relaxed text-sm font-fantasy">{result.callToAction}</p>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-[#c08020] font-bold font-fantasy text-sm">🎯 Call to Action</p>
+                  <RegenButton part="callToAction" label="call to action" loading={sectionLoading} busy={loading || hooksLoading} onClick={handleRegenerateSection} />
+                </div>
+                <p className="text-[#e0e0e0] leading-relaxed text-sm font-fantasy" data-script-cta>{result.callToAction}</p>
               </div>
             )}
 
@@ -506,13 +542,17 @@ export default function ScriptGenerator({
               onSelectCaption={selectCaption}
               hashtags={result.hashtags || []}
               onError={setError}
+              onRegenerateCaptions={() => handleRegenerateSection("captions")}
+              onRegenerateHashtags={() => handleRegenerateSection("hashtags")}
+              regenerating={sectionLoading === "captions" ? "captions" : sectionLoading === "hashtags" ? "hashtags" : ""}
+              regenerateDisabled={loading || hooksLoading || (sectionLoading !== "" && sectionLoading !== "captions" && sectionLoading !== "hashtags")}
             />
 
             <div className="flex justify-center">
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={loading || hooksLoading}
+                disabled={loading || hooksLoading || sectionLoading !== ""}
                 className="px-6 py-3 rounded-lg bg-[#204060]/40 border border-[#406080]/50 text-[#e0e0e0] hover:bg-[#204060]/60 transition-all font-fantasy text-sm disabled:opacity-50"
               >
                 {loading ? "Rolling a fresh take..." : "🔄 Regenerate Everything"}
@@ -544,5 +584,24 @@ export default function ScriptGenerator({
       />
       )}
     </div>
+  );
+}
+
+const SECTION_LABEL: Record<ScriptPart, string> = { title: "title", script: "script", callToAction: "call to action", captions: "captions", hashtags: "hashtags" };
+
+/** The small per section re roll button. One section at a time; the rest of the package is untouched. */
+function RegenButton({ part, label, loading, busy, onClick }: { part: ScriptPart; label: string; loading: ScriptPart | ""; busy: boolean; onClick: (part: ScriptPart) => void }) {
+  const mine = loading === part;
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(part)}
+      disabled={busy || (loading !== "" && !mine)}
+      className="shrink-0 px-3 py-1.5 rounded-lg bg-[#c08020]/20 border border-[#c08020]/50 text-[#c08020] hover:bg-[#c08020]/30 transition-all text-xs font-fantasy disabled:opacity-50"
+      aria-label={`New ${label} only`}
+      data-regen={part}
+    >
+      {mine ? "Re rolling..." : `🎲 New ${label.charAt(0).toUpperCase()}${label.slice(1)}`}
+    </button>
   );
 }
