@@ -9,6 +9,7 @@ import {
 } from "~/server/socialCardGenerator";
 import { downloadCardPng, downloadAllCardsZip } from "~/lib/socialCardUtils";
 import SocialCardPreview from "./SocialCardPreview";
+import CardStylePicker from "./CardStylePicker";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 
 export default function SavedSocialCards() {
@@ -21,6 +22,7 @@ export default function SavedSocialCards() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [styleStatus, setStyleStatus] = useState<Record<number, string>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const fetchBatches = useCallback(async () => {
@@ -69,6 +71,31 @@ export default function SavedSocialCards() {
         setError("Could not save the changes.");
       } finally {
         setSavingId(null);
+      }
+    },
+    [batches],
+  );
+
+  /** Backdrop or border changed in the library: show it at once and save it with the batch. */
+  const handleStyle = useCallback(
+    async (batchId: number, patch: { themeBackground?: string; themeBorder?: string }) => {
+      const current = batches.find((b) => b.id === batchId);
+      if (!current) return;
+      const next = { ...current, ...patch };
+      setBatches((bs) => bs.map((b) => (b.id === batchId ? next : b)));
+      setStyleStatus((m) => ({ ...m, [batchId]: "Saving..." }));
+      try {
+        const res = await updateSocialCards({ data: { id: batchId, cards: next.cards, themeBackground: next.themeBackground, themeBorder: next.themeBorder, style: true } });
+        if (!res.ok) {
+          setError(res.error || "Could not save the new look.");
+          setStyleStatus((m) => ({ ...m, [batchId]: "" }));
+          return;
+        }
+        setStyleStatus((m) => ({ ...m, [batchId]: "Saved" }));
+        setTimeout(() => setStyleStatus((m) => ({ ...m, [batchId]: "" })), 1500);
+      } catch {
+        setError("Could not save the new look.");
+        setStyleStatus((m) => ({ ...m, [batchId]: "" }));
       }
     },
     [batches],
@@ -202,13 +229,14 @@ export default function SavedSocialCards() {
                 </button>
               </div>
             </div>
-            {isExpanded && (batch.caption || batch.hashtags.length > 0) && (
-              <CaptionHashtagPanel
-                compact
-                captions={batch.caption ? [batch.caption] : []}
-                caption={batch.caption}
-                hashtags={batch.hashtags}
-                onError={setError}
+            {isExpanded && (
+              <CardStylePicker
+                themeBackground={batch.themeBackground}
+                themeBorder={batch.themeBorder}
+                onBackground={(id) => handleStyle(batch.id, { themeBackground: id })}
+                onBorder={(id) => handleStyle(batch.id, { themeBorder: id })}
+                note="Pick a backdrop or border and it saves with this batch right away."
+                status={styleStatus[batch.id]}
               />
             )}
             {isExpanded && (
@@ -219,6 +247,8 @@ export default function SavedSocialCards() {
                     <div key={idx} className="space-y-2">
                       <SocialCardPreview
                         card={card}
+                        themeBackground={batch.themeBackground}
+                        themeBorder={batch.themeBorder}
                         refEl={(el) => {
                           cardRefs.current[`${batch.id}-${idx}`] = el;
                         }}
@@ -288,6 +318,15 @@ export default function SavedSocialCards() {
                   );
                 })}
               </div>
+            )}
+            {isExpanded && (batch.caption || batch.hashtags.length > 0) && (
+              <CaptionHashtagPanel
+                compact
+                captions={batch.caption ? [batch.caption] : []}
+                caption={batch.caption}
+                hashtags={batch.hashtags}
+                onError={setError}
+              />
             )}
           </div>
         );

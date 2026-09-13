@@ -68,6 +68,9 @@ export interface SavedSocialCardBatch {
   caption: string;
   hashtags: string[];
   cards: SocialCard[];
+  /** Backdrop and border chosen in the forge; the library shows and re edits them. */
+  themeBackground?: string;
+  themeBorder?: string;
   createdAt: string;
 }
 
@@ -249,6 +252,8 @@ async function ensureSocialCardsTable(): Promise<void> {
   `;
   await sql()`ALTER TABLE social_cards ADD COLUMN IF NOT EXISTS caption TEXT`;
   await sql()`ALTER TABLE social_cards ADD COLUMN IF NOT EXISTS hashtags TEXT`;
+  await sql()`ALTER TABLE social_cards ADD COLUMN IF NOT EXISTS theme_background TEXT`;
+  await sql()`ALTER TABLE social_cards ADD COLUMN IF NOT EXISTS theme_border TEXT`;
 }
 
 export const initSocialCardsTable = createServerFn()
@@ -265,7 +270,11 @@ export interface SaveSocialCardsInput {
   caption: string;
   hashtags: string[];
   cards: SocialCard[];
+  themeBackground?: string;
+  themeBorder?: string;
 }
+
+const themeId = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 60) : null);
 
 export const saveSocialCards = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
@@ -274,10 +283,10 @@ export const saveSocialCards = createServerFn({ method: "POST" })
     try {
       await ensureSocialCardsTable();
       const result = await sql()`
-        INSERT INTO social_cards (format, tone, dnd_themed, cards, caption, hashtags)
+        INSERT INTO social_cards (format, tone, dnd_themed, cards, caption, hashtags, theme_background, theme_border)
         VALUES (${data.format}, ${data.tone}, ${data.dndThemed}, ${JSON.stringify(
           data.cards,
-        )}, ${data.caption || ""}, ${(data.hashtags || []).join(" ")})
+        )}, ${data.caption || ""}, ${(data.hashtags || []).join(" ")}, ${themeId(data.themeBackground)}, ${themeId(data.themeBorder)})
         RETURNING id
       `;
       return { ok: true, id: Number(result[0]?.id) };
@@ -309,18 +318,24 @@ export const getSavedSocialCards = createServerFn()
         caption: String(r.caption ?? ""),
         hashtags: (String(r.hashtags ?? "") || "").split(/\s+/).filter(Boolean),
         cards,
+        themeBackground: themeId(r.theme_background) ?? undefined,
+        themeBorder: themeId(r.theme_border) ?? undefined,
         createdAt: String(r.created_at),
       };
     });
   });
 
-/** Update the edited cards of a saved batch (used by inline editing). */
+/** Update the edited cards of a saved batch, and its backdrop and border when given (used by inline editing). */
 export const updateSocialCards = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
-  .validator((d: { id: number; cards: SocialCard[] }) => d)
+  .validator((d: { id: number; cards: SocialCard[]; themeBackground?: string; themeBorder?: string; style?: boolean }) => d)
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
     try {
       await ensureSocialCardsTable();
+      if (data.style) {
+        await sql()`UPDATE social_cards SET cards = ${JSON.stringify(data.cards)}, theme_background = ${themeId(data.themeBackground)}, theme_border = ${themeId(data.themeBorder)} WHERE id = ${data.id}`;
+        return { ok: true };
+      }
       await sql()`UPDATE social_cards SET cards = ${JSON.stringify(
         data.cards,
       )} WHERE id = ${data.id}`;

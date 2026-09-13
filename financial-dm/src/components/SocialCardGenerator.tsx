@@ -10,8 +10,8 @@ import {
 } from "~/server/socialCardGenerator";
 import type { TopicSelection } from "~/server/topics";
 import { downloadCardPng, downloadAllCardsZip } from "~/lib/socialCardUtils";
-import { THEME_BACKGROUNDS, THEME_BORDERS } from "~/lib/slideEditor";
 import SocialCardPreview from "./SocialCardPreview";
+import CardStylePicker from "./CardStylePicker";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 
 /**
@@ -106,7 +106,7 @@ export default function SocialCardGenerator({
     setQuestState("saving");
     setQuestNote("");
     try {
-      const res = await saveSocialCards({ data: { format, tone, dndThemed, caption: batch.caption, hashtags: batch.hashtags, cards: batch.cards } });
+      const res = await saveSocialCards({ data: { format, tone, dndThemed, caption: batch.caption, hashtags: batch.hashtags, cards: batch.cards, themeBackground, themeBorder } });
       if (!res.ok || !res.id) {
         setQuestState("error");
         setQuestNote(res.error || "Could not save the cards.");
@@ -125,7 +125,7 @@ export default function SocialCardGenerator({
       setQuestState("error");
       setQuestNote("Could not save to the quest.");
     }
-  }, [batch, campaign, format, tone, dndThemed]);
+  }, [batch, campaign, format, tone, dndThemed, themeBackground, themeBorder]);
 
   const handleSave = useCallback(async () => {
     if (!batch || batch.cards.length === 0) return;
@@ -140,6 +140,8 @@ export default function SocialCardGenerator({
           caption: batch.caption,
           hashtags: batch.hashtags,
           cards: batch.cards,
+          themeBackground,
+          themeBorder,
         },
       });
       if (!res.ok) {
@@ -153,7 +155,7 @@ export default function SocialCardGenerator({
     } finally {
       setSaving(false);
     }
-  }, [batch, format, tone, dndThemed]);
+  }, [batch, format, tone, dndThemed, themeBackground, themeBorder]);
 
   const handleDownloadCard = useCallback(
     async (idx: number) => {
@@ -288,71 +290,7 @@ export default function SocialCardGenerator({
 
 
           {/* Style pickers sit right above the cards they change */}
-          <div className="space-y-3 p-4 rounded-lg border border-[#406080]/30 bg-[#111a28]" data-card-style>
-            <div>
-              <p className="text-[#c08020] font-bold font-fantasy text-sm mb-2">🖼️ Card Backdrop</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setThemeBackground(undefined)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                    !themeBackground
-                      ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                      : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                  }`}
-                >
-                  Classic
-                </button>
-                {THEME_BACKGROUNDS.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => setThemeBackground(b.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                      themeBackground === b.id
-                        ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                        : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[#c08020] font-bold font-fantasy text-sm mb-2">🪞 Border Frame</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setThemeBorder(undefined)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                    !themeBorder
-                      ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                      : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                  }`}
-                >
-                  None
-                </button>
-                {THEME_BORDERS.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => setThemeBorder(b.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                      themeBorder === b.id
-                        ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                        : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <p className="text-center text-[#606080] text-xs font-fantasy">
-              Backdrop and border apply to every card below and show up in the PNG export.
-            </p>
-          </div>
+          <CardStylePicker themeBackground={themeBackground} themeBorder={themeBorder} onBackground={setThemeBackground} onBorder={setThemeBorder} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {cards.map((card, idx) => {
