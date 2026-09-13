@@ -246,74 +246,6 @@ export default function SocialCardGenerator({
           </div>
         )}
 
-        {/* Theme backdrop picker */}
-        {cards.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <div>
-              <p className="text-[#c08020] font-fantasy text-sm mb-2">🖼️ Card Backdrop</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setThemeBackground(undefined)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                    !themeBackground
-                      ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                      : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                  }`}
-                >
-                  Classic
-                </button>
-                {THEME_BACKGROUNDS.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => setThemeBackground(b.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                      themeBackground === b.id
-                        ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                        : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[#c08020] font-fantasy text-sm mb-2">🪞 Border Frame</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setThemeBorder(undefined)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                    !themeBorder
-                      ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                      : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                  }`}
-                >
-                  None
-                </button>
-                {THEME_BORDERS.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => setThemeBorder(b.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
-                      themeBorder === b.id
-                        ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
-                        : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <p className="text-center text-[#606080] text-xs font-fantasy">
-              Backdrop and border apply to every card in this batch and show up in the PNG export.
-            </p>
-          </div>
-        )}
       </section>
 
       {/* Cards grid */}
@@ -354,13 +286,73 @@ export default function SocialCardGenerator({
             </div>
           </div>
 
-          <CaptionHashtagPanel
-            captions={batch.captions}
-            caption={batch.caption}
-            onSelectCaption={selectCaption}
-            hashtags={batch.hashtags}
-            onError={setError}
-          />
+
+          {/* Style pickers sit right above the cards they change */}
+          <div className="space-y-3 p-4 rounded-lg border border-[#406080]/30 bg-[#111a28]" data-card-style>
+            <div>
+              <p className="text-[#c08020] font-bold font-fantasy text-sm mb-2">🖼️ Card Backdrop</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setThemeBackground(undefined)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
+                    !themeBackground
+                      ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
+                      : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
+                  }`}
+                >
+                  Classic
+                </button>
+                {THEME_BACKGROUNDS.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setThemeBackground(b.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
+                      themeBackground === b.id
+                        ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
+                        : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[#c08020] font-bold font-fantasy text-sm mb-2">🪞 Border Frame</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setThemeBorder(undefined)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
+                    !themeBorder
+                      ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
+                      : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
+                  }`}
+                >
+                  None
+                </button>
+                {THEME_BORDERS.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setThemeBorder(b.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-fantasy border ${
+                      themeBorder === b.id
+                        ? "bg-[#c08020] text-[#0d1520] border-[#c08020]"
+                        : "bg-[#204060]/30 border-[#406080]/30 text-[#a0a0a0] hover:border-[#c08020]/50"
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-center text-[#606080] text-xs font-fantasy">
+              Backdrop and border apply to every card below and show up in the PNG export.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {cards.map((card, idx) => {
@@ -478,6 +470,14 @@ export default function SocialCardGenerator({
               );
             })}
           </div>
+
+          <CaptionHashtagPanel
+            captions={batch.captions}
+            caption={batch.caption}
+            onSelectCaption={selectCaption}
+            hashtags={batch.hashtags}
+            onError={setError}
+          />
         </section>
       )}
     </div>
