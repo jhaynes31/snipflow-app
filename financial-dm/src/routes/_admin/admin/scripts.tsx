@@ -88,7 +88,7 @@ function ScriptsPage() {
           <h1 className="text-2xl sm:text-3xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}>📜 The DM Screen</h1>
           <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">What you say, section by section. Write it here ahead of time, then press Present to read from it on your second monitor or your phone: it opens in its own window with nothing else on screen. Nothing here is generated: every word is yours.</p>
           </div>
-          <Link to="/admin/how-to" search={{ topic: "screen" }} className={`${btnGhost} shrink-0`} data-how-to>📖 How to</Link>
+          <Link to="/admin/how-to" search={{ topic: "screen-writing" }} className={`${btnGhost} shrink-0`} data-how-to>📖 How to</Link>
         </div>
         {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy" data-scripts-error>{error}</div>}
 

@@ -181,8 +181,8 @@ export default function AdminNav() {
               <Link {...linkTo("/admin/settings/password")} className={menuItem} onClick={closeMenus}>
                 <span className="block text-[#e0e0e0] text-sm font-fantasy">🔑 Password</span>
               </Link>
-              <Link {...linkTo("/admin/quests", { section: "guide" })} className={menuItem} onClick={closeMenus}>
-                <span className="block text-[#e0e0e0] text-sm font-fantasy">📖 Quest Board guide</span>
+              <Link {...linkTo("/admin/how-to", { topic: "quest-overview" })} className={menuItem} onClick={closeMenus}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">📖 How To</span>
               </Link>
               <button type="button" onClick={handleLogout} className={`${menuItem} w-full text-left border-t border-[#406080]/20 mt-1`} data-nav="signout">
                 <span className="block text-[#e0e0e0] text-sm font-fantasy">🚪 Sign out</span>
@@ -232,8 +232,8 @@ export default function AdminNav() {
                   <span className="block text-[#e0e0e0] text-sm font-fantasy">{t.icon} {t.label}</span>
                 </Link>
               ))}
-              <Link {...linkTo("/admin/quests", { section: "guide" })} className={menuItem} onClick={closeMenus}>
-                <span className="block text-[#e0e0e0] text-sm font-fantasy">📖 Quest Board guide</span>
+              <Link {...linkTo("/admin/how-to", { topic: "quest-overview" })} className={menuItem} onClick={closeMenus}>
+                <span className="block text-[#e0e0e0] text-sm font-fantasy">📖 How To</span>
               </Link>
               <button type="button" onClick={handleLogout} className={`${menuItem} w-full text-left border-t border-[#406080]/20 mt-1`}>
                 <span className="block text-[#e0e0e0] text-sm font-fantasy">🚪 Sign out</span>

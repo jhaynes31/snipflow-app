@@ -108,7 +108,7 @@ const ENTRIES: Array<{ label: string; blurb: string; to?: string; search?: Recor
   { label: "Compliance and flag word lists", blurb: "Words the forges flag: earnings hype, hiring-safe, titles, scam patterns.", view: "flags" },
   { label: "Platform list", blurb: "Where posts go, and the quest planning defaults.", view: "platforms" },
   { label: "Practice rubrics", blurb: "What the Sparring Dummy's debrief notices, for Coverage and for Recruiting. John's words, edited on the Practice page.", to: "/admin/practice" },
-  { label: "How To", blurb: "Writing a script, presenting from two monitors or the phone, rehearsing with a fictional person, and giving recruits practice access. Its own tab in the top bar.", to: "/admin/how-to" },
+  { label: "How To", blurb: "Every guide in one place: the Quest Board step by step, the DM Screen, presenting, the Sparring Dummy, and recruit access. Pick a topic from the list or search for it.", to: "/admin/how-to" },
   { label: "Password", blurb: "Change the password for these private tools.", to: "/admin/settings/password" },
   { label: "Email notifications and templates", blurb: "Where John's notifications go, whether sending is set up, and the wording of every email the site can send.", view: "email" },
 ];

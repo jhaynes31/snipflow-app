@@ -58,7 +58,7 @@ function PracticePage() {
             <h1 className="text-2xl sm:text-3xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}>🥊 The Sparring Dummy</h1>
             <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">Rehearse a conversation with a fictional person before the real one. Reps, not evidence: AI personas are more patient and more articulate than real people, even on a rough day.</p>
           </div>
-          <Link to="/admin/how-to" search={{ topic: "dummy" }} className={`${btnGhost} shrink-0`} data-how-to>📖 How to</Link>
+          <Link to="/admin/how-to" search={{ topic: "dummy-setup" }} className={`${btnGhost} shrink-0`} data-how-to>📖 How to</Link>
         </div>
         <nav className="flex gap-2" aria-label="Practice views" data-practice-views>
           <Link to="/admin/practice" search={{}} className={viewChip(!view)} data-practice-view="setup" aria-current={!view ? "page" : undefined}>Set up a session</Link>
