@@ -21,6 +21,8 @@ import {
   type SlideElement,
 } from "~/lib/slideEditor";
 import EditableSlideCard from "~/components/EditableSlideCard";
+import SlideShapePicker from "~/components/SlideShapePicker";
+import { readSlideAspect, writeSlideAspect, type SlideAspect } from "~/lib/slideEditor";
 import SlideEditorPanel, { type SlideLook } from "~/components/SlideEditorPanel";
 
 export default function SavedCarousels() {
@@ -30,6 +32,12 @@ export default function SavedCarousels() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [aspect, setAspect] = useState<SlideAspect>("1:1");
+  useEffect(() => setAspect(readSlideAspect()), []);
+  const chooseAspect = (v: SlideAspect) => {
+    setAspect(v);
+    writeSlideAspect(v);
+  };
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadProgressId, setDownloadProgressId] = useState<{ id: number; done: number; total: number } | null>(null);
   const [downloadingIdx, setDownloadingIdx] = useState<number | null>(null);
@@ -449,12 +457,14 @@ export default function SavedCarousels() {
                         <p className="text-[#c08020] font-bold font-fantasy text-sm">
                           🃏 Slides
                         </p>
+                        <SlideShapePicker value={aspect} onChange={chooseAspect} />
                         {slides.map((slide, idx) => {
                           const isEditing = editingKey === `${c.id}:${idx}`;
                           return (
                             <div key={idx} className="space-y-2">
                               <EditableSlideCard
                                 slide={slide}
+                                aspect={aspect}
                                 refEl={(el) => {
                                   if (!slideRefs.current[c.id]) {
                                     slideRefs.current[c.id] = [];

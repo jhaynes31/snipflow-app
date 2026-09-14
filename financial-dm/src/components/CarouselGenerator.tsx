@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import type { CarouselResult } from "~/server/carouselGenerator";
 import { generateCarousel, saveCarousel } from "~/server/carouselGenerator";
 import type { TopicSelection } from "~/server/topics";
@@ -18,6 +18,8 @@ import {
   type SlideElement,
 } from "~/lib/slideEditor";
 import EditableSlideCard from "~/components/EditableSlideCard";
+import SlideShapePicker from "~/components/SlideShapePicker";
+import { readSlideAspect, writeSlideAspect, type SlideAspect } from "~/lib/slideEditor";
 import SlideEditorPanel, { type SlideLook } from "~/components/SlideEditorPanel";
 import { attachOutputToSlot } from "~/server/campaign";
 import { contextOf, type CampaignBrief } from "~/lib/campaign";
@@ -54,6 +56,12 @@ export default function CarouselGenerator({
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
 
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [aspect, setAspect] = useState<SlideAspect>("1:1");
+  useEffect(() => setAspect(readSlideAspect()), []);
+  const chooseAspect = (v: SlideAspect) => {
+    setAspect(v);
+    writeSlideAspect(v);
+  };
 
   const handleGenerate = useCallback(async () => {
     if (!selection) {
@@ -375,6 +383,7 @@ export default function CarouselGenerator({
 
             {/* Slide deck + editor (extra room at the bottom while the docked editor is open) */}
             <div className={`space-y-5 ${editingIdx !== null ? "pb-[48vh]" : ""}`}>
+              <SlideShapePicker value={aspect} onChange={chooseAspect} />
               <div className="flex flex-wrap gap-2 items-center justify-between">
                 <p className="text-[#c08020] font-bold font-fantasy text-sm">✏️ Edit Any Slide</p>
                 <button
@@ -395,6 +404,7 @@ export default function CarouselGenerator({
                   <div key={idx} className="space-y-2">
                     <EditableSlideCard
                       slide={slide}
+                      aspect={aspect}
                       refEl={(el) => {
                         slideRefs.current[idx] = el;
                       }}

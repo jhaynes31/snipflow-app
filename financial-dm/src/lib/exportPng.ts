@@ -28,7 +28,8 @@ const MAX_RATIO = 6;
 export function exportPixelRatio(el: HTMLElement): number {
   const rect = el.getBoundingClientRect();
   const shortEdge = Math.max(1, Math.min(rect.width, rect.height));
-  const forMinEdge = EXPORT_MIN_EDGE / shortEdge;
+  // A hair over, so rounding on a fractional preview width never lands a pixel short of 1080.
+  const forMinEdge = (EXPORT_MIN_EDGE + 2) / shortEdge;
   return Math.min(MAX_RATIO, Math.max(MIN_RATIO, forMinEdge));
 }
 
@@ -40,6 +41,12 @@ export async function elementToPngDataUrl(el: HTMLElement): Promise<string> {
   return toPng(el, {
     pixelRatio: exportPixelRatio(el),
     cacheBust: true,
+    // The on-screen preview has rounded corners and a thin frame line. In the
+    // file those corners would be transparent, and TikTok, Instagram, and the
+    // rest fill transparent pixels with white. The export squares them off and
+    // drops the line, so the image reaches every edge of its box.
+    // The preview also dims unselected cards a little; the file must be fully opaque.
+    style: { borderRadius: "0", border: "none", boxShadow: "none", outline: "none", opacity: "1" },
   });
 }
 

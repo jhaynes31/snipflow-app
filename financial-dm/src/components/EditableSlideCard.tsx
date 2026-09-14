@@ -7,6 +7,8 @@ import {
   roleClassName,
   slideBackgroundStyle,
   themeBorderImage,
+  aspectRatioCss,
+  type SlideAspect,
 } from "~/lib/slideEditor";
 
 /** Clamp a drag offset (in slide percent) so text stays on the card. */
@@ -35,12 +37,15 @@ export default function EditableSlideCard({
   refEl,
   onClick,
   onMoveElement,
+  aspect = "1:1",
 }: {
   slide: EditableSlide;
   className?: string;
   refEl?: (el: HTMLDivElement | null) => void;
   onClick?: () => void;
   onMoveElement?: (elId: string, offsetX: number, offsetY: number) => void;
+  /** Square, portrait, or full screen (Section: export shape). Preview and PNG use the same one. */
+  aspect?: SlideAspect;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [cardSize, setCardSize] = useState(0);
@@ -200,11 +205,13 @@ export default function EditableSlideCard({
       // sets the selection as usual.
       onPointerDown={() => setSelectedId(null)}
       onClick={onClick}
-      style={slideBackgroundStyle(slide)}
+      style={{ ...slideBackgroundStyle(slide), aspectRatio: aspectRatioCss(aspect) }}
       // A CSS size container: every text size inside is in cqw (1% of the
       // card's full width, since the padding sits on the inner layer), so the
       // card reads the same at phone width, desktop width, and in the export.
-      className={`relative aspect-square w-full rounded-xl border border-[#b9803a]/45 flex flex-col overflow-hidden [container-type:inline-size] ${className}`}
+      // The corners and frame line are for the screen only; the export squares them off.
+      data-slide-aspect={aspect}
+      className={`relative w-full rounded-xl border border-[#b9803a]/45 flex flex-col overflow-hidden [container-type:inline-size] ${className}`}
     >
       <div
         className={`flex flex-col h-full min-h-0 overflow-hidden ${

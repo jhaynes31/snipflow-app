@@ -665,3 +665,44 @@ export function deckSummaries(
     body: s.elements.find((e) => e.role === "body")?.text ?? "",
   }));
 }
+
+// ── Export shape ────────────────────────────────────────────────────
+
+/** The shape a slide is previewed and exported at. Text sizes are in cqw, so a taller shape only adds room above and below. */
+export type SlideAspect = "1:1" | "4:5" | "9:16";
+
+export const SLIDE_ASPECTS: Array<{ id: SlideAspect; label: string; ratio: string; note: string; width: number; height: number }> = [
+  { id: "9:16", label: "Full screen", ratio: "9 / 16", note: "TikTok photo posts, Reels, and Stories. Fills the phone with no bars.", width: 1080, height: 1920 },
+  { id: "4:5", label: "Portrait", ratio: "4 / 5", note: "Instagram and Facebook feed. Tallest shape the feed shows whole.", width: 1080, height: 1350 },
+  { id: "1:1", label: "Square", ratio: "1 / 1", note: "The classic. Shows with bars above and below on TikTok.", width: 1080, height: 1080 },
+];
+
+export const DEFAULT_SLIDE_ASPECT: SlideAspect = "9:16";
+const ASPECT_KEY = "carousel:shape";
+
+export function isSlideAspect(v: unknown): v is SlideAspect {
+  return v === "1:1" || v === "4:5" || v === "9:16";
+}
+
+/** John's last choice, kept in this browser. */
+export function readSlideAspect(): SlideAspect {
+  try {
+    const v = localStorage.getItem(ASPECT_KEY);
+    return isSlideAspect(v) ? v : DEFAULT_SLIDE_ASPECT;
+  } catch {
+    return DEFAULT_SLIDE_ASPECT;
+  }
+}
+
+export function writeSlideAspect(v: SlideAspect): void {
+  try {
+    localStorage.setItem(ASPECT_KEY, v);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function aspectRatioCss(v: SlideAspect): string {
+  return SLIDE_ASPECTS.find((a) => a.id === v)?.ratio ?? "1 / 1";
+}
+
