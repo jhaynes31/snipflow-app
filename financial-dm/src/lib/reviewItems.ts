@@ -4,7 +4,7 @@
  * view that shows the values read-only, where John marks it reviewed.
  * None block anything; they are reminders, not gates.
  */
-export type SettingsViewId = "quizzes" | "loot" | "flags" | "platforms" | "email" | "guide";
+export type SettingsViewId = "quizzes" | "loot" | "flags" | "platforms" | "email";
 
 export interface ReviewItem {
   key: string;

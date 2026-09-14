@@ -6,7 +6,7 @@ import { QUEST_LOG_STALE_DAYS } from "./questLog";
  * are switched on. Adding a tool later is one entry here.
  */
 
-export type TabId = "home" | "leads" | "quests" | "forge" | "practice" | "quizzes" | "scripts" | "guild" | "settings";
+export type TabId = "home" | "leads" | "quests" | "forge" | "practice" | "quizzes" | "scripts" | "guild" | "howto" | "settings";
 
 export interface AdminTab {
   id: TabId;
@@ -32,6 +32,8 @@ export const TOOLS_BUILT = {
   practice: true,
   /** The DM Screen (presentation script spec). */
   scripts: true,
+  /** The how-to for the DM Screen and the Sparring Dummy. */
+  howto: true,
   guild: true,
   settings: true,
   approvals: true,
@@ -48,6 +50,7 @@ export const ADMIN_TABS: AdminTab[] = [
   { id: "quizzes", label: "Quizzes", short: "Quizzes", icon: "🎲", to: "/admin/quizzes", available: TOOLS_BUILT.quizzes, mobilePrimary: false },
   { id: "scripts", label: "The DM Screen", short: "Scripts", icon: "📜", to: "/admin/scripts", available: TOOLS_BUILT.scripts, mobilePrimary: false },
   { id: "guild", label: "Guild", short: "Guild", icon: "🛡️", to: "/admin/guild", search: { view: "recruits" }, available: TOOLS_BUILT.guild, mobilePrimary: true },
+  { id: "howto", label: "How To", short: "How To", icon: "📖", to: "/admin/how-to", available: TOOLS_BUILT.howto, mobilePrimary: false },
   { id: "settings", label: "Settings", short: "Settings", icon: "⚙️", to: "/admin/settings", available: TOOLS_BUILT.settings, mobilePrimary: false },
 ];
 
@@ -99,7 +102,6 @@ export function crumb(pathname: string, search: Record<string, unknown>): { tab:
     else if (search.archived) sub.push("Archived");
   } else if (tab.id === "settings") {
     if (p.endsWith("/password")) sub.push("Password");
-    else if (s("view") === "guide") sub.push("How to");
   } else if (tab.id === "home") {
     if (p.endsWith("/approvals")) sub.push("Approvals");
   }

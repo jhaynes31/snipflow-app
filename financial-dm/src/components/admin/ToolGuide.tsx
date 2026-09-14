@@ -4,8 +4,8 @@ import { DEFAULT_DIFFICULTY, DIFFICULTY_LEVELS, TEMPERAMENTS } from "~/lib/pract
 import { DM_SCREEN_CONFIG } from "~/lib/dmScreen";
 
 /**
- * The how-to for John's two rehearsal-and-stage tools, kept next to the tools
- * themselves under Settings. Plain English, no scores, no jargon. Pulls its
+ * The how-to for John's two rehearsal-and-stage tools, on its own How To tab.
+ * Plain English, no scores, no jargon. Pulls its
  * few numbers from the same config the tools read, so it never drifts.
  */
 
@@ -27,10 +27,8 @@ export default function ToolGuide({ topic }: { topic?: string }) {
   }, [topic]);
   const levels = DIFFICULTY_LEVELS;
   return (
-    <div className="space-y-4" data-settings-view="guide" data-tool-guide>
+    <div className="space-y-4" data-tool-guide>
       <div className="flex flex-wrap items-center gap-3">
-        <a href="/admin/settings" className="text-xs font-fantasy text-[#a0a0a0] hover:text-[#c08020]">← All settings</a>
-        <span className="flex-1" />
         <a href="#guide-screen" className="text-xs font-fantasy text-[#a0a0a0] hover:text-[#c08020]">The DM Screen</a>
         <a href="#guide-present" className="text-xs font-fantasy text-[#a0a0a0] hover:text-[#c08020]">Presenting</a>
         <a href="#guide-dummy" className="text-xs font-fantasy text-[#a0a0a0] hover:text-[#c08020]">The Sparring Dummy</a>

@@ -72,7 +72,7 @@ export default function AdminNav() {
   const more = tabs.filter((t) => !t.mobilePrimary);
 
   // Section 3.2 fallback order: shorten labels first (CSS), then fold the least-used tabs. Home, Leads, and Quest Board never fold.
-  const FOLD_ORDER = ["settings", "quizzes", "scripts", "practice", "guild", "forge"];
+  const FOLD_ORDER = ["settings", "howto", "quizzes", "scripts", "practice", "guild", "forge"];
   const foldable = FOLD_ORDER.map((id) => tabs.find((t) => t.id === id)).filter((t): t is (typeof tabs)[number] => Boolean(t));
   // Stage 0: full labels where the screen is wide enough. Stage 1: short labels everywhere. Stage 2+: short labels and (stage - 1) tabs folded.
   const [stage, setStage] = useState(0);
@@ -81,7 +81,8 @@ export default function AdminNav() {
   const rowRef = useRef<HTMLDivElement>(null);
   const foldedIds = new Set(foldable.slice(0, folded).map((t) => t.id));
   const visibleTabs = tabs.filter((t) => !foldedIds.has(t.id));
-  const menuTabs = foldable.filter((t) => foldedIds.has(t.id));
+  // The More menu keeps the bar's own order, whatever order the tabs folded in.
+  const menuTabs = tabs.filter((t) => foldedIds.has(t.id));
   useLayoutEffect(() => {
     const row = rowRef.current;
     if (!row) return;

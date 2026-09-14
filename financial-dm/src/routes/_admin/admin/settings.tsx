@@ -10,7 +10,6 @@ import * as lootPages from "~/lib/lootPages";
 import { QUEST_CONFIG } from "~/lib/questConfig";
 import { GUILD_CONFIG } from "~/lib/guildConfig";
 import { REVIEW_ITEMS, flattenConfig, type SettingsViewId } from "~/lib/reviewItems";
-import ToolGuide from "~/components/admin/ToolGuide";
 import { getSignoffs, setSignoff, type Signoffs } from "~/server/homeState";
 import { getMailStatus } from "~/server/mail";
 import type { MailStatus } from "~/server/mail.server";
@@ -23,9 +22,8 @@ import { MAIL_TEMPLATES } from "~/lib/mailTemplates";
  * John can mark a view reviewed. No editor is built here.
  */
 export const Route = createFileRoute("/_admin/admin/settings")({
-  validateSearch: (s: Record<string, unknown>): { view?: SettingsViewId; topic?: string } => ({
-    view: s.view === "quizzes" || s.view === "loot" || s.view === "flags" || s.view === "platforms" || s.view === "email" || s.view === "guide" ? s.view : undefined,
-    topic: s.topic === "screen" || s.topic === "present" || s.topic === "dummy" || s.topic === "recruits" ? s.topic : undefined,
+  validateSearch: (s: Record<string, unknown>): { view?: SettingsViewId } => ({
+    view: s.view === "quizzes" || s.view === "loot" || s.view === "flags" || s.view === "platforms" || s.view === "email" ? s.view : undefined,
   }),
   component: SettingsPage,
 });
@@ -110,13 +108,13 @@ const ENTRIES: Array<{ label: string; blurb: string; to?: string; search?: Recor
   { label: "Compliance and flag word lists", blurb: "Words the forges flag: earnings hype, hiring-safe, titles, scam patterns.", view: "flags" },
   { label: "Platform list", blurb: "Where posts go, and the quest planning defaults.", view: "platforms" },
   { label: "Practice rubrics", blurb: "What the Sparring Dummy's debrief notices, for Coverage and for Recruiting. John's words, edited on the Practice page.", to: "/admin/practice" },
-  { label: "How to: The DM Screen and the Sparring Dummy", blurb: "Writing a script, presenting from two monitors or the phone, rehearsing with a fictional person, and giving recruits practice access.", view: "guide" },
+  { label: "How To", blurb: "Writing a script, presenting from two monitors or the phone, rehearsing with a fictional person, and giving recruits practice access. Its own tab in the top bar.", to: "/admin/how-to" },
   { label: "Password", blurb: "Change the password for these private tools.", to: "/admin/settings/password" },
   { label: "Email notifications and templates", blurb: "Where John's notifications go, whether sending is set up, and the wording of every email the site can send.", view: "email" },
 ];
 
 function SettingsPage() {
-  const { view, topic } = Route.useSearch();
+  const { view } = Route.useSearch();
   const def = VIEWS.find((v) => v.id === view);
   return (
     <main className="min-h-dvh py-6 px-4" style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }} data-settings>
@@ -125,7 +123,7 @@ function SettingsPage() {
           <h1 className="text-2xl sm:text-3xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}>⚙️ Settings</h1>
           <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">Where everything is set. Each entry opens the screen that owns it; file-based config is shown read-only.</p>
         </div>
-        {view === "guide" ? <ToolGuide topic={topic} /> : view === "email" ? <EmailView /> : def ? <ConfigView def={def} /> : <Hub />}
+        {view === "email" ? <EmailView /> : def ? <ConfigView def={def} /> : <Hub />}
       </div>
     </main>
   );
@@ -142,7 +140,7 @@ function Hub() {
             {e.soon && <p className="text-[#806040] text-[11px] font-fantasy mt-1">Not available · {e.soon}</p>}
           </div>
           {e.to && <Link {...linkTo(e.to, e.search)} className={btn}>Open →</Link>}
-          {e.view && <Link {...linkTo("/admin/settings", { view: e.view })} className={btn} data-settings-view-link={e.view}>{e.view === "guide" ? "Read it →" : "View values →"}</Link>}
+          {e.view && <Link {...linkTo("/admin/settings", { view: e.view })} className={btn} data-settings-view-link={e.view}>View values →</Link>}
         </li>
       ))}
     </ul>
