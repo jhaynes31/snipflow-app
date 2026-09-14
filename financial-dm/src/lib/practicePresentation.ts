@@ -24,6 +24,8 @@ export interface Presentation {
   version: number;
   sections: PresentationSection[];
   updatedAt: string;
+  /** "dmScreen" when this is a DM Screen script read through Section 6 of that spec; the practice tool never edits those. */
+  source?: "outline" | "dmScreen";
 }
 
 export interface SectionProgress {

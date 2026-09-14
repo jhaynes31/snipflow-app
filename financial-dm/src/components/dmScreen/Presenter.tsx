@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptBody from "./ScriptBody";
-import { DM_SCREEN_CONFIG, PRESENTER_CONFIG, clampScale, formatClock, presenterHeartbeatKey, presenterPosKey, presenterSizeKey, presenterThemeKey, scriptSavedKey, totalTargetMinutes, type DmScript, type PresenterDevice } from "~/lib/dmScreen";
+import { DM_SCREEN_CONFIG, PRESENTER_CONFIG, TAG_LABEL, clampScale, formatClock, presenterHeartbeatKey, presenterPosKey, presenterSizeKey, presenterThemeKey, scanScript, scriptSavedKey, totalTargetMinutes, type DmScript, type PresenterDevice } from "~/lib/dmScreen";
 
 /**
  * The presenter view (presentation script spec, Section 5). Loaded once,
@@ -325,6 +325,8 @@ export default function Presenter({ script }: { script: DmScript }) {
   }
 
   if (phase === "pre") {
+    // Section 5.4: the one place flags appear on this screen. Never during the presentation.
+    const flags = scanScript(sections, script.audience);
     return (
       <div style={root} data-presenter data-phase="pre">
         <div className="h-full overflow-y-auto grid place-items-center p-6">
@@ -334,6 +336,18 @@ export default function Presenter({ script }: { script: DmScript }) {
             <p style={{ color: dim }} data-pre-summary>
               {n} section{n === 1 ? "" : "s"}{total ? ` · about ${total} minute${total === 1 ? "" : "s"} if the targets hold` : ""}
             </p>
+            {flags.length > 0 && (
+              <div className="text-left rounded-lg p-3 text-sm" style={{ background: notesBg, color: notesFg }} data-pre-flags>
+                <p className="font-bold">{flags.length} thing{flags.length === 1 ? "" : "s"} to check</p>
+                <ul className="mt-1 space-y-1">
+                  {flags.slice(0, 8).map((f, i) => (
+                    <li key={i} data-pre-flag={f.ruleId}>Section {f.sectionIndex + 1}: "{f.matched}". {f.rule}</li>
+                  ))}
+                  {flags.length > 8 && <li>…and {flags.length - 8} more.</li>}
+                </ul>
+                <a href={`/admin/scripts/${script.id}`} className={`${btn} inline-block mt-2 not-italic`} data-pre-fix>Go back and fix</a>
+              </div>
+            )}
             <div className="flex flex-col items-center gap-2 pt-2">
               <button type="button" onClick={() => start(savedPos ?? 0)} className={`${primary} w-full max-w-xs`} autoFocus data-start>
                 {savedPos != null ? `▶ Resume at section ${savedPos + 1}` : "▶ Start"}
@@ -425,6 +439,9 @@ export default function Presenter({ script }: { script: DmScript }) {
         <div className={`${phone ? "px-5 py-3" : "px-10 py-6 grid gap-8"} h-full`} style={!phone ? { gridTemplateColumns: cur.notes ? "minmax(0, 1fr) minmax(16rem, 28%)" : "minmax(0, 1fr)" } : undefined}>
           <div className="min-w-0">
             <h2 className="font-bold leading-tight" style={{ fontSize: phone ? "1.35em" : "1.6em", color: accent }} data-section-title>{cur.title || `Section ${index + 1}`}</h2>
+            {script.audience === "recruit" && cur.tag && (
+              <p className="mt-1 inline-block rounded px-2 py-0.5 text-xs font-semibold not-italic" style={{ background: cur.tag === "trust" ? (dark ? "#143322" : "#d8f1e0") : notesBg, color: cur.tag === "trust" ? (dark ? "#7fd08a" : "#1f6b35") : notesFg, fontSize: "0.75rem" }} data-section-tag-label={cur.tag}>{TAG_LABEL[cur.tag]}</p>
+            )}
             <div className="mt-3" style={{ fontSize: phone ? "1.25em" : "1.5em", lineHeight: 1.55 }} data-section-body>
               <ScriptBody body={cur.body} />
               {!cur.body.trim() && <p style={{ color: dim }}>(No words written for this section yet.)</p>}

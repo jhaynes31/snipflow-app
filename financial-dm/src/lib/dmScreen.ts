@@ -5,6 +5,9 @@
  * presenter view, and the Sparring Dummy all read a script the same way.
  */
 
+import { scanJohnLines, type ComplianceFlag } from "./practiceDebrief";
+import type { Presentation } from "./practicePresentation";
+
 export type ScriptAudience = "client" | "recruit";
 
 /** Section 4.4: recruit sections can be marked as public trust facts or conversation-only presentation facts. */
@@ -238,5 +241,52 @@ export function formatClock(ms: number): string {
   const s = total % 60;
   const mm = h ? String(m).padStart(2, "0") : String(m);
   return `${h ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
+}
+
+// ── Compliance flags (Section 4.3) and trust markers (Section 4.4) ──
+
+export const TAG_LABEL: Record<SectionTag, string> = { "": "No tag", trust: "Trust fact", presentation: "Presentation fact" };
+export const TAG_HELP: Record<SectionTag, string> = { "": "", trust: "Public: safe to state anywhere.", presentation: "For the conversation, not for public posts." };
+
+export interface SectionFlag extends ComplianceFlag {
+  sectionId: string;
+  sectionIndex: number;
+}
+
+/**
+ * The same word lists the Quest Board, the Guild, and the practice debrief
+ * use, run over what John says (the body, never the notes). Warns only.
+ */
+export function scanScript(sections: ScriptSection[], audience: ScriptAudience): SectionFlag[] {
+  const conversation = audience === "recruit" ? "recruiting" : "coverage";
+  const out: SectionFlag[] = [];
+  sections.forEach((s, i) => {
+    for (const f of scanJohnLines(plainBody(s.body).split("\n"), conversation)) out.push({ ...f, sectionId: s.id, sectionIndex: i });
+  });
+  return out;
+}
+
+/** Section 6: a DM Screen script as the Sparring Dummy reads it. Negative ids keep it apart from the practice tool's own outlines. */
+export function scriptToPresentation(script: DmScript): Presentation {
+  return {
+    id: -script.id,
+    name: script.name,
+    conversation: script.audience === "recruit" ? "recruiting" : "coverage",
+    version: script.version,
+    sections: script.sections.map((s) => ({
+      id: s.id,
+      title: s.title || `Section ${s.order + 1}`,
+      minMinutes: s.targetMinutes ?? 0,
+      maxMinutes: s.targetMinutes ?? 0,
+      points: plainBody(s.body).split("\n").map((l) => l.trim()).filter(Boolean),
+    })),
+    updatedAt: script.updatedAt,
+    source: "dmScreen",
+  };
+}
+
+/** The reverse, used once to carry John's existing practice outline into the DM Screen. */
+export function outlineToSections(sections: Array<{ id?: string; title: string; minMinutes?: number; maxMinutes?: number; points: string[] }>): ScriptSection[] {
+  return normalizeSections(sections.map((s, i) => ({ id: s.id, order: i, title: s.title, slideRef: "", body: s.points.map((pt) => `- ${pt}`).join("\n"), notes: s.minMinutes && s.maxMinutes && s.minMinutes !== s.maxMinutes ? `Aim for ${s.minMinutes} to ${s.maxMinutes} minutes.` : "", targetMinutes: s.maxMinutes || s.minMinutes || null, tag: "" })));
 }
 

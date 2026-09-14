@@ -4,7 +4,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { allowRequest, clientAddress } from "~/server/rateLimit.server";
 import { ensureGuildTables } from "~/server/guild";
-import { applySectionEvent, buildDebrief, createSession, ensurePracticeTables, finishSession, giveHint, inventPersona, loadProfiles, loadSession, sayTurn, summarize, type PracticeSession, type SessionResult, type SessionSummary } from "~/server/practice.server";
+import { applySectionEvent, buildDebrief, createSession, ensurePracticeTables, finishSession, giveHint, inventPersona, listPresentationChoices, loadProfiles, loadSession, sayTurn, summarize, type PracticeSession, type SessionResult, type SessionSummary } from "~/server/practice.server";
 import { outcomeInput, sectionInput, startInput, text, type SectionRaw, type StartRaw } from "~/lib/practiceInput";
 import { difficultyById, suggestedDifficulty, type Conversation, type Difficulty, type Outcome } from "~/lib/practiceConfig";
 import { stageLabel } from "~/lib/guildConfig";
@@ -166,7 +166,7 @@ const EMPTY: RecruitPracticePublic = { ok: false, firstName: "", stage: "", stag
 
 async function publicFor(holder: Holder): Promise<RecruitPracticePublic> {
   const profiles = await loadProfiles();
-  const pres = (await sql()`SELECT id, name, conversation, version, sections FROM practice_presentations ORDER BY conversation, name`) as Array<Record<string, unknown>>;
+  const pres = await listPresentationChoices();
   const own = (await sql()`SELECT * FROM practice_sessions WHERE practitioner = 'recruit' AND recruit_id = ${holder.id} ORDER BY created_at DESC LIMIT 20`) as Array<Record<string, unknown>>;
   const shared = (await sql()`SELECT id FROM practice_sessions WHERE practitioner = 'john' AND shared_as_example = TRUE AND ended_at IS NOT NULL ORDER BY created_at DESC LIMIT 20`) as Array<Record<string, unknown>>;
   const sessions: PracticeSession[] = [];
@@ -180,14 +180,6 @@ async function publicFor(holder: Holder): Promise<RecruitPracticePublic> {
     if (s) examples.push(summarize(s));
   }
   const suggested = suggestedDifficulty(holder.stage);
-  const sectionCount = (raw: unknown) => {
-    try {
-      const a = JSON.parse(String(raw ?? "[]"));
-      return Array.isArray(a) ? a.length : 0;
-    } catch {
-      return 0;
-    }
-  };
   return {
     ok: true,
     firstName: firstName(holder.name),
@@ -196,7 +188,7 @@ async function publicFor(holder: Holder): Promise<RecruitPracticePublic> {
     suggested,
     suggestedNote: `Suggested for where you are (${stageLabel(holder.stage).toLowerCase()}): Level ${suggested}, ${difficultyById(suggested).name}. Your call.`,
     profiles: profiles.map((p) => ({ id: p.id, kind: p.kind === "recruit" ? "recruit" : "client", name: p.name, lifeStage: p.lifeStage, worries: p.worries })),
-    presentations: pres.map((r) => ({ id: Number(r.id), name: String(r.name ?? ""), conversation: r.conversation === "recruiting" ? "recruiting" : "coverage", version: Number(r.version) || 1, sectionCount: sectionCount(r.sections) })),
+    presentations: pres.map((x) => ({ id: x.id, name: x.name, conversation: x.conversation, version: x.version, sectionCount: x.sections.length })),
     sessions,
     examples,
   };

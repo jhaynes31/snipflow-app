@@ -7,7 +7,7 @@ import { normalizeSections, type Presentation } from "~/lib/practicePresentation
 import { temperamentsFor, type Conversation } from "~/lib/practiceConfig";
 import type { Persona } from "~/lib/practicePrompts";
 import type { Debrief } from "~/lib/practiceDebrief";
-import { AS_JOHN, MODEL, applySectionEvent, buildDebrief, createSession, ensurePracticeTables, finishSession, forJohn, giveHint, inventPersona, loadProfiles, loadRubrics, loadSession, rowToPresentation, rowToSession, sayTurn, summarize, type PracticeOverview, type PracticeSession, type PracticeSetup, type Rubrics, type SessionResult } from "~/server/practice.server";
+import { AS_JOHN, MODEL, applySectionEvent, buildDebrief, createSession, ensurePracticeTables, finishSession, forJohn, giveHint, inventPersona, listPresentationChoices, loadProfiles, loadRubrics, loadSession, rowToPresentation, rowToSession, sayTurn, summarize, type PracticeOverview, type PracticeSession, type PracticeSetup, type Rubrics, type SessionResult } from "~/server/practice.server";
 
 export type { PracticeSession, PracticeSetup, Rubrics, SessionResult, SessionSummary, PracticeOverview, TranscriptEntry, SavedPersona } from "~/server/practice.server";
 export type { StartRaw, SectionRaw } from "~/lib/practiceInput";
@@ -187,8 +187,7 @@ export const getPresentations = createServerFn()
   .middleware([requireAdmin])
   .handler(async (): Promise<Presentation[]> => {
     await ensurePracticeTables();
-    const rows = (await sql()`SELECT * FROM practice_presentations ORDER BY conversation, name`) as Array<Record<string, unknown>>;
-    return rows.map(rowToPresentation);
+    return listPresentationChoices();
   });
 
 /** John's outline in his own words: sections, target minutes, points. Saving bumps the version; old sessions keep their snapshot. */

@@ -5,6 +5,8 @@ import { callClaudeChat, parseJsonObject } from "~/server/aiChat.server";
 import { DEFAULT_DIFFICULTY, MAX_TURNS, PRACTICE_MODEL_DEFAULT, temperamentById, type Conversation, type Difficulty, type Outcome, type PracticeMode } from "~/lib/practiceConfig";
 import { JOHN, TRAINEE, debriefSystemPrompt, debriefUserPrompt, hintSystemPrompt, hintUserPrompt, openingCue, personaSystemPrompt, personaUserPrompt, playSystemPrompt, profileSnapshot, recruitingTrustBlock, type Persona, type ProfileDescription, type Speaker } from "~/lib/practicePrompts";
 import { RUBRIC_SEEDS, normalizeRubric, scanJohnLines, validateDebrief, type AiDebrief, type Debrief } from "~/lib/practiceDebrief";
+import { loadScript, loadScriptsByAudience } from "~/server/dmScreen";
+import { scriptToPresentation } from "~/lib/dmScreen";
 import { JOHN_RECRUITING_PRESENTATION, interruptionChance, normalizeSections, pickJumpTarget, presentationSummary, type Presentation, type PresentationSection, type SectionProgress } from "~/lib/practicePresentation";
 import { disengageCue, interruptionCue, presentationBlock, presentationOpeningCue, sectionReactionCue } from "~/lib/practicePrompts";
 
@@ -479,8 +481,22 @@ export function rowToPresentation(r: Record<string, unknown>): Presentation {
 
 export async function loadPresentation(id: number): Promise<Presentation | null> {
   await ensurePracticeTables();
+  // Negative ids are DM Screen scripts (presentation script spec, Section 6): read only, never edited here.
+  if (id < 0) {
+    const script = await loadScript(-id);
+    return script && !script.archived ? scriptToPresentation(script) : null;
+  }
   const rows = (await sql()`SELECT * FROM practice_presentations WHERE id = ${id}`) as Array<Record<string, unknown>>;
   return rows.length ? rowToPresentation(rows[0]) : null;
+}
+
+/** Everything John can practice against: his DM Screen scripts (default first), then any outlines kept in the practice tool. */
+export async function listPresentationChoices(): Promise<Presentation[]> {
+  await ensurePracticeTables();
+  const [client, recruit] = await Promise.all([loadScriptsByAudience("client"), loadScriptsByAudience("recruit")]);
+  const scripts = [...client, ...recruit].filter((s) => s.sections.length > 0).map(scriptToPresentation);
+  const rows = (await sql()`SELECT * FROM practice_presentations ORDER BY conversation, name`) as Array<Record<string, unknown>>;
+  return [...scripts, ...rows.map((r) => ({ ...rowToPresentation(r), source: "outline" as const }))];
 }
 
 /**

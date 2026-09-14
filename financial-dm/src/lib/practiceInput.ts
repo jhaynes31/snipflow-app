@@ -29,7 +29,8 @@ export const startInput = (d: StartRaw) => ({
   temperament: text(d?.temperament, 40),
   difficulty: ([1, 2, 3, 4].includes(Number(d?.difficulty)) ? Number(d?.difficulty) : DEFAULT_DIFFICULTY) as Difficulty,
   mode: (d?.mode === "presentation" ? "presentation" : "objection") as PracticeMode,
-  presentationId: Number(d?.presentationId) > 0 ? Number(d?.presentationId) : null,
+  // Positive ids are practice outlines; negative ids are DM Screen scripts (read only).
+  presentationId: Number(d?.presentationId) ? Number(d?.presentationId) : null,
 });
 export type StartInput = ReturnType<typeof startInput>;
 

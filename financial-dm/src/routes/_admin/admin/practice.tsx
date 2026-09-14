@@ -256,11 +256,21 @@ function PresentationEditor({ presentations, onChange }: { presentations: Presen
   return (
     <details className={`${card} p-4`} data-presentation-editor>
       <summary className="font-fantasy text-[#c08020] cursor-pointer">🎤 Your presentations: the outlines you practice</summary>
-      <p className="text-[11px] text-[#a0a0a0] mt-2">An outline in your own words: sections in order, how long each should take, and the points you make. Not the deck itself. Editing one saves a new version; past sessions keep the version they were practiced against.</p>
+      <p className="text-[11px] text-[#a0a0a0] mt-2">Your DM Screen scripts show up here on their own and are the best thing to practice against: write them once under Scripts, practice here, present from them. The outlines below are the older way and still work. Past sessions keep the version they were practiced against.</p>
+      {presentations.some((x) => x.source === "dmScreen") && (
+        <ul className="mt-3 space-y-1" data-dm-screen-scripts>
+          {presentations.filter((x) => x.source === "dmScreen").map((x) => (
+            <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#c08020]/30 px-3 py-2" data-presentation={x.id}>
+              <p className="text-sm text-[#e0e0e0] font-fantasy">📜 {x.name} <span className="text-[11px] text-[#808080] font-sans">· {x.conversation} · {x.sections.length} sections · v{x.version} · DM Screen script</span></p>
+              <a href={`/admin/scripts/${-x.id}`} className={btnGhost} data-presentation-open-script>Edit in The DM Screen</a>
+            </li>
+          ))}
+        </ul>
+      )}
       {msg && <p className="text-[11px] text-[#7fd08a] font-fantasy mt-1" data-presentation-msg>{msg}</p>}
       {!editing ? (
         <div className="mt-3 space-y-2">
-          {presentations.map((x) => (
+          {presentations.filter((x) => x.source !== "dmScreen").map((x) => (
             <div key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#406080]/30 px-3 py-2" data-presentation={x.id}>
               <div>
                 <p className="text-sm text-[#e0e0e0] font-fantasy">{x.name} <span className="text-[11px] text-[#808080] font-sans">· {x.conversation} · {x.sections.length} sections · v{x.version}</span></p>

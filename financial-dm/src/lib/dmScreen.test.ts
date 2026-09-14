@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { clampScale, formatClock, normalizeSections, parseBody, parseRuns, plainBody, sameSections, totalTargetMinutes, wordCount } from "./dmScreen";
+import { clampScale, formatClock, normalizeSections, outlineToSections, scanScript, scriptToPresentation, parseBody, parseRuns, plainBody, sameSections, totalTargetMinutes, wordCount } from "./dmScreen";
 
 describe("DM Screen body markers", () => {
   test("bold, italic, and bullets, nothing else", () => {
@@ -73,6 +73,35 @@ describe("presenter helpers", () => {
     expect(clampScale(9)).toBe(2.4);
     expect(clampScale(1.25)).toBe(1.3);
     expect(clampScale(NaN)).toBe(1);
+  });
+});
+
+describe("flags, tags, and the practice read shape", () => {
+  const sections = normalizeSections([
+    { id: "a", title: "Open", body: "You are **guaranteed** approval, and the rate is locked.", notes: "unlimited income (a note, never scanned)" },
+    { id: "b", title: "Pay", body: "- Honestly, unlimited income if you work it\n- We want young energetic people" },
+    { id: "c", title: "Clean", body: "Term coverage is a promise for a set number of years." },
+  ]);
+  test("client scripts flag guarantees; recruit scripts also flag income and hiring words; notes are never scanned", () => {
+    const client = scanScript(sections, "client");
+    expect(client.map((f) => `${f.sectionIndex}:${f.ruleId}`)).toEqual(["0:guarantee", "1:income"]);
+    const recruit = scanScript(sections, "recruit");
+    expect(recruit.some((f) => f.ruleId === "hiring" && f.sectionIndex === 1)).toBe(true);
+    expect(recruit.every((f) => f.sectionIndex !== 2)).toBe(true);
+    expect(recruit.every((f) => !f.quote.includes("a note"))).toBe(true);
+  });
+  test("a script becomes a practice outline with a negative id and its bullets as points", () => {
+    const pres = scriptToPresentation({ id: 7, name: "Recruit walkthrough", audience: "recruit", version: 3, isDefault: true, archived: false, sections, createdAt: "", updatedAt: "" });
+    expect(pres.id).toBe(-7);
+    expect(pres.conversation).toBe("recruiting");
+    expect(pres.source).toBe("dmScreen");
+    expect(pres.sections[1].points).toEqual(["Honestly, unlimited income if you work it", "We want young energetic people"]);
+    expect(pres.sections[0].points[0]).toBe("You are guaranteed approval, and the rate is locked.");
+  });
+  test("an outline carries over as bulleted sections with the target minutes", () => {
+    const out = outlineToSections([{ id: "x", title: "Intro", minMinutes: 3, maxMinutes: 5, points: ["Who I am", "Why we are here"] }]);
+    expect(out[0]).toMatchObject({ id: "x", title: "Intro", body: "- Who I am\n- Why we are here", targetMinutes: 5 });
+    expect(out[0].notes).toContain("3 to 5 minutes");
   });
 });
 

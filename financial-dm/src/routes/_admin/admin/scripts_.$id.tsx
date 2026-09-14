@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ScriptBody from "~/components/dmScreen/ScriptBody";
-import { AUDIENCE_LABEL, BODY_HELP, DM_SCREEN_CONFIG, blankSection, presenterHeartbeatKey, sameSections, scriptSavedKey, totalTargetMinutes, wordCount, type DmScript, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
+import { AUDIENCE_LABEL, BODY_HELP, DM_SCREEN_CONFIG, TAG_HELP, TAG_LABEL, blankSection, presenterHeartbeatKey, sameSections, scanScript, scriptSavedKey, totalTargetMinutes, wordCount, type DmScript, type ScriptSection, type ScriptVersion, type SectionTag } from "~/lib/dmScreen";
 import { getScript, listVersions, restoreVersion, saveScript } from "~/server/dmScreen";
 
 /**
@@ -167,6 +167,8 @@ function Editor({ initial }: { initial: DmScript }) {
   };
 
   const total = totalTargetMinutes(sections);
+  // Section 4.3: the shared word lists, run as he types. They warn and never block.
+  const flags = useMemo(() => scanScript(sections, script.audience), [sections, script.audience]);
   const stateLabel: Record<SaveState, string> = {
     saved: "✓ Saved",
     dirty: "Unsaved changes",
@@ -221,6 +223,12 @@ function Editor({ initial }: { initial: DmScript }) {
         )}
 
         <p className="text-[11px] text-[#a0a0a0] font-fantasy" data-script-summary>{sections.length} section{sections.length === 1 ? "" : "s"}{total ? ` · about ${total} minute${total === 1 ? "" : "s"} if the targets hold` : ""}. {BODY_HELP}</p>
+        {flags.length > 0 && (
+          <p className="text-[11px] text-[#e0c080] font-fantasy" data-flag-summary>⚠️ {flags.length} thing{flags.length === 1 ? "" : "s"} to check before you present. They are marked under the sections. Warnings only; nothing stops you saving.</p>
+        )}
+        {script.audience === "recruit" && (
+          <p className="text-[11px] text-[#606080] font-fantasy" data-tag-help>Recruit scripts: mark each section a <span className="text-[#7fd08a]">Trust fact</span> (public, safe to state anywhere) or a <span className="text-[#e0c080]">Presentation fact</span> (for the conversation). Just a label, so you can see at a glance what belongs where.</p>
+        )}
 
         <ol className="space-y-3" data-section-list>
           {sections.map((s, idx) => (
@@ -233,6 +241,13 @@ function Editor({ initial }: { initial: DmScript }) {
                   <input type="number" min={0} max={180} step={0.5} value={s.targetMinutes ?? ""} onChange={(e) => update(s.id, { targetMinutes: e.target.value === "" ? null : Number(e.target.value) })} className={`${field} w-20 py-1`} aria-label="Target minutes" data-section-minutes />
                   min
                 </label>
+                {script.audience === "recruit" && (
+                  <select value={s.tag} onChange={(e) => update(s.id, { tag: e.target.value as SectionTag })} aria-label="Trust marker" title={TAG_HELP[s.tag]} className={`${field} py-1 text-xs ${s.tag === "trust" ? "text-[#7fd08a]" : s.tag === "presentation" ? "text-[#e0c080]" : "text-[#a0a0a0]"}`} data-section-tag>
+                    {(["", "trust", "presentation"] as SectionTag[]).map((t) => (
+                      <option key={t} value={t} className="bg-gray-900">{TAG_LABEL[t]}</option>
+                    ))}
+                  </select>
+                )}
                 <span className="flex-1" />
                 <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className={btnGhost} aria-label="Move up" data-section-up>↑</button>
                 <button type="button" onClick={() => move(idx, 1)} disabled={idx === sections.length - 1} className={btnGhost} aria-label="Move down" data-section-down>↓</button>
@@ -245,6 +260,9 @@ function Editor({ initial }: { initial: DmScript }) {
                     <button type="button" onClick={() => setPreview((p) => ({ ...p, [s.id]: !p[s.id] }))} className="text-[11px] text-[#a0a0a0] hover:text-[#e0e0e0] font-fantasy" data-section-preview-toggle>{preview[s.id] ? "Hide preview" : "👁 Preview"}</button>
                   </div>
                   <textarea value={s.body} onChange={(e) => update(s.id, { body: e.target.value })} rows={6} maxLength={DM_SCREEN_CONFIG.maxBodyChars} placeholder="The words, as you would say them." className={`${input} resize-y font-sans leading-relaxed`} data-section-body />
+                  {flags.filter((f) => f.sectionId === s.id).map((f, i) => (
+                    <p key={i} className="mt-1 text-[11px] text-[#e0c080] font-fantasy" data-section-flag={f.ruleId}>⚠️ "{f.matched}": {f.rule}</p>
+                  ))}
                   {preview[s.id] && (
                     <div className="mt-2 rounded-lg border border-[#c08020]/20 bg-[#0d1520]/60 p-3 text-[#e0e0e0] text-base leading-relaxed" data-section-preview>
                       <ScriptBody body={s.body} />

@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
-import { DM_SCREEN_CONFIG, normalizeSections, sameSections, type DmScript, type ScriptAudience, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
+import { DM_SCREEN_CONFIG, normalizeSections, outlineToSections, sameSections, type DmScript, type ScriptAudience, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
+import { JOHN_RECRUITING_PRESENTATION, normalizeSections as normalizeOutline } from "~/lib/practicePresentation";
 
 /**
  * The DM Screen, server side (presentation script spec, Phase 1). Scripts
@@ -39,6 +40,7 @@ export function ensureDmScreenTables(): Promise<void> {
           sections TEXT NOT NULL DEFAULT '[]',
           saved_at TIMESTAMPTZ DEFAULT NOW()
         )`;
+      await carryOverOutline();
     })().catch((e) => {
       ready = null;
       throw e;
@@ -48,6 +50,32 @@ export function ensureDmScreenTables(): Promise<void> {
 }
 
 const isTrue = (v: unknown) => v === true || v === "t" || v === "true";
+
+/**
+ * Phase 3 (Section 6): the Sparring Dummy now reads DM Screen scripts. John's
+ * recruiting outline, as he last edited it in the practice tool, becomes his
+ * first recruit script once, so nothing he set up is lost. Runs only while
+ * there is no recruit script at all.
+ */
+async function carryOverOutline(): Promise<void> {
+  const [{ n }] = (await sql()`SELECT count(*)::int AS n FROM dm_scripts WHERE audience = 'recruit'`) as Array<{ n: number }>;
+  if (Number(n) > 0) return;
+  let name = JOHN_RECRUITING_PRESENTATION.name;
+  let outline = JOHN_RECRUITING_PRESENTATION.sections;
+  try {
+    const rows = (await sql()`SELECT name, sections FROM practice_presentations WHERE conversation = 'recruiting' ORDER BY id LIMIT 1`) as Array<Record<string, unknown>>;
+    if (rows.length) {
+      name = String(rows[0].name ?? name) || name;
+      const parsed = normalizeOutline(JSON.parse(String(rows[0].sections ?? "[]")));
+      if (parsed.length) outline = parsed;
+    }
+  } catch {
+    /* the practice tables may not exist yet; the built-in outline is the same content */
+  }
+  const sections = outlineToSections(outline);
+  const rows = (await sql()`INSERT INTO dm_scripts (name, audience, is_default, sections) VALUES (${name}, 'recruit', TRUE, ${JSON.stringify(sections)}) RETURNING *`) as Array<Record<string, unknown>>;
+  await sql()`INSERT INTO dm_script_versions (script_id, version, name, sections) VALUES (${Number(rows[0].id)}, 1, ${name}, ${JSON.stringify(sections)})`;
+}
 
 function rowToScript(r: Record<string, unknown>): DmScript {
   return {
