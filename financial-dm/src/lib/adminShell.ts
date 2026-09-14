@@ -99,6 +99,7 @@ export function crumb(pathname: string, search: Record<string, unknown>): { tab:
     else if (search.archived) sub.push("Archived");
   } else if (tab.id === "settings") {
     if (p.endsWith("/password")) sub.push("Password");
+    else if (s("view") === "guide") sub.push("How to");
   } else if (tab.id === "home") {
     if (p.endsWith("/approvals")) sub.push("Approvals");
   }
