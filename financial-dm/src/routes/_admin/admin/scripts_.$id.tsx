@@ -18,6 +18,7 @@ export const Route = createFileRoute("/_admin/admin/scripts_/$id")({
 const card = "rounded-xl border border-[#406080]/30 bg-[#111a28]";
 const focus = "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020]";
 const input = `w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`;
+const field = `px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`;
 const btnPrimary = `px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm disabled:opacity-50 ${focus}`;
 const btnGhost = `px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs disabled:opacity-50 ${focus}`;
 const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) : "");
@@ -214,10 +215,10 @@ function Editor({ initial }: { initial: DmScript }) {
             <li key={s.id} className={`${card} p-4 space-y-2`} data-section={s.id} data-section-index={idx}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[#c08020] font-fantasy text-sm w-6">{idx + 1}.</span>
-                <input value={s.title} onChange={(e) => update(s.id, { title: e.target.value })} placeholder="Section title, e.g. The problem" maxLength={160} className={`${input} flex-1 min-w-[10rem]`} data-section-title />
-                <input value={s.slideRef} onChange={(e) => update(s.id, { slideRef: e.target.value })} placeholder="Slide 4" maxLength={40} className={`${input} w-24`} aria-label="Slide reference" data-section-slide />
+                <input value={s.title} onChange={(e) => update(s.id, { title: e.target.value })} placeholder="Section title, e.g. The problem" maxLength={160} className={`${field} flex-1 min-w-[10rem]`} data-section-title />
+                <input value={s.slideRef} onChange={(e) => update(s.id, { slideRef: e.target.value })} placeholder="Slide 4" maxLength={40} className={`${field} w-24`} aria-label="Slide reference" data-section-slide />
                 <label className="text-[11px] text-[#a0a0a0] font-fantasy flex items-center gap-1">
-                  <input type="number" min={0} max={180} step={0.5} value={s.targetMinutes ?? ""} onChange={(e) => update(s.id, { targetMinutes: e.target.value === "" ? null : Number(e.target.value) })} className={`${input} w-20 py-1`} aria-label="Target minutes" data-section-minutes />
+                  <input type="number" min={0} max={180} step={0.5} value={s.targetMinutes ?? ""} onChange={(e) => update(s.id, { targetMinutes: e.target.value === "" ? null : Number(e.target.value) })} className={`${field} w-20 py-1`} aria-label="Target minutes" data-section-minutes />
                   min
                 </label>
                 <span className="flex-1" />
