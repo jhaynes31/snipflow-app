@@ -44,6 +44,7 @@ const QUICK_ACTIONS: Array<{ label: string; icon: string; to: string; search?: R
   { label: "New quest", icon: "🗺️", to: "/admin/quests", search: { section: "quests", new: "1" }, blurb: "Start a campaign", built: TOOLS_BUILT.quests },
   { label: "Open the Content Forge", icon: "🧙", to: "/admin/forge", search: { tab: "script", view: "forge" }, blurb: "Scripts, carousels, cards, memes", built: TOOLS_BUILT.forge },
   { label: "Start a practice session", icon: "🥊", to: "/admin/practice", blurb: "Rehearse with a fictional client or recruit", built: TOOLS_BUILT.practice },
+  { label: "Open a script", icon: "📜", to: "/admin/scripts", blurb: "The DM Screen: what you say, section by section", built: TOOLS_BUILT.scripts },
 ];
 
 function HomePage() {

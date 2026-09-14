@@ -6,7 +6,7 @@ import { QUEST_LOG_STALE_DAYS } from "./questLog";
  * are switched on. Adding a tool later is one entry here.
  */
 
-export type TabId = "home" | "leads" | "quests" | "forge" | "practice" | "quizzes" | "guild" | "settings";
+export type TabId = "home" | "leads" | "quests" | "forge" | "practice" | "quizzes" | "scripts" | "guild" | "settings";
 
 export interface AdminTab {
   id: TabId;
@@ -30,6 +30,8 @@ export const TOOLS_BUILT = {
   forge: true,
   quizzes: true,
   practice: true,
+  /** The DM Screen (presentation script spec). */
+  scripts: true,
   guild: true,
   settings: true,
   approvals: true,
@@ -44,6 +46,7 @@ export const ADMIN_TABS: AdminTab[] = [
   { id: "forge", label: "Content Forge", short: "Forge", icon: "🧙", to: "/admin/forge", search: { tab: "script", view: "forge" }, available: TOOLS_BUILT.forge, mobilePrimary: true },
   { id: "practice", label: "Practice", short: "Practice", icon: "🥊", to: "/admin/practice", available: TOOLS_BUILT.practice, mobilePrimary: false },
   { id: "quizzes", label: "Quizzes", short: "Quizzes", icon: "🎲", to: "/admin/quizzes", available: TOOLS_BUILT.quizzes, mobilePrimary: false },
+  { id: "scripts", label: "The DM Screen", short: "Scripts", icon: "📜", to: "/admin/scripts", available: TOOLS_BUILT.scripts, mobilePrimary: false },
   { id: "guild", label: "Guild", short: "Guild", icon: "🛡️", to: "/admin/guild", search: { view: "recruits" }, available: TOOLS_BUILT.guild, mobilePrimary: true },
   { id: "settings", label: "Settings", short: "Settings", icon: "⚙️", to: "/admin/settings", available: TOOLS_BUILT.settings, mobilePrimary: false },
 ];
@@ -91,6 +94,9 @@ export function crumb(pathname: string, search: Record<string, unknown>): { tab:
     if (v !== "recruits") sub.push(GUILD_VIEWS[v] ?? v);
   } else if (tab.id === "practice") {
     if (/\/admin\/practice\/\d+/.test(p)) sub.push("Practice session");
+  } else if (tab.id === "scripts") {
+    if (/\/admin\/scripts\/\d+/.test(p)) sub.push("Edit script");
+    else if (search.archived) sub.push("Archived");
   } else if (tab.id === "settings") {
     if (p.endsWith("/password")) sub.push("Password");
   } else if (tab.id === "home") {

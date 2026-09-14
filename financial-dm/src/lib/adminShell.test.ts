@@ -3,7 +3,7 @@ import { ADMIN_TABS, activeTab, availableTabs, crumb, greetingWord } from "./adm
 
 describe("admin shell", () => {
   test("tabs are in the fixed order and every built one has a route", () => {
-    expect(ADMIN_TABS.map((t) => t.id)).toEqual(["home", "leads", "quests", "forge", "practice", "quizzes", "guild", "settings"]);
+    expect(ADMIN_TABS.map((t) => t.id)).toEqual(["home", "leads", "quests", "forge", "practice", "quizzes", "scripts", "guild", "settings"]);
     for (const t of availableTabs()) expect(t.to.startsWith("/admin")).toBe(true);
     // Home, Leads, and Quest Board are never collapsed away on a phone.
     for (const id of ["home", "leads", "quests"]) expect(ADMIN_TABS.find((t) => t.id === id)?.mobilePrimary).toBe(true);
