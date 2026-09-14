@@ -12,13 +12,6 @@ import type * as actions from "../actions.js";
 import type * as auth from "../auth.js";
 import type * as blogs from "../blogs.js";
 import type * as content from "../content.js";
-import type * as everybox_categories from "../everybox/categories.js";
-import type * as everybox_commitments from "../everybox/commitments.js";
-import type * as everybox_freshness from "../everybox/freshness.js";
-import type * as everybox_households from "../everybox/households.js";
-import type * as everybox_lib from "../everybox/lib.js";
-import type * as everybox_reviews from "../everybox/reviews.js";
-import type * as everybox_themes from "../everybox/themes.js";
 import type * as http from "../http.js";
 import type * as users from "../users.js";
 
@@ -33,13 +26,6 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   blogs: typeof blogs;
   content: typeof content;
-  "everybox/categories": typeof everybox_categories;
-  "everybox/commitments": typeof everybox_commitments;
-  "everybox/freshness": typeof everybox_freshness;
-  "everybox/households": typeof everybox_households;
-  "everybox/lib": typeof everybox_lib;
-  "everybox/reviews": typeof everybox_reviews;
-  "everybox/themes": typeof everybox_themes;
   http: typeof http;
   users: typeof users;
 }>;
