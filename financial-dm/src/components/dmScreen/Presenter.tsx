@@ -300,6 +300,7 @@ export default function Presenter({ script }: { script: DmScript }) {
     document.body.style.background = bg;
   }, [bg]);
 
+  const phone = device === "phone";
   const cur = sections[index];
   const following = sections[index + 1];
   const total = totalTargetMinutes(sections);
@@ -374,7 +375,6 @@ export default function Presenter({ script }: { script: DmScript }) {
     );
   }
 
-  const phone = device === "phone";
   return (
     <div style={root} data-presenter data-phase={phase} data-device={device} data-theme={theme} data-section-index={index}>
       {/* Progress bar */}
@@ -384,7 +384,7 @@ export default function Presenter({ script }: { script: DmScript }) {
 
       {/* Top strip: place, timer, small controls */}
       <div className="absolute top-[3px] left-0 right-0 flex items-center justify-between gap-2 px-3 py-1.5 text-[0.75rem]" style={{ color: dim, fontSize: "0.85rem" }}>
-        <span data-place>Section {index + 1} of {n}{cur.slideRef ? ` · ${cur.slideRef}` : ""}</span>
+        <span className="whitespace-nowrap" data-place>{phone ? `${index + 1}/${n}` : `Section ${index + 1} of ${n}`}{cur.slideRef ? ` · ${cur.slideRef}` : ""}</span>
         <button type="button" onClick={toggleTimer} className="tabular-nums px-2 py-0.5 rounded hover:opacity-80" style={{ color: overTarget ? "#e46b6b" : timer.running ? fg : dim }} aria-label="Start or pause the timer" data-timer data-timer-running={timer.running ? "1" : "0"}>
           ⏱ {formatClock(elapsed)}
           {cur.targetMinutes != null && <span data-section-timer> · {formatClock(sectionElapsed)} / {cur.targetMinutes} min</span>}
