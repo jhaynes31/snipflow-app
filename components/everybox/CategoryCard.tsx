@@ -29,7 +29,7 @@ export function CategoryCard({ category, now }: Props) {
       <div className="flex items-start gap-3">
         <StageVisual theme={theme} stage={fresh.stage} size={3.5} justTended={justTended} />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold">
+          <div className="line-clamp-2 font-semibold leading-tight">
             <span className="mr-1" aria-hidden>
               {category.icon}
             </span>
