@@ -56,10 +56,13 @@ function kindForBrief(brief?: CampaignBrief): GuildOutputKind {
   return "script";
 }
 
-export default function GuildForge({ brief }: { brief?: CampaignBrief }) {
+export default function GuildForge({ brief, initialKind }: { brief?: CampaignBrief; initialKind?: GuildOutputKind }) {
   const campaignSlug = brief?.url ? brief.url.split("/").pop() : undefined;
   const [status, setStatus] = useState<{ ready: boolean; missing: string[] } | null>(null);
-  const [kind, setKind] = useState<GuildOutputKind>(() => kindForBrief(brief));
+  const [kind, setKind] = useState<GuildOutputKind>(() => initialKind ?? kindForBrief(brief));
+  useEffect(() => {
+    if (initialKind) setKind(initialKind);
+  }, [initialKind]);
   const [questState, setQuestState] = useState<"idle" | "saving" | "saved">("idle");
   const [questNote, setQuestNote] = useState("");
   useEffect(() => {

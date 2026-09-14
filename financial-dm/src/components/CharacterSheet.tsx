@@ -75,7 +75,7 @@ function generateShareSVG(char: CharacterData, answers: Answers): string {
     `<defs>`,
     `<filter id="parchment"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="gray"/><feBlend in="SourceGraphic" in2="gray" mode="multiply" result="blend"/></filter>`,
     `</defs>`,
-    `<rect width="600" height="540" fill="#1a0e0e" rx="12"/>`,
+    `<rect width="600" height="540" fill="#1a0e0e"/>`,
     `<rect x="20" y="20" width="560" height="480" fill="#f5e6c8" rx="8" filter="url(#parchment)"/>`,
     `<rect x="20" y="20" width="560" height="480" fill="none" stroke="#8b6914" stroke-width="2" rx="8"/>`,
     `<text x="300" y="70" text-anchor="middle" font-family="serif" font-size="32" font-weight="bold" fill="#4a2810">⚔️ Character Sheet ⚔️</text>`,

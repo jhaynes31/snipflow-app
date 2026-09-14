@@ -7,6 +7,7 @@ import {
   type TopicSelection,
 } from "~/server/topics";
 import TopicPainPointPicker from "~/components/generator/TopicPainPointPicker";
+import { GUILD_OUTPUT_KINDS, type GuildOutputKind } from "~/lib/guildCompliance";
 import ToneControls from "~/components/generator/ToneControls";
 import ScriptGenerator from "~/components/ScriptGenerator";
 import MemeGenerator from "~/components/MemeGenerator";
@@ -101,17 +102,21 @@ function normalizeTab(raw: unknown): GeneratorTab {
 }
 
 export const Route = createFileRoute("/_admin/admin/forge")({
-  validateSearch: (search: Record<string, unknown>): { tab: GeneratorTab; view: View; slot?: number } => ({
+  validateSearch: (search: Record<string, unknown>): { tab: GeneratorTab; view: View; slot?: number; kind?: GuildOutputKind } => ({
     tab: normalizeTab(search.tab),
     view: (search.view === "saved" ? "saved" : "forge") as View,
     /** A Quest Board slot whose campaign brief prefills the forge. */
     slot: Number(search.slot) > 0 ? Number(search.slot) : undefined,
+    /** Which Guild forge format to open on, when the recruiting topic hands off from another forge. */
+    kind: GUILD_OUTPUT_KINDS.some((k) => k.id === search.kind) ? (search.kind as GuildOutputKind) : undefined,
   }),
   component: GeneratorHub,
 });
 
 function GeneratorHub() {
-  const { tab, view, slot } = Route.useSearch();
+  const { tab, view, slot, kind } = Route.useSearch();
+  // The forge John is on decides which recruiting format the standing topic opens.
+  const recruitingKind: GuildOutputKind = tab === "carousel" ? "carousel" : tab === "card" ? "cards" : tab === "meme" ? "text_posts" : "script";
   const navigate = useNavigate({ from: Route.fullPath });
   const [brief, setBrief] = useState<CampaignBrief | null>(null);
   const [briefError, setBriefError] = useState("");
@@ -299,7 +304,7 @@ function GeneratorHub() {
             </div>
             {brief && <CampaignBriefBanner brief={brief} onClear={() => navigate({ search: { tab, view: "forge", slot: undefined } })} />}
             {briefError && <p className="text-red-300 text-xs font-fantasy text-center">{briefError}</p>}
-            <GuildForge brief={brief ?? undefined} />
+            <GuildForge brief={brief ?? undefined} initialKind={kind} />
           </div>
         ) : (
           <div className="space-y-6">
@@ -326,6 +331,12 @@ function GeneratorHub() {
                   ? "Step 1: Roll Topics (up to 3 cards)"
                   : "Step 1: Roll a Topic"
               }
+              standing={{
+                title: "Recruiting: grow the team",
+                blurb: "Always here, whatever the dice say. Hiring posts built from the Guild's public facts, so every claim is one John can stand behind.",
+                action: recruitingKind === "carousel" ? "Forge a recruiting carousel →" : recruitingKind === "cards" ? "Forge recruiting cards →" : recruitingKind === "text_posts" ? "Forge recruiting posts →" : "Forge a recruiting script →",
+                onPick: () => navigate({ search: { tab: "guild", view: "forge", kind: recruitingKind, slot: undefined } }),
+              }}
             />
             {rollError && (
               <div className="text-center p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">
