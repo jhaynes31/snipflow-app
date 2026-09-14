@@ -69,6 +69,11 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
    npx convex dev
    ```
 
+## Every Box
+
+This repository also hosts **Every Box**, a shared ambient dashboard for
+couples, at `/everybox`. See [EVERYBOX.md](./EVERYBOX.md).
+
 ## Referral Program
 
 Users can invite others using a unique referral link found in their dashboard. 

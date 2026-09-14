@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 
 export function Header() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
+  const pathname = usePathname();
+
+  // Every Box has its own chrome and lives under /everybox.
+  if (pathname.startsWith("/everybox")) return null;
 
   return (
     <header className="px-4 lg:px-6 h-16 flex items-center border-b border-border bg-background">
