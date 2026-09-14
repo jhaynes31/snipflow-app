@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ScriptBody from "~/components/dmScreen/ScriptBody";
-import { AUDIENCE_LABEL, BODY_HELP, DM_SCREEN_CONFIG, TAG_HELP, TAG_LABEL, blankSection, presenterHeartbeatKey, sameSections, scanScript, scriptSavedKey, totalTargetMinutes, wordCount, type DmScript, type ScriptSection, type ScriptVersion, type SectionTag } from "~/lib/dmScreen";
+import { AUDIENCE_LABEL, BODY_HELP, DM_SCREEN_CONFIG, TAG_HELP, TAG_LABEL, blankSection, fmtEastern as fmt, normalizeSections, presenterHeartbeatKey, sameSections, scanScript, scriptSavedKey, totalTargetMinutes, wordCount, type DmScript, type ScriptSection, type ScriptVersion, type SectionTag } from "~/lib/dmScreen";
 import { getScript, listVersions, restoreVersion, saveScript } from "~/server/dmScreen";
 
 /**
@@ -21,7 +21,6 @@ const input = `w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#40608
 const field = `px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`;
 const btnPrimary = `px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm disabled:opacity-50 ${focus}`;
 const btnGhost = `px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs disabled:opacity-50 ${focus}`;
-const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) : "");
 
 type SaveState = "saved" | "dirty" | "saving" | "paused" | "conflict" | "error";
 
@@ -68,15 +67,24 @@ function Editor({ initial }: { initial: DmScript }) {
   const latest = useRef({ name, sections, version: initial.version });
   latest.current = { name, sections, version: script.version };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // One save at a time: typing during a save queues one more, so a slow save never trips its own conflict check.
+  const inFlight = useRef(false);
+  const queued = useRef<null | boolean>(null);
 
-  const dirty = name !== script.name || !sameSections(sections, script.sections);
+  // Compared the way the server stores it, so a trailing space or an out-of-range number never reads as unsaved.
+  const dirty = name.trim() !== script.name || !sameSections(normalizeSections(sections), script.sections);
 
-  const save = useCallback(async (force = false) => {
+  const save = useCallback(async (force = false): Promise<void> => {
     const cur = latest.current;
     if (!force && presenterOpen(script.id)) {
       setState("paused");
       return;
     }
+    if (inFlight.current) {
+      queued.current = force || queued.current || false;
+      return;
+    }
+    inFlight.current = true;
     setState("saving");
     setError("");
     try {
@@ -93,15 +101,30 @@ function Editor({ initial }: { initial: DmScript }) {
       }
       setScript(res.script);
       announceSave(script.id, res.script.version);
-      // Keep John's typing that landed while the save was in flight.
-      setName((n) => (n === cur.name ? res.script!.name : n));
-      setState("saved");
+      // More typing landed during this save: stay on "Saving" until the follow-up lands too.
+      setState(queued.current !== null ? "saving" : "saved");
       if (historyOpen) listVersions({ data: { id: script.id } }).then(setVersions).catch(() => {});
     } catch (e) {
       setError(String(e));
       setState("error");
+    } finally {
+      inFlight.current = false;
+      if (queued.current !== null) {
+        const again = queued.current;
+        queued.current = null;
+        void save(again);
+      }
     }
   }, [script.id, script.name, historyOpen]);
+
+  // While paused for a presenter view, look again every few seconds and save once it has closed.
+  useEffect(() => {
+    if (state !== "paused") return;
+    const t = setInterval(() => {
+      if (!presenterOpen(script.id)) save(false);
+    }, DM_SCREEN_CONFIG.presenterHeartbeatMs);
+    return () => clearInterval(t);
+  }, [state, script.id, save]);
 
   // Section 4.2: autosave on a short debounce.
   useEffect(() => {

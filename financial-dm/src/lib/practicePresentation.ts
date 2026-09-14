@@ -135,8 +135,11 @@ export function presentationSummary(sections: PresentationSection[], progress: S
     if (p.status === "delivered") {
       covered.push(s.title);
       const minutes = Math.round((p.seconds / 60) * 10) / 10;
-      const verdict = minutes < s.minMinutes * 0.6 ? "under" : minutes > s.maxMinutes * 1.25 ? "over" : "on";
-      pacing.push({ section: s.title, minutes, target: s.minMinutes === s.maxMinutes ? `${s.minMinutes} min` : `${s.minMinutes} to ${s.maxMinutes} min`, verdict });
+      // A section with no target (DM Screen scripts leave it blank) gets no pacing verdict.
+      if (s.maxMinutes > 0) {
+        const verdict = minutes < s.minMinutes * 0.6 ? "under" : minutes > s.maxMinutes * 1.25 ? "over" : "on";
+        pacing.push({ section: s.title, minutes, target: s.minMinutes === s.maxMinutes ? `${s.minMinutes} min` : `${s.minMinutes} to ${s.maxMinutes} min`, verdict });
+      }
     } else skipped.push(s.title);
     if (p.interrupted) {
       const target = sections.find((x) => x.id === p.interruptTargetId);

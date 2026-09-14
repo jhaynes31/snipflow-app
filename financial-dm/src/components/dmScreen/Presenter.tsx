@@ -58,13 +58,13 @@ export default function Presenter({ script }: { script: DmScript }) {
   const [now, setNow] = useState(() => Date.now());
   const wake = useRef<WakeLockSentinel | null>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
+  const deviceRef = useRef<PresenterDevice>("monitor");
 
   // ── Local state: read once, remember on change ──
   useEffect(() => {
     const isPhone = window.innerWidth < PRESENTER_CONFIG.phoneMaxWidth;
     const dev: PresenterDevice = isPhone ? "phone" : "monitor";
     setDevice(dev);
-    setScale(clampScale(Number(read(presenterSizeKey(dev)) ?? PRESENTER_CONFIG.defaultScale[dev])));
     setTheme(read(presenterThemeKey) === "light" ? "light" : "dark");
     try {
       const pos = JSON.parse(read(presenterPosKey(script.id)) ?? "null") as { index?: number } | null;
@@ -76,9 +76,12 @@ export default function Presenter({ script }: { script: DmScript }) {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [script.id, n]);
+  // Each device keeps its own size: read it whenever the device is known or changes. Writes happen only on + and -, never on load.
   useEffect(() => {
-    write(presenterSizeKey(device), String(scale));
-  }, [scale, device]);
+    deviceRef.current = device;
+    const saved = read(presenterSizeKey(device));
+    setScale(clampScale(saved == null ? PRESENTER_CONFIG.defaultScale[device] : Number(saved)));
+  }, [device]);
   useEffect(() => {
     write(presenterThemeKey, theme);
   }, [theme]);
@@ -177,8 +180,15 @@ export default function Presenter({ script }: { script: DmScript }) {
     setNow(Date.now());
   }, []);
   const resetTimer = useCallback(() => setTimer({ running: false, base: 0, since: 0, sectionMark: 0 }), []);
-  const bigger = useCallback(() => setScale((s) => clampScale(s + PRESENTER_CONFIG.scaleStep)), []);
-  const smaller = useCallback(() => setScale((s) => clampScale(s - PRESENTER_CONFIG.scaleStep)), []);
+  const resize = useCallback((delta: number) => {
+    setScale((s) => {
+      const v = clampScale(s + delta);
+      write(presenterSizeKey(deviceRef.current), String(v));
+      return v;
+    });
+  }, []);
+  const bigger = useCallback(() => resize(PRESENTER_CONFIG.scaleStep), [resize]);
+  const smaller = useCallback(() => resize(-PRESENTER_CONFIG.scaleStep), [resize]);
 
   const start = useCallback(
     (at: number) => {
@@ -214,7 +224,8 @@ export default function Presenter({ script }: { script: DmScript }) {
         return;
       }
       if (phase === "exit") {
-        if (e.key === "Escape" || e.key === "Enter") {
+        // Esc a second time ends (Section 5.2). Enter is left to whichever button has focus.
+        if (e.key === "Escape") {
           e.preventDefault();
           end();
         } else if (e.key === "Backspace") setPhase("live");

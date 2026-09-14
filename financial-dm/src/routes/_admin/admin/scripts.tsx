@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { AUDIENCE_LABEL, type ScriptAudience } from "~/lib/dmScreen";
+import { AUDIENCE_LABEL, fmtEastern as fmt, type ScriptAudience } from "~/lib/dmScreen";
 import { archiveScript, createScript, duplicateScript, listScripts, renameScript, setDefaultScript, type ScriptListItem } from "~/server/dmScreen";
 
 /**
@@ -18,7 +18,6 @@ const focus = "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c080
 const input = `px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`;
 const btnPrimary = `px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm disabled:opacity-50 ${focus}`;
 const btnGhost = `px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs disabled:opacity-50 ${focus}`;
-const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) : "");
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const linkTo = (to: string, params?: Record<string, string>) => ({ to, params } as any);
 
@@ -44,6 +43,8 @@ function ScriptsPage() {
       const res = await fn();
       if (!res.ok) setError(res.error ?? "Something went wrong.");
       await load();
+    } catch (e) {
+      setError(String(e));
     } finally {
       setBusy("");
     }
@@ -56,6 +57,8 @@ function ScriptsPage() {
       const res = await createScript({ data: { name: newName.trim(), audience: newAudience } });
       if (!res.ok || !res.id) setError(res.error ?? "Could not create the script.");
       else navigate(linkTo("/admin/scripts/$id", { id: String(res.id) }));
+    } catch (e) {
+      setError(String(e));
     } finally {
       setBusy("");
     }
@@ -66,6 +69,8 @@ function ScriptsPage() {
       const res = await duplicateScript({ data: { id } });
       if (!res.ok || !res.id) setError(res.error ?? "Could not duplicate.");
       else navigate(linkTo("/admin/scripts/$id", { id: String(res.id) }));
+    } catch (e) {
+      setError(String(e));
     } finally {
       setBusy("");
     }

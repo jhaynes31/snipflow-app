@@ -207,6 +207,9 @@ export function wordCount(body: string): number {
 
 export const presenterHeartbeatKey = (scriptId: number) => `dm-screen:presenting:${scriptId}`;
 
+/** "Sep 14, 3:05 PM" in John's time zone, for the list and the history. */
+export const fmtEastern = (iso: string) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) : "");
+
 // ── Presenter view storage (Section 5.3 and 5.5): all local, never the network ──
 
 export type PresenterDevice = "phone" | "monitor";

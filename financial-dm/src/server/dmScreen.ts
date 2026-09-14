@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { DM_SCREEN_CONFIG, normalizeSections, outlineToSections, sameSections, type DmScript, type ScriptAudience, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
+import { text } from "~/lib/practiceInput";
 import { JOHN_RECRUITING_PRESENTATION, normalizeSections as normalizeOutline } from "~/lib/practicePresentation";
 
 /**
@@ -12,7 +13,6 @@ import { JOHN_RECRUITING_PRESENTATION, normalizeSections as normalizeOutline } f
  * lead or recruit.
  */
 
-const text = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 const audienceOf = (v: unknown): ScriptAudience => (v === "recruit" ? "recruit" : "client");
 
 let ready: Promise<void> | null = null;
@@ -73,8 +73,9 @@ async function carryOverOutline(): Promise<void> {
     /* the practice tables may not exist yet; the built-in outline is the same content */
   }
   const sections = outlineToSections(outline);
-  const rows = (await sql()`INSERT INTO dm_scripts (name, audience, is_default, sections) VALUES (${name}, 'recruit', TRUE, ${JSON.stringify(sections)}) RETURNING *`) as Array<Record<string, unknown>>;
-  await sql()`INSERT INTO dm_script_versions (script_id, version, name, sections) VALUES (${Number(rows[0].id)}, 1, ${name}, ${JSON.stringify(sections)})`;
+  // One statement, so two cold starts at the same moment cannot both insert it.
+  const rows = (await sql()`INSERT INTO dm_scripts (name, audience, is_default, sections) SELECT ${name}, 'recruit', TRUE, ${JSON.stringify(sections)} WHERE NOT EXISTS (SELECT 1 FROM dm_scripts WHERE audience = 'recruit') RETURNING *`) as Array<Record<string, unknown>>;
+  if (rows.length) await sql()`INSERT INTO dm_script_versions (script_id, version, name, sections) VALUES (${Number(rows[0].id)}, 1, ${name}, ${JSON.stringify(sections)})`;
 }
 
 function rowToScript(r: Record<string, unknown>): DmScript {
@@ -141,9 +142,8 @@ export const createScript = createServerFn({ method: "POST" })
     if (!data.name) return { ok: false, error: "Give the script a name." };
     try {
       await ensureDmScreenTables();
-      const [{ n }] = (await sql()`SELECT count(*)::int AS n FROM dm_scripts WHERE audience = ${data.audience} AND archived = FALSE`) as Array<{ n: number }>;
-      const first = Number(n) === 0;
-      const rows = (await sql()`INSERT INTO dm_scripts (name, audience, is_default, sections) VALUES (${data.name}, ${data.audience}, ${first}, '[]') RETURNING *`) as Array<Record<string, unknown>>;
+      // The first live script of an audience becomes its default, decided inside the insert itself.
+      const rows = (await sql()`INSERT INTO dm_scripts (name, audience, is_default, sections) SELECT ${data.name}, ${data.audience}, NOT EXISTS (SELECT 1 FROM dm_scripts WHERE audience = ${data.audience} AND archived = FALSE), '[]' RETURNING *`) as Array<Record<string, unknown>>;
       const s = rowToScript(rows[0]);
       await recordVersion(s);
       return { ok: true, id: s.id };
@@ -173,7 +173,12 @@ export const saveScript = createServerFn({ method: "POST" })
       if (data.baseVersion && cur.version !== data.baseVersion) return { ok: false, conflict: true, script: cur };
       const name = data.name || cur.name;
       if (name === cur.name && sameSections(cur.sections, data.sections)) return { ok: true, unchanged: true, script: cur };
-      const rows = (await sql()`UPDATE dm_scripts SET name = ${name}, sections = ${JSON.stringify(data.sections)}, version = version + 1, updated_at = NOW() WHERE id = ${data.id} RETURNING *`) as Array<Record<string, unknown>>;
+      // The version predicate makes the conflict check atomic: two saves from the same base cannot both land.
+      const rows = (await sql()`UPDATE dm_scripts SET name = ${name}, sections = ${JSON.stringify(data.sections)}, version = version + 1, updated_at = NOW() WHERE id = ${data.id} AND version = ${cur.version} RETURNING *`) as Array<Record<string, unknown>>;
+      if (!rows.length) {
+        const now = await loadScript(data.id);
+        return now ? { ok: false, conflict: true, script: now } : { ok: false, error: "That script is gone." };
+      }
       const s = rowToScript(rows[0]);
       await recordVersion(s);
       return { ok: true, script: s };
@@ -187,9 +192,13 @@ export const renameScript = createServerFn({ method: "POST" })
   .validator((d: { id: number; name: string }) => ({ id: Number(d?.id), name: text(d?.name, 120) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
     if (!data.name) return { ok: false, error: "Give the script a name." };
-    await ensureDmScreenTables();
-    await sql()`UPDATE dm_scripts SET name = ${data.name}, updated_at = NOW() WHERE id = ${data.id}`;
-    return { ok: true };
+    try {
+      await ensureDmScreenTables();
+      await sql()`UPDATE dm_scripts SET name = ${data.name}, updated_at = NOW() WHERE id = ${data.id}`;
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   });
 
 /** Section 4.1: the main way to make a variation. The copy is never the default. */
@@ -213,12 +222,16 @@ export const setDefaultScript = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number }) => ({ id: Number(d?.id) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
-    const cur = await loadScript(data.id);
-    if (!cur) return { ok: false, error: "That script is gone." };
-    if (cur.archived) return { ok: false, error: "Bring it back from the archive first." };
-    await sql()`UPDATE dm_scripts SET is_default = FALSE WHERE audience = ${cur.audience}`;
-    await sql()`UPDATE dm_scripts SET is_default = TRUE, updated_at = NOW() WHERE id = ${data.id}`;
-    return { ok: true };
+    try {
+      const cur = await loadScript(data.id);
+      if (!cur) return { ok: false, error: "That script is gone." };
+      if (cur.archived) return { ok: false, error: "Bring it back from the archive first." };
+      await sql()`UPDATE dm_scripts SET is_default = FALSE WHERE audience = ${cur.audience}`;
+      await sql()`UPDATE dm_scripts SET is_default = TRUE, updated_at = NOW() WHERE id = ${data.id}`;
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   });
 
 /** Section 4.1: archive instead of delete. An archived default stops being the default. */
@@ -226,10 +239,14 @@ export const archiveScript = createServerFn({ method: "POST" })
   .middleware([requireAdmin])
   .validator((d: { id: number; archived: boolean }) => ({ id: Number(d?.id), archived: Boolean(d?.archived) }))
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
-    await ensureDmScreenTables();
-    if (data.archived) await sql()`UPDATE dm_scripts SET archived = TRUE, is_default = FALSE, updated_at = NOW() WHERE id = ${data.id}`;
-    else await sql()`UPDATE dm_scripts SET archived = FALSE, updated_at = NOW() WHERE id = ${data.id}`;
-    return { ok: true };
+    try {
+      await ensureDmScreenTables();
+      if (data.archived) await sql()`UPDATE dm_scripts SET archived = TRUE, is_default = FALSE, updated_at = NOW() WHERE id = ${data.id}`;
+      else await sql()`UPDATE dm_scripts SET archived = FALSE, updated_at = NOW() WHERE id = ${data.id}`;
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   });
 
 export const listVersions = createServerFn()
