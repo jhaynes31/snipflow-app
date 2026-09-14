@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { normalizeSections, parseBody, parseRuns, plainBody, sameSections, totalTargetMinutes, wordCount } from "./dmScreen";
+import { clampScale, formatClock, normalizeSections, parseBody, parseRuns, plainBody, sameSections, totalTargetMinutes, wordCount } from "./dmScreen";
 
 describe("DM Screen body markers", () => {
   test("bold, italic, and bullets, nothing else", () => {
@@ -41,6 +41,7 @@ describe("DM Screen sections", () => {
     expect(out[0]).toMatchObject({ id: "a", order: 0, title: "Opening", targetMinutes: 2.6, tag: "trust" });
     expect(out[1].id.length).toBeGreaterThan(3);
     expect(out[1]).toMatchObject({ order: 1, title: "No id", targetMinutes: null, tag: "" });
+    expect(normalizeSections([{ id: "t", title: "Tiny", targetMinutes: 0.02 }])[0].targetMinutes).toBeNull();
     expect(out[2].id).not.toBe("a");
     expect(out[3]).toMatchObject({ title: "", body: "" });
   });
@@ -59,3 +60,19 @@ describe("DM Screen sections", () => {
     expect(sameSections(a, a.map((s, i) => (i === 0 ? { ...s, body: "changed" } : s)))).toBe(false);
   });
 });
+
+describe("presenter helpers", () => {
+  test("clock reads mm:ss and grows past an hour", () => {
+    expect(formatClock(0)).toBe("0:00");
+    expect(formatClock(65_000)).toBe("1:05");
+    expect(formatClock(3_725_000)).toBe("1:02:05");
+    expect(formatClock(-5)).toBe("0:00");
+  });
+  test("text scale stays within the limits", () => {
+    expect(clampScale(0.2)).toBe(0.7);
+    expect(clampScale(9)).toBe(2.4);
+    expect(clampScale(1.25)).toBe(1.3);
+    expect(clampScale(NaN)).toBe(1);
+  });
+});
+

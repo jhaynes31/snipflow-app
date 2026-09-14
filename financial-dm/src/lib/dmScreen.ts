@@ -95,7 +95,7 @@ export function normalizeSections(raw: unknown): ScriptSection[] {
       slideRef: text(o.slideRef, 40).trim(),
       body: text(o.body, DM_SCREEN_CONFIG.maxBodyChars),
       notes: text(o.notes, DM_SCREEN_CONFIG.maxNotesChars),
-      targetMinutes: tm != null && Number.isFinite(tm) && tm > 0 ? Math.min(180, Math.round(tm * 10) / 10) : null,
+      targetMinutes: tm != null && Number.isFinite(tm) && Math.round(tm * 10) / 10 > 0 ? Math.min(180, Math.round(tm * 10) / 10) : null,
       tag,
     });
   }
@@ -203,3 +203,40 @@ export function wordCount(body: string): number {
 }
 
 export const presenterHeartbeatKey = (scriptId: number) => `dm-screen:presenting:${scriptId}`;
+
+// ── Presenter view storage (Section 5.3 and 5.5): all local, never the network ──
+
+export type PresenterDevice = "phone" | "monitor";
+export const presenterPosKey = (scriptId: number) => `dm-screen:pos:${scriptId}`;
+export const presenterSizeKey = (device: PresenterDevice) => `dm-screen:size:${device}`;
+export const presenterThemeKey = "dm-screen:theme";
+/** The editor writes the new version here on every save; an open presenter view in the same browser notices, silently. */
+export const scriptSavedKey = (scriptId: number) => `dm-screen:saved:${scriptId}`;
+
+export const PRESENTER_CONFIG = {
+  /** Text scale limits and step for + and -. */
+  minScale: 0.7,
+  maxScale: 2.4,
+  scaleStep: 0.1,
+  defaultScale: { phone: 1, monitor: 1.2 } as Record<PresenterDevice, number>,
+  /** Below this width the phone layout is used. */
+  phoneMaxWidth: 760,
+  /** A horizontal swipe longer than this advances or goes back. */
+  swipeMinPx: 60,
+} as const;
+
+export function clampScale(v: number): number {
+  const x = Math.round(v * 10) / 10;
+  return Math.min(PRESENTER_CONFIG.maxScale, Math.max(PRESENTER_CONFIG.minScale, Number.isFinite(x) ? x : 1));
+}
+
+/** mm:ss, or h:mm:ss past an hour. */
+export function formatClock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = h ? String(m).padStart(2, "0") : String(m);
+  return `${h ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
+}
+

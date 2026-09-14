@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptBody from "~/components/dmScreen/ScriptBody";
-import { AUDIENCE_LABEL, BODY_HELP, DM_SCREEN_CONFIG, blankSection, presenterHeartbeatKey, sameSections, totalTargetMinutes, wordCount, type DmScript, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
+import { AUDIENCE_LABEL, BODY_HELP, DM_SCREEN_CONFIG, blankSection, presenterHeartbeatKey, sameSections, scriptSavedKey, totalTargetMinutes, wordCount, type DmScript, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
 import { getScript, listVersions, restoreVersion, saveScript } from "~/server/dmScreen";
 
 /**
@@ -24,6 +24,15 @@ const btnGhost = `px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a
 const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) : "");
 
 type SaveState = "saved" | "dirty" | "saving" | "paused" | "conflict" | "error";
+
+/** Tells any presenter view open in this browser that a newer version exists; it shows a quiet mark and never reloads (Section 5.5). */
+function announceSave(scriptId: number, version: number) {
+  try {
+    localStorage.setItem(scriptSavedKey(scriptId), String(version));
+  } catch {
+    /* ignore */
+  }
+}
 
 /** A presenter view writes a timestamp every few seconds; a fresh one means John is on stage. */
 function presenterOpen(scriptId: number): boolean {
@@ -83,6 +92,7 @@ function Editor({ initial }: { initial: DmScript }) {
         return;
       }
       setScript(res.script);
+      announceSave(script.id, res.script.version);
       // Keep John's typing that landed while the save was in flight.
       setName((n) => (n === cur.name ? res.script!.name : n));
       setState("saved");
@@ -144,6 +154,7 @@ function Editor({ initial }: { initial: DmScript }) {
       return;
     }
     setScript(res.script);
+    announceSave(script.id, res.script.version);
     setName(res.script.name);
     setSections(res.script.sections);
     setState("saved");
@@ -178,6 +189,7 @@ function Editor({ initial }: { initial: DmScript }) {
             <div className="flex flex-wrap gap-2 justify-end">
               {(state === "paused" || state === "dirty" || state === "error") && <button type="button" onClick={() => save(true)} className={btnGhost} data-save-now>💾 Save now</button>}
               {state === "conflict" && <button type="button" onClick={reloadFromServer} className={btnGhost} data-reload-script>↻ Load the newer copy</button>}
+              <a href={`/admin/scripts/${script.id}/present`} target="_blank" rel="noopener" className={`${btnGhost} border-[#c08020]/50 text-[#c08020]`} data-present-link>▶ Present</a>
               <button type="button" onClick={openHistory} className={btnGhost} data-history-toggle>🕘 History</button>
               <Link to="/admin/scripts" search={{}} className={btnGhost}>Done</Link>
             </div>

@@ -80,7 +80,7 @@ function ScriptsPage() {
       <div className="max-w-4xl mx-auto space-y-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-fantasy text-[#c08020]" style={{ textShadow: "0 0 20px rgba(192, 128, 32, 0.3)" }}>📜 The DM Screen</h1>
-          <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">What you say, section by section. Write it here ahead of time, then read from it on your second monitor or your phone. Nothing here is generated: every word is yours.</p>
+          <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">What you say, section by section. Write it here ahead of time, then press Present to read from it on your second monitor or your phone: it opens in its own window with nothing else on screen. Nothing here is generated: every word is yours.</p>
         </div>
         {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy" data-scripts-error>{error}</div>}
 
@@ -133,6 +133,7 @@ function ScriptsPage() {
                           <p className="text-[11px] text-[#808080]">{s.sectionCount} section{s.sectionCount === 1 ? "" : "s"} · v{s.version} · edited {fmt(s.updatedAt)}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          {!s.archived && <a href={`/admin/scripts/${s.id}/present`} target="_blank" rel="noopener" className={`${btnGhost} border-[#c08020]/50 text-[#c08020]`} data-script-present>▶ Present</a>}
                           {!s.archived && <Link {...linkTo("/admin/scripts/$id", { id: String(s.id) })} className={btnGhost} data-script-edit>✏️ Edit</Link>}
                           {!s.archived && <button type="button" onClick={() => duplicate(s.id)} disabled={busy === `dup${s.id}`} className={`${btnGhost} border-[#c08020]/50 text-[#c08020]`} data-script-duplicate>{busy === `dup${s.id}` ? "Copying..." : "📄 Duplicate"}</button>}
                           {!s.archived && <button type="button" onClick={() => setRenaming({ id: s.id, name: s.name })} className={btnGhost} data-script-rename>Rename</button>}
