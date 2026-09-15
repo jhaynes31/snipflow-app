@@ -10,6 +10,7 @@ import {
   slugify,
 } from "~/lib/scriptUtils";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
+import Prompter from "~/components/prompter/Prompter";
 import BrollPlanner from "~/components/BrollPlanner";
 import { attachOutputToSlot } from "~/server/campaign";
 import { contextOf, type CampaignBrief } from "~/lib/campaign";
@@ -54,6 +55,8 @@ export default function ScriptGenerator({
   const [hooksLoading, setHooksLoading] = useState(false);
   /** Which single section is being re rolled, if any. */
   const [sectionLoading, setSectionLoading] = useState<ScriptPart | "">("");
+  /** Step 4: the prompter overlay. "script" prompts the finished package; "paste" opens it empty. */
+  const [prompter, setPrompter] = useState<"" | "script" | "paste">("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [hookCopied, setHookCopied] = useState(false);
@@ -379,6 +382,9 @@ export default function ScriptGenerator({
             Roll a topic and pick a pain point above to unlock the forge.
           </p>
         )}
+        <p className="text-center text-[11px] text-[#606080] font-fantasy">
+          Have your own words? <button type="button" onClick={() => setPrompter("paste")} className="underline hover:text-[#c08020]" data-perform-paste>Open the prompter and paste them</button>.
+        </p>
         <div className="flex justify-center">
           <button
             type="button"
@@ -412,6 +418,14 @@ export default function ScriptGenerator({
                 <RegenButton part="title" label="title" loading={sectionLoading} busy={loading || hooksLoading} onClick={handleRegenerateSection} />
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPrompter("script")}
+                  className="px-4 py-2 rounded-lg bg-[#E0B45C] hover:bg-[#f0c46c] text-[#0d1520] font-bold transition-all text-sm font-fantasy"
+                  data-perform
+                >
+                  🎥 Perform
+                </button>
                 {campaign && <button
                   type="button"
                   onClick={handleSaveToQuest}
@@ -582,6 +596,14 @@ export default function ScriptGenerator({
             : null
         }
       />
+      )}
+      {prompter && (
+        <Prompter
+          parts={prompter === "script" && result ? { hook: result.hook, body: result.scriptBody, cta: result.callToAction } : null}
+          scriptId={prompter === "script" ? savedId : undefined}
+          title={prompter === "script" ? result?.title : undefined}
+          onClose={() => setPrompter("")}
+        />
       )}
     </div>
   );

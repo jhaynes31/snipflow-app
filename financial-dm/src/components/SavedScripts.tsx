@@ -7,7 +7,11 @@ import {
 } from "~/server/scriptGenerator";
 import { HOOK_TYPE_LABELS, buildScriptText, downloadScript, slugify } from "~/lib/scriptUtils";
 
+import Prompter from "~/components/prompter/Prompter";
+import { stripLeadingHook } from "~/server/scriptGenerator";
+
 export default function SavedScripts() {
+  const [performing, setPerforming] = useState<number | null>(null);
   const [scripts, setScripts] = useState<SavedScript[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -213,6 +217,9 @@ export default function SavedScripts() {
                 {/* Expanded script body */}
                 {isExpanded && (
                   <div className="px-4 py-4 space-y-4">
+                    <div className="flex justify-end">
+                      <button type="button" onClick={() => setPerforming(s.id)} className="px-4 py-2 rounded-lg bg-[#E0B45C] hover:bg-[#f0c46c] text-[#0d1520] font-bold transition-all text-sm font-fantasy" data-perform>🎥 Perform</button>
+                    </div>
                     {s.hook && (
                       <div className="p-4 rounded-lg border border-[#c08020]/30 bg-[#204060]/10">
                         <p className="text-[#c08020] font-bold font-fantasy text-sm mb-1">
@@ -303,6 +310,10 @@ export default function SavedScripts() {
           })}
         </div>
       )}
+      {performing !== null && (() => {
+        const sc = scripts.find((x) => x.id === performing);
+        return sc ? <Prompter parts={{ hook: sc.hook, body: stripLeadingHook(sc.script, sc.hook), cta: sc.callToAction }} scriptId={sc.id} title={sc.title} onClose={() => setPerforming(null)} /> : null;
+      })()}
     </div>
   );
 }
