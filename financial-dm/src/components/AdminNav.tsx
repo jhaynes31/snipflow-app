@@ -135,7 +135,7 @@ export default function AdminNav() {
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-[#406080]/30 bg-[#0d1520]/95 backdrop-blur" data-admin-nav>
-        <nav aria-label="John's tools" className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-1 sm:gap-2">
+        <nav aria-label="John's tools" className="max-w-[100rem] mx-auto px-3 sm:px-4 py-2 flex items-center gap-1 sm:gap-2">
           <Link {...linkTo("/admin")} className="flex items-center gap-2 mr-1 sm:mr-3 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] rounded-full" title="The Tavern Keeper's Morning">
             <img src="/logo.png" alt="" className="h-8 w-8 rounded-full" />
             <span className="hidden lg:inline font-fantasy text-[#c08020] text-sm">The Financial DM</span>
