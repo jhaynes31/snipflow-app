@@ -75,26 +75,61 @@ export default function AdminNav() {
   const FOLD_ORDER = ["settings", "howto", "quizzes", "scripts", "practice", "guild", "forge"];
   const foldable = FOLD_ORDER.map((id) => tabs.find((t) => t.id === id)).filter((t): t is (typeof tabs)[number] => Boolean(t));
   // Stage 0: full labels where the screen is wide enough. Stage 1: short labels everywhere. Stage 2+: short labels and (stage - 1) tabs folded.
+  // The stage is computed from a hidden strip that holds every label at both lengths, so it does not
+  // depend on when the web font arrives: the strip is re-measured whenever its own size changes.
   const [stage, setStage] = useState(0);
   const fullLabels = stage === 0;
   const folded = Math.max(0, stage - 1);
   const rowRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const foldedIds = new Set(foldable.slice(0, folded).map((t) => t.id));
   const visibleTabs = tabs.filter((t) => !foldedIds.has(t.id));
   // The More menu keeps the bar's own order, whatever order the tabs folded in.
   const menuTabs = tabs.filter((t) => foldedIds.has(t.id));
   useLayoutEffect(() => {
     const row = rowRef.current;
-    if (!row) return;
-    if (row.scrollWidth > row.clientWidth + 1 && stage < foldable.length + 1) setStage(stage + 1);
-  });
-  useEffect(() => {
-    const reset = () => setStage(0);
-    window.addEventListener("resize", reset);
-    // Web fonts arriving late change widths, so measure again once they are in.
-    document.fonts?.ready.then(reset).catch(() => {});
-    return () => window.removeEventListener("resize", reset);
-  }, []);
+    const strip = measureRef.current;
+    if (!row || !strip) return;
+    const GAP = 4; // gap-1
+    const SAFETY = 6;
+    const widthOf = (sel: string) => Array.from(strip.querySelectorAll<HTMLElement>(sel)).map((el) => [el.dataset.measure ?? "", el.offsetWidth] as const);
+    const compute = () => {
+      const avail = row.clientWidth - SAFETY;
+      if (avail <= 0) return;
+      const full = new Map(widthOf("[data-measure-full]").map(([id, w]) => [id, w]));
+      const short = new Map(widthOf("[data-measure-short]").map(([id, w]) => [id, w]));
+      const more = strip.querySelector<HTMLElement>("[data-measure-more]")?.offsetWidth ?? 0;
+      const sum = (ids: string[], m: Map<string, number>) => ids.reduce((n, id) => n + (m.get(id) ?? 0), 0) + GAP * Math.max(0, ids.length - 1);
+      const all = tabs.map((t) => t.id);
+      let next = foldable.length + 1;
+      if (sum(all, full) <= avail) next = 0;
+      else if (sum(all, short) <= avail) next = 1;
+      else {
+        for (let k = 1; k <= foldable.length; k++) {
+          const hide = new Set(foldable.slice(0, k).map((t) => t.id));
+          const left = all.filter((id) => !hide.has(id));
+          if (sum(left, short) + GAP + more <= avail) {
+            next = k + 1;
+            break;
+          }
+        }
+      }
+      setStage((cur) => (cur === next ? cur : next));
+    };
+    compute();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(compute) : null;
+    ro?.observe(row);
+    ro?.observe(strip);
+    window.addEventListener("resize", compute);
+    document.fonts?.ready.then(compute).catch(() => {});
+    document.fonts?.addEventListener?.("loadingdone", compute);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", compute);
+      document.fonts?.removeEventListener?.("loadingdone", compute);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs.length, foldable.length]);
   const total = approvals?.total ?? 0;
 
   return (
@@ -106,8 +141,24 @@ export default function AdminNav() {
             <span className="hidden lg:inline font-fantasy text-[#c08020] text-sm">The Financial DM</span>
           </Link>
 
-          {/* Desktop and tablet tabs. The row measures itself: when the tabs would run under the badge, the least-used fold into More, one at a time, whatever the font or width. */}
-          <div ref={rowRef} className="hidden md:flex items-center gap-1 flex-1 min-w-0" role="list" data-tab-row data-folded={folded}>
+          {/* Desktop and tablet tabs. A hidden strip below holds every label at both lengths; the bar folds the least-used tabs into More until what is left fits beside the badge, whatever the font or width. */}
+          <div ref={rowRef} className="hidden md:flex items-center gap-1 flex-1 min-w-0 relative" role="list" data-tab-row data-folded={folded}>
+            <div ref={measureRef} aria-hidden="true" className="absolute left-0 top-0 h-0 overflow-hidden invisible pointer-events-none flex items-center gap-1 whitespace-nowrap" data-tab-measure>
+              {tabs.map((t) => (
+                <span key={`f${t.id}`} className={idle} data-measure={t.id} data-measure-full>
+                  <span>{t.icon}</span>
+                  <span className="hidden 2xl:inline">{t.id === "home" ? "Tavern Keeper" : t.label}</span>
+                  <span className="2xl:hidden">{t.short}</span>
+                </span>
+              ))}
+              {tabs.map((t) => (
+                <span key={`s${t.id}`} className={idle} data-measure={t.id} data-measure-short>
+                  <span>{t.icon}</span>
+                  <span>{t.short}</span>
+                </span>
+              ))}
+              <span className={idle} data-measure-more><span>⋯</span> More</span>
+            </div>
             {visibleTabs.map((t) => {
               const isOn = current?.id === t.id;
               return (
