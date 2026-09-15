@@ -49,6 +49,8 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
   const [now, setNow] = useState(() => Date.now());
   const [chrome, setChrome] = useState(true);
   const [wraps, setWraps] = useState(0);
+  /** Where a take was when John stepped back into settings, so he can pick it up again. */
+  const [resumeIndex, setResumeIndex] = useState(0);
   const beatRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,13 +118,22 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
   }, [parts?.hook, parts?.body, parts?.cta]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Take control ──
-  const start = useCallback(() => {
-    if (!beats.length) return;
-    setIndex(0);
-    setCount(PROMPTER_CONFIG.countdownSeconds);
-    setPausedFor(0);
-    setPhase("countdown");
-  }, [beats.length]);
+  const start = useCallback(
+    (at = 0) => {
+      if (!beats.length) return;
+      setIndex(Math.min(beats.length - 1, Math.max(0, at)));
+      setResumeIndex(0);
+      setCount(PROMPTER_CONFIG.countdownSeconds);
+      setPausedFor(0);
+      setPhase("countdown");
+    },
+    [beats.length],
+  );
+  /** Back to the settings screen without losing the place or the beats. */
+  const toSettings = useCallback(() => {
+    setResumeIndex(phase === "running" || phase === "paused" ? index : 0);
+    setPhase("setup");
+  }, [phase, index]);
   useEffect(() => {
     if (phase !== "countdown") return;
     if (count <= 0) {
@@ -143,8 +154,8 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
     } else if (phase === "paused") {
       setPausedFor((p) => p + (Date.now() - pausedAt));
       setPhase("running");
-    } else if (phase === "setup" || phase === "done") start();
-  }, [phase, pausedAt, start]);
+    } else if (phase === "setup" || phase === "done") start(phase === "setup" ? resumeIndex : 0);
+  }, [phase, pausedAt, start, resumeIndex]);
 
   // Timer mode: each beat stays up for its words at the current wpm (Section 6).
   useEffect(() => {
@@ -187,7 +198,7 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") {
-        if (e.key === "Escape") onClose();
+        if (e.key === "Escape") (e.target as HTMLElement).blur();
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -218,7 +229,11 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
           break;
         case "r":
         case "R":
-          if (beats.length) start();
+          if (beats.length) start(0);
+          break;
+        case "s":
+        case "S":
+          if (phase !== "setup") toSettings();
           break;
         case "m":
         case "M":
@@ -233,13 +248,15 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
           update({ wpm: settings.wpm - PROMPTER_CONFIG.wpmStep });
           break;
         case "Escape":
-          onClose();
+          // During a take, Esc steps back to the settings; from the settings, Esc leaves the prompter.
+          if (phase === "setup") onClose();
+          else toSettings();
           break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase, running, settings, beats.length, next, prev, start, togglePause, update, onClose, poke]);
+  }, [phase, running, settings, beats.length, next, prev, start, toSettings, togglePause, update, onClose, poke]);
 
   // Section 9: a beat that wraps past two lines is a chunking failure worth logging.
   useEffect(() => {
@@ -281,12 +298,12 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
       {phase === "setup" && (
         <div className="absolute inset-0 overflow-y-auto p-6" data-prompter-setup>
           <div className="max-w-2xl mx-auto space-y-5">
-            <div className="flex items-start justify-between gap-3">
+            <div className="space-y-3">
+              <button type="button" onClick={onClose} className={`${pill} inline-flex items-center gap-2`} data-prompter-close>← Back to the Script forge <span style={{ color: MUTED }}>(Esc)</span></button>
               <div>
                 <p className="text-xs uppercase tracking-[0.2em]" style={{ color: ACCENT }}>Step 4 · Perform</p>
                 <h2 className="text-2xl font-semibold mt-1">{title || (initialParts ? "Prompter" : "Prompter: your own text")}</h2>
               </div>
-              <button type="button" onClick={onClose} className={pill} data-prompter-close>Esc · Back to the script</button>
             </div>
 
             {!initialParts && (
@@ -318,7 +335,14 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
                   ))}
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={start} className={primary} data-prompter-start>▶ Start (Space)</button>
+                  {resumeIndex > 0 ? (
+                    <>
+                      <button type="button" onClick={() => start(resumeIndex)} className={primary} data-prompter-resume>▶ Resume at beat {resumeIndex + 1} (Space)</button>
+                      <button type="button" onClick={() => start(0)} className={pill} data-prompter-start>Start over</button>
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => start(0)} className={primary} data-prompter-start>▶ Start (Space)</button>
+                  )}
                   {initialParts && <button type="button" onClick={() => fetchBeats(true)} disabled={loading} className={pill} data-prompter-rebuild>Redo the beats</button>}
                 </div>
               </div>
@@ -337,19 +361,22 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
                   <button key={a} type="button" onClick={() => update({ anchor: a })} aria-pressed={settings.anchor === a} className={`${pill} ${settings.anchor === a ? "border-[#E0B45C] text-[#E0B45C]" : ""}`} data-prompter-anchor={a}>{a === "top" ? "At the top, nearest the lens" : "In the centre"}</button>
                 ))}
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="w-28">Timer pace</span>
-                <button type="button" onClick={() => update({ wpm: settings.wpm - PROMPTER_CONFIG.wpmStep })} className={pill} aria-label="Slower">−</button>
-                <span className="tabular-nums" data-prompter-wpm>{settings.wpm} wpm</span>
-                <button type="button" onClick={() => update({ wpm: settings.wpm + PROMPTER_CONFIG.wpmStep })} className={pill} aria-label="Faster">+</button>
-                <span style={{ color: MUTED }}>Each beat stays up for its words at this pace. Voice tracking, which follows your own pace, is the next update.</span>
+              <div className="space-y-1">
+                <label className="flex items-center gap-3">
+                  <span className="w-28">Speed</span>
+                  <button type="button" onClick={() => update({ wpm: settings.wpm - PROMPTER_CONFIG.wpmStep })} className={pill} aria-label="Slower" data-prompter-slower>− Slower</button>
+                  <input type="range" min={PROMPTER_CONFIG.wpmMin} max={PROMPTER_CONFIG.wpmMax} step={PROMPTER_CONFIG.wpmStep} value={settings.wpm} onChange={(e) => update({ wpm: Number(e.target.value) })} className="flex-1 accent-[#E0B45C]" aria-label="Speed" data-prompter-speed />
+                  <button type="button" onClick={() => update({ wpm: settings.wpm + PROMPTER_CONFIG.wpmStep })} className={pill} aria-label="Faster" data-prompter-faster>Faster +</button>
+                  <span className="w-20 text-right tabular-nums" data-prompter-wpm>{settings.wpm} wpm</span>
+                </label>
+                <p className="pl-[7.75rem]" style={{ color: MUTED }}>How long each beat stays up. 150 is a steady conversational pace; nudge it with + and − during a take too. Voice tracking, which follows your own pace, is the next update.</p>
               </div>
               <label className="flex items-center gap-3">
                 <span className="w-28">Mirror</span>
                 <input type="checkbox" checked={settings.mirror} onChange={(e) => update({ mirror: e.target.checked })} className="accent-[#E0B45C]" data-prompter-mirror />
                 <span style={{ color: MUTED }}>Flips the words for a beam-splitter rig. M during a take.</span>
               </label>
-              <p style={{ color: MUTED }}>Keys during a take: Space pause · ← → move · ↑ ↓ size · + − pace · R restart · M mirror · Esc exit.</p>
+              <p style={{ color: MUTED }}>Keys during a take: Space pause · ← → move · ↑ ↓ size · + − speed · R restart · M mirror · S or Esc back to these settings · Esc again to the Script forge.</p>
             </div>
           </div>
         </div>
@@ -381,7 +408,7 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
           )}
 
           {/* Bottom strip: everything that is not script, away from the lens (Section 5). */}
-          <div className="absolute left-0 right-0 bottom-0 px-4 pb-3 pt-2 transition-opacity" style={{ opacity: chrome || phase !== "running" ? 1 : 0, background: "linear-gradient(180deg, transparent, rgba(11,11,13,0.9) 40%)" }} data-prompter-chrome data-visible={chrome || phase !== "running" ? "1" : "0"}>
+          <div className={`absolute left-0 right-0 bottom-0 px-4 pb-3 pt-2 transition-opacity ${chrome || phase !== "running" ? "" : "pointer-events-none"}`} style={{ opacity: chrome || phase !== "running" ? 1 : 0, background: "linear-gradient(180deg, transparent, rgba(11,11,13,0.9) 40%)" }} data-prompter-chrome data-visible={chrome || phase !== "running" ? "1" : "0"}>
             <div className="flex h-1 gap-1 rounded overflow-hidden" data-prompter-progress>
               {shares.map((s) => {
                 const startIdx = beats.findIndex((b) => b.section === s.section);
@@ -396,9 +423,15 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
             <div className="mt-2 flex items-center justify-between text-xs tabular-nums" style={{ color: MUTED }}>
               <span data-prompter-place>{phase === "done" ? "Done" : `${index + 1} / ${beats.length}`}{wraps ? ` · ${wraps} long` : ""}</span>
               <span data-prompter-clock>{formatSeconds(elapsedMs / 1000)} · about {formatSeconds(remaining)} left</span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#55555c" }} data-prompter-mic="timer" title="Timer mode" />
-                timer {settings.wpm} wpm
+              <span className="flex items-center gap-2">
+                <button type="button" onClick={() => update({ wpm: settings.wpm - PROMPTER_CONFIG.wpmStep })} className="rounded border border-[#2a2a30] px-2 py-0.5 hover:border-[#E0B45C]/60" aria-label="Slower" data-prompter-slower>− slower</button>
+                <span className="flex items-center gap-1.5 tabular-nums">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#55555c" }} data-prompter-mic="timer" title="Timer mode" />
+                  {settings.wpm} wpm
+                </span>
+                <button type="button" onClick={() => update({ wpm: settings.wpm + PROMPTER_CONFIG.wpmStep })} className="rounded border border-[#2a2a30] px-2 py-0.5 hover:border-[#E0B45C]/60" aria-label="Faster" data-prompter-faster>faster +</button>
+                <button type="button" onClick={toSettings} className="rounded border border-[#2a2a30] px-2 py-0.5 hover:border-[#E0B45C]/60" data-prompter-settings-btn>⚙ settings</button>
+                <button type="button" onClick={onClose} className="rounded border border-[#2a2a30] px-2 py-0.5 hover:border-[#E0B45C]/60" data-prompter-exit>✕ exit</button>
               </span>
             </div>
           </div>
