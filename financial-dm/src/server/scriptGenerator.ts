@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import {
   CAPTION_OPTIONS_RULES,
+  CTA_OPTIONS_RULES,
   FORMATTING_RULES,
   HASHTAG_RULES,
   VARIETY_RULES,
@@ -65,7 +66,10 @@ export interface ScriptResult {
   scriptBody: string;
   /** Full script: the selected hook followed by scriptBody. */
   script: string;
+  /** The chosen call to action, or "" when John leaves it out. */
   callToAction: string;
+  /** 2 to 3 call to action options with different asks. */
+  callToActions: string[];
   /** The currently selected caption (defaults to captions[0]). */
   caption: string;
   /** 2 to 3 caption options. */
@@ -143,7 +147,7 @@ const HOOK_OPTIONS_BLOCK = `HOOK OPTIONS (required): Produce THREE hook options 
 const SCRIPT_REQUIREMENTS = `REQUIREMENTS:
 - TITLE: a short, catchy title for the post (a few words).
 - SCRIPT: the full roughly 150 to 180 word script, about one minute read aloud, spoken by the bartender directly to the viewer. OPEN with hooks[0] verbatim as the first spoken line. Speak to the pain point early so the viewer feels seen, teach the key point clearly using the supporting fact, and keep it engaging and honest. Also return "scriptBody": the exact same script with that first hook line removed, so any hook option can be placed in front of it.
-- CALL TO ACTION: a clear closing line telling the viewer to book a free call with John, a licensed life insurance agent, for example to review their coverage, ask a financial question, or plan for the future. Make it a friendly, optional invitation in the same voice.
+- The script must NOT contain the call to action; that is chosen separately from the options below and John may leave it out, so the script has to land on its own.
 - All pieces must read as ONE cohesive posting set for the same video: same voice, same tone, same single topic, fact, and pain point.`;
 
 function buildScriptSystemPrompt(tone: string, dndThemed: boolean): string {
@@ -159,6 +163,8 @@ ${HOOK_RULE_BLOCK}
 
 ${HOOK_OPTIONS_BLOCK}
 
+${CTA_OPTIONS_RULES}
+
 ${CAPTION_OPTIONS_RULES}
 Captions must not restate any of the three hooks' wording.
 
@@ -169,7 +175,7 @@ ${VARIETY_RULES} Keep each package distinct in structure and wording.
 ${FORMATTING_RULES}
 
 Respond with valid JSON only, with no other text and no markdown fences. Use exactly this shape:
-{ "title": "Catchy title here", "hooks": [ { "hook": "First hook, under 12 words, using the chosen hook_type", "hookType": "mechanism used" }, { "hook": "Second hook, a different mechanism", "hookType": "mechanism used" }, { "hook": "Third hook, a third mechanism", "hookType": "mechanism used" } ], "script": "The full 150 to 180 word script here, opening with hooks[0] as the first line", "scriptBody": "The same script with the opening hook line removed", "callToAction": "A short friendly closing line inviting the viewer to book a free call with John.", "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"] }`;
+{ "title": "Catchy title here", "hooks": [ { "hook": "First hook, under 12 words, using the chosen hook_type", "hookType": "mechanism used" }, { "hook": "Second hook, a different mechanism", "hookType": "mechanism used" }, { "hook": "Third hook, a third mechanism", "hookType": "mechanism used" } ], "script": "The full 150 to 180 word script here, opening with hooks[0] as the first line", "scriptBody": "The same script with the opening hook line removed", "callToActions": ["Call to action option one", "Call to action option two", "Call to action option three"], "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"] }`;
 }
 
 function buildHooksOnlySystemPrompt(tone: string, dndThemed: boolean): string {
@@ -288,12 +294,14 @@ export const generateScript = createServerFn({ method: "POST" })
       used_hook_type?: unknown;
       script?: unknown;
       scriptBody?: unknown;
+      callToActions?: unknown;
       callToAction?: unknown;
       captions?: unknown;
       caption?: unknown;
       hashtags?: unknown;
     }>(text, "scriptGenerator");
     if (!parsed) return null;
+    const callToActions = normalizeCaptions(parsed.callToActions, parsed.callToAction).map((c) => ensureCtaLine(c, data.campaign));
 
     const hooks = parseHooks(parsed.hooks, data.hookType, parsed.hook, parsed.used_hook_type);
     const hook = hooks[0]?.text ?? "";
@@ -316,7 +324,8 @@ export const generateScript = createServerFn({ method: "POST" })
       hooks,
       scriptBody,
       script: composeScript(hook, scriptBody),
-      callToAction: ensureCtaLine(cleanText(parsed.callToAction), data.campaign),
+      callToAction: callToActions[0] ?? "",
+      callToActions,
       caption: captions[0] ?? "",
       captions,
       hashtags: normalizeHashtags(parsed.hashtags),
@@ -383,7 +392,7 @@ export interface RegenerateSectionInput {
   campaign?: CampaignContext;
 }
 
-const PART_LABEL: Record<ScriptPart, string> = { title: "title", script: "script", callToAction: "call to action", captions: "caption options", hashtags: "hashtags" };
+const PART_LABEL: Record<ScriptPart, string> = { title: "title", script: "script", callToAction: "call to action options", captions: "caption options", hashtags: "hashtags" };
 
 function partRequirement(part: ScriptPart): string {
   switch (part) {
@@ -395,8 +404,9 @@ Respond with valid JSON only, with no other text and no markdown fences: { "titl
 - The call to action, captions, and hashtags are fixed and must still fit; do not restate the call to action inside the script.
 Respond with valid JSON only, with no other text and no markdown fences: { "script": "full script opening with the fixed hook", "scriptBody": "the same script without the hook line" }`;
     case "callToAction":
-      return `- CALL TO ACTION: one clear closing line telling the viewer to book a free call with John, a licensed life insurance agent, for example to review their coverage, ask a financial question, or plan for the future. A friendly, optional invitation in the same voice, worded differently from the current one.
-Respond with valid JSON only, with no other text and no markdown fences: { "callToAction": "..." }`;
+      return `${CTA_OPTIONS_RULES}
+Each new option must be worded differently from the current options, not a light rewording.
+Respond with valid JSON only, with no other text and no markdown fences: { "callToActions": ["Call to action option one", "Call to action option two", "Call to action option three"] }`;
     case "captions":
       return `${CAPTION_OPTIONS_RULES}
 Captions must not restate the hook's wording, and must not repeat or lightly reword the current captions.
@@ -435,7 +445,7 @@ export const regenerateSection = createServerFn({ method: "POST" })
     const current: Record<ScriptPart, string> = {
       title: cleanText(r.title) || "untitled",
       script: cleanText(r.script),
-      callToAction: cleanText(r.callToAction),
+      callToAction: (r.callToActions?.length ? r.callToActions : [r.callToAction]).map(cleanText).filter(Boolean).map((c) => `- ${c}`).join("\n") || "- none",
       captions: (r.captions || []).map(cleanText).filter(Boolean).map((c) => `- ${c}`).join("\n") || "- none",
       hashtags: (r.hashtags || []).join(" ") || "none",
     };
@@ -457,7 +467,7 @@ export const regenerateSection = createServerFn({ method: "POST" })
       user,
       maxTokens: data.part === "script" ? 1200 : 500,
     });
-    const parsed = parseJsonReply<{ title?: unknown; script?: unknown; scriptBody?: unknown; callToAction?: unknown; captions?: unknown; caption?: unknown; hashtags?: unknown }>(text, `scriptGenerator.${data.part}`);
+    const parsed = parseJsonReply<{ title?: unknown; script?: unknown; scriptBody?: unknown; callToActions?: unknown; callToAction?: unknown; captions?: unknown; caption?: unknown; hashtags?: unknown }>(text, `scriptGenerator.${data.part}`);
     if (!parsed) return null;
 
     switch (data.part) {
@@ -472,8 +482,8 @@ export const regenerateSection = createServerFn({ method: "POST" })
         return scriptBody ? { scriptBody, script: composeScript(hook, scriptBody) } : null;
       }
       case "callToAction": {
-        const callToAction = ensureCtaLine(cleanText(parsed.callToAction), data.campaign);
-        return callToAction ? { callToAction } : null;
+        const callToActions = normalizeCaptions(parsed.callToActions, parsed.callToAction).map((c) => ensureCtaLine(c, data.campaign));
+        return callToActions.length ? { callToActions, callToAction: callToActions[0] } : null;
       }
       case "captions": {
         const captions = normalizeCaptions(parsed.captions, parsed.caption).map((c) => ensureCtaLine(c, data.campaign));

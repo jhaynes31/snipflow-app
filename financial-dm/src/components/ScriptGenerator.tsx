@@ -10,6 +10,8 @@ import {
   slugify,
 } from "~/lib/scriptUtils";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
+import CtaPanel from "~/components/generator/CtaPanel";
+import { effectiveCta } from "~/lib/cta";
 import Prompter from "~/components/prompter/Prompter";
 import BrollPlanner from "~/components/BrollPlanner";
 import { attachOutputToSlot } from "~/server/campaign";
@@ -57,6 +59,10 @@ export default function ScriptGenerator({
   const [sectionLoading, setSectionLoading] = useState<ScriptPart | "">("");
   /** Step 4: the prompter overlay. "script" prompts the finished package; "paste" opens it empty. */
   const [prompter, setPrompter] = useState<"" | "script" | "paste">("");
+  /** Whether the call to action goes out at all. John's choice sticks across forges. */
+  const [ctaOn, setCtaOn] = useState(true);
+  /** The call to action that actually ships: the chosen option, or nothing. */
+  const cta = effectiveCta(ctaOn, result?.callToAction ?? "");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [hookCopied, setHookCopied] = useState(false);
@@ -90,11 +96,11 @@ export default function ScriptGenerator({
       painPoint: r.painPoint,
       hook: r.hook,
       script: r.script,
-      callToAction: r.callToAction,
+      callToAction: effectiveCta(ctaOn, r.callToAction),
       caption: r.caption,
       hashtags: r.hashtags || [],
     }),
-    [],
+    [ctaOn],
   );
 
   const handleGenerate = useCallback(async () => {
@@ -227,6 +233,15 @@ export default function ScriptGenerator({
     [result],
   );
 
+  const selectCta = useCallback(
+    (callToAction: string) => {
+      if (!result) return;
+      setResult({ ...result, callToAction });
+      setSaved(false);
+    },
+    [result],
+  );
+
   const copyToClipboard = useCallback(
     async (text: string, setter: (v: boolean) => void) => {
       if (!text) return;
@@ -258,7 +273,7 @@ export default function ScriptGenerator({
     setSaving(true);
     setError("");
     try {
-      const res = await saveScript({ data: result });
+      const res = await saveScript({ data: { ...result, callToAction: cta } });
       if (!res.ok) {
         setError(res.error || "Could not save the posting package.");
         return;
@@ -271,7 +286,7 @@ export default function ScriptGenerator({
     } finally {
       setSaving(false);
     }
-  }, [result]);
+  }, [result, cta]);
 
   /** Save the package, then attach it to the campaign slot (Section 7.2). */
   const handleSaveToQuest = useCallback(async () => {
@@ -281,7 +296,7 @@ export default function ScriptGenerator({
     try {
       let id = savedId;
       if (!id) {
-        const res = await saveScript({ data: result });
+        const res = await saveScript({ data: { ...result, callToAction: cta } });
         if (!res.ok || !res.id) {
           setQuestState("error");
           setQuestNote(res.error || "Could not save the posting package.");
@@ -302,7 +317,7 @@ export default function ScriptGenerator({
       setQuestState("error");
       setQuestNote("Could not save to the quest.");
     }
-  }, [result, campaign, savedId, textParts]);
+  }, [result, campaign, savedId, textParts, cta]);
 
   return (
     <div className="space-y-6">
@@ -539,16 +554,22 @@ export default function ScriptGenerator({
               </div>
             )}
 
-            {/* Call to Action */}
-            {result.callToAction && (
-              <div className="p-3 rounded-lg border border-[#406080]/30 bg-[#204060]/10">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="text-[#c08020] font-bold font-fantasy text-sm">🎯 Call to Action</p>
-                  <RegenButton part="callToAction" label="call to action" loading={sectionLoading} busy={loading || hooksLoading} onClick={handleRegenerateSection} />
-                </div>
-                <p className="text-[#e0e0e0] leading-relaxed text-sm font-fantasy" data-script-cta>{result.callToAction}</p>
-              </div>
-            )}
+            {/* Call to Action: three asks to choose from, or none at all */}
+            <CtaPanel
+              options={result.callToActions || []}
+              value={result.callToAction}
+              on={ctaOn}
+              onSelect={selectCta}
+              onToggle={(on) => {
+                setCtaOn(on);
+                setSaved(false);
+              }}
+              onError={setError}
+              onRegenerate={() => handleRegenerateSection("callToAction")}
+              regenerating={sectionLoading === "callToAction"}
+              regenerateDisabled={loading || hooksLoading || (sectionLoading !== "" && sectionLoading !== "callToAction")}
+              note="The saved package, the copied text, and the prompter skip it."
+            />
 
             <CaptionHashtagPanel
               captions={result.captions}
@@ -556,6 +577,7 @@ export default function ScriptGenerator({
               onSelectCaption={selectCaption}
               hashtags={result.hashtags || []}
               onError={setError}
+              ctaLine={cta}
               onRegenerateCaptions={() => handleRegenerateSection("captions")}
               onRegenerateHashtags={() => handleRegenerateSection("hashtags")}
               regenerating={sectionLoading === "captions" ? "captions" : sectionLoading === "hashtags" ? "hashtags" : ""}
@@ -591,7 +613,7 @@ export default function ScriptGenerator({
                 dndThemed: result.dndThemed,
                 hook: result.hook,
                 script: result.script,
-                callToAction: result.callToAction,
+                callToAction: cta,
               }
             : null
         }
@@ -599,7 +621,7 @@ export default function ScriptGenerator({
       )}
       {prompter && (
         <Prompter
-          parts={prompter === "script" && result ? { hook: result.hook, body: result.scriptBody, cta: result.callToAction } : null}
+          parts={prompter === "script" && result ? { hook: result.hook, body: result.scriptBody, cta } : null}
           scriptId={prompter === "script" ? savedId : undefined}
           title={prompter === "script" ? result?.title : undefined}
           onClose={() => setPrompter("")}

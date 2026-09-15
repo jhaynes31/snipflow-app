@@ -8,6 +8,8 @@ import MemePreview from "~/components/MemePreview";
 import type { TextBox } from "~/components/MemePreview";
 import { slotsFor } from "~/lib/memeLayouts";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
+import CtaPanel from "~/components/generator/CtaPanel";
+import { effectiveCta, withCtaLine } from "~/lib/cta";
 import { downloadElementPng } from "~/lib/exportPng";
 import { PLATFORMS } from "~/lib/contentOptions";
 
@@ -71,6 +73,8 @@ export default function MemeGenerator({
   const [downloadedIdx, setDownloadedIdx] = useState<number | null>(null);
   const [platformPickerIdx, setPlatformPickerIdx] = useState<number | null>(null);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  /** Whether the call to action goes out at all (one switch for the batch). John's choice sticks across forges. */
+  const [ctaOn, setCtaOn] = useState(true);
 
   // Refs for meme preview containers (captured by html-to-image for PNG export)
   const memePreviewRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -143,6 +147,10 @@ export default function MemeGenerator({
     setConcepts((prev) => prev.map((c, i) => (i === idx ? { ...c, caption } : c)));
   }, []);
 
+  const selectCta = useCallback((idx: number, callToAction: string) => {
+    setConcepts((prev) => prev.map((c, i) => (i === idx ? { ...c, callToAction } : c)));
+  }, []);
+
   const handleDownload = useCallback(async (idx: number, templateName: string) => {
     const ref = memePreviewRefs.current[idx];
     if (!ref) return;
@@ -173,7 +181,7 @@ export default function MemeGenerator({
             template: concept.template,
             topText: topBox?.text || concept.topText,
             bottomText: bottomBox?.text || concept.bottomText,
-            caption: concept.caption,
+            caption: withCtaLine(concept.caption, effectiveCta(ctaOn, concept.callToAction)),
             hashtags: concept.hashtags,
             textBoxesJson: boxes.length > 0 ? JSON.stringify(boxes) : undefined,
             ...extra,
@@ -184,7 +192,7 @@ export default function MemeGenerator({
           return;
         }
         if (extra.toQuest && campaign && result.id) {
-          const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `meme:${result.id}`, text: [...boxes.map((b) => b.text), concept.caption].join("\n") } });
+          const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `meme:${result.id}`, text: [...boxes.map((b) => b.text), withCtaLine(concept.caption, effectiveCta(ctaOn, concept.callToAction))].join("\n") } });
           setQuestIdx(att.ok ? idx : null);
           setQuestNote(!att.ok ? att.error || "Could not save to the quest." : att.flags.length ? `⚠️ Flagged words to check before approval: ${att.flags.join(", ")}` : "Slot moved to Drafted.");
         }
@@ -197,7 +205,7 @@ export default function MemeGenerator({
         setSavingId(null);
       }
     },
-    [selection, tone, textBoxesArr, campaign],
+    [selection, tone, textBoxesArr, campaign, ctaOn],
   );
 
   const handleToggleEdit = useCallback((idx: number) => {
@@ -271,6 +279,16 @@ export default function MemeGenerator({
                   onTextBoxesChange={(boxes) => handleTextBoxesChange(idx, boxes)}
                   interactive={editingIdx === idx}
                 />
+                <CtaPanel
+                  compact
+                  options={concept.callToActions || []}
+                  value={concept.callToAction || ""}
+                  on={ctaOn}
+                  onSelect={(c) => selectCta(idx, c)}
+                  onToggle={setCtaOn}
+                  onError={setError}
+                  note="The caption is saved and copied without it."
+                />
                 <CaptionHashtagPanel
                   compact
                   captions={concept.captions}
@@ -278,6 +296,7 @@ export default function MemeGenerator({
                   onSelectCaption={(c) => selectCaption(idx, c)}
                   hashtags={concept.hashtags}
                   onError={setError}
+                  ctaLine={effectiveCta(ctaOn, concept.callToAction || "")}
                 />
               </div>
 

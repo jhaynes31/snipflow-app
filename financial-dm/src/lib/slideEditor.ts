@@ -483,6 +483,8 @@ export function roleClassName(role: ElementRole): string {
   }
 }
 
+import type { CtaPlacement } from "./cta";
+
 // ── Building / parsing decks ────────────────────────────────────────
 
 let uidCounter = 0;
@@ -507,14 +509,67 @@ interface ContentSource {
   fact: string;
   slides?: Array<{ heading: string; body: string }>;
   callToAction: string;
+  /** Heading for the call to action slide; the classic line when missing. */
+  ctaHeading?: string;
+}
+
+/** What goes on a call to action slide. */
+export interface CtaSlideText {
+  heading: string;
+  body: string;
+}
+
+const CLASSIC_CTA_HEADING = "Ready to level up?";
+
+/** Build one call to action slide, borrowing the look (background, scene, frame) of a neighbour. */
+function makeCtaSlide(cta: CtaSlideText, like?: EditableSlide): EditableSlide {
+  return {
+    kind: "closing",
+    background: like?.background ?? "steel-gold",
+    backgroundImage: like?.backgroundImage,
+    themeBackground: like?.themeBackground,
+    themeBorder: like?.themeBorder,
+    elements: [
+      makeElement("brand", "The Financial DM", "center", "top"),
+      makeElement("heading", cta.heading || CLASSIC_CTA_HEADING, "center", "middle"),
+      makeElement("body", cta.body, "center", "middle"),
+    ],
+  };
+}
+
+/** Positions of the call to action slides in a deck. */
+export function ctaSlideIndexes(deck: EditableSlide[]): number[] {
+  return deck.map((s, i) => (s.kind === "closing" ? i : -1)).filter((i) => i >= 0);
 }
 
 /**
- * Build the full editable deck (cover + content + closing) from a generated
- * carousel. This is the canonical, editable representation used for
- * rendering and saving.
+ * Put the call to action slide where John wants it: halfway through the
+ * content, at the end, both, or nowhere. Existing call to action slides are
+ * replaced; the cover and content slides, with all their edits, stay put.
  */
-export function buildEditableDeck(src: ContentSource): EditableSlide[] {
+export function applyCtaSlides(deck: EditableSlide[], placement: CtaPlacement, cta: CtaSlideText): EditableSlide[] {
+  const kept = deck.filter((s) => s.kind !== "closing");
+  if (placement === "none" || !cta.body) return kept;
+  const contentIdx = kept.map((s, i) => (s.kind === "content" ? i : -1)).filter((i) => i >= 0);
+  const out = [...kept];
+  if (placement === "end" || placement === "both") out.push(makeCtaSlide(cta, kept[kept.length - 1]));
+  if (placement === "middle" || placement === "both") {
+    // After the first half of the content (the cover does not count).
+    const half = Math.ceil(contentIdx.length / 2);
+    const at = contentIdx.length ? contentIdx[half - 1] + 1 : kept.length;
+    // With one content slide or none, "middle" is the end; do not double up.
+    if (!(placement === "both" && at === kept.length)) out.splice(at, 0, makeCtaSlide(cta, kept[at - 1]));
+  }
+  return out;
+}
+
+/**
+ * Build the full editable deck (cover + content + call to action) from a
+ * generated carousel. This is the canonical, editable representation used
+ * for rendering and saving. The call to action slide sits at the end unless
+ * a placement says otherwise.
+ */
+export function buildEditableDeck(src: ContentSource, placement: CtaPlacement = "end"): EditableSlide[] {
   const deck: EditableSlide[] = [
     {
       kind: "cover",
@@ -539,17 +594,7 @@ export function buildEditableDeck(src: ContentSource): EditableSlide[] {
     deck.push({ kind: "content", background: "steel-gold", elements });
   });
 
-  deck.push({
-    kind: "closing",
-    background: "steel-gold",
-    elements: [
-      makeElement("brand", "The Financial DM", "center", "top"),
-      makeElement("heading", "Ready to level up?", "center", "middle"),
-      makeElement("body", src.callToAction, "center", "middle"),
-    ],
-  });
-
-  return deck;
+  return applyCtaSlides(deck, placement, { heading: src.ctaHeading ?? "", body: src.callToAction });
 }
 
 /**

@@ -241,8 +241,8 @@ export function campaignPromptBlock(c: CampaignContext | undefined, medium: "scr
   } else if (c.series?.kind === "recurring") {
     lines.push(`- This post is an episode of the show "${c.series.name}". ${medium === "script" ? "Open by saying the show's name" : "Lead with the show's name"} so viewers learn to recognize it.`);
   }
-  if (medium === "script") lines.push(`- The script must END with this exact spoken line: "${c.spokenLine}" Use it as the callToAction too.`);
-  else lines.push(`- Every caption and the closing line must end with: "${c.spokenLine}"`);
+  if (medium === "script") lines.push(`- The script must END with this exact spoken line: "${c.spokenLine}" Every call to action option must end with it too.`);
+  else lines.push(`- Every caption and every call to action option must end with: "${c.spokenLine}"`);
   lines.push(`- Never promise returns, rates, or approval.`);
   return lines.join("\n");
 }

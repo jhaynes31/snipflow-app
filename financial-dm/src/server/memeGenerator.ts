@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import {
   CAPTION_OPTIONS_RULES,
+  CTA_OPTIONS_RULES,
   FORMATTING_RULES,
   HASHTAG_RULES,
   VARIETY_RULES,
@@ -33,6 +34,10 @@ export interface MemeConcept {
   caption: string;
   /** 2 to 3 caption options. */
   captions: string[];
+  /** The chosen call to action, or "" when John leaves it out. */
+  callToAction: string;
+  /** 2 to 3 call to action options, shared by the batch. */
+  callToActions: string[];
   hashtags: string[];
 }
 
@@ -164,6 +169,9 @@ MEME TEXT REQUIREMENTS:
 
 TEMPLATE VARIETY: Use a different template for each concept. Mix classics with less common ones; do not default to the same two or three every time.
 
+${CTA_OPTIONS_RULES}
+One set of three options for the whole batch, at the top level of the JSON.
+
 ${CAPTION_OPTIONS_RULES}
 Captions may be a little shorter for memes (keep each under 200 characters) and must not repeat the meme text.
 
@@ -174,7 +182,7 @@ ${VARIETY_RULES}
 ${FORMATTING_RULES}
 
 Return your response as valid JSON only. No other text, no markdown fences. Use this exact structure:
-{ "concepts": [ { "template": "Template Name exactly as listed", "texts": ["slot 1 text", "slot 2 text"], "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo"] } ] }
+{ "concepts": [ { "template": "Template Name exactly as listed", "texts": ["slot 1 text", "slot 2 text"], "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo"] } ], "callToActions": ["Call to action option one", "Call to action option two", "Call to action option three"] }
 
 TEMPLATE GUIDE (name, how it is used, and its text slots in order):
 ${layoutGuideLines(templates)}`;
@@ -196,6 +204,8 @@ export const generateMemeConcepts = createServerFn({ method: "POST" })
       maxTokens: 2048,
     });
     const parsed = parseJsonReply<{
+      callToActions?: unknown;
+      callToAction?: unknown;
       concepts?: Array<{
         template?: unknown;
         texts?: unknown;
@@ -207,6 +217,7 @@ export const generateMemeConcepts = createServerFn({ method: "POST" })
       }>;
     }>(text, "memeGenerator");
     if (!parsed || !Array.isArray(parsed.concepts)) return [];
+    const callToActions = normalizeCaptions(parsed.callToActions, parsed.callToAction).map((x) => ensureCtaLine(x, data.campaign));
     return parsed.concepts
       .map((c) => {
         const captions = normalizeCaptions(c?.captions, c?.caption).map((x) => ensureCtaLine(x, data.campaign));
@@ -226,6 +237,8 @@ export const generateMemeConcepts = createServerFn({ method: "POST" })
           bottomText: filled.length > 1 ? filled[filled.length - 1] : "",
           caption: captions[0] ?? "",
           captions,
+          callToAction: callToActions[0] ?? "",
+          callToActions,
           hashtags: normalizeHashtags(c?.hashtags),
         };
       })

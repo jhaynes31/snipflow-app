@@ -11,12 +11,15 @@ import {
   buildCarouselCaption,
 } from "~/lib/carouselUtils";
 import {
+  applyCtaSlides,
   buildEditableDeck,
   makeElement,
   collectCustomBackgrounds,
   type EditableSlide,
   type SlideElement,
 } from "~/lib/slideEditor";
+import CtaPanel from "~/components/generator/CtaPanel";
+import { CTA_PLACEMENTS, DEFAULT_CTA_PLACEMENT, effectiveCta, type CtaPlacement } from "~/lib/cta";
 import EditableSlideCard from "~/components/EditableSlideCard";
 import SlideShapePicker from "~/components/SlideShapePicker";
 import { readSlideAspect, writeSlideAspect, type SlideAspect } from "~/lib/slideEditor";
@@ -56,6 +59,14 @@ export default function CarouselGenerator({
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
 
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  /** Whether the call to action goes out at all, and where its slide sits. John's choices stick across forges. */
+  const [ctaOn, setCtaOn] = useState(true);
+  const [placement, setPlacement] = useState<CtaPlacement>(DEFAULT_CTA_PLACEMENT);
+  const cta = effectiveCta(ctaOn, result?.callToAction ?? "");
+  const ctaSlideText = useCallback(
+    (r: CarouselResult, line: string) => ({ heading: r.ctaSlides?.find((sl) => sl.body === line)?.heading ?? "", body: line }),
+    [],
+  );
   const [aspect, setAspect] = useState<SlideAspect>("1:1");
   useEffect(() => setAspect(readSlideAspect()), []);
   const chooseAspect = (v: SlideAspect) => {
@@ -94,14 +105,14 @@ export default function CarouselGenerator({
         return;
       }
       setResult(res);
-      setDeck(buildEditableDeck(res));
+      setDeck(buildEditableDeck({ ...res, ctaHeading: ctaSlideText(res, res.callToAction).heading }, ctaOn ? placement : "none"));
       setEditingIdx(0);
     } catch {
       setError("Failed to generate the carousel. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [selection, tone, dndThemed, campaign]);
+  }, [selection, tone, dndThemed, campaign, ctaOn, placement, ctaSlideText]);
 
   const selectCaption = useCallback(
     (caption: string) => {
@@ -112,9 +123,38 @@ export default function CarouselGenerator({
     [result],
   );
 
+  /** Pick a call to action: the post text and the call to action slide(s) follow. */
+  const selectCta = useCallback(
+    (line: string) => {
+      if (!result) return;
+      setResult({ ...result, callToAction: line });
+      setDeck((d) => applyCtaSlides(d, ctaOn ? placement : "none", ctaSlideText(result, line)));
+      setSaved(false);
+    },
+    [result, ctaOn, placement, ctaSlideText],
+  );
+
+  const toggleCta = useCallback(
+    (on: boolean) => {
+      setCtaOn(on);
+      if (result) setDeck((d) => applyCtaSlides(d, on ? placement : "none", ctaSlideText(result, result.callToAction)));
+      setSaved(false);
+    },
+    [result, placement, ctaSlideText],
+  );
+
+  const choosePlacement = useCallback(
+    (p: CtaPlacement) => {
+      setPlacement(p);
+      if (result) setDeck((d) => applyCtaSlides(d, ctaOn ? p : "none", ctaSlideText(result, result.callToAction)));
+      setSaved(false);
+    },
+    [result, ctaOn, ctaSlideText],
+  );
+
   const handleCopyCaption = useCallback(async () => {
     if (!result) return;
-    const text = buildCarouselCaption(result.title, result.caption, result.callToAction, result.hashtags || []);
+    const text = buildCarouselCaption(result.title, result.caption, cta, result.hashtags || []);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -122,7 +162,7 @@ export default function CarouselGenerator({
     } catch {
       setError("Could not copy to clipboard.");
     }
-  }, [result]);
+  }, [result, cta]);
 
   const handleDownloadSlide = useCallback(
     async (idx: number) => {
@@ -167,26 +207,26 @@ export default function CarouselGenerator({
       result.tone,
       result.dndThemed,
       result.caption,
-      result.callToAction,
+      cta,
       result.hashtags || [],
       deck,
       result.painPoint,
     );
     downloadCarouselText(`carousel-${slugify(result.title)}.txt`, text);
-  }, [result, deck]);
+  }, [result, deck, cta]);
 
   const handleSaveToQuest = useCallback(async () => {
     if (!result || !campaign) return;
     setQuestState("saving");
     setQuestNote("");
     try {
-      const res = await saveCarousel({ data: { ...result, deck } });
+      const res = await saveCarousel({ data: { ...result, callToAction: cta, deck } });
       if (!res.ok || !res.id) {
         setQuestState("error");
         setQuestNote(res.error || "Could not save the carousel.");
         return;
       }
-      const text = [result.title, ...deck.flatMap((s) => s.elements.map((e) => e.text)), result.caption, result.callToAction].join("\n");
+      const text = [result.title, ...deck.flatMap((s) => s.elements.map((e) => e.text)), result.caption, cta].join("\n");
       const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `carousel:${res.id}`, text } });
       if (!att.ok) {
         setQuestState("error");
@@ -199,14 +239,14 @@ export default function CarouselGenerator({
       setQuestState("error");
       setQuestNote("Could not save to the quest.");
     }
-  }, [result, deck, campaign]);
+  }, [result, deck, campaign, cta]);
 
   const handleSave = useCallback(async () => {
     if (!result) return;
     setSaving(true);
     setError("");
     try {
-      const res = await saveCarousel({ data: { ...result, deck } });
+      const res = await saveCarousel({ data: { ...result, callToAction: cta, deck } });
       if (!res.ok) {
         setError(res.error || "Could not save the carousel.");
         return;
@@ -218,7 +258,7 @@ export default function CarouselGenerator({
     } finally {
       setSaving(false);
     }
-  }, [result, deck]);
+  }, [result, deck, cta]);
 
   // ── Editor state helpers ─────────────────────────────────────────
 
@@ -379,7 +419,51 @@ export default function CarouselGenerator({
               onSelectCaption={selectCaption}
               hashtags={result.hashtags || []}
               onError={setError}
+              ctaLine={cta}
             />
+
+            <CtaPanel
+              options={result.callToActions || []}
+              value={result.callToAction}
+              on={ctaOn}
+              onSelect={selectCta}
+              onToggle={toggleCta}
+              onError={setError}
+              note="The post text has no call to action and the deck has no call to action slide."
+            >
+              <div className="pt-1 space-y-1">
+                <p className="text-[#e0b45a] text-xs font-fantasy">Call to action slide</p>
+                <div className="flex flex-wrap gap-2">
+                  {CTA_PLACEMENTS.map((opt) => {
+                    const selected = ctaOn && placement === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          if (!ctaOn) toggleCta(true);
+                          choosePlacement(opt.id);
+                        }}
+                        aria-pressed={selected}
+                        title={opt.note}
+                        data-cta-placement={opt.id}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-fantasy transition-all ${
+                          selected
+                            ? "border-[#c08020] bg-[#c08020]/15 text-[#c08020]"
+                            : "border-[#406080]/40 bg-[#0d1520]/40 text-[#a0a0a0] hover:border-[#c08020]/50 hover:text-[#e0e0e0]"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[#606080] text-xs font-fantasy">
+                  {ctaOn ? CTA_PLACEMENTS.find((o) => o.id === placement)?.note : "Turn the call to action on to place its slide."}{" "}
+                  Switching placement rebuilds the call to action slide; the other slides keep their edits.
+                </p>
+              </div>
+            </CtaPanel>
 
             {/* Slide deck + editor (extra room at the bottom while the docked editor is open) */}
             <div className={`space-y-5 ${editingIdx !== null ? "pb-[48vh]" : ""}`}>

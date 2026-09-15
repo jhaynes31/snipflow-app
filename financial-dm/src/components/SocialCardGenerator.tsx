@@ -13,6 +13,8 @@ import { downloadCardPng, downloadAllCardsZip } from "~/lib/socialCardUtils";
 import SocialCardPreview from "./SocialCardPreview";
 import CardStylePicker from "./CardStylePicker";
 import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
+import CtaPanel from "~/components/generator/CtaPanel";
+import { effectiveCta, withCtaLine } from "~/lib/cta";
 
 /**
  * Roughly what fits a 2 to 3 line clamp on a square card. Headlines longer
@@ -58,7 +60,16 @@ export default function SocialCardGenerator({
   const [dlProgress, setDlProgress] = useState<{ done: number; total: number } | null>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const cards = batch?.cards ?? [];
+  /** Whether the call to action goes out at all, and whether it also gets its own card at the end. John's choices stick across forges. */
+  const [ctaOn, setCtaOn] = useState(true);
+  const [ctaCardOn, setCtaCardOn] = useState(false);
+  const cta = effectiveCta(ctaOn, batch?.callToAction ?? "");
+  const ctaIdx = batch ? (batch.callToActions || []).indexOf(batch.callToAction) : -1;
+  const ctaCard = ctaOn && ctaCardOn && batch && ctaIdx >= 0 ? batch.ctaCards?.[ctaIdx] ?? null : null;
+  /** Everything that renders, exports, and saves: the content cards plus the call to action card when it is on. */
+  const cards = batch ? (ctaCard ? [...batch.cards, ctaCard] : batch.cards) : [];
+  /** The caption that gets saved: the chosen caption with the call to action after it. */
+  const savedCaption = batch ? withCtaLine(batch.caption, cta) : "";
 
   const handleGenerate = useCallback(async () => {
     if (selections.length === 0) {
@@ -90,10 +101,21 @@ export default function SocialCardGenerator({
     }
   }, [selections, format, tone, dndThemed, campaign]);
 
-  const updateCard = useCallback((idx: number, patch: Partial<SocialCard>) => {
-    setBatch((b) =>
-      b ? { ...b, cards: b.cards.map((card, i) => (i === idx ? { ...card, ...patch } : card)) } : b,
-    );
+  const updateCard = useCallback(
+    (idx: number, patch: Partial<SocialCard>) => {
+      setBatch((b) => {
+        if (!b) return b;
+        // Past the content cards sits the call to action card; edits land on the chosen option's card.
+        if (idx >= b.cards.length) return ctaIdx >= 0 ? { ...b, ctaCards: b.ctaCards.map((card, i) => (i === ctaIdx ? { ...card, ...patch } : card)) } : b;
+        return { ...b, cards: b.cards.map((card, i) => (i === idx ? { ...card, ...patch } : card)) };
+      });
+    },
+    [ctaIdx],
+  );
+
+  const selectCta = useCallback((callToAction: string) => {
+    setBatch((b) => (b ? { ...b, callToAction } : b));
+    setSaved(false);
   }, []);
 
   const selectCaption = useCallback((caption: string) => {
@@ -106,13 +128,13 @@ export default function SocialCardGenerator({
     setQuestState("saving");
     setQuestNote("");
     try {
-      const res = await saveSocialCards({ data: { format, tone, dndThemed, caption: batch.caption, hashtags: batch.hashtags, cards: batch.cards, themeBackground, themeBorder } });
+      const res = await saveSocialCards({ data: { format, tone, dndThemed, caption: savedCaption, hashtags: batch.hashtags, cards, themeBackground, themeBorder } });
       if (!res.ok || !res.id) {
         setQuestState("error");
         setQuestNote(res.error || "Could not save the cards.");
         return;
       }
-      const text = [...batch.cards.flatMap((c) => [c.headline, c.body, c.punchline]), batch.caption].join("\n");
+      const text = [...cards.flatMap((c) => [c.headline, c.body, c.punchline]), savedCaption].join("\n");
       const att = await attachOutputToSlot({ data: { slotId: campaign.slotId, ref: `cards:${res.id}`, text } });
       if (!att.ok) {
         setQuestState("error");
@@ -125,7 +147,7 @@ export default function SocialCardGenerator({
       setQuestState("error");
       setQuestNote("Could not save to the quest.");
     }
-  }, [batch, campaign, format, tone, dndThemed, themeBackground, themeBorder]);
+  }, [batch, cards, savedCaption, campaign, format, tone, dndThemed, themeBackground, themeBorder]);
 
   const handleSave = useCallback(async () => {
     if (!batch || batch.cards.length === 0) return;
@@ -137,9 +159,9 @@ export default function SocialCardGenerator({
           format,
           tone,
           dndThemed,
-          caption: batch.caption,
+          caption: savedCaption,
           hashtags: batch.hashtags,
-          cards: batch.cards,
+          cards,
           themeBackground,
           themeBorder,
         },
@@ -155,7 +177,7 @@ export default function SocialCardGenerator({
     } finally {
       setSaving(false);
     }
-  }, [batch, format, tone, dndThemed, themeBackground, themeBorder]);
+  }, [batch, cards, savedCaption, format, tone, dndThemed, themeBackground, themeBorder]);
 
   const handleDownloadCard = useCallback(
     async (idx: number) => {
@@ -295,8 +317,9 @@ export default function SocialCardGenerator({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {cards.map((card, idx) => {
               const isEditing = editingIdx === idx;
+              const isCta = idx >= (batch?.cards.length ?? 0);
               return (
-                <div key={idx} className="space-y-2">
+                <div key={idx} className="space-y-2" data-card-slot={isCta ? "cta" : "content"}>
                   <SocialCardPreview
                     card={card}
                     themeBackground={themeBackground}
@@ -309,6 +332,7 @@ export default function SocialCardGenerator({
                   {card.painPoint && (
                     <p className="text-center text-[#606080] text-[11px] font-fantasy">🎯 {card.painPoint}</p>
                   )}
+                  {isCta && <p className="text-center text-[#e8c884] text-[11px] font-fantasy">🎯 Call to action card</p>}
                   <div className="flex justify-center gap-2 flex-wrap">
                     <button
                       type="button"
@@ -333,7 +357,7 @@ export default function SocialCardGenerator({
                     <div className="space-y-2 p-3 rounded-lg bg-[#0d1520]/60 border border-[#406080]/30">
                       <label className="block">
                         <span className="text-[#e0b45a] text-xs font-fantasy">
-                          {card.format === "trap" ? "Myth (Trap)" : "Stat (Headline)"}
+                          {isCta ? "Invitation (Headline)" : card.format === "trap" ? "Myth (Trap)" : "Stat (Headline)"}
                         </span>
                         <textarea
                           value={card.headline}
@@ -354,7 +378,7 @@ export default function SocialCardGenerator({
                       </label>
                       <label className="block">
                         <span className="text-[#e0b45a] text-xs font-fantasy">
-                          {card.format === "trap" ? "Truth (Treasure)" : "Supporting Line"}
+                          {isCta ? "Call to Action" : card.format === "trap" ? "Truth (Treasure)" : "Supporting Line"}
                         </span>
                         <textarea
                           value={card.body}
@@ -409,12 +433,48 @@ export default function SocialCardGenerator({
             })}
           </div>
 
+          <CtaPanel
+            options={batch.callToActions || []}
+            value={batch.callToAction}
+            on={ctaOn}
+            onSelect={selectCta}
+            onToggle={(on) => {
+              setCtaOn(on);
+              setSaved(false);
+            }}
+            onError={setError}
+            note="The caption goes out without it and there is no call to action card."
+          >
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!ctaOn) setCtaOn(true);
+                  setCtaCardOn((v) => !(ctaOn && v));
+                  setEditingIdx(null);
+                  setSaved(false);
+                }}
+                aria-pressed={ctaOn && ctaCardOn}
+                data-cta-card
+                className={`px-3 py-1.5 rounded-lg border text-xs font-fantasy transition-all ${
+                  ctaOn && ctaCardOn
+                    ? "border-[#c08020] bg-[#c08020]/15 text-[#c08020]"
+                    : "border-[#406080]/40 bg-[#0d1520]/40 text-[#a0a0a0] hover:border-[#c08020]/50 hover:text-[#e0e0e0]"
+                }`}
+              >
+                {ctaOn && ctaCardOn ? "✅ Call to action card added at the end" : "○ Add a call to action card at the end"}
+              </button>
+              <p className="text-[#606080] text-xs font-fantasy mt-1">The card takes the chosen call to action, shows above with the same style, and exports and saves with the batch.</p>
+            </div>
+          </CtaPanel>
+
           <CaptionHashtagPanel
             captions={batch.captions}
             caption={batch.caption}
             onSelectCaption={selectCaption}
             hashtags={batch.hashtags}
             onError={setError}
+            ctaLine={cta}
           />
         </section>
       )}

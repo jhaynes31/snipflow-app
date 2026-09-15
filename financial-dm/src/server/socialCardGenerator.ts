@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import {
   CAPTION_OPTIONS_RULES,
+  CTA_OPTIONS_RULES,
   FORMATTING_RULES,
   HASHTAG_RULES,
   VARIETY_RULES,
@@ -58,6 +59,12 @@ export interface SocialCardBatchResult {
   caption: string;
   captions: string[];
   hashtags: string[];
+  /** The chosen call to action line, or "" when John leaves it out. */
+  callToAction: string;
+  /** 2 to 3 call to action options. */
+  callToActions: string[];
+  /** One optional call to action card per option, in the same order, ready to sit at the end of the batch. */
+  ctaCards: SocialCard[];
 }
 
 export interface SavedSocialCardBatch {
@@ -134,7 +141,10 @@ ${buildVoiceBlock({ tone, dndThemed, medium: "card" })}
 
 ${formatGuidance}
 
-Write one card per topic supplied (in the same order), each speaking to that card's own pain point.
+Write one card per topic supplied (in the same order), each speaking to that card's own pain point. The cards must NOT carry the call to action; that is chosen separately and John may leave it out.
+
+${CTA_OPTIONS_RULES}
+Also write one CALL TO ACTION CARD per option, in the same order, in a "ctaCards" array using the card shape: headline is the invitation as a warm question or nudge (at most 90 characters), body is the option's line (at most 200 characters), punchline is a short kicker (at most 60 characters). John can add the chosen one as the last card of the batch.
 
 ${CAPTION_OPTIONS_RULES}
 The captions cover the whole batch of cards as one post.
@@ -146,7 +156,7 @@ ${VARIETY_RULES} Make each card feel fresh and distinct from the others.
 ${FORMATTING_RULES}
 
 Respond with valid JSON only, with no other text and no markdown fences. Use exactly this shape:
-{ "cards": [ { "headline": "Bold headline here", "body": "Supporting line here", "punchline": "Short kicker here" }, { "headline": "...", "body": "...", "punchline": "..." } ], "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"] }`;
+{ "cards": [ { "headline": "Bold headline here", "body": "Supporting line here", "punchline": "Short kicker here" }, { "headline": "...", "body": "...", "punchline": "..." } ], "callToActions": ["Call to action option one", "Call to action option two", "Call to action option three"], "ctaCards": [ { "headline": "Inviting question", "body": "Call to action option one", "punchline": "Short kicker" }, { "headline": "...", "body": "Call to action option two", "punchline": "..." }, { "headline": "...", "body": "Call to action option three", "punchline": "..." } ], "captions": ["Caption option one", "Caption option two", "Caption option three"], "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"] }`;
 }
 
 // ── Server Functions ───────────────────────────────────────────────
@@ -188,6 +198,9 @@ export const generateSocialCards = createServerFn({ method: "POST" })
           captions?: unknown;
           caption?: unknown;
           hashtags?: unknown;
+          callToActions?: unknown;
+          callToAction?: unknown;
+          ctaCards?: Array<{ headline?: unknown; body?: unknown; punchline?: unknown }>;
         }
       | Array<{ headline?: unknown; body?: unknown; punchline?: unknown }>
     >(text, "socialCardGenerator");
@@ -234,7 +247,23 @@ export const generateSocialCards = createServerFn({ method: "POST" })
       ? []
       : normalizeCaptions(parsed.captions, parsed.caption).map((x) => ensureCtaLine(x, data.campaign));
     const hashtags = Array.isArray(parsed) ? [] : normalizeHashtags(parsed.hashtags);
-    return { cards, caption: captions[0] ?? "", captions, hashtags };
+    // Call to action options, each with a card John can add at the end of the batch.
+    const rawCtaCards = !Array.isArray(parsed) && Array.isArray(parsed.ctaCards) ? parsed.ctaCards : [];
+    const callToActions = Array.isArray(parsed) ? [] : normalizeCaptions(parsed.callToActions, parsed.callToAction).map((x) => ensureCtaLine(x, data.campaign));
+    const ctaCards: SocialCard[] = callToActions.map((line, i) => {
+      const raw = rawCtaCards[i];
+      const body = capText(ensureCtaLine(cleanText(raw?.body) || line, data.campaign), CARD_CAPS.body);
+      return {
+        topic: "Call to action",
+        fact: "",
+        painPoint: "",
+        format,
+        headline: capText(cleanText(raw?.headline) || "Want a straight answer?", CARD_CAPS.headline),
+        body,
+        punchline: capText(cleanText(raw?.punchline) || "Pull up a stool. The Financial DM has you.", CARD_CAPS.punchline),
+      };
+    });
+    return { cards, caption: captions[0] ?? "", captions, hashtags, callToAction: callToActions[0] ?? "", callToActions, ctaCards };
   });
 
 // ── Saved library (database) ───────────────────────────────────────

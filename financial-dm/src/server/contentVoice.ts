@@ -113,7 +113,13 @@ export const CAPTION_OPTIONS_RULES = `CAPTION OPTIONS (required): Write 3 differ
 - Each caption expands on what the viewer learns or gains; it does not restate the hook, headline, or opening line.
 - Keep the FIRST LINE of each caption UNDER 10 WORDS (platforms truncate after about one line), then put a line break.
 - Vary the angle across the three options (for example one leads with the pain point, one with the useful takeaway, one with a question to the viewer).
-- Each ends with a light, optional invitation to book a free call with John, a licensed life insurance agent, for example to review coverage or ask a money question.`;
+- Do NOT put a call to action, an invitation, or a link in the captions. The call to action is written separately (see CALL TO ACTION OPTIONS) and John decides whether to add it.`;
+
+export const CTA_OPTIONS_RULES = `CALL TO ACTION OPTIONS (required): Write 3 different call to action options in a "callToActions" array. Each is one or two short sentences in the bartender's voice: friendly, optional, never pushy, and matched to the same topic, pain point, and tone as the rest of the package.
+- Option 1 invites the viewer to book a free call with John, a licensed life insurance agent, for example to review their coverage, ask a money question, or plan for the future.
+- Option 2 asks for a smaller, easier step instead of a call: drop a question in the comments or send John a message.
+- Option 3 asks the viewer to save this, share it with someone who needs it, or follow for the next one, with a light reason why.
+- Vary the wording; the three options must not sound alike. John picks one, or leaves the call to action out altogether, so the rest of the package must read well without any of them.`;
 
 export const VARIETY_RULES = `VARIETY (important): Every generation must feel fresh. Vary the opening, choose a different analogy, example, or angle, and do not repeat formulas from earlier drafts. Avoid cliches and generic filler.`;
 

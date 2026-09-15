@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { withCtaLine } from "~/lib/cta";
 
 /**
  * Shared caption options + hashtags block. Every generator renders the same
@@ -15,6 +16,7 @@ export default function CaptionHashtagPanel({
   onRegenerateHashtags,
   regenerating = "",
   regenerateDisabled = false,
+  ctaLine = "",
 }: {
   captions: string[];
   caption: string;
@@ -27,6 +29,8 @@ export default function CaptionHashtagPanel({
   onRegenerateHashtags?: () => void;
   regenerating?: "" | "captions" | "hashtags";
   regenerateDisabled?: boolean;
+  /** The chosen call to action; Copy Caption adds it on its own line. Empty when John left it out. */
+  ctaLine?: string;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -58,7 +62,7 @@ export default function CaptionHashtagPanel({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => copy("caption", caption)}
+              onClick={() => copy("caption", withCtaLine(caption, ctaLine))}
               disabled={!caption}
               className="shrink-0 px-3 py-1.5 rounded-lg bg-[#204060]/30 border border-[#406080]/30 text-[#e0e0e0] hover:bg-[#204060]/50 transition-all text-xs font-fantasy disabled:opacity-40"
             >
@@ -111,7 +115,7 @@ export default function CaptionHashtagPanel({
             {options.length > 1 && (
               <p className="text-[#606080] text-xs font-fantasy">
                 The checked caption is the one that gets saved, copied, and
-                downloaded.
+                downloaded.{ctaLine ? " Copy Caption adds the call to action after it." : ""}
               </p>
             )}
           </div>

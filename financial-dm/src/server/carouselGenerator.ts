@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import {
   CAPTION_OPTIONS_RULES,
+  CTA_OPTIONS_RULES,
   FORMATTING_RULES,
   HASHTAG_RULES,
   VARIETY_RULES,
@@ -52,7 +53,12 @@ export interface CarouselResult {
   caption: string;
   /** 2 to 3 caption options. */
   captions: string[];
+  /** The chosen call to action line, or "" when John leaves it out. */
   callToAction: string;
+  /** 2 to 3 call to action options (the bodies of ctaSlides). */
+  callToActions: string[];
+  /** One call to action slide per option: a short inviting heading plus the line. */
+  ctaSlides: CarouselSlide[];
   hashtags: string[];
   slides: CarouselSlide[];
 }
@@ -90,7 +96,10 @@ REQUIREMENTS:
 - Provide a short, catchy cover title for the carousel (a few words).
 - Provide 4 to 6 content slides. Each slide has a heading of at most 8 words and a short, scannable body line of roughly 10 to 25 words. Slide text must read cleanly on a phone at a glance: one idea per slide, plain words, no jargon left unexplained.
 - The first content slide should name the pain point so the viewer feels seen, the middle slides teach the key point, and the last content slide gives the viewer one concrete thing to do.
-- End with a clear, friendly call to action inviting the viewer to book a free call with John, a licensed life insurance agent, to review their coverage, ask a financial question, or plan for the future.
+- The content slides must NOT contain the call to action. It gets its own slide, and John chooses where that slide goes (the middle, the end, both, or nowhere), so the content has to stand on its own.
+
+${CTA_OPTIONS_RULES}
+For the carousel, deliver those three options as CALL TO ACTION SLIDES in a "ctaSlides" array, in the same order: each has a heading of at most 6 words that invites the viewer (a warm question or nudge, not a command) and the option's line as the body. Each slide must read cleanly on a phone.
 
 ${CAPTION_OPTIONS_RULES}
 Captions preview the carousel and invite the viewer to swipe; they must not simply repeat the cover title.
@@ -102,7 +111,7 @@ ${VARIETY_RULES} Keep each carousel distinct in structure and wording.
 ${FORMATTING_RULES}
 
 Respond with valid JSON only, with no other text and no markdown fences. Use exactly this shape:
-{ "title": "Catchy title here", "captions": ["Caption option one", "Caption option two", "Caption option three"], "callToAction": "A short friendly closing line inviting the viewer to book a free call with John.", "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"], "slides": [ { "heading": "Slide heading", "body": "Short scannable body line" }, { "heading": "Slide heading", "body": "Short scannable body line" } ] }`;
+{ "title": "Catchy title here", "captions": ["Caption option one", "Caption option two", "Caption option three"], "ctaSlides": [ { "heading": "Inviting heading", "body": "Call to action option one" }, { "heading": "Inviting heading", "body": "Call to action option two" }, { "heading": "Inviting heading", "body": "Call to action option three" } ], "hashtags": ["#HashtagOne", "#HashtagTwo", "#HashtagThree"], "slides": [ { "heading": "Slide heading", "body": "Short scannable body line" }, { "heading": "Slide heading", "body": "Short scannable body line" } ] }`;
 }
 
 // ── Server Functions ───────────────────────────────────────────────
@@ -125,10 +134,24 @@ export const generateCarousel = createServerFn({ method: "POST" })
       caption?: unknown;
       captions?: unknown;
       callToAction?: unknown;
+      callToActions?: unknown;
+      ctaSlides?: Array<{ heading?: unknown; body?: unknown }>;
       hashtags?: unknown;
       slides?: Array<{ heading?: unknown; body?: unknown }>;
     }>(text, "carouselGenerator");
     if (!parsed) return null;
+
+    // The call to action options arrive as slides; older replies carry a
+    // single line or a bare list, which become slides with the classic heading.
+    let ctaSlides: CarouselSlide[] = Array.isArray(parsed.ctaSlides)
+      ? parsed.ctaSlides.map((s) => ({ heading: cleanText(s?.heading), body: ensureCtaLine(cleanText(s?.body), data.campaign) })).filter((s) => s.body)
+      : [];
+    if (ctaSlides.length === 0) {
+      ctaSlides = normalizeCaptions(parsed.callToActions, parsed.callToAction).map((body) => ({ heading: "", body: ensureCtaLine(body, data.campaign) }));
+    }
+    const seen = new Set<string>();
+    ctaSlides = ctaSlides.filter((s) => (seen.has(s.body.toLowerCase()) ? false : (seen.add(s.body.toLowerCase()), true))).slice(0, 3);
+    const callToActions = ctaSlides.map((s) => s.body);
 
     const slides: CarouselSlide[] = Array.isArray(parsed.slides)
       ? parsed.slides
@@ -150,7 +173,9 @@ export const generateCarousel = createServerFn({ method: "POST" })
       title: cleanText(parsed.title),
       caption: captions[0] ?? "",
       captions,
-      callToAction: ensureCtaLine(cleanText(parsed.callToAction), data.campaign),
+      callToAction: callToActions[0] ?? "",
+      callToActions,
+      ctaSlides,
       hashtags: normalizeHashtags(parsed.hashtags),
       slides,
     };
