@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="seated position">
+<style>@media (prefers-reduced-motion: no-preference){ .b{ animation: breathe 4s ease-in-out infinite; transform-origin: 150px 150px; } @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} } }</style>
+<rect width="320" height="240" rx="24" fill="#E6ECD8"/>
+<circle cx="270" cy="44" r="22" fill="#F2C94C" opacity="0.6"/>
+<line x1="24" y1="204" x2="296" y2="204" stroke="#6B4F3A" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+<g class="b"><rect x="196" y="150" width="56" height="10" rx="4" fill="#5B7B3A" opacity="0.6"/><rect x="244" y="96" width="8" height="64" rx="3" fill="#5B7B3A" opacity="0.6"/><line x1="200" y1="160" x2="200" y2="204" stroke="#5B7B3A" stroke-width="8" opacity="0.6"/><line x1="248" y1="160" x2="248" y2="204" stroke="#5B7B3A" stroke-width="8" opacity="0.6"/><circle cx="190" cy="92" r="13" fill="#2F4A2E"/><line x1="190" y1="106" x2="190" y2="156" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="190" y1="156" x2="150" y2="158" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="150" y1="158" x2="152" y2="204" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="190" y1="120" x2="160" y2="150" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/></g>
+</svg>

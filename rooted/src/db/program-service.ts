@@ -217,10 +217,15 @@ export async function completeSession(sessionId: string, opts: { early?: boolean
   if (status !== 'skipped') {
     const unlocked = new Set((await database.lessons.toArray()).map((l) => l.lessonId));
     const done = new Set(s.prescriptions.map((p) => EXERCISE_MAP[p.exerciseId]).filter(Boolean).flatMap((e) => [...e!.lessonIds, ...e!.movementPatterns]));
+    // Gentle pacing (Section 14): first-session lessons plus at most one more per session.
+    let extra = 0;
     for (const lesson of LESSONS) {
       if (unlocked.has(lesson.id)) continue;
-      const ok = lesson.unlockedBy === 'first-session' || done.has(lesson.unlockedBy) || (lesson.unlockedBy.startsWith('template:') && lesson.unlockedBy.slice(9) === s.templateId);
-      if (ok) { await database.lessons.put({ lessonId: lesson.id, unlockedAt: nowISO }); newLessons.push(lesson.id); }
+      const first = lesson.unlockedBy === 'first-session';
+      const ok = first || done.has(lesson.unlockedBy) || (lesson.unlockedBy.startsWith('template:') && lesson.unlockedBy.slice(9) === s.templateId);
+      if (!ok) continue;
+      if (!first) { if (extra >= 1) continue; extra++; }
+      await database.lessons.put({ lessonId: lesson.id, unlockedAt: nowISO }); newLessons.push(lesson.id);
     }
   }
 

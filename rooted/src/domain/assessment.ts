@@ -29,6 +29,13 @@ export const SCREEN_TESTS: ScreenTest[] = [
     instructions: ['Lie on your back, knees bent, and lift your hips.', 'Hold as long as feels good, up to 30 seconds.'] },
 ];
 
+export interface ScreenStep { t: ScreenTest; side?: 'left' | 'right' }
+
+/** One screen per test, split into left/right where the test is per side. */
+export function screenSteps(): ScreenStep[] {
+  return SCREEN_TESTS.flatMap<ScreenStep>((t) => (t.perSide ? [{ t, side: 'left' }, { t, side: 'right' }] : [{ t }]));
+}
+
 export interface StartingLevels {
   knees: 'gentle' | 'standard';
   balance: 'gentle' | 'standard';
