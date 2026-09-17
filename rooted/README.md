@@ -51,13 +51,14 @@ Every exercise ships with a calm stance pictogram (`public/media/stance-*.svg`, 
 EXERCISEDB_API_KEY=... node scripts/fetch-exercisedb.mjs
 ```
 
-It downloads matching ExerciseDB GIFs into `public/media/gifs/` and writes `public/media/manifest.json`; the app prefers a manifest entry when one exists. Custom videos for PT exercises are uploaded in-app and stored in IndexedDB.
+It downloads matching GIFs from the **ExerciseDB free V1 dataset** into `public/media/gifs/` and writes `public/media/manifest.json`; the app prefers a manifest entry when one exists. Run it from a machine with internet access (it needs a free RapidAPI key). Custom videos for PT exercises are uploaded in-app and stored in IndexedDB.
+
+**Licensing decision: free version only.** The free dataset is non-commercial with attribution. Rooted is a single-user personal app, so it qualifies. Attribution is shown under every ExerciseDB demo and on the Disclaimer page. If the app is ever sold or distributed, the GIFs must be removed or ExerciseDB's paid one-time license purchased.
 
 ## Decisions still needed
 
 Search the code for `DECISION NEEDED`. The main ones:
 
-- ExerciseDB licensing before shipping their GIFs.
 - Reminders are a local setting only; real scheduled notifications need a push service or a native wrapper.
 - Voice uses the browser's Web Speech voices. `src/coach/tts.ts` is the swap point for a better TTS.
 

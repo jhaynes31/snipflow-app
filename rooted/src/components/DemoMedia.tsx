@@ -37,7 +37,12 @@ export function DemoMedia({ exercise, slow = false, height = 220 }: { exercise: 
     );
   }
   if (media.type === 'gif') {
-    return <img src={media.src} alt={`${exercise.name} demonstration`} style={{ ...style, filter: slow ? 'none' : undefined }} loading="lazy" />;
+    return (
+      <figure className="m-0">
+        <img src={media.src} alt={`${exercise.name} demonstration`} style={style} loading="lazy" />
+        {media.credit && <figcaption className="muted text-xs mt-1 text-right">{media.credit}</figcaption>}
+      </figure>
+    );
   }
   return (
     <div style={{ ...style, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>

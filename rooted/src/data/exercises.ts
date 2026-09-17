@@ -9,7 +9,8 @@ import type { Exercise, Stance } from '@/domain/types';
  * Media: each exercise points at a stance pictogram under /media/ by default. When
  * `scripts/fetch-exercisedb.mjs` has been run, a GIF entry is added by the media
  * manifest at runtime (see src/data/media.ts).
- * // DECISION NEEDED: confirm ExerciseDB licensing before shipping their GIFs.
+ * Licensing decision: ExerciseDB FREE V1 dataset only (non-commercial, attribution
+ * shown in-app). See scripts/fetch-exercisedb.mjs for the terms.
  */
 
 type ExInput = Omit<Exercise, 'media' | 'lessonIds' | 'exclusionTags' | 'cautionTags' | 'musclesSecondary' | 'unilateral' | 'impact'> &

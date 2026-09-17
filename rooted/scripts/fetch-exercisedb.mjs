@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 /**
- * Downloads demo GIFs for the curated library from ExerciseDB (free V1 API) and
+ * Downloads demo GIFs for the curated library from the ExerciseDB FREE V1 API and
  * writes public/media/manifest.json mapping exerciseId -> local GIF path.
  * The app never calls ExerciseDB live; media is bundled and cached offline.
  *
- * Usage: EXERCISEDB_API_KEY=... node scripts/fetch-exercisedb.mjs
+ * LICENSING DECISION (resolved): free V1 dataset only. Its terms are
+ * non-commercial use with attribution. Rooted is a single-user personal app
+ * with no sales, so this fits. Attribution is shown under every ExerciseDB
+ * demo (DemoMedia) and on the Disclaimer page. Do not use these GIFs if the app
+ * is ever sold or distributed; that needs ExerciseDB's paid one-time license.
  *
- * // DECISION NEEDED: verify ExerciseDB licensing before shipping their GIFs.
+ * Usage (run on a machine with internet access; the free tier needs a RapidAPI key):
+ *   EXERCISEDB_API_KEY=... node scripts/fetch-exercisedb.mjs
+ *
  * The mapping below is name-based; edit MAPPING to pin exact ExerciseDB ids.
  */
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
@@ -34,13 +40,15 @@ for (const [id, name] of Object.entries(MAPPING)) {
   try {
     const res = await fetch(`https://${HOST}/exercises/name/${encodeURIComponent(name)}?limit=1`, { headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST } });
     if (!res.ok) throw new Error(`${res.status}`);
-    const [hit] = await res.json();
-    if (!hit?.gifUrl) { console.warn('no match for', id); continue; }
-    const gif = await fetch(hit.gifUrl);
+    const body = await res.json();
+    const hit = Array.isArray(body) ? body[0] : body?.data?.exercises?.[0] ?? body?.data?.[0];
+    const url = hit?.gifUrl ?? hit?.imageUrl;
+    if (!url) { console.warn('no match for', id); continue; }
+    const gif = await fetch(url);
     const buf = Buffer.from(await gif.arrayBuffer());
     const file = `public/media/gifs/${id}.gif`;
     writeFileSync(file, buf);
-    manifest[id] = { type: 'gif', src: `/media/gifs/${id}.gif`, credit: `ExerciseDB: ${hit.name}` };
+    manifest[id] = { type: 'gif', src: `/media/gifs/${id}.gif`, credit: `Demo: ExerciseDB free dataset (${hit.name}), non-commercial use` };
     console.log('saved', id, '<-', hit.name);
   } catch (e) {
     console.warn('failed', id, String(e));
