@@ -4,7 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Shell } from '@/components/Shell'
 import { db, newId, now } from '@/db/db'
 import type { WinType } from '@/db/types'
-import { WINS, WIN_LABEL } from '@/data/options'
+import { FREEDOM_TYPES, FREEDOM_WINS, WINS, WIN_LABEL } from '@/data/options'
+import { Link } from 'react-router-dom'
 import { fmtDateTime } from '@/lib/dates'
 
 export function Wins() {
@@ -25,7 +26,7 @@ export function Wins() {
     setTimeout(() => setFlash(''), 3000)
   }
 
-  const counts = WINS.map((w) => ({ ...w, n: wins.filter((x) => x.type === w.type).length })).filter((w) => w.n > 0).sort((a, b) => b.n - a.n)
+  const counts = [...WINS, ...FREEDOM_WINS].map((w) => ({ ...w, n: wins.filter((x) => x.type === w.type).length })).filter((w) => w.n > 0).sort((a, b) => b.n - a.n)
   const first = wins.length ? wins[wins.length - 1] : undefined
 
   return (
@@ -43,6 +44,7 @@ export function Wins() {
               <div key={c.type} className="item row-between"><span style={{ fontWeight: 700 }}>{c.label}</span><span className="chip chip-sm on">{c.n}</span></div>
             ))}
           </div>
+          {wins.some((w) => FREEDOM_TYPES.includes(w.type)) && <Link to="/unhooked/progress?tab=freedom" className="btn btn-ghost">Freedom moments in Unhooked</Link>}
           <p className="faint">No streaks here. Gaps are normal. Coming back is the win.</p>
         </div>
       ) : (
@@ -51,6 +53,10 @@ export function Wins() {
             <div className="label">Today I…</div>
             <div className="chips">
               {WINS.map((w) => <button key={w.type} type="button" className="chip chip-sage" aria-pressed={type === w.type} onClick={() => setType(type === w.type ? null : w.type)}>{w.label}</button>)}
+            </div>
+            <div className="label">Freedom moments</div>
+            <div className="chips">
+              {FREEDOM_WINS.map((w) => <button key={w.type} type="button" className="chip" aria-pressed={type === w.type} onClick={() => setType(type === w.type ? null : w.type)}>{w.label}</button>)}
             </div>
             {type && (
               <>

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Shell } from '@/components/Shell'
 import { Toggle } from '@/components/Toggle'
 import { Confirm } from '@/components/Confirm'
@@ -64,6 +65,7 @@ export function SettingsPage() {
           </div>
           <Toggle label="Larger text" checked={s.textSize === 'large'} onChange={(v) => updateSettings({ textSize: v ? 'large' : 'normal' })} />
           <Toggle label="Reduce motion" hint="Turns off animations, including the breathing circle's movement." checked={s.reduceMotion} onChange={(v) => updateSettings({ reduceMotion: v })} />
+          <Toggle label="Gentle haptics" hint="A soft buzz on breathing phases, where the device supports it." checked={s.haptics !== false} onChange={(v) => updateSettings({ haptics: v })} />
         </section>
 
         <section className="card">
@@ -75,6 +77,11 @@ export function SettingsPage() {
             <div className="chips">{[30, 90, 180].map((d) => <button key={d} type="button" className="chip chip-sm" style={{ cursor: 'pointer' }} aria-pressed={(s.circleReviewDays ?? 90) === d} onClick={() => updateSettings({ circleReviewDays: d })}>{d === 30 ? 'Month' : d === 90 ? '3 months' : '6 months'}</button>)}</div>
           </div>
           <button type="button" className="btn btn-quiet btn-sm mt" onClick={() => updateSettings({ circlesIntroSeen: false })}>Show the "Why circles?" intro again</button>
+        </section>
+
+        <section className="card">
+          <h3>Unhooked</h3>
+          <p className="help">Therapist contact and support options live under <Link to="/unhooked/support">Support and safety</Link>.{s.therapistName ? ` Saved: ${s.therapistName}.` : ''}</p>
         </section>
 
         <section className="card">

@@ -5,6 +5,8 @@ import { Shell } from '@/components/Shell'
 import { db, now } from '@/db/db'
 import type { Tag } from '@/db/types'
 import { TAGS } from '@/data/tags'
+import { useLoopGuard } from '@/lib/unhooked'
+import { LoopNotice } from '@/pages/UnhookedTools'
 
 export function JesusLibrary() {
   const [params, setParams] = useSearchParams()
@@ -44,6 +46,7 @@ export function JesusCardPage() {
   const { id } = useParams()
   const card = useLiveQuery(() => (id ? db.jesusCards.get(id) : undefined), [id])
   const [savedMsg, setSavedMsg] = useState('')
+  const looping = useLoopGuard(id ? `card:${id}` : undefined)
   const alreadySaved = useLiveQuery(
     async () => (card ? (await db.truths.where('id').equals(`from-card-${card.id}`).count()) > 0 : false),
     [card?.id],
@@ -66,6 +69,7 @@ export function JesusCardPage() {
   return (
     <Shell back="/jesus" hideNav={false}>
       <article className="stack-lg">
+        {looping && <LoopNotice tool="this card" />}
         <div>
           <h1>{card.title}</h1>
           <div className="muted">{card.reference}</div>

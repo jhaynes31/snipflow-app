@@ -24,6 +24,12 @@ import { MoveReview } from '@/pages/MoveReview'
 import { FlagDetail, FlagLibrary, LogRedFlag } from '@/pages/Flags'
 import { LayerBoundaries } from '@/pages/LayerBoundaries'
 import { CircleReview } from '@/pages/CircleReview'
+import { Learn, Support, UnhookedHome } from '@/pages/Unhooked'
+import { ToolPage } from '@/pages/UnhookedTools'
+import { LoopFlow } from '@/pages/LoopFlow'
+import { Values, WhoIAm } from '@/pages/UnhookedMe'
+import { UnhookedJesus } from '@/pages/UnhookedJesus'
+import { ExposureLadder, ReassurancePlan, RelapsePlanPage, SkillsProgress, TriggerMap } from '@/pages/UnhookedGrowth'
 import { ScrollToTop } from '@/components/ScrollToTop'
 
 export default function App() {
@@ -41,6 +47,7 @@ export default function App() {
     return () => mq.removeEventListener('change', onChange)
   }, [settings])
   const reminders = settings?.reminders
+  useEffect(() => { document.documentElement.dataset.haptics = settings?.haptics === false ? 'false' : 'true' }, [settings?.haptics])
   useEffect(() => {
     if (!reminders) return
     checkReminders(reminders)
@@ -78,6 +85,19 @@ export default function App() {
         <Route path="/circles/flags/:id" element={<FlagDetail />} />
         <Route path="/circles/boundaries" element={<LayerBoundaries />} />
         <Route path="/circles/review" element={<CircleReview />} />
+        <Route path="/unhooked" element={<UnhookedHome />} />
+        <Route path="/unhooked/loop" element={<LoopFlow />} />
+        <Route path="/unhooked/learn/:id" element={<Learn />} />
+        <Route path="/unhooked/tools/:tool" element={<ToolPage />} />
+        <Route path="/unhooked/me" element={<WhoIAm />} />
+        <Route path="/unhooked/values" element={<Values />} />
+        <Route path="/unhooked/jesus" element={<UnhookedJesus />} />
+        <Route path="/unhooked/map" element={<TriggerMap />} />
+        <Route path="/unhooked/ladder" element={<ExposureLadder />} />
+        <Route path="/unhooked/reassurance" element={<ReassurancePlan />} />
+        <Route path="/unhooked/progress" element={<SkillsProgress />} />
+        <Route path="/unhooked/plan" element={<RelapsePlanPage />} />
+        <Route path="/unhooked/support" element={<Support />} />
         <Route path="/release" element={<ReleaseList />} />
         <Route path="/release/new" element={<ReleaseNew />} />
         <Route path="/wins" element={<Wins />} />

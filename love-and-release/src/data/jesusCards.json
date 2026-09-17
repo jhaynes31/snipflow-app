@@ -7,7 +7,10 @@
     "howHeHandledIt": "He received His identity as beloved before any ministry, any results, or any response from people. His worth came first. Everything He did afterward flowed out of being loved, not toward earning it.",
     "meaningForMe": "I am loved before I do anything. My worth isn't waiting on someone's approval, a reply, or a job well done.",
     "prompt": "Where am I working to earn something that was already given to me?",
-    "tags": ["Pressure to perform or prove myself", "Rejection"]
+    "tags": [
+      "Pressure to perform or prove myself",
+      "Rejection"
+    ]
   },
   {
     "id": "jc-didnt-depend",
@@ -17,7 +20,10 @@
     "howHeHandledIt": "He kept loving and serving people with His whole heart, and He didn't hand them the job of holding His sense of self. He understood human nature, so enthusiasm didn't inflate Him and fickleness didn't crush Him.",
     "meaningForMe": "I can give people real love without giving them the keys to my worth. Understanding how people are is wisdom, not cynicism.",
     "prompt": "Who am I currently trusting to tell me whether I'm okay?",
-    "tags": ["Words and actions not matching", "Unreciprocated effort"]
+    "tags": [
+      "Words and actions not matching",
+      "Unreciprocated effort"
+    ]
   },
   {
     "id": "jc-looked-and-loved",
@@ -27,7 +33,10 @@
     "howHeHandledIt": "Jesus told the truth with love in His eyes. He didn't soften the truth to keep the man close, and He didn't chase him down the road to renegotiate. He let him go, and He let it be sad.",
     "meaningForMe": "I can love someone, be honest with them, and still let them walk away. Their leaving doesn't mean I said it wrong.",
     "prompt": "Is there a truth I've been softening so someone won't leave?",
-    "tags": ["Letting someone walk away", "Grief over someone's choices"]
+    "tags": [
+      "Letting someone walk away",
+      "Grief over someone's choices"
+    ]
   },
   {
     "id": "jc-grief-unwillingness",
@@ -37,7 +46,10 @@
     "howHeHandledIt": "He let Himself feel the full weight of longing for people who refused Him. He didn't pretend not to care, and He didn't override their choice. He wept, and He respected their freedom at the same time.",
     "meaningForMe": "Wanting closeness with someone who isn't willing is real grief, and it's allowed. I can honor their choice and still cry about it.",
     "prompt": "What am I grieving that I've been trying to fix instead of feel?",
-    "tags": ["Grief over someone's choices", "Rejection"]
+    "tags": [
+      "Grief over someone's choices",
+      "Rejection"
+    ]
   },
   {
     "id": "jc-friends-fell-asleep",
@@ -47,7 +59,10 @@
     "howHeHandledIt": "He was honest about His anguish and asked for what He needed. When they let Him down, He named it plainly: \"Couldn't you keep watch for one hour?\" And in the same breath He recognized their willing spirit and their weak flesh. He didn't pretend it was fine, and He didn't decide they never loved Him.",
     "meaningForMe": "I can ask for support, be let down, say so honestly, and still hold that the people who fell asleep are people who love me.",
     "prompt": "When someone recently let me down, what's the story I made it mean about them, or about me?",
-    "tags": ["Feeling alone or unsupported", "Being forgotten or dropped"]
+    "tags": [
+      "Feeling alone or unsupported",
+      "Being forgotten or dropped"
+    ]
   },
   {
     "id": "jc-brought-to-father",
@@ -57,7 +72,10 @@
     "howHeHandledIt": "He took His overwhelm straight to God, out loud, honestly, and repeatedly. He didn't clean up His prayer first. He didn't carry the weight alone because His friends were asleep. He kept bringing it until He was steady enough to stand up.",
     "meaningForMe": "I don't have to process everything alone or make it tidy first. I can bring the same ache to God as many times as it takes.",
     "prompt": "What have I been carrying alone that I could say out loud to God right now, exactly as it is?",
-    "tags": ["Feeling alone or unsupported", "Grief over someone's choices"]
+    "tags": [
+      "Feeling alone or unsupported",
+      "Grief over someone's choices"
+    ]
   },
   {
     "id": "jc-didnt-chase",
@@ -67,7 +85,10 @@
     "howHeHandledIt": "He didn't water down what He said to win them back, and He didn't beg anyone to stay. He gave even His closest friends an honest, open door. He let people be free to choose Him or not.",
     "meaningForMe": "Being chosen freely is worth more than being kept by chasing. I don't have to shrink my truth to keep a crowd.",
     "prompt": "Where am I over-functioning to keep someone from leaving?",
-    "tags": ["Rejection", "Letting someone walk away"]
+    "tags": [
+      "Rejection",
+      "Letting someone walk away"
+    ]
   },
   {
     "id": "jc-hometown",
@@ -77,7 +98,10 @@
     "howHeHandledIt": "He acknowledged it out loud: a prophet is not without honor except in his hometown. He was amazed at their unbelief. Then He went on to the surrounding villages and kept teaching. He didn't stay and keep auditioning.",
     "meaningForMe": "The people who've known me longest don't always get to see who I've become. I can name that, feel it, and keep going where I'm received.",
     "prompt": "Who am I still trying to convince, and what would it be like to stop?",
-    "tags": ["Rejection", "Redefining a relationship / chosen family"]
+    "tags": [
+      "Rejection",
+      "Redefining a relationship / chosen family"
+    ]
   },
   {
     "id": "jc-rebuked-revenge",
@@ -87,7 +111,10 @@
     "howHeHandledIt": "He turned and rebuked His disciples. No retaliation, no scorched earth. Then they simply went to another village. Rejection didn't get a dramatic response. It got a quiet redirect.",
     "meaningForMe": "When someone shuts a door, I don't have to punish them or punish myself. I can just go to the next village.",
     "prompt": "Is there a rejection I'm still standing outside of, when I could walk somewhere warmer?",
-    "tags": ["Rejection", "Letting someone walk away"]
+    "tags": [
+      "Rejection",
+      "Letting someone walk away"
+    ]
   },
   {
     "id": "jc-withdrew-to-rest",
@@ -97,7 +124,10 @@
     "howHeHandledIt": "He rested and prayed even while people still wanted more from Him. He didn't go everywhere He was pulled. He chose His direction from a place of connection with the Father, not from the pressure of the crowd.",
     "meaningForMe": "Needing rest isn't failing people. I'm allowed to withdraw even when someone is still looking for me.",
     "prompt": "What would it look like to rest today before I'm completely empty?",
-    "tags": ["Needing rest", "Setting a boundary"]
+    "tags": [
+      "Needing rest",
+      "Setting a boundary"
+    ]
   },
   {
     "id": "jc-not-their-timeline",
@@ -107,7 +137,10 @@
     "howHeHandledIt": "He told them plainly, \"My time has not yet come.\" He stayed behind while they went. Later He went on His own terms, quietly. He didn't let other people's urgency or need for proof set His pace.",
     "meaningForMe": "Someone else's pressure doesn't create my deadline. I can move on my own timing, even when people push.",
     "prompt": "Whose timeline am I hurrying to meet right now, and is it actually mine?",
-    "tags": ["Pressure to perform or prove myself", "Setting a boundary"]
+    "tags": [
+      "Pressure to perform or prove myself",
+      "Setting a boundary"
+    ]
   },
   {
     "id": "jc-silent-before-herod",
@@ -117,7 +150,10 @@
     "howHeHandledIt": "Jesus gave him no answer. Not one word. He refused to perform for someone who only wanted a show and had no real interest in Him. His silence was not weakness. It was a boundary.",
     "meaningForMe": "I don't owe a performance to everyone who's curious. I can decline to prove myself to someone who only wants entertainment.",
     "prompt": "Where am I performing for an audience that doesn't actually care about me?",
-    "tags": ["Pressure to perform or prove myself", "Setting a boundary"]
+    "tags": [
+      "Pressure to perform or prove myself",
+      "Setting a boundary"
+    ]
   },
   {
     "id": "jc-only-one-came-back",
@@ -127,7 +163,10 @@
     "howHeHandledIt": "He noticed and named the imbalance out loud. He didn't pretend it didn't sting. And He didn't take the healing back from the nine. He gave freely, told the truth about the response, and blessed the one who returned.",
     "meaningForMe": "I can give without a guarantee of thanks, notice honestly when effort isn't returned, and still not make people pay for it.",
     "prompt": "Is there something I gave that I'm quietly waiting to be paid back for?",
-    "tags": ["Unreciprocated effort", "Being forgotten or dropped"]
+    "tags": [
+      "Unreciprocated effort",
+      "Being forgotten or dropped"
+    ]
   },
   {
     "id": "jc-chosen-family",
@@ -137,7 +176,9 @@
     "howHeHandledIt": "He redefined family around shared commitment and presence, not just title or history. He didn't reject His family, but He also refused to let a label decide who was close to Him.",
     "meaningForMe": "The people who show up and share what matters to me can be my family. A title doesn't entitle anyone to my closeness.",
     "prompt": "Who is actually in my circle right now, by how they show up, not by their title?",
-    "tags": ["Redefining a relationship / chosen family"]
+    "tags": [
+      "Redefining a relationship / chosen family"
+    ]
   },
   {
     "id": "jc-washed-betrayers-feet",
@@ -147,7 +188,10 @@
     "howHeHandledIt": "He served the one who would hurt Him without pretending nothing was wrong. He named the truth in the room. And He didn't try to control Judas's choice or block the door.",
     "meaningForMe": "I can be kind to someone and clear-eyed about them at the same time. Naming what's real isn't the same as being unloving.",
     "prompt": "Is there someone I'm being kind to while pretending I don't see what's happening?",
-    "tags": ["Betrayal", "Grief over someone's choices"]
+    "tags": [
+      "Betrayal",
+      "Grief over someone's choices"
+    ]
   },
   {
     "id": "jc-look-after-denial",
@@ -157,7 +201,10 @@
     "howHeHandledIt": "Jesus didn't look away or pretend it didn't happen. He met Peter's eyes. The look was not a glare and not a shrug; it was honest. The words and the actions didn't match, and Jesus let that be seen.",
     "meaningForMe": "When someone's promises and actions don't line up, I don't have to pretend I didn't notice. I can see it clearly without hating them.",
     "prompt": "What mismatch between words and actions have I been explaining away?",
-    "tags": ["Betrayal", "Words and actions not matching"]
+    "tags": [
+      "Betrayal",
+      "Words and actions not matching"
+    ]
   },
   {
     "id": "jc-restored-peter",
@@ -167,7 +214,10 @@
     "howHeHandledIt": "He addressed the rupture directly rather than moving on as if nothing happened. He gave Peter a real chance to answer for each denial, and then invited him back into relationship with clear expectations for what came next.",
     "meaningForMe": "Real repair goes through the hurt, not around it. Forgiving doesn't mean skipping the honest conversation.",
     "prompt": "Is there a relationship I've \"forgiven\" by just never bringing it up?",
-    "tags": ["Forgiving without pretending it's fine", "Redefining a relationship / chosen family"]
+    "tags": [
+      "Forgiving without pretending it's fine",
+      "Redefining a relationship / chosen family"
+    ]
   },
   {
     "id": "jc-honest-with-martha",
@@ -177,7 +227,10 @@
     "howHeHandledIt": "He didn't jump up to fix it, take Martha's side to keep the peace, or scold Mary. He gently named what He saw: \"Martha, Martha, you are worried and upset about many things.\" He told her the truth with tenderness and left the choice with her.",
     "meaningForMe": "Someone else's anxiety isn't mine to fix by working harder. I can be gentle and still not take on what isn't mine.",
     "prompt": "Whose worry am I currently carrying as if it were an assignment?",
-    "tags": ["Setting a boundary", "Pressure to perform or prove myself"]
+    "tags": [
+      "Setting a boundary",
+      "Pressure to perform or prove myself"
+    ]
   },
   {
     "id": "jc-forgive-them",
@@ -187,6 +240,160 @@
     "howHeHandledIt": "He released the people harming Him into the Father's hands. He didn't say it was fine, and He didn't minimize what they were doing. He recognized that they didn't fully understand it, and He handed the forgiving to God.",
     "meaningForMe": "Forgiveness can be a release to God, not a verdict that it didn't hurt. I can let go of the debt without pretending there was no wound.",
     "prompt": "What would it feel like to hand one specific hurt to God today, without deciding whether it was okay?",
-    "tags": ["Forgiving without pretending it's fine", "Grief over someone's choices"]
+    "tags": [
+      "Forgiving without pretending it's fine",
+      "Grief over someone's choices"
+    ]
+  },
+  {
+    "id": "jc-asleep-in-storm",
+    "title": "Asleep in the Storm",
+    "reference": "Mark 4:35–41",
+    "whatHappened": "A furious squall came up on the lake. Waves broke over the boat and it was nearly swamped. Jesus was in the stern, asleep on a cushion. The disciples woke Him: \"Teacher, don't You care if we drown?\"",
+    "howHeHandledIt": "He rested in the Father's care while the storm raged. He didn't wait for calm to feel safe. Then He got up, spoke peace to the wind and waves, and asked His friends where their faith had gone.",
+    "meaningForMe": "I can rest before the storm is over. Peace isn't proof that the danger passed. It's trust that I'm held while it's still loud.",
+    "prompt": "What would it look like to lie down in the boat for one minute, even with the waves still up?",
+    "tags": [
+      "Anxiety & Uncertainty"
+    ]
+  },
+  {
+    "id": "jc-stepping-out",
+    "title": "Stepping Out Without Certainty",
+    "reference": "Matthew 14:22–33",
+    "whatHappened": "In the fourth watch of the night Jesus came walking on the water. Peter said, \"Lord, if it's You, tell me to come.\" Jesus said, \"Come.\" Peter stepped out of the boat onto the waves, then saw the wind, was afraid, and began to sink. Jesus immediately reached out and caught him.",
+    "howHeHandledIt": "He invited Peter to walk before the waves calmed. He didn't remove the uncertainty first. And when Peter sank, He caught him at once, without a lecture on getting it right.",
+    "meaningForMe": "I don't need certainty to take the next step. If I sink, I'm caught, not scolded.",
+    "prompt": "What step am I waiting to take until I feel sure? What if the invitation is to step now?",
+    "tags": [
+      "Anxiety & Uncertainty"
+    ]
+  },
+  {
+    "id": "jc-come-and-rest",
+    "title": "Come and Rest",
+    "reference": "Matthew 11:28–30",
+    "whatHappened": "To people worn out by religious rules that never felt like enough, Jesus said: \"Come to Me, all you who are weary and burdened, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and humble in heart. My yoke is easy and My burden is light.\"",
+    "howHeHandledIt": "He offered rest, not a longer to-do list. His yoke is easy and His burden is light. That's the opposite of a heavy ritual that has to be repeated until it feels right.",
+    "meaningForMe": "If what I'm carrying feels heavy and never finished, it may not be His yoke. His is light.",
+    "prompt": "What am I doing to feel okay with God that He never asked of me?",
+    "tags": [
+      "Scrupulosity & Grace",
+      "Needing rest"
+    ]
+  },
+  {
+    "id": "jc-martha-martha",
+    "title": "Martha, Martha",
+    "reference": "Luke 10:38–42",
+    "whatHappened": "Martha was distracted by all the preparations and came to Jesus anxious and frustrated. Jesus answered, \"Martha, Martha, you are worried and upset about many things, but few things are needed, or indeed only one.\"",
+    "howHeHandledIt": "He named the worry gently, by name, twice. He didn't shame her for it. He pointed her from the swirl of many things to the one thing that was actually needed.",
+    "meaningForMe": "When my mind is spinning through many things, He's not annoyed. He says my name, softly, and points to the one thing.",
+    "prompt": "Of everything on the loop right now, what is the one thing actually needed?",
+    "tags": [
+      "Anxiety & Uncertainty",
+      "Pressure to perform or prove myself"
+    ]
+  },
+  {
+    "id": "jc-neither-do-i",
+    "title": "Neither Do I Condemn You",
+    "reference": "John 8:1–11",
+    "whatHappened": "A woman was dragged before Jesus, accused, with a crowd holding stones. Jesus bent down and wrote in the dust. One by one the accusers left. He asked, \"Where are they? Has no one condemned you?\" \"No one, sir.\" \"Then neither do I condemn you. Go now and leave your life of sin.\"",
+    "howHeHandledIt": "He removed condemnation first, before any change. Then He invited a new way of living. Grace came before the instruction, not as a reward for it.",
+    "meaningForMe": "The order matters. I'm not condemned, then I grow. Not: I grow, then maybe I'm not condemned.",
+    "prompt": "Where am I still holding a stone over my own head that He already set down?",
+    "tags": [
+      "Scrupulosity & Grace"
+    ]
+  },
+  {
+    "id": "jc-dont-worry-tomorrow",
+    "title": "Don't Worry About Tomorrow",
+    "reference": "Matthew 6:25–34",
+    "whatHappened": "Jesus told the crowd: \"Look at the birds of the air. They don't sow or reap, and your heavenly Father feeds them. See how the flowers of the field grow. They don't labor or spin. Can any of you by worrying add a single hour to your life? Don't worry about tomorrow; each day has enough trouble of its own.\"",
+    "howHeHandledIt": "He pointed to birds and flowers as proof of the Father's care, and He shrank the assignment to one day at a time. Worry, He said, adds nothing.",
+    "meaningForMe": "I only have to carry today. Tomorrow's what-ifs are not mine yet, and the birds are still fed.",
+    "prompt": "What is one thing that's actually today's, and one thing I'm carrying that belongs to a day that hasn't come?",
+    "tags": [
+      "Anxiety & Uncertainty"
+    ]
+  },
+  {
+    "id": "jc-what-is-that-to-you",
+    "title": "What Is That to You?",
+    "reference": "John 21:20–22",
+    "whatHappened": "After Jesus restored Peter and told him how his life would end, Peter turned, saw John, and asked, \"Lord, what about him?\" Jesus answered, \"If I want him to remain until I return, what is that to you? You must follow Me.\"",
+    "howHeHandledIt": "He redirected Peter from anxious questions about someone else straight back to the simple thing in front of him: follow Me. He didn't answer the question. He answered the anxiety.",
+    "meaningForMe": "Not every question needs an answer. Some questions need a redirect. \"What is that to you? Follow Me.\"",
+    "prompt": "What question about someone else am I circling that He might answer with \"follow Me\"?",
+    "tags": [
+      "Anxiety & Uncertainty",
+      "Unreciprocated effort"
+    ]
+  },
+  {
+    "id": "jc-leper-he-touched",
+    "title": "The Leper He Touched",
+    "reference": "Mark 1:40–42",
+    "whatHappened": "A man with leprosy came and knelt: \"If You are willing, You can make me clean.\" Jesus was moved with compassion, reached out His hand, and touched him. \"I am willing. Be clean.\" Immediately the leprosy left him.",
+    "howHeHandledIt": "He touched someone the rules called unclean and untouchable. He didn't heal from a safe distance. Grace went exactly where fear said it couldn't.",
+    "meaningForMe": "Whatever I'm afraid makes me untouchable, He reaches toward it, not away from it.",
+    "prompt": "What part of me do I keep at arm's length from God because it feels unclean?",
+    "tags": [
+      "Scrupulosity & Grace"
+    ]
+  },
+  {
+    "id": "jc-woman-who-reached",
+    "title": "The Woman Who Reached Out",
+    "reference": "Mark 5:25–34",
+    "whatHappened": "A woman who had bled for twelve years pushed through the crowd, thinking, \"If I just touch His clothes, I'll be healed.\" She touched His cloak and was healed. Jesus felt it and asked who touched Him. She came trembling, fell at His feet, and told Him everything. He said, \"Daughter, your faith has healed you. Go in peace.\"",
+    "howHeHandledIt": "He welcomed her trembling, sneaky, imperfect faith. He called her daughter. He sent her away in peace, not with a checklist.",
+    "meaningForMe": "My faith doesn't have to be calm or tidy to reach Him. Trembling faith still touches the hem.",
+    "prompt": "What am I reaching for while shaking? Can I let that count as faith?",
+    "tags": [
+      "Scrupulosity & Grace",
+      "Anxiety & Uncertainty"
+    ]
+  },
+  {
+    "id": "jc-help-my-unbelief",
+    "title": "Help My Unbelief",
+    "reference": "Mark 9:14–29",
+    "whatHappened": "A father brought his suffering son and said, \"If You can do anything, help us.\" Jesus said, \"Everything is possible for one who believes.\" The father cried out, \"I do believe; help my unbelief!\" Jesus healed the boy.",
+    "howHeHandledIt": "He responded to mixed faith and doubt with healing, not rejection. \"I believe, help my unbelief\" was enough. He didn't wait for the doubt to clear.",
+    "meaningForMe": "Belief and doubt in the same sentence is a prayer He answers. I don't have to sort them out first.",
+    "prompt": "What's my honest \"I believe, help my unbelief\" today?",
+    "tags": [
+      "Scrupulosity & Grace",
+      "Anxiety & Uncertainty"
+    ]
+  },
+  {
+    "id": "jc-prodigals-father",
+    "title": "The Prodigal's Father",
+    "reference": "Luke 15:11–32",
+    "whatHappened": "The younger son squandered everything and rehearsed a speech on the way home: \"Father, I have sinned. I'm no longer worthy to be called your son. Make me a hired servant.\" While he was still far off, his father saw him, was filled with compassion, ran to him, threw his arms around him, and kissed him. The son started the speech. The father interrupted with a robe, a ring, and a feast.",
+    "howHeHandledIt": "The father ran before the apology was finished. He didn't need the whole confession, perfectly worded, to welcome him back. The speech got cut off by an embrace.",
+    "meaningForMe": "I can stop rehearsing the perfect confession. He's already running.",
+    "prompt": "What speech am I still polishing that He interrupted a long time ago?",
+    "tags": [
+      "Scrupulosity & Grace",
+      "Forgiving without pretending it's fine"
+    ]
+  },
+  {
+    "id": "jc-peace-i-leave",
+    "title": "Peace I Leave With You",
+    "reference": "John 14:27",
+    "whatHappened": "On the night before He died, knowing everything that was coming, Jesus told His friends: \"Peace I leave with you; My peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled and do not be afraid.\"",
+    "howHeHandledIt": "He gave a peace unlike the world's, on the worst night of His life. It wasn't dependent on circumstances being settled or on anyone feeling certain. It was His to give and He gave it.",
+    "meaningForMe": "His peace doesn't wait for my certainty. It's given, not earned by figuring everything out.",
+    "prompt": "If His peace doesn't depend on the answer I'm chasing, what would receiving it look like right now?",
+    "tags": [
+      "Anxiety & Uncertainty",
+      "Scrupulosity & Grace"
+    ]
   }
 ]

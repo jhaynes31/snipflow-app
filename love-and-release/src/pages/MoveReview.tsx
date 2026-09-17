@@ -146,6 +146,7 @@ export function MoveReview() {
           <div className="card-soft small"><div>Reciprocity, 90 days: they {reciprocity.them} · me {reciprocity.me} · dropped {reciprocity.dropped}</div><div>Watch notes: {openFlags.length} open, {flags.length - openFlags.length} resolved</div></div>
           <div className="chips"><button type="button" className="chip" aria-pressed={pattern === 'pattern'} onClick={() => setPattern('pattern')}>A pattern</button><button type="button" className="chip" aria-pressed={pattern === 'moment'} onClick={() => setPattern('moment')}>A single moment</button></div>
           {pattern === 'moment' && <p className="help">One moment can still hurt. It might also be worth a conversation before a move.</p>}
+          <p className="help">Repeated doubt about how someone feels about you can be the loop, not evidence. Base this on what's logged, not on anxious what-ifs. <Link to="/unhooked/loop">If it feels like a loop, step out first.</Link></p>
           <StepActions onBack={() => setStep(0)} onNext={() => setStep(2)} onSkip={() => setStep(2)} />
         </div>)}
         {step === 2 && (<div className="stack">

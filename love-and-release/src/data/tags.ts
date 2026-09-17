@@ -14,4 +14,6 @@ export const TAGS: Tag[] = [
   'Redefining a relationship / chosen family',
   "Grief over someone's choices",
   "Forgiving without pretending it's fine",
+  'Anxiety & Uncertainty',
+  'Scrupulosity & Grace',
 ]

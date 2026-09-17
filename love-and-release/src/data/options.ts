@@ -85,7 +85,17 @@ export const WINS: { type: WinType; label: string }[] = [
   { type: 'other', label: 'Something else' },
 ]
 
-export const WIN_LABEL: Record<WinType, string> = Object.fromEntries(WINS.map((w) => [w.type, w.label])) as Record<
+/** Freedom Moments: wins that belong to Unhooked. */
+export const FREEDOM_WINS: { type: WinType; label: string }[] = [
+  { type: 'didnt-act', label: "I didn't act on a compulsion" },
+  { type: 'sat-with-uncertainty', label: 'I sat with uncertainty' },
+  { type: 'chose-connection', label: 'I chose connection over reassurance' },
+  { type: 'trusted-without-certainty', label: 'I trusted God without needing to feel certain' },
+  { type: 'values-while-anxious', label: 'I lived by my values while anxious' },
+]
+export const FREEDOM_TYPES: WinType[] = FREEDOM_WINS.map((w) => w.type)
+
+export const WIN_LABEL: Record<WinType, string> = Object.fromEntries([...WINS, ...FREEDOM_WINS].map((w) => [w.type, w.label])) as Record<
   WinType,
   string
 >

@@ -9,7 +9,7 @@ export interface Backup {
   data: Record<string, unknown[]>
 }
 
-const TABLES = ['people', 'reciprocity', 'checkIns', 'pauses', 'truths', 'boundaries', 'releases', 'wins', 'settings', 'rings', 'ringMoves', 'trustSignals', 'redFlags', 'disclosures', 'layerBoundaries', 'reviewSessions'] as const
+const TABLES = ['people', 'reciprocity', 'checkIns', 'pauses', 'truths', 'boundaries', 'releases', 'wins', 'settings', 'rings', 'ringMoves', 'trustSignals', 'redFlags', 'disclosures', 'layerBoundaries', 'reviewSessions', 'loopEpisodes', 'thoughtThemes', 'exposureSteps', 'exposureSessions', 'coreValues', 'selfProfile', 'breathPrayers', 'reassuranceLog', 'relapsePlan', 'skillPractices'] as const
 
 export async function exportBackup(): Promise<Backup> {
   const data: Record<string, unknown[]> = {}
@@ -50,6 +50,7 @@ export async function importBackup(backup: Backup, mode: 'merge' | 'replace'): P
   })
   localStorage.setItem('lr:seeded:v1', '1')
   localStorage.setItem('lr:rings-seeded:v1', '1')
+  localStorage.setItem('lr:grace-seeded:v1', '1')
 }
 
 export async function resetEverything(): Promise<void> {

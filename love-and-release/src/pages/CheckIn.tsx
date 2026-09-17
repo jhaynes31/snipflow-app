@@ -16,6 +16,7 @@ interface Draft {
   story: string[]
   bodyAreas: string[]
   alternatives: string[]
+  ocdVoice?: 'maybe' | 'no'
   mine: string
   theirs: string
   truthId?: string
@@ -24,7 +25,7 @@ interface Draft {
 }
 
 const EMPTY: Draft = { step: 0, fact: '', story: [], bodyAreas: [], alternatives: [], mine: '', theirs: '' }
-const TOTAL = 6
+const TOTAL = 7
 
 export function tagsForStories(stories: string[]): Tag[] {
   const set = new Set<Tag>()
@@ -100,7 +101,7 @@ export function CheckIn() {
     )
   }
 
-  const stepTitle = ['What happened?', 'What story is my brain telling?', 'Where do I feel it?', 'What else could be true?', "What's mine, and what's theirs?", 'A truth to hold onto.'][d.step] ?? 'Anything else?'
+  const stepTitle = ['What happened?', 'What story is my brain telling?', 'Could this be the OCD voice?', 'Where do I feel it?', 'What else could be true?', "What's mine, and what's theirs?", 'A truth to hold onto.'][d.step] ?? 'Anything else?'
 
   return (
     <Shell back="/" hideNav action={<button type="button" className="btn btn-quiet btn-sm" onClick={() => nav('/')}>Pause for now</button>}>
@@ -126,13 +127,31 @@ export function CheckIn() {
 
       {d.step === 2 && (
         <div className="stack">
+          <p className="hint">Optional. Repeated doubt, "not right" feelings, and urges to check or ask are often the loop, not evidence.</p>
+          <div className="chips">
+            <button type="button" className="chip" aria-pressed={d.ocdVoice === 'maybe'} onClick={() => update({ ocdVoice: 'maybe' })}>Maybe. It has that loop feel.</button>
+            <button type="button" className="chip" aria-pressed={d.ocdVoice === 'no'} onClick={() => update({ ocdVoice: 'no' })}>No, this is something real to work through.</button>
+          </div>
+          {d.ocdVoice === 'maybe' && (
+            <div className="card-sage stack">
+              <p className="truth" style={{ margin: 0 }}>I'm having the thought that {d.story[0]?.toLowerCase() || 'the story is true'}.</p>
+              <p className="help" style={{ margin: 0 }}>Try holding it that way. Maybe, maybe not. You can keep untangling either way.</p>
+              <Link to="/unhooked/tools/defusion" className="btn btn-sm btn-ghost">Defuse it properly</Link>
+            </div>
+          )}
+          <StepActions onBack={back} onNext={next} onSkip={next} />
+        </div>
+      )}
+
+      {d.step === 3 && (
+        <div className="stack">
           <p className="hint">Where does it live in your body right now?</p>
           <Chips options={BODY_AREAS} value={d.bodyAreas} onChange={(bodyAreas) => update({ bodyAreas })} variant="sage" />
           <StepActions onBack={back} onNext={next} onSkip={next} />
         </div>
       )}
 
-      {d.step === 3 && (
+      {d.step === 4 && (
         <div className="stack">
           <p className="hint">Two or three possibilities about their capacity, fears, or patterns. Not about your worth.</p>
           <Chips options={ALTERNATIVES} value={d.alternatives} onChange={(alternatives) => update({ alternatives })} allowCustom customLabel="Something else" />
@@ -140,7 +159,7 @@ export function CheckIn() {
         </div>
       )}
 
-      {d.step === 4 && (
+      {d.step === 5 && (
         <div className="stack">
           <p className="hint">Two columns. Tap a suggestion to add it, or write your own.</p>
           <div className="two-col">
@@ -167,7 +186,7 @@ export function CheckIn() {
         </div>
       )}
 
-      {d.step === 5 && (
+      {d.step === 6 && (
         <div className="stack">
           <p className="hint">Pick one from your deck, or borrow one from how Jesus handled it.</p>
           <div className="list" role="radiogroup" aria-label="Choose a truth">
@@ -187,7 +206,7 @@ export function CheckIn() {
         </div>
       )}
 
-      {d.step === 6 && (
+      {d.step === 7 && (
         <div className="stack">
           <p className="hint">Optional. Link this to a person so one hard night doesn't rewrite the whole story.</p>
           {people.length ? (

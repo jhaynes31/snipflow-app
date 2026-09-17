@@ -7,6 +7,7 @@ import { hasDraft } from '@/lib/drafts'
 import { daysSince } from '@/lib/dates'
 import { useSettings } from '@/lib/settings'
 import { reviewDue } from '@/lib/circles'
+import { useDailyValue } from '@/pages/UnhookedMe'
 
 const LAST_KEY = 'lr:last-opened'
 
@@ -28,6 +29,7 @@ export function Home() {
   const nav = useNavigate()
   const welcome = useWelcome()
   const settings = useSettings()
+  const value = useDailyValue()
   const [drafts, setDrafts] = useState<{ key: string; label: string; to: string }[]>([])
   useEffect(() => {
     const all = [
@@ -68,6 +70,10 @@ export function Home() {
         <button type="button" className="btn btn-primary btn-big btn-block" onClick={() => nav('/pause')}>
           Something stung
         </button>
+        <button type="button" className="btn btn-sage btn-lg btn-block" onClick={() => nav('/unhooked/loop')}>
+          I'm in a loop
+        </button>
+        {value && <p className="faint center" style={{ margin: 0 }}>Today, quietly: <strong>{value.name}</strong>{value.meaning ? ` · ${value.meaning}` : ''}</p>}
 
         <div className="grid-links">
           <Link to="/check-in">Fact vs. Story<span>Untangle what happened</span></Link>
@@ -76,6 +82,7 @@ export function Home() {
           <Link to="/release/new">Release Journal<span>Bring it to God</span></Link>
           <Link to="/wins">Log a Win<span>I honored myself</span></Link>
           <Link to="/circles">My Circles<span>Who sits where</span></Link>
+          <Link to="/unhooked">Unhooked<span>Beyond the loop</span></Link>
         </div>
 
         <button type="button" className="btn btn-lg btn-block" style={{ background: 'var(--gold-soft)' }} onClick={() => nav('/hurting')}>

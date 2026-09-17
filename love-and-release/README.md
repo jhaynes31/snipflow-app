@@ -33,6 +33,15 @@ Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so dee
 | `/circles/boundaries` | Boundaries by layer, with per-person overrides |
 | `/circles/review` | Gentle periodic circle review |
 | `/people/:id` | Person profile: ring, green flags, watch notes, disclosures, reciprocity, moves, linked entries |
+| `/unhooked` | Unhooked home: in-the-moment tools, education, beyond the loop, Jesus, growth, support |
+| `/unhooked/loop` | "I'm in a loop" flow: breathe, name it, one tool, one true thing, wrap up |
+| `/unhooked/tools/:tool` | Standalone tools: breathing, grounding, defusion, urge surfing, delay/shrink, uncertainty, close the file, before-you-send, one prayer, values action, body check, self-compassion |
+| `/unhooked/learn/:id` | Education cards: the cycle, relationships, scrupulosity, thoughts are not sins, conscience vs. OCD |
+| `/unhooked/me`, `/unhooked/values` | Who I am beyond the loop, and my values |
+| `/unhooked/jesus` | Anxiety and grace cards, grace truths, breath prayers, passages, prayer guardrail |
+| `/unhooked/map`, `/unhooked/ladder` | Trigger and pattern map, exposure ladder with practice sessions |
+| `/unhooked/reassurance`, `/unhooked/progress`, `/unhooked/plan` | Reassurance plan, skills garden and freedom moments, relapse plan |
+| `/unhooked/support` | Therapist contact, finding ERP support, crisis lines |
 | `/release`, `/release/new` | Release Journal (Gethsemane prompts) |
 | `/wins` | Wins log and "how far you've come" |
 | `/history` | Everything, filterable by type, person, tag, date |
@@ -54,3 +63,5 @@ Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so dee
 - The passcode is a local convenience lock stored as a salted hash. It is not encryption.
 - Reminders use the Notification API and only fire while the app is open or installed and running.
 - Voice entry uses the Web Speech API where the browser supports it; typing is always optional.
+- Unhooked never offers reassurance on demand. The loop-detection guardrail notices repeated opens of the same tool, truth, or card within 20 minutes and offers urge surfing instead. Grace truths and prayers are offered once per session.
+- Free-text fields in Unhooked run a small crisis-phrase check and surface crisis-line information when it matches.

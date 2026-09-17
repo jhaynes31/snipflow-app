@@ -16,6 +16,9 @@ const STARTERS = [
   { title: "Here's what I need", body: "I've noticed I need a little more heads-up before plans change. Could you let me know as early as you can?" },
   { title: "I can't right now", body: "I can't take that on right now. I care about you, and I want to be honest about what I have to give." },
   { title: 'Pausing a conversation', body: "I want to keep talking about this, and I need a little time first. Can we come back to it tomorrow?" },
+  { title: 'For a loved one', body: "I love you. I'm working on sitting with uncertainty, so if I ask for reassurance, you can gently remind me of that instead of answering." },
+  { title: 'For a close friend', body: "I'm practicing not checking whether we're okay. If I ask, it helps me most if you say 'I think you already know' and change the subject. I'm not upset with you." },
+  { title: 'For myself, before sending', body: "I've already asked this. Asking again is the loop, not love. I can wait an hour." },
 ]
 
 /** Gentle checks: observations, never verdicts. */
@@ -180,6 +183,7 @@ function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Dr
           <input type="checkbox" checked={d.isTemplate} onChange={(e) => update({ isTemplate: e.target.checked })} />
           <span>Save as a reusable template</span>
         </label>
+        <Link to="/unhooked/tools/send-check" className="btn btn-quiet btn-sm">Is this to connect, or for reassurance? Check before sending</Link>
         <div className="btn-row">
           <button type="button" className="btn btn-ghost" onClick={() => setMode('rehearse')} disabled={!d.body.trim()}>Rehearse</button>
           <button type="button" className="btn btn-primary" onClick={async () => { const r = await persist(); onSaved(r); nav('/boundaries') }} disabled={!d.body.trim() && !d.title.trim()}>Save</button>

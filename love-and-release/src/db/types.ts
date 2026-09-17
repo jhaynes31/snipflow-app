@@ -12,6 +12,8 @@ export type Tag =
   | 'Redefining a relationship / chosen family'
   | 'Grief over someone\'s choices'
   | 'Forgiving without pretending it\'s fine'
+  | 'Anxiety & Uncertainty'
+  | 'Scrupulosity & Grace'
 
 export const UNSURE = 'unsure'
 export const RELEASED = 'released'
@@ -203,11 +205,101 @@ export type WinType =
   | 'told-truth'
   | 'let-it-be'
   | 'other'
+  | 'didnt-act'
+  | 'sat-with-uncertainty'
+  | 'chose-connection'
+  | 'trusted-without-certainty'
+  | 'values-while-anxious'
 
 export interface Win {
   id: string
   type: WinType
   note: string
+  createdAt: string
+}
+
+/* ---------- Unhooked ---------- */
+export type ActedOn = 'no' | 'delayed' | 'shrunk' | 'yes'
+
+export interface LoopEpisode {
+  id: string
+  triggerTags: string[]
+  theme: string
+  compulsionUrge: string[]
+  urgeStart?: number
+  urgeEnd?: number
+  toolsUsed: string[]
+  actedOnCompulsion?: ActedOn
+  note: string
+  createdAt: string
+}
+
+export interface ThoughtTheme {
+  id: string
+  nickname: string
+  description: string
+}
+
+export interface ExposureStep {
+  id: string
+  description: string
+  distressRating: number
+  order: number
+  assignedByTherapist: boolean
+}
+
+export interface ExposureSession {
+  id: string
+  stepId: string
+  distressBefore: number
+  distressPeak: number
+  distressAfter: number
+  durationMin: number
+  note: string
+  createdAt: string
+}
+
+export interface CoreValue {
+  id: string
+  name: string
+  meaning: string
+  order: number
+}
+
+export interface SelfProfile {
+  id: 'self'
+  answers: Record<string, string>
+}
+
+export interface BreathPrayer {
+  id: string
+  inhale: string
+  exhale: string
+  isCustom: boolean
+}
+
+export interface ReassuranceLog {
+  id: string
+  date: string // YYYY-MM-DD
+  count: number
+  note: string
+}
+
+export interface RelapsePlan {
+  id: 'plan'
+  warningSigns: string[]
+  helps: string[]
+  people: string[]
+  plan: string
+}
+
+export type Skill =
+  | 'breathing' | 'grounding' | 'name-it' | 'defusion' | 'urge-surfing' | 'delay' | 'shrink' | 'uncertainty'
+  | 'replay-stopper' | 'send-check' | 'values-action' | 'self-compassion' | 'exposure' | 'one-prayer'
+
+export interface SkillPractice {
+  id: string
+  skill: Skill
   createdAt: string
 }
 
@@ -234,6 +326,11 @@ export interface Settings {
   circleReviewLastAt?: string
   circleReviewSnoozedUntil?: string
   circlesIntroSeen?: boolean
+  therapistName?: string
+  therapistContact?: string
+  therapistNotes?: string
+  reassuranceGoal?: string
+  haptics?: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -245,4 +342,5 @@ export const DEFAULT_SETTINGS: Settings = {
   circleCues: true,
   circleReviewEnabled: true,
   circleReviewDays: 90,
+  haptics: true,
 }

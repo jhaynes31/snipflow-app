@@ -9,6 +9,8 @@ import { db, newId, now } from '@/db/db'
 import type { Tag, Truth } from '@/db/types'
 import { TAGS } from '@/data/tags'
 import { PlusIcon } from '@/components/Icons'
+import { useLoopGuard } from '@/lib/unhooked'
+import { LoopNotice } from '@/pages/UnhookedTools'
 
 export function Truths() {
   const [filter, setFilter] = useState<'all' | 'starred'>('all')
@@ -91,6 +93,7 @@ export function Truths() {
 export function Hurting() {
   const nav = useNavigate()
   const [i, setI] = useState(0)
+  const looping = useLoopGuard('hurting')
   const pool = useLiveQuery(async () => {
     const starred = await db.truths.filter((t) => t.starred).toArray()
     return starred.length ? starred : db.truths.toArray()
@@ -104,6 +107,7 @@ export function Hurting() {
           <h1>I'm here with you.</h1>
           <p className="muted">You don't have to do anything. Just read.</p>
         </div>
+        {looping && <LoopNotice tool="this page" />}
         {t ? <TruthCard truth={t} large /> : <p className="faint">Star a few truths and they'll show up here.</p>}
         <div className="btn-row">
           <button type="button" className="btn btn-ghost" onClick={() => setI((n) => n + 1)} disabled={pool.length < 2}>Another</button>

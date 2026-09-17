@@ -14,10 +14,10 @@ import type { FlagPattern } from '@/db/types'
 
 const PATTERNS = flagPatterns as FlagPattern[]
 
-type Kind = 'check-in' | 'pause' | 'release' | 'boundary' | 'win' | 'reciprocity' | 'circle'
+type Kind = 'check-in' | 'pause' | 'release' | 'boundary' | 'win' | 'reciprocity' | 'circle' | 'loop'
 interface Row { id: string; kind: Kind; table: string; title: string; body?: string; at: string; personId?: string; tags?: Tag[]; link?: string; detail?: [string, string][] }
 
-const KIND_LABEL: Record<Kind, string> = { 'check-in': 'Fact vs. Story', pause: 'Pause', release: 'Release', boundary: 'Boundary', win: 'Win', reciprocity: 'People log', circle: 'Circles' }
+const KIND_LABEL: Record<Kind, string> = { 'check-in': 'Fact vs. Story', pause: 'Pause', release: 'Release', boundary: 'Boundary', win: 'Win', reciprocity: 'People log', circle: 'Circles', loop: 'Unhooked' }
 const METHOD_LABEL: Record<string, string> = { breathing: 'Breathing', senses: '5-4-3-2-1', feelings: 'Named feelings', truth: 'Held a truth' }
 
 export function History() {
@@ -36,6 +36,7 @@ export function History() {
       db.checkIns.toArray(), db.pauses.toArray(), db.releases.toArray(), db.boundaries.toArray(), db.wins.toArray(), db.reciprocity.toArray(),
       db.ringMoves.toArray(), db.trustSignals.toArray(), db.redFlags.toArray(), db.rings.toArray(),
     ])
+    const [loops, exposures, steps] = await Promise.all([db.loopEpisodes.toArray(), db.exposureSessions.toArray(), db.exposureSteps.toArray()])
     const ringName = (id: string) => placementName(id, rings)
     const out: Row[] = [
       ...c.map((x): Row => ({ id: x.id, kind: 'check-in', table: 'checkIns', title: x.fact || x.story[0] || 'Check-in', at: x.createdAt, personId: x.personId, tags: x.tags, detail: [['Story', x.story.join(' · ')], ['Felt in', x.bodyAreas.join(', ')], ['Could be', x.alternatives.join(' · ')], ['Mine', x.mine], ['Theirs', x.theirs], ['Truth', x.truthText ?? '']] })),
@@ -46,6 +47,8 @@ export function History() {
       ...e.map((x): Row => ({ id: x.id, kind: 'reciprocity', table: 'reciprocity', title: RECIPROCITY_LABEL[x.type], body: x.note, at: x.date, personId: x.personId, link: `/people/${x.personId}` })),
       ...moves.map((x): Row => ({ id: x.id, kind: 'circle', table: 'ringMoves', title: `Moved: ${ringName(x.fromRingId)} → ${ringName(x.toRingId)}`, body: x.reason, at: x.date, personId: x.personId, link: `/people/${x.personId}` })),
       ...sigs.map((x): Row => ({ id: x.id, kind: 'circle', table: 'trustSignals', title: `Green flag: ${x.type}`, body: x.note, at: x.date, personId: x.personId, link: `/people/${x.personId}` })),
+      ...loops.map((x): Row => ({ id: x.id, kind: 'loop', table: 'loopEpisodes', title: `Loop: ${x.theme || x.triggerTags[0] || 'stepped out'}`, body: [x.toolsUsed.join(', '), x.urgeStart !== undefined ? `urge ${x.urgeStart}→${x.urgeEnd ?? '?'}` : '', x.note].filter(Boolean).join(' · '), at: x.createdAt, link: '/unhooked/map' })),
+      ...exposures.map((x): Row => ({ id: x.id, kind: 'loop', table: 'exposureSessions', title: `Exposure: ${steps.find((st) => st.id === x.stepId)?.description ?? 'a rung'}`, body: `distress ${x.distressBefore} → peak ${x.distressPeak} → ${x.distressAfter}${x.note ? ` · ${x.note}` : ''}`, at: x.createdAt, link: '/unhooked/ladder' })),
       ...flags.map((x): Row => ({ id: x.id, kind: 'circle', table: 'redFlags', title: `Watch note: ${PATTERNS.find((p) => p.id === x.patternId)?.name ?? x.patternId}${x.status === 'resolved' ? ' (resolved)' : ''}`, body: x.note, at: x.date, personId: x.personId, link: `/people/${x.personId}` })),
     ]
     return out.sort((a, b) => b.at.localeCompare(a.at))

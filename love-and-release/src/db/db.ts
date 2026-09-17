@@ -2,7 +2,17 @@ import Dexie, { type EntityTable } from 'dexie'
 import {
   UNSURE,
   type BoundaryDraft,
+  type BreathPrayer,
   type CheckIn,
+  type CoreValue,
+  type ExposureSession,
+  type ExposureStep,
+  type LoopEpisode,
+  type ReassuranceLog,
+  type RelapsePlan,
+  type SelfProfile,
+  type SkillPractice,
+  type ThoughtTheme,
   type Disclosure,
   type JesusCard,
   type LayerBoundary,
@@ -38,6 +48,16 @@ export class LoveReleaseDB extends Dexie {
   disclosures!: EntityTable<Disclosure, 'id'>
   layerBoundaries!: EntityTable<LayerBoundary, 'id'>
   reviewSessions!: EntityTable<ReviewSession, 'id'>
+  loopEpisodes!: EntityTable<LoopEpisode, 'id'>
+  thoughtThemes!: EntityTable<ThoughtTheme, 'id'>
+  exposureSteps!: EntityTable<ExposureStep, 'id'>
+  exposureSessions!: EntityTable<ExposureSession, 'id'>
+  coreValues!: EntityTable<CoreValue, 'id'>
+  selfProfile!: EntityTable<SelfProfile, 'id'>
+  breathPrayers!: EntityTable<BreathPrayer, 'id'>
+  reassuranceLog!: EntityTable<ReassuranceLog, 'id'>
+  relapsePlan!: EntityTable<RelapsePlan, 'id'>
+  skillPractices!: EntityTable<SkillPractice, 'id'>
 
   constructor() {
     super('love-and-release')
@@ -70,6 +90,18 @@ export class LoveReleaseDB extends Dexie {
           if (!p.ringId) p.ringId = UNSURE
         }),
       )
+    this.version(3).stores({
+      loopEpisodes: 'id, createdAt, theme',
+      thoughtThemes: 'id, nickname',
+      exposureSteps: 'id, order, assignedByTherapist',
+      exposureSessions: 'id, stepId, createdAt',
+      coreValues: 'id, order',
+      selfProfile: 'id',
+      breathPrayers: 'id, isCustom',
+      reassuranceLog: 'id, date',
+      relapsePlan: 'id',
+      skillPractices: 'id, skill, createdAt',
+    })
   }
 }
 

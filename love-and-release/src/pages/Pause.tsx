@@ -44,6 +44,7 @@ export function Pause() {
               <div className="muted small">{m.desc}</div>
             </button>
           ))}
+          <button type="button" className="btn btn-sage btn-lg btn-block" onClick={() => nav('/unhooked/loop')}>It's a loop, not a sting</button>
           <button type="button" className="btn btn-quiet" onClick={() => nav('/')}>I just needed to see this. Take me home.</button>
         </div>
       </Shell>
