@@ -1,0 +1,49 @@
+# Love & Release
+
+A faith-centered people-pleasing recovery companion, built for a CPTSD and neurodivergent brain. Private by design: everything lives on your device, with no accounts, no analytics, and no server.
+
+## Running it
+
+```bash
+cd love-and-release
+npm install
+npm run dev        # local dev server
+npm run build      # production build in dist/
+npm run preview    # serve the production build
+npm run typecheck
+```
+
+Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so deep links work. The app is an installable PWA: open it on your phone and use "Add to Home Screen."
+
+## What's inside
+
+| Route | Module |
+|---|---|
+| `/` | Home: today's truth, **Something stung**, quick links, **I'm hurting** |
+| `/pause` | Pause: breathing circle, 5-4-3-2-1, name what I feel, hold a truth |
+| `/check-in` | Fact vs. Story stepper (every step skippable, auto-saved draft) |
+| `/jesus`, `/jesus/:id` | Walk With Jesus library, tag filter, card detail, save to Truths |
+| `/truths`, `/hurting` | Truths Deck: add, edit, star, tag; "I'm hurting" view |
+| `/boundaries` | Boundary Builder: drafts, templates, gentle checks, rehearsal, "I sent it" |
+| `/people`, `/people/:id` | Reciprocity Log: quick taps, balance picture over time, notes |
+| `/release`, `/release/new` | Release Journal (Gethsemane prompts) |
+| `/wins` | Wins log and "how far you've come" |
+| `/history` | Everything, filterable by type, person, tag, date |
+| `/settings` | Theme, text size, reduced motion, passcode, reminders, export/import, reset |
+
+## Structure
+
+- `src/db/` Dexie (IndexedDB) schema, types, seeding
+- `src/data/` seed content: Truths, Walk With Jesus cards, situation tags, quick-select options
+- `src/lib/` passcode hashing, drafts, backup, speech, reminders, settings
+- `src/pages/` one file per screen
+- `src/components/` shell, chips, stepper, confirm sheet, voice textarea
+- `src/styles/global.css` design tokens (warm light and soft dark), reduced-motion handling
+- `scripts/make-icons.mjs` regenerates the PNG app icons with no native dependencies
+
+## Notes
+
+- Scripture is referenced and paraphrased in-app; no verse text is copied from a licensed translation.
+- The passcode is a local convenience lock stored as a salted hash. It is not encryption.
+- Reminders use the Notification API and only fire while the app is open or installed and running.
+- Voice entry uses the Web Speech API where the browser supports it; typing is always optional.
