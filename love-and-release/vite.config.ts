@@ -3,10 +3,16 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 
+// PREVIEW=1 builds a hosted-preview variant: relative asset paths, hash routing, no service worker.
+const preview = process.env.PREVIEW === '1'
+
 export default defineConfig({
+  base: preview ? './' : '/',
+  define: { __PREVIEW__: JSON.stringify(preview) },
   plugins: [
     react(),
     VitePWA({
+      disable: preview,
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {

@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "build:preview": "PREVIEW=1 vite build --outDir dist-preview && node scripts/artifact-page.mjs",
     "typecheck": "tsc -b",
     "icons": "node scripts/make-icons.mjs"
   },

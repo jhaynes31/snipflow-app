@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Shell } from '@/components/Shell'
 import { Confirm } from '@/components/Confirm'
@@ -85,7 +85,7 @@ export function BoundaryEditor() {
   const { id } = useParams()
   const nav = useNavigate()
   const isNew = !id || id === 'new'
-  const params = new URLSearchParams(window.location.search)
+  const [params] = useSearchParams()
   const fromId = params.get('from')
   const starter = STARTERS.find((s) => s.title === params.get('starter'))
   const existing = useLiveQuery(() => (isNew ? undefined : db.boundaries.get(id!)), [id])

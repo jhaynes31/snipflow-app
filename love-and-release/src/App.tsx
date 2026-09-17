@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom'
+
+const Router = __PREVIEW__ ? HashRouter : BrowserRouter
 import { ensureSeeded } from '@/db/seed'
 import { applyTheme, useSettingsMaybe } from '@/lib/settings'
 import { isUnlocked } from '@/lib/passcode'
@@ -44,7 +46,7 @@ export default function App() {
   if (settings.passcodeHash && !unlocked && !isUnlocked()) return <Lock settings={settings} onUnlock={() => setUnlockedState(true)} />
 
   return (
-    <BrowserRouter>
+    <Router>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -65,6 +67,6 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Home />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   )
 }
