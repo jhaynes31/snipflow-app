@@ -67,6 +67,17 @@ export function SettingsPage() {
         </section>
 
         <section className="card">
+          <h3>Circles</h3>
+          <Toggle label="Show cues on the circle" hint="Small dots for one-sided patterns and open watch notes." checked={s.circleCues !== false} onChange={(v) => updateSettings({ circleCues: v })} />
+          <Toggle label="Gentle circle reviews" hint="An optional nudge to look over the whole circle now and then. Easy to snooze." checked={s.circleReviewEnabled !== false} onChange={(v) => updateSettings({ circleReviewEnabled: v })} />
+          <div className="field mt">
+            <span className="label">Review every</span>
+            <div className="chips">{[30, 90, 180].map((d) => <button key={d} type="button" className="chip chip-sm" style={{ cursor: 'pointer' }} aria-pressed={(s.circleReviewDays ?? 90) === d} onClick={() => updateSettings({ circleReviewDays: d })}>{d === 30 ? 'Month' : d === 90 ? '3 months' : '6 months'}</button>)}</div>
+          </div>
+          <button type="button" className="btn btn-quiet btn-sm mt" onClick={() => updateSettings({ circlesIntroSeen: false })}>Show the "Why circles?" intro again</button>
+        </section>
+
+        <section className="card">
           <h3>Passcode</h3>
           <p className="help">Optional. Keeps a casual glance from reading your entries. Your data stays on this device either way.</p>
           {s.passcodeHash ? (

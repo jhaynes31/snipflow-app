@@ -41,7 +41,7 @@ export function Shell({ title, subtitle, back, action, children, hideNav }: Prop
           <NavLink to="/" end><HomeIcon />Home</NavLink>
           <NavLink to="/jesus"><BookIcon />Jesus</NavLink>
           <NavLink to="/truths"><HeartIcon />Truths</NavLink>
-          <NavLink to="/people"><PeopleIcon />People</NavLink>
+          <NavLink to="/circles"><PeopleIcon />Circles</NavLink>
           <NavLink to="/history"><ClockIcon />History</NavLink>
         </nav>
       )}

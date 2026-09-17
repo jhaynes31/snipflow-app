@@ -1,15 +1,23 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type {
-  BoundaryDraft,
-  CheckIn,
-  JesusCard,
-  PauseSession,
-  Person,
-  ReciprocityEvent,
-  ReleaseEntry,
-  Settings,
-  Truth,
-  Win,
+import {
+  UNSURE,
+  type BoundaryDraft,
+  type CheckIn,
+  type Disclosure,
+  type JesusCard,
+  type LayerBoundary,
+  type PauseSession,
+  type Person,
+  type ReciprocityEvent,
+  type RedFlag,
+  type ReleaseEntry,
+  type ReviewSession,
+  type Ring,
+  type RingMove,
+  type Settings,
+  type TrustSignal,
+  type Truth,
+  type Win,
 } from './types'
 
 export class LoveReleaseDB extends Dexie {
@@ -23,6 +31,13 @@ export class LoveReleaseDB extends Dexie {
   releases!: EntityTable<ReleaseEntry, 'id'>
   wins!: EntityTable<Win, 'id'>
   settings!: EntityTable<Settings, 'id'>
+  rings!: EntityTable<Ring, 'id'>
+  ringMoves!: EntityTable<RingMove, 'id'>
+  trustSignals!: EntityTable<TrustSignal, 'id'>
+  redFlags!: EntityTable<RedFlag, 'id'>
+  disclosures!: EntityTable<Disclosure, 'id'>
+  layerBoundaries!: EntityTable<LayerBoundary, 'id'>
+  reviewSessions!: EntityTable<ReviewSession, 'id'>
 
   constructor() {
     super('love-and-release')
@@ -38,6 +53,23 @@ export class LoveReleaseDB extends Dexie {
       wins: 'id, type, createdAt',
       settings: 'id',
     })
+    this.version(2)
+      .stores({
+        people: 'id, name, createdAt, ringId',
+        releases: 'id, createdAt, personId',
+        rings: 'id, order',
+        ringMoves: 'id, personId, date',
+        trustSignals: 'id, personId, type, date',
+        redFlags: 'id, personId, patternId, status, date',
+        disclosures: 'id, personId, dateShared',
+        layerBoundaries: 'id, ringId, personId',
+        reviewSessions: 'id, date',
+      })
+      .upgrade((tx) =>
+        tx.table('people').toCollection().modify((p: Person) => {
+          if (!p.ringId) p.ringId = UNSURE
+        }),
+      )
   }
 }
 

@@ -18,6 +18,12 @@ import { ReleaseList, ReleaseNew } from '@/pages/Release'
 import { Wins } from '@/pages/Wins'
 import { History } from '@/pages/History'
 import { SettingsPage } from '@/pages/Settings'
+import { AddPerson, CircleView, WhyCircles } from '@/pages/Circles'
+import { LayerEditor, LayersList, SetupRedirect } from '@/pages/Layers'
+import { MoveReview } from '@/pages/MoveReview'
+import { FlagDetail, FlagLibrary, LogRedFlag } from '@/pages/Flags'
+import { LayerBoundaries } from '@/pages/LayerBoundaries'
+import { CircleReview } from '@/pages/CircleReview'
 import { ScrollToTop } from '@/components/ScrollToTop'
 
 export default function App() {
@@ -60,6 +66,18 @@ export default function App() {
         <Route path="/boundaries/:id" element={<BoundaryEditor />} />
         <Route path="/people" element={<PeopleList />} />
         <Route path="/people/:id" element={<PersonDetail />} />
+        <Route path="/people/:id/flag" element={<LogRedFlag />} />
+        <Route path="/circles" element={<CircleView />} />
+        <Route path="/circles/why" element={<WhyCircles />} />
+        <Route path="/circles/add" element={<AddPerson />} />
+        <Route path="/circles/layers" element={<LayersList />} />
+        <Route path="/circles/layers/:ringId" element={<LayerEditor />} />
+        <Route path="/circles/setup" element={<SetupRedirect />} />
+        <Route path="/circles/move/:personId" element={<MoveReview />} />
+        <Route path="/circles/flags" element={<FlagLibrary />} />
+        <Route path="/circles/flags/:id" element={<FlagDetail />} />
+        <Route path="/circles/boundaries" element={<LayerBoundaries />} />
+        <Route path="/circles/review" element={<CircleReview />} />
         <Route path="/release" element={<ReleaseList />} />
         <Route path="/release/new" element={<ReleaseNew />} />
         <Route path="/wins" element={<Wins />} />

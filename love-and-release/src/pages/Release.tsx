@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Shell } from '@/components/Shell'
 import { StepActions, Stepper } from '@/components/Stepper'
@@ -23,6 +23,8 @@ const PROMPTS: { key: keyof Omit<Draft, 'step'>; q: string; hint: string; placeh
 
 export function ReleaseNew() {
   const nav = useNavigate()
+  const [params] = useSearchParams()
+  const personId = params.get('person') ?? undefined
   const [d, update, reset] = useDraft<Draft>('release', EMPTY)
   const [done, setDone] = useState(false)
   const p = PROMPTS[d.step]
@@ -30,7 +32,7 @@ export function ReleaseNew() {
   const go = (n: number) => update({ step: Math.max(0, Math.min(PROMPTS.length - 1, n)) })
 
   const save = async () => {
-    await db.releases.add({ id: newId(), hurts: d.hurts.trim(), toGod: d.toGod.trim(), mine: d.mine.trim(), theirs: d.theirs.trim(), releasing: d.releasing.trim(), prayer: d.prayer.trim(), createdAt: now() })
+    await db.releases.add({ id: newId(), personId, hurts: d.hurts.trim(), toGod: d.toGod.trim(), mine: d.mine.trim(), theirs: d.theirs.trim(), releasing: d.releasing.trim(), prayer: d.prayer.trim(), createdAt: now() })
     reset()
     setDone(true)
   }

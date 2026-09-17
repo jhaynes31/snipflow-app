@@ -25,7 +25,14 @@ Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so dee
 | `/jesus`, `/jesus/:id` | Walk With Jesus library, tag filter, card detail, save to Truths |
 | `/truths`, `/hurting` | Truths Deck: add, edit, star, tag; "I'm hurting" view |
 | `/boundaries` | Boundary Builder: drafts, templates, gentle checks, rehearsal, "I sent it" |
-| `/people`, `/people/:id` | Reciprocity Log: quick taps, balance picture over time, notes |
+| `/circles` | Circles: concentric rings with drag-to-move, list view, Unsure and Released tabs |
+| `/circles/why` | Why circles? Jesus' circles and supporting verses |
+| `/circles/layers`, `/circles/setup` | Define my layers: meaning, access, expectations, entry criteria, exit signals |
+| `/circles/move/:personId` | Move Review: closer, further out, or release, with gentle suggestions |
+| `/circles/flags`, `/people/:id/flag` | Red flags library and watch-note logging with a hypervigilance check |
+| `/circles/boundaries` | Boundaries by layer, with per-person overrides |
+| `/circles/review` | Gentle periodic circle review |
+| `/people/:id` | Person profile: ring, green flags, watch notes, disclosures, reciprocity, moves, linked entries |
 | `/release`, `/release/new` | Release Journal (Gethsemane prompts) |
 | `/wins` | Wins log and "how far you've come" |
 | `/history` | Everything, filterable by type, person, tag, date |

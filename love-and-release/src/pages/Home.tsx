@@ -5,6 +5,8 @@ import { TruthCard, useDailyTruth } from '@/components/TruthCard'
 import { GearIcon } from '@/components/Icons'
 import { hasDraft } from '@/lib/drafts'
 import { daysSince } from '@/lib/dates'
+import { useSettings } from '@/lib/settings'
+import { reviewDue } from '@/lib/circles'
 
 const LAST_KEY = 'lr:last-opened'
 
@@ -25,6 +27,7 @@ export function Home() {
   const truth = useDailyTruth()
   const nav = useNavigate()
   const welcome = useWelcome()
+  const settings = useSettings()
   const [drafts, setDrafts] = useState<{ key: string; label: string; to: string }[]>([])
   useEffect(() => {
     const all = [
@@ -49,6 +52,12 @@ export function Home() {
           </div>
         )}
 
+        {reviewDue(settings) && (
+          <div className="notice">
+            It's been a while since you looked at your circles. <Link to="/circles/review">A gentle review</Link> is there when you want it. No rush.
+          </div>
+        )}
+
         {truth && (
           <section aria-label="Today's truth">
             <div className="faint" style={{ marginBottom: 6 }}>Today's truth</div>
@@ -66,7 +75,7 @@ export function Home() {
           <Link to="/boundaries">Boundary Builder<span>Draft a kind no</span></Link>
           <Link to="/release/new">Release Journal<span>Bring it to God</span></Link>
           <Link to="/wins">Log a Win<span>I honored myself</span></Link>
-          <Link to="/people">My People<span>Reciprocity log</span></Link>
+          <Link to="/circles">My Circles<span>Who sits where</span></Link>
         </div>
 
         <button type="button" className="btn btn-lg btn-block" style={{ background: 'var(--gold-soft)' }} onClick={() => nav('/hurting')}>

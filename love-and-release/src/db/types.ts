@@ -13,12 +13,102 @@ export type Tag =
   | 'Grief over someone\'s choices'
   | 'Forgiving without pretending it\'s fine'
 
+export const UNSURE = 'unsure'
+export const RELEASED = 'released'
+export type Placement = string // ring id, or UNSURE / RELEASED
+
 export interface Person {
   id: string
   name: string
   role: string
   notes: string
   createdAt: string
+  ringId: Placement
+  emoji?: string
+  color?: string
+  relationshipType?: string
+  metDate?: string // YYYY-MM-DD
+}
+
+export interface Ring {
+  id: string
+  name: string
+  order: number
+  color: string
+  meaning: string
+  access: string[]
+  expectations: string[]
+  entryCriteria: string[]
+  exitSignals: string[]
+  softCap?: number
+  minTimeKnown?: string
+}
+
+export interface RingMove {
+  id: string
+  personId: string
+  fromRingId: Placement
+  toRingId: Placement
+  reason: string
+  criteriaMet: string[]
+  date: string
+}
+
+export interface TrustSignal {
+  id: string
+  personId: string
+  type: string
+  note: string
+  date: string
+}
+
+export interface RedFlag {
+  id: string
+  personId: string
+  patternId: string
+  note: string
+  date: string
+  status: 'open' | 'resolved'
+  resolutionNote?: string
+}
+
+export type DisclosureOutcome = 'kept-private' | 'respected' | 'shared-without-permission' | 'used-against-me' | 'dismissed' | 'not-sure'
+
+export interface Disclosure {
+  id: string
+  personId: string
+  whatShared: string
+  dateShared: string
+  outcome?: DisclosureOutcome
+  outcomeDate?: string
+}
+
+export interface FlagPattern {
+  id: string
+  name: string
+  looksLike: string
+  bodyCues: string
+  selfQuestion: string
+  boundaryResponse: string
+  isSpiritual?: boolean
+}
+
+export interface LayerBoundary {
+  id: string
+  ringId?: string
+  personId?: string
+  text: string
+  why: string
+  response: string
+  createdAt: string
+}
+
+export type ReviewAnswer = 'yes' | 'closer' | 'out' | 'unsure'
+
+export interface ReviewSession {
+  id: string
+  date: string
+  results: { personId: string; answer: ReviewAnswer }[]
 }
 
 export type ReciprocityType =
@@ -94,6 +184,7 @@ export interface BoundaryDraft {
 
 export interface ReleaseEntry {
   id: string
+  personId?: string
   hurts: string
   toGod: string
   mine: string
@@ -137,6 +228,12 @@ export interface Settings {
   theme: Theme
   textSize: 'normal' | 'large'
   reduceMotion: boolean
+  circleCues?: boolean
+  circleReviewEnabled?: boolean
+  circleReviewDays?: number
+  circleReviewLastAt?: string
+  circleReviewSnoozedUntil?: string
+  circlesIntroSeen?: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -145,4 +242,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   textSize: 'normal',
   reduceMotion: false,
+  circleCues: true,
+  circleReviewEnabled: true,
+  circleReviewDays: 90,
 }
