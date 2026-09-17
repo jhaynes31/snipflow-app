@@ -10,7 +10,8 @@ import { fmtDateTime } from '@/lib/dates'
 
 export function Wins() {
   const [params, setParams] = useSearchParams()
-  const [type, setType] = useState<WinType | null>((params.get('add') as WinType) || null)
+  const [types, setTypes] = useState<WinType[]>(params.get('add') ? [params.get('add') as WinType] : [])
+  const toggle = (t: WinType) => setTypes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
   const [note, setNote] = useState('')
   const [flash, setFlash] = useState('')
   const [view, setView] = useState<'log' | 'far'>('log')
@@ -19,9 +20,10 @@ export function Wins() {
   useEffect(() => { if (params.get('add')) setParams({}, { replace: true }) }, [params, setParams])
 
   const save = async () => {
-    if (!type) return
-    await db.wins.add({ id: newId(), type, note: note.trim(), createdAt: now() })
-    setType(null); setNote('')
+    if (!types.length) return
+    const ts = now()
+    await db.wins.bulkAdd(types.map((type) => ({ id: newId(), type, note: note.trim(), createdAt: ts })))
+    setTypes([]); setNote('')
     setFlash(['That counts.', 'Look at you.', 'Noted, and celebrated.', 'That was you honoring yourself.'][Math.floor(Math.random() * 4)])
     setTimeout(() => setFlash(''), 3000)
   }
@@ -52,16 +54,17 @@ export function Wins() {
           <section className="card stack">
             <div className="label">Today I…</div>
             <div className="chips">
-              {WINS.map((w) => <button key={w.type} type="button" className="chip chip-sage" aria-pressed={type === w.type} onClick={() => setType(type === w.type ? null : w.type)}>{w.label}</button>)}
+              {WINS.map((w) => <button key={w.type} type="button" className="chip chip-sage" aria-pressed={types.includes(w.type)} onClick={() => toggle(w.type)}>{w.label}</button>)}
             </div>
             <div className="label">Freedom moments</div>
             <div className="chips">
-              {FREEDOM_WINS.map((w) => <button key={w.type} type="button" className="chip" aria-pressed={type === w.type} onClick={() => setType(type === w.type ? null : w.type)}>{w.label}</button>)}
+              {FREEDOM_WINS.map((w) => <button key={w.type} type="button" className="chip" aria-pressed={types.includes(w.type)} onClick={() => toggle(w.type)}>{w.label}</button>)}
             </div>
-            {type && (
+            <p className="help" style={{ margin: 0 }}>Tap as many as fit. One moment can be several wins.</p>
+            {types.length > 0 && (
               <>
-                <input className="input" value={note} placeholder="A note (optional)" onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} aria-label="Note" />
-                <button type="button" className="btn btn-primary btn-block" onClick={save}>Log it</button>
+                <input className="input" value={note} placeholder="A note (optional, shared by all of them)" onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} aria-label="Note" />
+                <button type="button" className="btn btn-primary btn-block" onClick={save}>{types.length === 1 ? 'Log it' : `Log ${types.length} wins`}</button>
               </>
             )}
             {flash && <p className="faint center" aria-live="polite" style={{ margin: 0 }}>{flash}</p>}
