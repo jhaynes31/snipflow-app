@@ -9,6 +9,10 @@ mode, and the module system the four apps plug into.
 Read `docs/hub-contract.md` for the rules, `docs/spec-update-1.md` for the names and
 theme, and `docs/foundation.md` for where things live and how to add a module.
 
+Deploying is a Vercel project with **Root Directory** `hub` and one variable,
+`CONVEX_DEPLOY_KEY`; the build configures the login keys on Convex by itself.
+For local development:
+
 ```bash
 npm install
 npx convex dev
