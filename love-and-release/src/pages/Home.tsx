@@ -60,6 +60,7 @@ export function Home() {
   return (
     <Shell action={<Link to="/settings" className="btn btn-icon btn-ghost" aria-label="Settings"><GearIcon /></Link>}>
       <div className="stack-lg">
+        {truth && <section aria-label="Today's truth"><div className="faint" style={{ marginBottom: 6 }}>Today's truth</div><TruthCard truth={truth} /></section>}
         <Speak>
           <p><strong>{welcome}</strong></p>
           <p>What's going on?</p>
@@ -79,10 +80,9 @@ export function Home() {
         {paceDue && <Speak tone="gold">It's been {paceDue.days} days with {paceDue.name}. Want a quick look at what they've shown so far? <Link to={`/pace/${paceDue.id}`}>Let's look</Link></Speak>}
         {dailyPrompt && <Speak tone="sage">{dailyPrompt.text} <Link to={dailyPrompt.to}>Let's do it</Link></Speak>}
 
+        {value && <p className="faint center" style={{ margin: 0 }}>Today, quietly: <strong>{value.name}</strong>{value.meaning ? ` · ${value.meaning}` : ''}</p>}
         {notice && <section aria-label="Something I noticed"><div className="faint" style={{ marginBottom: 6 }}>Something I noticed</div><Speak tone="gold">{notice.text}{notice.link && <> <Link to={notice.link}>{notice.linkLabel ?? 'Open'}</Link></>}</Speak></section>}
 
-        {truth && <section aria-label="Today's truth"><div className="faint" style={{ marginBottom: 6 }}>Today's truth</div><TruthCard truth={truth} /></section>}
-        {value && <p className="faint center" style={{ margin: 0 }}>Today, quietly: <strong>{value.name}</strong>{value.meaning ? ` · ${value.meaning}` : ''}</p>}
 
         {reviewDue(settings) && <div className="notice">It's been a while since you looked at your circles. <Link to="/circles/review">A gentle review</Link> is there when you want it.</div>}
 
