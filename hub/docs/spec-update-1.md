@@ -75,7 +75,7 @@ Everything else in the visual design section stays the same, including accessibi
 - [x] `/support` redirects to `/tend`.
 - [x] All colors come from the theme tokens file, and every text pairing passes WCAG AA in light and dark mode.
 - [x] Quiet visuals and low-demand mode remove all textures and decorative touches.
-- [ ] Both original spec docs in `/docs` are updated to match. (`hub-contract.md` is updated. `support-app-spec.md` was never added to this repo, so it could not be updated here.)
+- [x] Both original spec docs in `/docs` are updated to match.
 
 ## Implementation notes (added by the build)
 
