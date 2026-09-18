@@ -24,6 +24,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ token: 
     dailyCheckInHour: feed.dailyCheckInHour,
     dailyCheckInMinute: feed.dailyCheckInMinute,
     headsUps: feed.headsUps,
+    everyBoxWeeklyReview: feed.everyBoxWeeklyReview,
   });
   return new Response(body, {
     headers: {

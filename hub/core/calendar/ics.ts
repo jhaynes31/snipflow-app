@@ -10,6 +10,8 @@ export interface FeedInput {
   dailyCheckInHour: number;
   dailyCheckInMinute: number;
   headsUps: { id: string; from: string; statusLine: string; urgent: boolean; createdAt: number }[];
+  /** Every Box's optional weekly review event (Sundays at the check-in time). */
+  everyBoxWeeklyReview?: boolean;
   /** For tests. Defaults to now. */
   now?: Date;
 }
@@ -75,6 +77,31 @@ export function buildFeed(input: FeedInput): string {
     "END:VALARM",
     "END:VEVENT",
   ];
+
+  if (input.everyBoxWeeklyReview) {
+    // Next Sunday from tomorrow, floating local time, 10 minutes.
+    const sunday = new Date(start);
+    while (sunday.getDay() !== 0) sunday.setDate(sunday.getDate() + 1);
+    const endMin = input.dailyCheckInHour * 60 + input.dailyCheckInMinute + 10;
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:every-box-weekly-review@${slug(input.appName)}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${floating(sunday, input.dailyCheckInHour, input.dailyCheckInMinute)}`,
+      `DTEND:${floating(sunday, Math.floor(endMin / 60) % 24, endMin % 60)}`,
+      "RRULE:FREQ=WEEKLY;BYDAY=SU",
+      `SUMMARY:${escapeText("Every Box weekly review")}`,
+      `DESCRIPTION:${escapeText(`A minute or two together: look over what changed this week. Nothing to prepare. ${input.siteUrl}/every-box/review`)}`,
+      `URL:${input.siteUrl}/every-box/review`,
+      "TRANSP:TRANSPARENT",
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${escapeText("Every Box weekly review")}`,
+      "TRIGGER:PT0M",
+      "END:VALARM",
+      "END:VEVENT",
+    );
+  }
 
   for (const h of input.headsUps) {
     const summary = `${h.from} sent a heads-up${h.urgent ? " (urgent)" : ""}`;

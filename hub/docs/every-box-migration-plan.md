@@ -1,6 +1,6 @@
 # Every Box migration plan (Phase 2)
 
-2026-09-18 · Written for Jen's approval before any Every Box code is moved. Nothing in this plan has been done yet.
+2026-09-18 · Approved by Jen the same day. Steps 1 through 4 below are done and live; step 5 (data) and step 6 (hand-over) remain.
 
 Source: the `jhaynes31/every-box` repository at commit `eb5a940` (one commit, "Replace emoji stage art with vector illustrations"). Target: `hub/modules/every-box` in The Shire, on the Hub Contract's foundation.
 
@@ -65,10 +65,10 @@ Either way, the old Every Box site keeps running untouched until you say it's do
 
 ## Order of work
 
-1. **Move the code in.** Copy the tables into `convex/schema.ts`, the functions into `convex/eb*.ts`, the screens and components into `modules/every-box/`, the stylesheet and tests alongside. Register the module as `ready`. Everything compiles and tests pass, but it still uses its own login and household flow.
-2. **Switch to the foundation.** Replace the household and partner flow with automatic provisioning from Shire profiles. Delete login, onboarding, join, badge sync, the `.ics` route, and the PWA files. Point every screen at the foundation's user and partner.
-3. **Fit the frame.** Sub-navigation tabs, routes under `/every-box`, Every Box settings trimmed to the theme picker, today widget on the home screen.
-4. **Contract behaviors.** `category.stuck` event, optional weekly-review calendar event, privacy fields.
+1. **Move the code in.** *(done)* Copy the tables into `convex/schema.ts`, the functions into `convex/eb*.ts`, the screens and components into `modules/every-box/`, the stylesheet and tests alongside. Register the module as `ready`. Everything compiles and tests pass, but it still uses its own login and household flow.
+2. **Switch to the foundation.** *(done)* Replace the household and partner flow with automatic provisioning from Shire profiles. Delete login, onboarding, join, badge sync, the `.ics` route, and the PWA files. Point every screen at the foundation's user and partner.
+3. **Fit the frame.** *(done)* Sub-navigation tabs, routes under `/every-box`, Every Box settings trimmed to the theme picker, today widget on the home screen.
+4. **Contract behaviors.** *(done)* `category.stuck` event, optional weekly-review calendar event, privacy fields.
 5. **Data (only if needed).** Import script, run against a snapshot, verify.
 6. **Verify and hand over.** Typecheck, lint, copy check, tests, production build. You and John each open Every Box inside The Shire and tend one box. Then the old Every Box site and its Vercel project are archived, not deleted, in case anything was missed.
 
@@ -80,10 +80,10 @@ Every Box works as before, inside The Shire, using its login and reminders. Spec
 
 ## Decisions for Jen
 
-1. **Is Every Box already holding real data?** Have you and John been using a live Every Box site with actual boxes? If yes, I'll add the snapshot step; if no, there is nothing to move.
-2. **Default theme.** Every Box opens in "garden" today. All seven themes stay available; do you want a different default, for example "village" to match The Shire?
-3. **Weekly review on the calendar.** Add the optional weekly "Every Box review" event to the Shire calendar feed as proposed, or leave the calendar to the daily check-in only?
-4. **The glance view.** Keep it at `/every-box/glance` as a bookmarkable page inside The Shire, or drop it now that the Shire home screen is the homepage?
+1. **Is Every Box already holding real data?** Yes: the production deployment is `youthful-mule-878` in the Convex project "Every Box". The data step is next.
+2. **Default theme.** Decided: the "village" theme, reshaped as a woodland village in The Shire's own moss, wood, and greenery, following light and dark mode. All seven themes stay available.
+3. **Weekly review on the calendar.** Decided: yes, as a per-person toggle in Every Box settings.
+4. **The glance view.** Decided: kept, at `/every-box/glance`.
 
 ## Risks and how they're handled
 

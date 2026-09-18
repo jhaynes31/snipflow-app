@@ -2,13 +2,22 @@
 
 import { Package } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
-import { PlannedScreen } from "@/modules/_shared/PlannedScreen";
+import { EveryBoxShell } from "./EveryBoxShell";
+import { BoxDetail } from "./screens/BoxDetail";
+import { Boxes } from "./screens/Boxes";
+import { Commitments } from "./screens/Commitments";
+import { Dashboard } from "./screens/Dashboard";
+import { Glance } from "./screens/Glance";
+import { Review } from "./screens/Review";
+import { Settings } from "./screens/Settings";
+import { EveryBoxHome, EveryBoxToday } from "./widgets";
 
 /**
  * Every Box: a shared, ambient view of how recently each part of life has
- * been tended. Phase 2 moves the existing Every Box code into this folder.
- * Its freshness indicators are the one allowed exception to the shame-free
- * rules, and they stay inside this module.
+ * been tended, so John can see every box in his brain. Moved in from the
+ * standalone app in phase 2; see docs/every-box-migration-plan.md. Its
+ * freshness stages are the one allowed exception to the shame-free rules,
+ * and they stay inside this module.
  */
 export const everyBox: ModuleManifest = {
   id: "every-box",
@@ -22,15 +31,28 @@ export const everyBox: ModuleManifest = {
     tint: "#EFE4D2",
     dark: { accent: "#C4A07C", onAccent: "#1F261C", tint: "#33392B" },
   },
+  todayWidget: EveryBoxToday,
+  homeWidget: EveryBoxHome,
   headsUpTypes: [],
-  sharedData: ["categories", "tending events", "commitments", "weekly reviews"],
+  sharedData: ["boxes", "tending events", "context notes", "commitments", "weekly reviews"],
   crossModuleHooks: {
     emits: ["category.stuck"],
-    listens: ["checkin.low", "loveAction.done"],
+    listens: [],
   },
   usesAICoach: false,
-  status: "planned",
-  Screen: function EveryBoxScreen() {
-    return <PlannedScreen manifest={everyBox} phase={2} />;
+  status: "ready",
+  Screen: function EveryBoxScreen({ path }: { path: string[] }) {
+    const [first, second] = path;
+    const bare = first === "glance";
+    let screen: React.ReactNode;
+    if (!first) screen = <Dashboard />;
+    else if (first === "boxes") screen = <Boxes />;
+    else if (first === "box" && second) screen = <BoxDetail id={second} />;
+    else if (first === "commitments") screen = <Commitments />;
+    else if (first === "review") screen = <Review />;
+    else if (first === "glance") screen = <Glance />;
+    else if (first === "settings") screen = <Settings />;
+    else screen = <Dashboard />;
+    return <EveryBoxShell bare={bare}>{screen}</EveryBoxShell>;
   },
 };

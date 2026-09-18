@@ -197,4 +197,111 @@ export default defineSchema({
     reasonsToHoldOn: v.string(),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
+
+  // ---------------------------------------------------------------------
+  // Every Box (module id "every-box"). Household-scoped, so shared by
+  // definition; `visibility` is optional and reads as "shared" when missing.
+  // Field names match the standalone Every Box app so its data moves over
+  // as-is. See docs/every-box-migration-plan.md.
+  // ---------------------------------------------------------------------
+
+  /** The couple as a unit. Exactly one exists, created on first visit. */
+  ebHouseholds: defineTable({
+    name: v.string(),
+    activeTheme: v.string(),
+    unlockedThemes: v.array(v.string()),
+    isPremium: v.boolean(),
+    inviteCode: v.string(),
+    /** Legacy: the standalone app stored a users id here. Unused in The Shire. */
+    createdBy: v.optional(v.string()),
+    createdAt: v.number(),
+    lastReviewAt: v.optional(v.number()),
+    visibility: v.optional(visibilityValidator),
+  }).index("by_invite_code", ["inviteCode"]),
+
+  /** Each person inside Every Box, linked to their Shire profile. */
+  ebPartners: defineTable({
+    householdId: v.id("ebHouseholds"),
+    /** The Shire profile this partner is. Missing only on rows imported before linking. */
+    profileId: v.optional(v.id("profiles")),
+    /** Legacy: the standalone app's users id, kept as text for the import to match on. */
+    legacyUserId: v.optional(v.string()),
+    displayName: v.string(),
+    joinedAt: v.number(),
+    visibility: v.optional(visibilityValidator),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_household", ["householdId"]),
+
+  /** A recurring need. Fully custom per household. Never "completes". */
+  ebCategories: defineTable({
+    householdId: v.id("ebHouseholds"),
+    name: v.string(),
+    icon: v.string(),
+    idealCadenceDays: v.number(),
+    tenderId: v.optional(v.id("ebPartners")),
+    tenderIds: v.optional(v.array(v.id("ebPartners"))),
+    area: v.optional(v.string()),
+    lastTendedAt: v.optional(v.number()),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    archivedAt: v.optional(v.number()),
+    /** When `category.stuck` was last emitted for this box, so it fires once per dormant spell. */
+    stuckNotifiedAt: v.optional(v.number()),
+    visibility: v.optional(visibilityValidator),
+  }).index("by_household", ["householdId"]),
+
+  ebTendingEvents: defineTable({
+    householdId: v.id("ebHouseholds"),
+    categoryId: v.id("ebCategories"),
+    partnerId: v.id("ebPartners"),
+    tendedAt: v.number(),
+    note: v.optional(v.string()),
+    visibility: v.optional(visibilityValidator),
+  })
+    .index("by_category", ["categoryId", "tendedAt"])
+    .index("by_household", ["householdId", "tendedAt"]),
+
+  ebCategoryNotes: defineTable({
+    householdId: v.id("ebHouseholds"),
+    categoryId: v.id("ebCategories"),
+    partnerId: v.id("ebPartners"),
+    text: v.string(),
+    createdAt: v.number(),
+    visibility: v.optional(visibilityValidator),
+  })
+    .index("by_category", ["categoryId", "createdAt"])
+    .index("by_household", ["householdId", "createdAt"]),
+
+  ebWeeklyReviews: defineTable({
+    householdId: v.id("ebHouseholds"),
+    completedBy: v.id("ebPartners"),
+    completedAt: v.number(),
+    acknowledgements: v.array(
+      v.object({
+        categoryId: v.id("ebCategories"),
+        answer: v.union(v.literal("yes"), v.literal("partial"), v.literal("no"), v.literal("skipped")),
+        stageAtReview: v.number(),
+      }),
+    ),
+    visibility: v.optional(visibilityValidator),
+  }).index("by_household", ["householdId", "completedAt"]),
+
+  ebCommitments: defineTable({
+    householdId: v.id("ebHouseholds"),
+    title: v.string(),
+    proposedBy: v.id("ebPartners"),
+    assignedTo: v.optional(v.id("ebPartners")),
+    assignedToIds: v.optional(v.array(v.id("ebPartners"))),
+    status: v.union(v.literal("proposed"), v.literal("agreed"), v.literal("active"), v.literal("done"), v.literal("declined")),
+    createdAt: v.number(),
+    agreedAt: v.optional(v.number()),
+    activatedAt: v.optional(v.number()),
+    doneAt: v.optional(v.number()),
+    targetWindowDays: v.optional(v.number()),
+    lastTendedAt: v.optional(v.number()),
+    visibility: v.optional(visibilityValidator),
+  })
+    .index("by_household", ["householdId", "status"])
+    .index("by_assignee", ["assignedTo", "status"]),
 });

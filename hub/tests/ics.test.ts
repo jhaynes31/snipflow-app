@@ -36,6 +36,16 @@ describe("calendar feed", () => {
     assert.match(ics, /URL:https:\/\/example.test\/heads-up\/abc/);
   });
 
+  it("adds the weekly Every Box review only when the person turned it on", () => {
+    const off = buildFeed({ ...base, headsUps: [] });
+    assert.ok(!off.includes("every-box-weekly-review"));
+    const on = buildFeed({ ...base, headsUps: [], everyBoxWeeklyReview: true });
+    assert.match(on, /UID:every-box-weekly-review@the-shire/);
+    assert.match(on, /RRULE:FREQ=WEEKLY;BYDAY=SU/);
+    assert.match(on, /DTSTART:20260920T093000\r\n/);
+    assert.match(on, /URL:https:\/\/example.test\/every-box\/review/);
+  });
+
   it("escapes and folds per RFC 5545", () => {
     assert.equal(escapeText("a,b;c\nd\\e"), "a\\,b\;c\\nd\\\\e");
     const long = "X".repeat(150);

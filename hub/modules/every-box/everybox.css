@@ -1,0 +1,343 @@
+/*
+ * Every Box styles. Everything is scoped under `.eb` so it can live beside
+ * the rest of the site. Colours come from CSS variables that the active
+ * theme sets on the root element (see EveryBoxShell).
+ */
+
+@layer components {
+.eb {
+  --eb-bg: #f5f2e8;
+  --eb-surface: #fffdf7;
+  --eb-surface-alt: #eef0e2;
+  --eb-text: #2f3a2a;
+  --eb-muted: #6b7561;
+  --eb-accent: #4f7d4a;
+  --eb-accent-text: #ffffff;
+  --eb-border: #dcdccb;
+  --eb-tint-1: #d9d3c2;
+  --eb-tint-2: #cfe3c0;
+  --eb-tint-3: #b5d69f;
+  --eb-tint-4: #8fc47c;
+  --eb-tint-5: #f2b8c6;
+
+  color-scheme: light;
+  background: var(--eb-bg);
+  color: var(--eb-text);
+  border-radius: 18px;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 400ms ease, color 400ms ease;
+}
+
+.eb a { color: inherit; }
+
+.eb-container {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+}
+@media (min-width: 768px) {
+  .eb-container { padding: 1.5rem 1.5rem 2.5rem; }
+}
+
+.eb-card {
+  background: var(--eb-surface);
+  border: 1px solid var(--eb-border);
+  border-radius: 1.25rem;
+  padding: 1rem 1.125rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02), 0 8px 24px -20px rgba(0, 0, 0, 0.25);
+}
+.eb-card-alt {
+  background: var(--eb-surface-alt);
+  border: 1px solid transparent;
+  border-radius: 1.25rem;
+  padding: 1rem 1.125rem;
+}
+
+.eb-muted { color: var(--eb-muted); }
+.eb-accent { color: var(--eb-accent); }
+
+.eb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 120ms ease, background-color 160ms ease, opacity 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.eb-btn:active { transform: scale(0.98); }
+.eb-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+.eb-btn-primary { background: var(--eb-accent); color: var(--eb-accent-text); }
+.eb-btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.eb-btn-secondary {
+  background: var(--eb-surface);
+  color: var(--eb-text);
+  border-color: var(--eb-border);
+}
+.eb-btn-secondary:hover:not(:disabled) { background: var(--eb-surface-alt); }
+.eb-btn-ghost { background: transparent; color: var(--eb-accent); }
+.eb-btn-ghost:hover:not(:disabled) { background: var(--eb-surface-alt); }
+.eb-btn-sm { min-height: 2rem; padding: 0.35rem 0.8rem; font-size: 0.8rem; }
+
+.eb-input,
+.eb-select,
+.eb-textarea {
+  width: 100%;
+  background: var(--eb-surface);
+  color: var(--eb-text);
+  border: 1px solid var(--eb-border);
+  border-radius: 0.85rem;
+  padding: 0.6rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.eb-input:focus,
+.eb-select:focus,
+.eb-textarea:focus {
+  border-color: var(--eb-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--eb-accent) 18%, transparent);
+}
+.eb-textarea { min-height: 5rem; resize: vertical; }
+.eb-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--eb-muted);
+  margin-bottom: 0.3rem;
+}
+
+.eb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--eb-surface-alt);
+  color: var(--eb-muted);
+}
+
+/* Stage visual: a soft tinted disc whose glyph grows with the stage. */
+.eb-stage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 400ms ease, box-shadow 400ms ease;
+}
+.eb-stage-glyph {
+  line-height: 1;
+  transition: transform 400ms ease, opacity 400ms ease, filter 400ms ease;
+  user-select: none;
+}
+.eb-stage[data-stage="1"] { background: var(--eb-tint-1); }
+.eb-stage[data-stage="2"] { background: var(--eb-tint-2); }
+.eb-stage[data-stage="3"] { background: var(--eb-tint-3); }
+.eb-stage[data-stage="4"] { background: var(--eb-tint-4); }
+.eb-stage[data-stage="5"] {
+  background: var(--eb-tint-5);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--eb-tint-5) 45%, transparent);
+}
+.eb-stage[data-stage="1"] .eb-stage-glyph { transform: scale(0.72); opacity: 0.7; filter: saturate(0.6); }
+.eb-stage[data-stage="2"] .eb-stage-glyph { transform: scale(0.84); opacity: 0.9; }
+.eb-stage[data-stage="3"] .eb-stage-glyph { transform: scale(0.94); }
+.eb-stage[data-stage="4"] .eb-stage-glyph { transform: scale(1.02); }
+.eb-stage[data-stage="5"] .eb-stage-glyph { transform: scale(1.1); }
+
+@keyframes eb-bloom {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1.1); }
+}
+.eb-stage[data-just-tended="true"] .eb-stage-glyph { animation: eb-bloom 700ms ease-out; }
+
+/* Sub-navigation inside the Every Box place (The Shire owns the outer tabs). */
+.eb-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0;
+}
+.eb-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--eb-muted);
+  text-decoration: none;
+}
+.eb-subnav a[aria-current="page"] { color: var(--eb-accent); background: var(--eb-surface-alt); }
+.eb-subnav a svg { width: 1.1rem; height: 1.1rem; }
+
+.eb-fade-in { animation: eb-fade 300ms ease-out both; }
+@keyframes eb-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.eb-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+}
+@media (min-width: 640px) {
+  .eb-grid { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+}
+
+.eb-error {
+  background: #fff1ee;
+  color: #8a3a2a;
+  border: 1px solid #f2c8bf;
+  border-radius: 0.85rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+details.eb-archive > summary {
+  cursor: pointer;
+  color: var(--eb-muted);
+  font-size: 0.85rem;
+  list-style: none;
+}
+details.eb-archive > summary::-webkit-details-marker { display: none; }
+
+}
+
+@layer components {
+  /* Freshness meter: five segments, filled up to the stage. */
+  .eb-meter {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    height: 0.45rem;
+    width: 100%;
+  }
+  .eb-meter-seg {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--eb-border) 70%, transparent);
+    transition: background-color 400ms ease;
+  }
+
+  /* The living scene at the top of the home screen. */
+  .eb-scene {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid var(--eb-border);
+    min-height: 13rem;
+    padding: 1rem 1rem 0.75rem;
+    display: flex;
+    align-items: flex-end;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 35%, transparent);
+  }
+  .eb-scene-sky {
+    position: absolute; inset: 0 0 42% 0;
+    background: var(--eb-scene-sky);
+  }
+  .eb-scene-ground {
+    position: absolute; inset: 58% 0 0 0;
+    background: var(--eb-scene-ground);
+  }
+  .eb-scene-ground::before {
+    content: "";
+    position: absolute; left: -10%; right: -10%; top: -1.2rem; height: 2.4rem;
+    background: inherit;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  .eb-scene-prop {
+    position: absolute;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+    filter: saturate(0.85);
+    animation: eb-drift 9s ease-in-out infinite alternate;
+  }
+  .eb-scene-prop:nth-child(odd) { animation-duration: 12s; }
+  @keyframes eb-drift {
+    from { transform: translateY(0); }
+    to { transform: translateY(-6px); }
+  }
+  .eb-scene-plots {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.25rem 0.75rem;
+  }
+  .eb-plot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    text-decoration: none;
+    min-width: 4.2rem;
+    max-width: 6rem;
+    padding: 0.25rem;
+    border-radius: 0.75rem;
+    transition: transform 160ms ease;
+  }
+  .eb-plot:hover { transform: translateY(-2px); }
+  .eb-plot-glyph {
+    display: block;
+    line-height: 1;
+    font-size: 2.6rem;
+    transition: transform 400ms ease, opacity 400ms ease, filter 400ms ease;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.15));
+  }
+  .eb-plot[data-stage="1"] .eb-plot-glyph { transform: scale(0.62); opacity: 0.6; filter: saturate(0.4) drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+  .eb-plot[data-stage="2"] .eb-plot-glyph { transform: scale(0.76); opacity: 0.85; filter: saturate(0.7) drop-shadow(0 1px 1px rgba(0,0,0,0.12)); }
+  .eb-plot[data-stage="3"] .eb-plot-glyph { transform: scale(0.9); }
+  .eb-plot[data-stage="4"] .eb-plot-glyph { transform: scale(1.02); }
+  .eb-plot[data-stage="5"] .eb-plot-glyph { transform: scale(1.15); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--eb-tint-5) 80%, transparent)) drop-shadow(0 2px 2px rgba(0,0,0,0.15)); }
+  .eb-plot-name {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.15;
+    color: var(--eb-text);
+    background: color-mix(in srgb, var(--eb-surface) 85%, transparent);
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eb-scene-prop { animation: none; }
+  }
+}
+
+@layer components {
+  .eb-scene-decor {
+    position: absolute;
+    inset: 0 0 auto 0;
+    width: 100%;
+    height: 55%;
+    pointer-events: none;
+    animation: eb-drift 14s ease-in-out infinite alternate;
+  }
+  .eb-plot-glyph svg { margin: 0 auto; }
+  .eb-chip svg { display: inline-block; vertical-align: -0.2em; margin-right: 0.2rem; }
+  .eb-stage .eb-stage-glyph svg { display: block; }
+}

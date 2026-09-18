@@ -27,6 +27,7 @@ What that trades:
 | `convex/lib.ts` | `requireMe`, `partnerOf`, `access`, `requireOwned`. Use these; never read another profile's rows directly. |
 | `convex/events.ts`, `moduleHooks.ts` | The event bus. `emitEvent` on the server, `api.events.emit` from screens, `LISTENERS` for server-side reactions. |
 | `app/[moduleId]/[[...path]]/page.tsx` | Serves every module's screens from its manifest. |
+| `convex/everyBox/`, `modules/every-box/` | Every Box: functions and pure engine on the Convex side, shell, screens, components, and stylesheet on the module side. The first real module; a worked example of the layout above. |
 | `app/calendar/[token]/route.ts` | The per-person calendar feed. |
 
 ## Adding a module

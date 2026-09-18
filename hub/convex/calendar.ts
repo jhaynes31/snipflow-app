@@ -28,8 +28,10 @@ export const feedByToken = query({
         senders.set(card.ownerId, s?.displayName ?? "Your partner");
       }
     }
+    const eb = (profile.moduleSettings?.["every-box"] ?? {}) as { weeklyReviewOnCalendar?: boolean };
     return {
       displayName: profile.displayName,
+      everyBoxWeeklyReview: eb.weeklyReviewOnCalendar === true,
       timeZone: profile.timeZone,
       dailyCheckInHour: profile.reminders.dailyCheckInHour,
       dailyCheckInMinute: profile.reminders.dailyCheckInMinute,
