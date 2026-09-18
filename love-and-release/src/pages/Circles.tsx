@@ -128,13 +128,13 @@ export function Avatar({ person, size = 40 }: { person: Person; size?: number })
 }
 
 /* ---------- the visual circle ---------- */
-const SIZE = 400, C = 200, ME_R = 28, PAD = 8
+const SIZE = 400, C = 200, ME_R = 30, PAD = 4
 
 function RingMap({ rings, people, cues, onOpen, onMove }: { rings: Ring[]; people: Person[]; cues: Record<string, { oneSided: boolean; watch: boolean }>; onOpen: (id: string) => void; onMove: (id: string, to: Placement) => void }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; startX: number; startY: number; moved: boolean } | null>(null)
   const w = (C - ME_R - PAD) / rings.length
-  const dot = Math.min(15, w * 0.42)
+  const dot = Math.min(18, w * 0.46)
 
   const positions = useMemo(() => {
     const out: Record<string, { x: number; y: number }> = {}
@@ -194,12 +194,12 @@ function RingMap({ rings, people, cues, onOpen, onMove }: { rings: Ring[]; peopl
         return (
           <g key={r.id}>
             <circle cx={C} cy={C} r={outer} fill={r.color} stroke={hover === r.id ? 'var(--accent)' : 'var(--surface)'} strokeWidth={hover === r.id ? 3 : 1.5} />
-            <text x={C} y={C + outer - 5} textAnchor="middle" fontSize="9" fill="var(--text-soft)" fontWeight="700">{r.name}</text>
+            <text x={C} y={C + outer - 6} textAnchor="middle" fontSize="10.5" fill="var(--text-soft)" fontWeight="700">{r.name}</text>
           </g>
         )
       })}
       <circle cx={C} cy={C} r={ME_R} fill="var(--accent)" />
-      <text x={C} y={C + 4} textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--accent-text)">Me</text>
+      <text x={C} y={C + 4.5} textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--accent-text)">Me</text>
       {people.map((p) => {
         const pos = drag?.id === p.id && drag.moved ? { x: drag.x, y: drag.y } : positions[p.id]
         if (!pos) return null
