@@ -102,6 +102,7 @@ export function PersonDetail() {
           <button type="button" className="chip" onClick={() => setPending(pending ? null : 'they-initiated')}>+ Reciprocity</button>
           <button type="button" className="chip" onClick={boundaryCrossed}>Boundary crossed</button>
           <Link to={`/circles/move/${person.id}`} className="chip">Move review</Link>
+          <Link to={`/pace/${person.id}`} className="chip">{person.pace ? 'Pace' : 'Set a pace'}</Link>
           <Link to="/boundaries/new" className="chip">Draft a message</Link>
         </section>
         {flash && <p className="faint" aria-live="polite" style={{ margin: 0 }}>{flash}</p>}
@@ -125,6 +126,11 @@ export function PersonDetail() {
           </section>
         )}
 
+        {person.pace && (
+          <section className="card-gold">
+            <strong>Pace:</strong> not closer before {fmtDate(person.pace.notBefore)}.{person.pace.disclosureHold.length ? ` Holding back ${person.pace.disclosureHold.length} things for now.` : ''} <Link to={`/pace/${person.id}`}>What they've shown</Link>
+          </section>
+        )}
         {openFlags.length > 0 && (
           <section className="notice">
             <strong>{openFlags.length} open watch note{openFlags.length > 1 ? 's' : ''}.</strong> {openFlags.map((f) => patternName(f.patternId)).join(', ')}. Watch for repetition, not for proof.

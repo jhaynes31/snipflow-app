@@ -17,6 +17,7 @@ export function More() {
         <section><h3>Relationships</h3><div className="grid-links">
           <Link to="/circles">My Circles<span>Who sits where</span></Link>
           <Link to="/someone">Confused about someone<span>Look at what's there</span></Link>
+          <Link to="/new-person">I met someone<span>Set the pace first</span></Link>
           <Link to="/boundaries">Boundary Builder<span>Drafts and templates</span></Link>
           <Link to="/circles/flags">Red flags library<span>Behaviors, not people</span></Link>
           <Link to="/circles/boundaries">Boundaries by layer<span>What each ring gets</span></Link>

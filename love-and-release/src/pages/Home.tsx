@@ -13,6 +13,7 @@ import { useNotices } from '@/lib/notices'
 import { useDailyValue } from '@/pages/UnhookedMe'
 import { useTodayDaily } from '@/pages/Daily'
 import { DOORS, GREETINGS } from '@/data/companion'
+import { usePaceDue } from '@/lib/pacing'
 
 const LAST_KEY = 'lr:last-opened'
 
@@ -53,6 +54,7 @@ export function Home() {
     return null
   }, [today, eveningTime, settings.dailyMorning, settings.dailyEvening])
   const notice = notices.find((n) => n.id !== 'empty')
+  const paceDue = usePaceDue()
   const doors = DOORS.filter((d) => d.id !== 'low' || settings.cycleTracking !== false)
 
   return (
@@ -74,6 +76,7 @@ export function Home() {
           ))}
         </div>
 
+        {paceDue && <Speak tone="gold">It's been {paceDue.days} days with {paceDue.name}. Want a quick look at what they've shown so far? <Link to={`/pace/${paceDue.id}`}>Let's look</Link></Speak>}
         {dailyPrompt && <Speak tone="sage">{dailyPrompt.text} <Link to={dailyPrompt.to}>Let's do it</Link></Speak>}
 
         {notice && <section aria-label="Something I noticed"><div className="faint" style={{ marginBottom: 6 }}>Something I noticed</div><Speak tone="gold">{notice.text}{notice.link && <> <Link to={notice.link}>{notice.linkLabel ?? 'Open'}</Link></>}</Speak></section>}

@@ -9,6 +9,7 @@ export const DOORS: { id: string; label: string; sub: string; to: string }[] = [
   { id: 'fawn', label: 'I\'m about to say yes when I mean no', sub: 'Or apologize again. Or shape-shift.', to: '/fawn' },
   { id: 'hard', label: 'I have to say something hard', sub: 'Honest and kind is enough.', to: '/boundaries/new' },
   { id: 'someone', label: 'I\'m confused about someone', sub: 'Let\'s look at what\'s actually there.', to: '/someone' },
+  { id: 'new', label: 'I met someone and I\'m excited', sub: 'Let\'s keep the excitement, and keep you.', to: '/new-person' },
   { id: 'low', label: 'I\'m in a low place this week', sub: 'PMS, PMDD, or just low. Lower the bar with me.', to: '/comfort?low=1' },
   { id: 'okay', label: 'I\'m okay. Just here.', sub: 'A quiet check-in.', to: '/daily' },
   { id: 'unsure', label: 'I don\'t know', sub: 'That\'s okay. Come sit.', to: '/comfort' },

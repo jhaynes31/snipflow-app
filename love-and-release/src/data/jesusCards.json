@@ -22,7 +22,8 @@
     "prompt": "Who am I currently trusting to tell me whether I'm okay?",
     "tags": [
       "Words and actions not matching",
-      "Unreciprocated effort"
+      "Unreciprocated effort",
+      "Going slow & self-protection"
     ]
   },
   {
@@ -497,7 +498,8 @@
     "prompt": "Whose words am I trusting more than their fruit right now?",
     "tags": [
       "Naming poor behavior",
-      "Words and actions not matching"
+      "Words and actions not matching",
+      "Going slow & self-protection"
     ]
   },
   {
@@ -510,7 +512,8 @@
     "prompt": "Where has the right vocabulary kept me from noticing the wrong behavior?",
     "tags": [
       "Naming poor behavior",
-      "Words and actions not matching"
+      "Words and actions not matching",
+      "Going slow & self-protection"
     ]
   },
   {
@@ -562,7 +565,8 @@
     "prompt": "What pearl have I been handing to someone who keeps stepping on it?",
     "tags": [
       "Setting a boundary",
-      "Naming poor behavior"
+      "Naming poor behavior",
+      "Going slow & self-protection"
     ]
   },
   {
@@ -783,6 +787,58 @@
     "tags": [
       "Letting someone walk away",
       "Rejection"
+    ]
+  },
+  {
+    "id": "jc-make-him-king",
+    "title": "He Slipped Away From the Crowd That Wanted to Use Him",
+    "reference": "John 6:14–15",
+    "whatHappened": "After Jesus fed the five thousand, the people said, \"Surely this is the Prophet who is to come into the world.\" John writes that Jesus, knowing they intended to come and make Him king by force, withdrew again to a mountain by Himself.",
+    "howHeHandledIt": "He recognized that the crowd wanted Him for what He could give them, not for who He was. Their enthusiasm was real and it was still about the bread. So He left, alone, before they could put a crown on Him.",
+    "meaningForMe": "Being wanted for what I can provide is not the same as being loved. I'm allowed to notice the difference and step away before I'm crowned into a role.",
+    "prompt": "Who is excited about me right now, and is it about who I am, or about what I hand out?",
+    "tags": [
+      "Going slow & self-protection",
+      "Unreciprocated effort"
+    ]
+  },
+  {
+    "id": "jc-for-the-bread",
+    "title": "You're Looking for Me Because of the Bread",
+    "reference": "John 6:25–27",
+    "whatHappened": "The next day the crowd tracked Jesus down across the lake. \"Rabbi, when did You get here?\" He answered, \"You are looking for Me not because you saw the signs but because you ate the loaves and had your fill. Don't work for food that spoils, but for food that lasts.\"",
+    "howHeHandledIt": "He named it to their faces, without contempt: you came for the bread. He didn't pretend their pursuit was affection. And He didn't cut them off. He told the truth and offered them something real instead.",
+    "meaningForMe": "I can name when someone is around for the bread, kindly and clearly, without hating them for it. Naming it is what lets me stop feeding it.",
+    "prompt": "Where am I being followed across the lake, and is it me they want, or my loaves?",
+    "tags": [
+      "Going slow & self-protection",
+      "Naming poor behavior"
+    ]
+  },
+  {
+    "id": "jc-wise-as-serpents",
+    "title": "Wise as Serpents, Innocent as Doves",
+    "reference": "Matthew 10:16–17",
+    "whatHappened": "Sending His disciples out, Jesus told them plainly: \"I am sending you out like sheep among wolves. Therefore be as shrewd as snakes and as innocent as doves. Be on your guard.\"",
+    "howHeHandledIt": "He didn't tell them everyone was safe. He said there would be wolves, and He asked for two things at once: keep your innocence, and keep your eyes open. Trust and discernment were never opposites to Him.",
+    "meaningForMe": "I can stay soft and still be shrewd. Being on guard isn't cynicism. Jesus asked for it.",
+    "prompt": "Where have I confused being innocent with being unguarded?",
+    "tags": [
+      "Going slow & self-protection",
+      "Naming poor behavior"
+    ]
+  },
+  {
+    "id": "jc-tested-the-disciples",
+    "title": "He Let Time Do the Testing",
+    "reference": "Luke 6:12–16; John 6:70",
+    "whatHappened": "Before choosing the twelve, Jesus spent a whole night in prayer on the mountain. Even then, He chose knowing that one of them, Judas, would turn. He didn't hand the twelve everything at once; over three years they were tested, corrected, and slowly entrusted with more.",
+    "howHeHandledIt": "He chose slowly and prayerfully, and even His closest circle was given more over time, not all at once. He walked with them for years before He said, \"I no longer call you servants, but friends.\"",
+    "meaningForMe": "Even Jesus took time to choose His people, and even He was betrayed by one. Slow isn't suspicion. Slow is how it's supposed to go.",
+    "prompt": "Who have I handed everything to in weeks that Jesus would have given over years?",
+    "tags": [
+      "Going slow & self-protection",
+      "Betrayal"
     ]
   }
 ]

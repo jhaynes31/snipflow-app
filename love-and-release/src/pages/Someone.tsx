@@ -46,6 +46,8 @@ export function Someone() {
         <div className="doors">
           <button type="button" className="door" onClick={() => nav(`/people/${person.id}`)}>See everything I've logged<span>Green flags, watch notes, reciprocity, moves</span></button>
           <button type="button" className="door" onClick={() => { setCurrentThread(null); nav('/check-in') }}>Untangle the specific thing<span>Fact vs. Story, linked to {person.name}</span></button>
+          <button type="button" className="door" onClick={() => nav(`/pace/${person.id}?mode=halo`)}>I think they're amazing<span>A halo check, five questions</span></button>
+          <button type="button" className="door" onClick={() => nav(`/pace/${person.id}?mode=used`)}>Am I being used?<span>Six honest questions</span></button>
           <button type="button" className="door" onClick={() => nav('/unhooked/loop')}>It might be the loop<span>Step out first, decide later</span></button>
           <button type="button" className="door" onClick={() => nav(`/circles/move/${person.id}`)}>Something needs to change<span>A move review, closer or further</span></button>
           {threads.length ? <button type="button" className="door door-sage" onClick={() => nav(`/threads/${threads[0].id}`)}>Open the thread: {threads[0].title}<span>The whole arc, in one place</span></button> : <button type="button" className="door door-sage" onClick={() => nav('/threads/new')}>Start a thread about this<span>So the story stays in one place</span></button>}

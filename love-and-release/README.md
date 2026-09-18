@@ -23,6 +23,8 @@ Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so dee
 | `/comfort` | Comfort path: the app speaks first, breath, truth, Jesus, flashback check; `?low=1` for PMS/PMDD days |
 | `/fawn` | Fawn alarm: catch the yes before it leaves your mouth |
 | `/someone` | Confused about someone: look at what's logged before deciding |
+| `/new-person` | I met someone: set a pace before the attachment sets in (waiting period, pearls held back, watch list) |
+| `/pace/:personId` | What they've shown, halo check, "am I being used?" check, favor log, scheduled check-ins |
 | `/threads`, `/threads/:id` | Threads: one story per situation, with the arc told back in prose |
 | `/daily/morning`, `/daily/evening` | Sixty-second morning and evening rhythm |
 | `/why`, `/why/:id` | Why my brain does this: fawn, flashbacks, RSD, hypervigilance, sensory, switching, inner critic, PMDD |

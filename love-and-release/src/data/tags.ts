@@ -20,4 +20,5 @@ export const TAGS: Tag[] = [
   'Naming poor behavior',
   'Handling emotions',
   'Compassion fatigue',
+  'Going slow & self-protection',
 ]

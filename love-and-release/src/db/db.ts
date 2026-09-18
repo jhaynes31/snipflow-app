@@ -8,6 +8,8 @@ import {
   type CoreValue,
   type DailyEntry,
   type FawnMoment,
+  type Favor,
+  type PaceCheck,
   type Thread,
   type ExposureSession,
   type ExposureStep,
@@ -66,6 +68,8 @@ export class LoveReleaseDB extends Dexie {
   fawnMoments!: EntityTable<FawnMoment, 'id'>
   comforts!: EntityTable<ComfortSession, 'id'>
   daily!: EntityTable<DailyEntry, 'id'>
+  favors!: EntityTable<Favor, 'id'>
+  paceChecks!: EntityTable<PaceCheck, 'id'>
 
   constructor() {
     super('love-and-release')
@@ -121,6 +125,10 @@ export class LoveReleaseDB extends Dexie {
       fawnMoments: 'id, createdAt, personId, threadId, kind',
       comforts: 'id, createdAt, threadId',
       daily: 'id, date, kind, createdAt',
+    })
+    this.version(5).stores({
+      favors: 'id, personId, date',
+      paceChecks: 'id, personId, kind, createdAt',
     })
   }
 }

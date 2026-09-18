@@ -11,6 +11,8 @@ import flagPatterns from '@/data/flagPatterns.json'
 import type { FlagPattern } from '@/db/types'
 import { accessDiff, placementName, suggestCloser, timeKnown, usePersonSignals, useRings } from '@/lib/circles'
 import { JesusLine } from '@/components/JesusLine'
+import { Speak } from '@/components/Speak'
+import { fmtDate } from '@/lib/dates'
 
 const PATTERNS = flagPatterns as FlagPattern[]
 type Kind = 'closer' | 'further' | 'release' | 'restore' | 'place'
@@ -101,6 +103,9 @@ export function MoveReview() {
       <Shell back={`/people/${person.id}`} hideNav action={header}>
         <Stepper step={step} total={steps.length} />
         <p className="faint">{placementName(person.ringId, rings)} → {placementName(to, rings)}</p>
+        {step === 0 && person.pace && new Date(person.pace.notBefore + 'T00:00:00').getTime() > Date.now() && (
+          <Speak tone="gold">You set a pace for {person.name}: not closer before {fmtDate(person.pace.notBefore)}. That was you, on a clear day, protecting you today. You can still move them, but say why below, and let it be evidence, not a feeling.</Speak>
+        )}
         {step === 0 && (<div className="stack">
           <p className="question">Which of these has {person.name} shown consistently?</p>
           {target?.entryCriteria.length ? <Chips options={target.entryCriteria} value={criteriaMet} onChange={setCriteriaMet} variant="sage" /> : <p className="faint">This layer has no entry criteria yet. You can add some under My layers.</p>}

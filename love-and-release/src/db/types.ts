@@ -18,6 +18,7 @@ export type Tag =
   | 'Naming poor behavior'
   | 'Handling emotions'
   | 'Compassion fatigue'
+  | 'Going slow & self-protection'
 
 export const UNSURE = 'unsure'
 export const RELEASED = 'released'
@@ -34,6 +35,37 @@ export interface Person {
   color?: string
   relationshipType?: string
   metDate?: string // YYYY-MM-DD
+  pace?: Pace
+}
+
+/** A pacing plan for someone new: trust is earned, slowly, on purpose. */
+export interface Pace {
+  setAt: string
+  notBefore: string // YYYY-MM-DD before which they don't move closer
+  targetRingId?: string
+  disclosureHold: string[] // access items I'm holding back for now
+  watch: string[] // things to watch for
+  note: string
+  checkins: string[] // YYYY-MM-DD of pace check-ins done
+}
+
+export interface Favor {
+  id: string
+  personId: string
+  asked: string
+  saidYes: boolean
+  theyGave: string
+  date: string
+}
+
+export type PaceCheckKind = 'halo' | 'used' | 'review'
+export interface PaceCheck {
+  id: string
+  personId: string
+  kind: PaceCheckKind
+  answers: Record<string, string>
+  verdict: string
+  createdAt: string
 }
 
 export interface Ring {

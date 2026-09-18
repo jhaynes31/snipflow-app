@@ -48,6 +48,14 @@ export function useNotices(): Notice[] {
     const oldest = threads.filter((t) => t.status === 'open').sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]
     if (oldest && daysSince(oldest.createdAt) >= 14) out.push({ id: 'thread', text: `"${oldest.title}" has been open for ${daysSince(oldest.createdAt)} days. You keep coming back to it, and that's allowed. Want to see the arc?`, link: `/threads/${oldest.id}`, linkLabel: 'Open the thread' })
 
+    const rings = await db.rings.orderBy('order').toArray()
+    const fast = people.find((p) => p.metDate && daysSince(p.metDate) < 60 && rings.find((r) => r.id === p.ringId) && rings.find((r) => r.id === p.ringId)!.order <= 1)
+    if (fast) out.push({ id: 'fast', text: `You've known ${fast.name} ${daysSince(fast.metDate!)} days and they're already in ${rings.find((r) => r.id === fast.ringId)!.name}. That's fast for you. Not wrong, just fast. Worth a halo check.`, link: `/pace/${fast.id}?mode=halo`, linkLabel: 'Halo check' })
+    const favors = await db.favors.toArray()
+    const byPerson = new Map<string, { asked: number; gave: number }>()
+    for (const f of favors) { const v = byPerson.get(f.personId) ?? { asked: 0, gave: 0 }; v.asked++; if (f.theyGave.trim()) v.gave++; byPerson.set(f.personId, v) }
+    for (const [pid, v] of byPerson) if (v.asked >= 3 && v.gave === 0) { const name = people.find((p) => p.id === pid)?.name; if (name) { out.push({ id: `favors-${pid}`, text: `${name} has asked for ${v.asked} things and, as far as you've logged, given nothing back. The halo hides that. The log doesn't.`, link: `/pace/${pid}?mode=used`, linkLabel: 'Am I being used?' }); break } }
+
     const evenings = daily.filter((d) => d.kind === 'evening')
     const loved = top(count(evenings, (d) => (Array.isArray(d.answers.loved) ? d.answers.loved : [])))
     if (loved && loved[1] >= 3 && !loved[0].startsWith('Nothing')) out.push({ id: 'loved', text: `"${loved[0]}" is where you've felt most loved lately, ${loved[1]} evenings this month. More of that.` })

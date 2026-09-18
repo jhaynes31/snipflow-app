@@ -61,6 +61,7 @@ export function CircleView() {
             )}
             <p className="help center">Tap a person to open them. Drag them to another ring to start a move.</p>
             <div className="row" style={{ justifyContent: 'center' }}>
+              <Link to="/new-person" className="btn btn-sm btn-sage">I met someone</Link>
               <Link to="/circles/layers" className="btn btn-sm btn-ghost">My layers</Link>
               <Link to="/circles/boundaries" className="btn btn-sm btn-ghost">Boundaries by layer</Link>
               <Link to="/circles/flags" className="btn btn-sm btn-ghost">Red flags library</Link>
