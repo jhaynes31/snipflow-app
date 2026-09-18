@@ -7,6 +7,9 @@ import { db, newId, now } from '@/db/db'
 import type { PauseMethod } from '@/db/types'
 import { FEELINGS } from '@/data/options'
 import { useSettings } from '@/lib/settings'
+import { getCurrentThread } from '@/lib/threads'
+import { JesusLine } from '@/components/JesusLine'
+import { Speak } from '@/components/Speak'
 
 type Stage = 'choose' | 'do' | 'after'
 
@@ -24,14 +27,16 @@ export function Pause() {
   const [feelings, setFeelings] = useState<string[]>([])
 
   const finish = async () => {
-    await db.pauses.add({ id: newId(), method, feelings, createdAt: now() })
+    await db.pauses.add({ id: newId(), method, feelings, threadId: getCurrentThread() ?? undefined, createdAt: now() })
     setStage('after')
   }
 
   if (stage === 'choose') {
     return (
-      <Shell back="/" title="Something stung." subtitle="Let's slow down together. Pick whatever feels easiest.">
+      <Shell back="/" hideNav>
         <div className="stack">
+          <Speak><p><strong>Something stung.</strong> Let's slow down together.</p><p className="muted" style={{ fontSize: '0.95rem' }}>Pick whatever feels easiest. Or just come sit.</p></Speak>
+          <button type="button" className="door door-primary" onClick={() => nav('/comfort')}>I just need comfort first<span>No questions. I'll be here.</span></button>
           {METHODS.map((m) => (
             <button
               key={m.id}
@@ -74,6 +79,7 @@ export function Pause() {
   return (
     <Shell back="/" title="You're here. That counts." subtitle="Whatever you do next is your choice. Nothing is required.">
       <div className="stack">
+        <JesusLine tags={feelings.length ? ['Handling emotions', 'Feeling alone or unsupported'] : ['Needing rest', 'Anxiety & Uncertainty']} />
         <button type="button" className="card card-link" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => nav('/check-in')}>
           <div className="item-title">Want to untangle it?</div>
           <div className="muted small">Fact vs. Story: separate what happened from what my brain is telling me.</div>

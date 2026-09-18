@@ -14,10 +14,10 @@ import type { FlagPattern } from '@/db/types'
 
 const PATTERNS = flagPatterns as FlagPattern[]
 
-type Kind = 'check-in' | 'pause' | 'release' | 'boundary' | 'win' | 'reciprocity' | 'circle' | 'loop'
+type Kind = 'check-in' | 'pause' | 'release' | 'boundary' | 'win' | 'reciprocity' | 'circle' | 'loop' | 'fawn' | 'comfort' | 'daily'
 interface Row { id: string; kind: Kind; table: string; title: string; body?: string; at: string; personId?: string; tags?: Tag[]; link?: string; detail?: [string, string][] }
 
-const KIND_LABEL: Record<Kind, string> = { 'check-in': 'Fact vs. Story', pause: 'Pause', release: 'Release', boundary: 'Boundary', win: 'Win', reciprocity: 'People log', circle: 'Circles', loop: 'Unhooked' }
+const KIND_LABEL: Record<Kind, string> = { 'check-in': 'Fact vs. Story', pause: 'Pause', release: 'Release', boundary: 'Boundary', win: 'Win', reciprocity: 'People log', circle: 'Circles', loop: 'Unhooked', fawn: 'Fawn', comfort: 'Comfort', daily: 'Daily' }
 const METHOD_LABEL: Record<string, string> = { breathing: 'Breathing', senses: '5-4-3-2-1', feelings: 'Named feelings', truth: 'Held a truth' }
 
 export function History() {
@@ -36,7 +36,7 @@ export function History() {
       db.checkIns.toArray(), db.pauses.toArray(), db.releases.toArray(), db.boundaries.toArray(), db.wins.toArray(), db.reciprocity.toArray(),
       db.ringMoves.toArray(), db.trustSignals.toArray(), db.redFlags.toArray(), db.rings.toArray(),
     ])
-    const [loops, exposures, steps] = await Promise.all([db.loopEpisodes.toArray(), db.exposureSessions.toArray(), db.exposureSteps.toArray()])
+    const [loops, exposures, steps, fawns, comforts, dailies] = await Promise.all([db.loopEpisodes.toArray(), db.exposureSessions.toArray(), db.exposureSteps.toArray(), db.fawnMoments.toArray(), db.comforts.toArray(), db.daily.toArray()])
     const ringName = (id: string) => placementName(id, rings)
     const out: Row[] = [
       ...c.map((x): Row => ({ id: x.id, kind: 'check-in', table: 'checkIns', title: x.fact || x.story[0] || 'Check-in', at: x.createdAt, personId: x.personId, tags: x.tags, detail: [['Story', x.story.join(' · ')], ['Felt in', x.bodyAreas.join(', ')], ['Could be', x.alternatives.join(' · ')], ['Mine', x.mine], ['Theirs', x.theirs], ['Truth', x.truthText ?? '']] })),
@@ -49,6 +49,9 @@ export function History() {
       ...sigs.map((x): Row => ({ id: x.id, kind: 'circle', table: 'trustSignals', title: `Green flag: ${x.type}`, body: x.note, at: x.date, personId: x.personId, link: `/people/${x.personId}` })),
       ...loops.map((x): Row => ({ id: x.id, kind: 'loop', table: 'loopEpisodes', title: `Loop: ${x.theme || x.triggerTags[0] || 'stepped out'}`, body: [x.toolsUsed.join(', '), x.urgeStart !== undefined ? `urge ${x.urgeStart}→${x.urgeEnd ?? '?'}` : '', x.note].filter(Boolean).join(' · '), at: x.createdAt, link: '/unhooked/map' })),
       ...exposures.map((x): Row => ({ id: x.id, kind: 'loop', table: 'exposureSessions', title: `Exposure: ${steps.find((st) => st.id === x.stepId)?.description ?? 'a rung'}`, body: `distress ${x.distressBefore} → peak ${x.distressPeak} → ${x.distressAfter}${x.note ? ` · ${x.note}` : ''}`, at: x.createdAt, link: '/unhooked/ladder' })),
+      ...fawns.map((x): Row => ({ id: x.id, kind: 'fawn', table: 'fawnMoments', title: x.situation || x.kind, body: [x.want && `Wanted: ${x.want}`, x.honest && `Said: ${x.honest}`, x.outcome && `Outcome: ${x.outcome}`].filter(Boolean).join(' · '), at: x.createdAt, personId: x.personId })),
+      ...comforts.map((x): Row => ({ id: x.id, kind: 'comfort', table: 'comforts', title: x.kind === 'low' ? 'A low day' : 'Came for comfort', body: x.flashback ? `Named a flashback: ${x.signs.join(', ')}` : '', at: x.createdAt })),
+      ...dailies.map((x): Row => ({ id: x.id, kind: 'daily', table: 'daily', title: x.kind === 'morning' ? 'Morning' : 'Evening', body: Object.entries(x.answers).filter(([, v]) => (Array.isArray(v) ? v.length : v)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' · '), at: x.createdAt })),
       ...flags.map((x): Row => ({ id: x.id, kind: 'circle', table: 'redFlags', title: `Watch note: ${PATTERNS.find((p) => p.id === x.patternId)?.name ?? x.patternId}${x.status === 'resolved' ? ' (resolved)' : ''}`, body: x.note, at: x.date, personId: x.personId, link: `/people/${x.personId}` })),
     ]
     return out.sort((a, b) => b.at.localeCompare(a.at))

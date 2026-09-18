@@ -6,6 +6,7 @@ import { db, newId, now } from '@/db/db'
 import type { WinType } from '@/db/types'
 import { FREEDOM_TYPES, FREEDOM_WINS, WINS, WIN_LABEL } from '@/data/options'
 import { Link } from 'react-router-dom'
+import { getCurrentThread } from '@/lib/threads'
 import { fmtDateTime } from '@/lib/dates'
 
 export function Wins() {
@@ -22,7 +23,7 @@ export function Wins() {
   const save = async () => {
     if (!types.length) return
     const ts = now()
-    await db.wins.bulkAdd(types.map((type) => ({ id: newId(), type, note: note.trim(), createdAt: ts })))
+    await db.wins.bulkAdd(types.map((type) => ({ id: newId(), type, note: note.trim(), createdAt: ts, threadId: getCurrentThread() ?? undefined })))
     setTypes([]); setNote('')
     setFlash(['That counts.', 'Look at you.', 'Noted, and celebrated.', 'That was you honoring yourself.'][Math.floor(Math.random() * 4)])
     setTimeout(() => setFlash(''), 3000)

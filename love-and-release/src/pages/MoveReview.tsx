@@ -10,6 +10,7 @@ import { DEMOTION_REASONS, PAUSE_PROMPTS, RELEASE_SIGNALS } from '@/data/circles
 import flagPatterns from '@/data/flagPatterns.json'
 import type { FlagPattern } from '@/db/types'
 import { accessDiff, placementName, suggestCloser, timeKnown, usePersonSignals, useRings } from '@/lib/circles'
+import { JesusLine } from '@/components/JesusLine'
 
 const PATTERNS = flagPatterns as FlagPattern[]
 type Kind = 'closer' | 'further' | 'release' | 'restore' | 'place'
@@ -121,6 +122,7 @@ export function MoveReview() {
         </div>)}
         {step === 3 && (<div className="stack">
           {suggestion && <div className={`verdict verdict-${suggestion.verdict}`}>{suggestion.text}</div>}
+          <JesusLine tags={['Redefining a relationship / chosen family', 'Unreciprocated effort']} quiet />
           {target && <p className="help">Moving closer adds: {accessDiff(fromRing, target).gained.join(', ') || 'no new access items'}.</p>}
           <input className="input" value={reason} placeholder="A short reason, for future me (optional)" onChange={(e) => setReason(e.target.value)} aria-label="Reason" />
           <details className="acc"><summary><span>Want to try a trial step first?</span></summary><div className="acc-body stack"><p className="small muted">Share one more personal thing, log it under "What I've shared," and check back in 30 days before deciding.</p><Link to={`/people/${person.id}`} className="btn btn-sm btn-ghost">Log a small share instead</Link></div></details>
@@ -140,6 +142,7 @@ export function MoveReview() {
         <Stepper step={step} total={steps.length} />
         <p className="faint">{placementName(person.ringId, rings)} → {placementName(to, rings)}</p>
         <p className="help">Adjusting someone's place is not punishment. It's matching access to what they've shown.</p>
+        {step === 0 && <JesusLine tags={['Setting a boundary', 'Naming poor behavior', 'Letting someone walk away']} quiet />}
         {step === 0 && (<div className="stack"><p className="question">What's been happening?</p><Chips options={DEMOTION_REASONS} value={reasons} onChange={setReasons} allowCustom /><StepActions onNext={() => setStep(1)} onSkip={() => setStep(1)} /></div>)}
         {step === 1 && (<div className="stack">
           <p className="question">Is this a pattern, or a single moment?</p>

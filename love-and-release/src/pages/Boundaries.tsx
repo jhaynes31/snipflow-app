@@ -10,6 +10,9 @@ import type { BoundaryDraft } from '@/db/types'
 import { clearDraft, useDraft } from '@/lib/drafts'
 import { fmtDate } from '@/lib/dates'
 import { speak } from '@/lib/speech'
+import { getCurrentThread } from '@/lib/threads'
+import { JesusLine } from '@/components/JesusLine'
+import { ThreadPicker } from '@/components/ThreadPicker'
 
 const STARTERS = [
   { title: 'A kind no', body: "Thank you for thinking of me. I'm not able to do that, but I hope it goes well." },
@@ -120,6 +123,7 @@ function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Dr
       sentAt: existing?.sentAt,
       createdAt: existing?.createdAt ?? ts,
       updatedAt: ts,
+      threadId: existing?.threadId ?? getCurrentThread() ?? undefined,
       ...extra,
     }
     await db.boundaries.put(rec)
@@ -134,6 +138,8 @@ function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Dr
           <h1>Their reaction is theirs.</h1>
           <p className="truth truth-lg">You were honest and kind.</p>
           <p className="muted">Whatever comes back, you did your part well.</p>
+          <JesusLine tags={['Setting a boundary', 'Letting someone walk away']} />
+          <div style={{ textAlign: 'left' }}><ThreadPicker onPick={() => undefined} /></div>
           <div className="btn-row">
             <button type="button" className="btn btn-ghost" onClick={() => nav('/wins?add=said-no')}>Log this as a win</button>
             <button type="button" className="btn btn-primary" onClick={() => nav('/')}>Home</button>
@@ -179,6 +185,7 @@ function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Dr
             {checks.map((c) => <div key={c} className="gentle-check"><span aria-hidden="true">🌿</span><span>{c}</span></div>)}
           </div>
         )}
+        <JesusLine tags={['Setting a boundary', 'Conflict & hard conversations']} quiet />
         <label className="row" style={{ cursor: 'pointer' }}>
           <input type="checkbox" checked={d.isTemplate} onChange={(e) => update({ isTemplate: e.target.checked })} />
           <span>Save as a reusable template</span>

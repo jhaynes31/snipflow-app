@@ -39,10 +39,10 @@ export function Shell({ title, subtitle, back, action, children, hideNav }: Prop
       {!hideNav && (
         <nav className="nav" aria-label="Main">
           <NavLink to="/" end><HomeIcon />Home</NavLink>
+          <NavLink to="/threads"><ClockIcon />Threads</NavLink>
           <NavLink to="/jesus"><BookIcon />Jesus</NavLink>
-          <NavLink to="/truths"><HeartIcon />Truths</NavLink>
-          <NavLink to="/circles"><PeopleIcon />Circles</NavLink>
-          <NavLink to="/history"><ClockIcon />History</NavLink>
+          <NavLink to="/me"><HeartIcon />Me</NavLink>
+          <NavLink to="/more"><PeopleIcon />More</NavLink>
         </nav>
       )}
     </div>

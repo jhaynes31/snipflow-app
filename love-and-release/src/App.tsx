@@ -30,6 +30,14 @@ import { LoopFlow } from '@/pages/LoopFlow'
 import { Values, WhoIAm } from '@/pages/UnhookedMe'
 import { UnhookedJesus } from '@/pages/UnhookedJesus'
 import { ExposureLadder, ReassurancePlan, RelapsePlanPage, SkillsProgress, TriggerMap } from '@/pages/UnhookedGrowth'
+import { Comfort } from '@/pages/Comfort'
+import { Fawn } from '@/pages/Fawn'
+import { WhyCard, WhyList } from '@/pages/Why'
+import { Daily, Evening, Morning } from '@/pages/Daily'
+import { NewThread, ThreadPage, ThreadsList } from '@/pages/Threads'
+import { Someone } from '@/pages/Someone'
+import { Me, Notices } from '@/pages/Me'
+import { More } from '@/pages/More'
 import { ScrollToTop } from '@/components/ScrollToTop'
 
 export default function App() {
@@ -98,6 +106,20 @@ export default function App() {
         <Route path="/unhooked/progress" element={<SkillsProgress />} />
         <Route path="/unhooked/plan" element={<RelapsePlanPage />} />
         <Route path="/unhooked/support" element={<Support />} />
+        <Route path="/comfort" element={<Comfort />} />
+        <Route path="/fawn" element={<Fawn />} />
+        <Route path="/why" element={<WhyList />} />
+        <Route path="/why/:id" element={<WhyCard />} />
+        <Route path="/daily" element={<Daily />} />
+        <Route path="/daily/morning" element={<Morning />} />
+        <Route path="/daily/evening" element={<Evening />} />
+        <Route path="/threads" element={<ThreadsList />} />
+        <Route path="/threads/new" element={<NewThread />} />
+        <Route path="/threads/:id" element={<ThreadPage />} />
+        <Route path="/someone" element={<Someone />} />
+        <Route path="/me" element={<Me />} />
+        <Route path="/notices" element={<Notices />} />
+        <Route path="/more" element={<More />} />
         <Route path="/release" element={<ReleaseList />} />
         <Route path="/release/new" element={<ReleaseNew />} />
         <Route path="/wins" element={<Wins />} />

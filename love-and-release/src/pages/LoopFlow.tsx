@@ -10,6 +10,9 @@ import { COMPULSIONS, TRIGGER_TAGS } from '@/data/unhooked'
 import { useDraft } from '@/lib/drafts'
 import { detectCrisis, resetEpisode, useLoopGuard } from '@/lib/unhooked'
 import { CrisisNotice } from '@/pages/Unhooked'
+import { getCurrentThread } from '@/lib/threads'
+import { ThreadPicker } from '@/components/ThreadPicker'
+import { JesusLine } from '@/components/JesusLine'
 import { LoopNotice, TOOLS, ToolBodyCheck, ToolBreathing, ToolDefusion, ToolDelay, ToolGrounding, ToolNameIt, ToolOnePrayer, ToolReplay, ToolSelfCompassion, ToolSendCheck, ToolUncertainty, ToolUrgeSurf, ToolValuesAction } from '@/pages/UnhookedTools'
 
 interface Draft {
@@ -39,7 +42,7 @@ export function LoopFlow() {
   const usedTool = (id: string) => update({ toolsUsed: [...new Set([...d.toolsUsed, id])], tool: undefined })
 
   const save = async () => {
-    await db.loopEpisodes.add({ id: newId(), triggerTags: d.triggerTags, theme: d.theme.trim(), compulsionUrge: d.compulsionUrge, urgeStart: d.urgeStart, urgeEnd: d.urgeEnd, toolsUsed: d.toolsUsed, actedOnCompulsion: d.actedOn, note: d.note.trim(), createdAt: now() })
+    await db.loopEpisodes.add({ id: newId(), triggerTags: d.triggerTags, theme: d.theme.trim(), compulsionUrge: d.compulsionUrge, urgeStart: d.urgeStart, urgeEnd: d.urgeEnd, toolsUsed: d.toolsUsed, actedOnCompulsion: d.actedOn, note: d.note.trim(), threadId: getCurrentThread() ?? undefined, createdAt: now() })
     reset(); resetEpisode(); setDone(true)
   }
 
@@ -49,6 +52,8 @@ export function LoopFlow() {
         <h1>You stepped out of it.</h1>
         <p className="truth truth-lg">I'm not just coping. I'm growing.</p>
         <p className="muted">Now back toward living. The loop may knock again. That's not failure. Every attempt builds the skill.</p>
+        <JesusLine tags={['Anxiety & Uncertainty']} />
+        <div style={{ textAlign: 'left' }}><ThreadPicker onPick={() => undefined} /></div>
         <div className="btn-row"><Link to="/unhooked/progress" className="btn btn-ghost">See my progress</Link><button type="button" className="btn btn-primary" onClick={() => nav('/')}>Home</button></div>
       </div>
     </Shell>

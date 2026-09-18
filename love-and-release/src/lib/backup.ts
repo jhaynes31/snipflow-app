@@ -9,7 +9,7 @@ export interface Backup {
   data: Record<string, unknown[]>
 }
 
-const TABLES = ['people', 'reciprocity', 'checkIns', 'pauses', 'truths', 'boundaries', 'releases', 'wins', 'settings', 'rings', 'ringMoves', 'trustSignals', 'redFlags', 'disclosures', 'layerBoundaries', 'reviewSessions', 'loopEpisodes', 'thoughtThemes', 'exposureSteps', 'exposureSessions', 'coreValues', 'selfProfile', 'breathPrayers', 'reassuranceLog', 'relapsePlan', 'skillPractices'] as const
+const TABLES = ['people', 'reciprocity', 'checkIns', 'pauses', 'truths', 'boundaries', 'releases', 'wins', 'settings', 'rings', 'ringMoves', 'trustSignals', 'redFlags', 'disclosures', 'layerBoundaries', 'reviewSessions', 'loopEpisodes', 'thoughtThemes', 'exposureSteps', 'exposureSessions', 'coreValues', 'selfProfile', 'breathPrayers', 'reassuranceLog', 'relapsePlan', 'skillPractices', 'threads', 'fawnMoments', 'comforts', 'daily'] as const
 
 export async function exportBackup(): Promise<Backup> {
   const data: Record<string, unknown[]> = {}

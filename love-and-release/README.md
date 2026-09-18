@@ -19,7 +19,15 @@ Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so dee
 
 | Route | Module |
 |---|---|
-| `/` | Home: today's truth, **Something stung**, quick links, **I'm hurting** |
+| `/` | The front door: "What's going on?" with feeling-language doors, something I noticed, today's truth |
+| `/comfort` | Comfort path: the app speaks first, breath, truth, Jesus, flashback check; `?low=1` for PMS/PMDD days |
+| `/fawn` | Fawn alarm: catch the yes before it leaves your mouth |
+| `/someone` | Confused about someone: look at what's logged before deciding |
+| `/threads`, `/threads/:id` | Threads: one story per situation, with the arc told back in prose |
+| `/daily/morning`, `/daily/evening` | Sixty-second morning and evening rhythm |
+| `/why`, `/why/:id` | Why my brain does this: fawn, flashbacks, RSD, hypervigilance, sensory, switching, inner critic, PMDD |
+| `/me`, `/notices` | Me: what I've noticed, values, truths, wins, cycle tracking, my name |
+| `/more` | Everything, for the days you know exactly what you want |
 | `/pause` | Pause: breathing circle, 5-4-3-2-1, name what I feel, hold a truth |
 | `/check-in` | Fact vs. Story stepper (every step skippable, auto-saved draft) |
 | `/jesus`, `/jesus/:id` | Walk With Jesus library, tag filter, card detail, save to Truths |

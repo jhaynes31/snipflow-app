@@ -4,7 +4,11 @@ import {
   type BoundaryDraft,
   type BreathPrayer,
   type CheckIn,
+  type ComfortSession,
   type CoreValue,
+  type DailyEntry,
+  type FawnMoment,
+  type Thread,
   type ExposureSession,
   type ExposureStep,
   type LoopEpisode,
@@ -58,6 +62,10 @@ export class LoveReleaseDB extends Dexie {
   reassuranceLog!: EntityTable<ReassuranceLog, 'id'>
   relapsePlan!: EntityTable<RelapsePlan, 'id'>
   skillPractices!: EntityTable<SkillPractice, 'id'>
+  threads!: EntityTable<Thread, 'id'>
+  fawnMoments!: EntityTable<FawnMoment, 'id'>
+  comforts!: EntityTable<ComfortSession, 'id'>
+  daily!: EntityTable<DailyEntry, 'id'>
 
   constructor() {
     super('love-and-release')
@@ -101,6 +109,18 @@ export class LoveReleaseDB extends Dexie {
       reassuranceLog: 'id, date',
       relapsePlan: 'id',
       skillPractices: 'id, skill, createdAt',
+    })
+    this.version(4).stores({
+      checkIns: 'id, personId, createdAt, threadId, *tags',
+      pauses: 'id, method, createdAt, threadId',
+      releases: 'id, createdAt, personId, threadId',
+      boundaries: 'id, isTemplate, updatedAt, createdAt, threadId',
+      wins: 'id, type, createdAt, threadId',
+      loopEpisodes: 'id, createdAt, theme, threadId',
+      threads: 'id, personId, status, updatedAt',
+      fawnMoments: 'id, createdAt, personId, threadId, kind',
+      comforts: 'id, createdAt, threadId',
+      daily: 'id, date, kind, createdAt',
     })
   }
 }

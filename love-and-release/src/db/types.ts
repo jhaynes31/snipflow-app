@@ -135,6 +135,7 @@ export interface ReciprocityEvent {
 
 export interface CheckIn {
   id: string
+  threadId?: string
   fact: string
   story: string[]
   bodyAreas: string[]
@@ -152,6 +153,7 @@ export type PauseMethod = 'breathing' | 'senses' | 'feelings' | 'truth'
 
 export interface PauseSession {
   id: string
+  threadId?: string
   method: PauseMethod
   feelings: string[]
   createdAt: string
@@ -179,6 +181,7 @@ export interface Truth {
 
 export interface BoundaryDraft {
   id: string
+  threadId?: string
   title: string
   body: string
   isTemplate: boolean
@@ -190,6 +193,7 @@ export interface BoundaryDraft {
 
 export interface ReleaseEntry {
   id: string
+  threadId?: string
   personId?: string
   hurts: string
   toGod: string
@@ -217,6 +221,7 @@ export type WinType =
 
 export interface Win {
   id: string
+  threadId?: string
   type: WinType
   note: string
   createdAt: string
@@ -227,6 +232,7 @@ export type ActedOn = 'no' | 'delayed' | 'shrunk' | 'yes'
 
 export interface LoopEpisode {
   id: string
+  threadId?: string
   triggerTags: string[]
   theme: string
   compulsionUrge: string[]
@@ -307,6 +313,49 @@ export interface SkillPractice {
   createdAt: string
 }
 
+/* ---------- companion ---------- */
+export interface Thread {
+  id: string
+  title: string
+  personId?: string
+  status: 'open' | 'resting' | 'released'
+  createdAt: string
+  updatedAt: string
+}
+
+export type FawnKind = 'about-to-say-yes' | 'apologizing' | 'shape-shifting' | 'over-explaining'
+export type FawnOutcome = 'honest' | 'said-no' | 'fawned' | 'not-yet'
+
+export interface FawnMoment {
+  id: string
+  kind: FawnKind
+  situation: string
+  want: string
+  fears: string[]
+  honest: string
+  outcome?: FawnOutcome
+  personId?: string
+  threadId?: string
+  createdAt: string
+}
+
+export interface ComfortSession {
+  id: string
+  kind?: 'comfort' | 'low'
+  flashback: boolean
+  signs: string[]
+  createdAt: string
+  threadId?: string
+}
+
+export interface DailyEntry {
+  id: string
+  date: string // YYYY-MM-DD
+  kind: 'morning' | 'evening'
+  answers: Record<string, string | string[]>
+  createdAt: string
+}
+
 export interface Reminder {
   id: string
   time: string // "HH:MM"
@@ -335,6 +384,13 @@ export interface Settings {
   therapistNotes?: string
   reassuranceGoal?: string
   haptics?: boolean
+  name?: string
+  dailyMorning?: boolean
+  dailyEvening?: boolean
+  cycleTracking?: boolean
+  cycleStart?: string // YYYY-MM-DD of the most recent period start
+  cycleLength?: number
+  lowDays?: number // how many days before the period tend to be hard
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -347,4 +403,6 @@ export const DEFAULT_SETTINGS: Settings = {
   circleReviewEnabled: true,
   circleReviewDays: 90,
   haptics: true,
+  dailyMorning: true,
+  dailyEvening: true,
 }

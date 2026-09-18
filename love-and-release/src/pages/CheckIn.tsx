@@ -9,6 +9,10 @@ import { db, newId, now } from '@/db/db'
 import type { Tag, Truth } from '@/db/types'
 import { ALTERNATIVES, BODY_AREAS, MINE_SUGGESTIONS, STORIES, THEIRS_SUGGESTIONS } from '@/data/options'
 import { useDraft } from '@/lib/drafts'
+import { getCurrentThread } from '@/lib/threads'
+import { JesusLine } from '@/components/JesusLine'
+import { ThreadPicker } from '@/components/ThreadPicker'
+import { Speak } from '@/components/Speak'
 
 interface Draft {
   step: number
@@ -36,7 +40,7 @@ export function tagsForStories(stories: string[]): Tag[] {
 export function CheckIn() {
   const nav = useNavigate()
   const [d, update, reset] = useDraft<Draft>('check-in', EMPTY)
-  const [saved, setSaved] = useState<{ truthText?: string; cards: typeof cards } | null>(null)
+  const [saved, setSaved] = useState<{ truthText?: string; cards: typeof cards; fact: string; story: string[]; alternatives: string[]; theirs: string; personId?: string } | null>(null)
   const people = useLiveQuery(() => db.people.orderBy('name').toArray(), []) ?? []
   const tags = useMemo(() => tagsForStories(d.story), [d.story])
 
@@ -68,9 +72,10 @@ export function CheckIn() {
       truthText: d.truthText,
       personId: d.personId || undefined,
       tags,
+      threadId: getCurrentThread() ?? undefined,
       createdAt: now(),
     })
-    setSaved({ truthText: d.truthText, cards })
+    setSaved({ truthText: d.truthText, cards, fact: d.fact.trim(), story: d.story, alternatives: d.alternatives, theirs: d.theirs.trim(), personId: d.personId })
     reset()
   }
 
@@ -78,6 +83,13 @@ export function CheckIn() {
     return (
       <Shell back="/" title="Untangled, a little." subtitle="You separated what happened from the story. That's real work.">
         <div className="stack">
+          <Speak>
+            {saved.fact ? <p>So the fact is: {saved.fact}</p> : null}
+            {saved.story.length > 0 && <p>And the story your brain told was "{saved.story[0].toLowerCase()}."{saved.alternatives.length > 0 ? ` But you also found: ${saved.alternatives[0].toLowerCase()}.` : ''}</p>}
+            {saved.theirs && <p>You named what's theirs to carry. That part isn't yours anymore tonight.</p>}
+            {!saved.fact && saved.story.length === 0 && <p>You showed up and looked at it. That's the work.</p>}
+          </Speak>
+          <ThreadPicker onPick={() => undefined} personId={saved.personId} />
           {saved.truthText && <div className="card-gold"><p className="truth" style={{ margin: 0 }}>{saved.truthText}</p></div>}
           {saved.cards.length > 0 && (
             <div className="card">
@@ -121,6 +133,7 @@ export function CheckIn() {
         <div className="stack">
           <p className="hint">Tap the ones that fit. These are stories, not facts. Naming them takes some of their power.</p>
           <Chips options={STORIES.map((s) => s.text)} value={d.story} onChange={(story) => update({ story })} allowCustom />
+          {tags.length > 0 && <JesusLine tags={tags} quiet />}
           <StepActions onBack={back} onNext={next} onSkip={next} />
         </div>
       )}
@@ -154,6 +167,7 @@ export function CheckIn() {
       {d.step === 4 && (
         <div className="stack">
           <p className="hint">Two or three possibilities about their capacity, fears, or patterns. Not about your worth.</p>
+          <JesusLine tags={tags.length ? tags : ['Words and actions not matching']} salt={1} quiet />
           <Chips options={ALTERNATIVES} value={d.alternatives} onChange={(alternatives) => update({ alternatives })} allowCustom customLabel="Something else" />
           <StepActions onBack={back} onNext={next} onSkip={next} />
         </div>

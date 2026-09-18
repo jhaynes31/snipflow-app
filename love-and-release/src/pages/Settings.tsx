@@ -80,6 +80,13 @@ export function SettingsPage() {
         </section>
 
         <section className="card">
+          <h3>Daily rhythm</h3>
+          <Toggle label="Morning check-in" hint="Whose I am, one truth, one intention. Sixty seconds." checked={s.dailyMorning !== false} onChange={(v) => updateSettings({ dailyMorning: v })} />
+          <Toggle label="Evening check-in" hint="Where I felt loved, where I fawned, where I honored myself, what I'm setting down." checked={s.dailyEvening !== false} onChange={(v) => updateSettings({ dailyEvening: v })} />
+          <p className="help">Cycle tracking and your name live under <Link to="/me">Me</Link>.</p>
+        </section>
+
+        <section className="card">
           <h3>Unhooked</h3>
           <p className="help">Therapist contact and support options live under <Link to="/unhooked/support">Support and safety</Link>.{s.therapistName ? ` Saved: ${s.therapistName}.` : ''}</p>
         </section>
