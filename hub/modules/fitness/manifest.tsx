@@ -5,15 +5,15 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { PlannedScreen } from "@/modules/_shared/PlannedScreen";
 
 /**
- * The workout app. Its final name is still being decided, so the display
- * name below is a placeholder. When the name arrives, change `name` here and
- * nothing else; every screen and doc reads it from this manifest.
- * Keeps its sunflower and sunshine accents inside the village palette.
+ * Heartwood: the workout app. Named by Jen on 2026-09-18. The id and route
+ * stay `fitness`; only this `name` is user-facing, and every screen and doc
+ * reads it from here. Keeps its sunflower and sunshine accents inside the
+ * village palette.
  */
 export const fitness: ModuleManifest = {
   id: "fitness",
-  name: "Fitness",
-  tagline: "Movement that fits the day you're actually having.",
+  name: "Heartwood",
+  tagline: "Fitness that fits the day you're actually having.",
   icon: Sun,
   route: "/fitness",
   theme: {
