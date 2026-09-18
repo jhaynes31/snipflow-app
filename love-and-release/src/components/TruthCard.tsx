@@ -25,14 +25,18 @@ export function TruthCard({ truth, large, tone = 'gold' }: { truth: Truth; large
   )
 }
 
-/** Picks a truth for the day: rotates through starred truths first, then all. */
+/** Picks a truth for the day from the whole deck, in a shuffled-but-stable order so neighbors don't repeat. */
 export function useDailyTruth(): Truth | undefined {
   return useLiveQuery(async () => {
-    const all = await db.truths.orderBy('createdAt').toArray()
+    const all = await db.truths.orderBy('id').toArray()
     if (!all.length) return undefined
-    const pool = all.filter((t) => t.starred).length >= 3 ? all.filter((t) => t.starred) : all
     const d = new Date()
-    const idx = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86_400_000) + d.getFullYear()
-    return pool[idx % pool.length]
+    const day = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86_400_000) + d.getFullYear() * 366
+    // Stride through the deck with a step coprime to its length, so consecutive days feel varied.
+    const n = all.length
+    let step = Math.max(1, Math.floor(n * 0.618))
+    const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
+    while (gcd(step, n) !== 1) step++
+    return all[(day * step) % n]
   }, [])
 }

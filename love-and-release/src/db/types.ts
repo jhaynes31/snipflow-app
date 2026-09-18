@@ -14,6 +14,10 @@ export type Tag =
   | 'Forgiving without pretending it\'s fine'
   | 'Anxiety & Uncertainty'
   | 'Scrupulosity & Grace'
+  | 'Conflict & hard conversations'
+  | 'Naming poor behavior'
+  | 'Handling emotions'
+  | 'Compassion fatigue'
 
 export const UNSURE = 'unsure'
 export const RELEASED = 'released'

@@ -8,6 +8,7 @@ import { DEFAULT_BREATH_PRAYERS, GRACE_TRUTHS } from '@/data/unhooked'
 const SEED_KEY = 'lr:seeded:v1'
 const RINGS_KEY = 'lr:rings-seeded:v1'
 const GRACE_KEY = 'lr:grace-seeded:v1'
+const TRUTHS_V2_KEY = 'lr:truths-seeded:v2'
 
 export async function ensureSeeded(): Promise<void> {
   const settings = await db.settings.get('settings')
@@ -36,6 +37,15 @@ export async function ensureSeeded(): Promise<void> {
     localStorage.setItem(SEED_KEY, '1')
   }
 
+  // Later additions to the starter deck join once, without touching anything the user has edited.
+  if (localStorage.getItem(SEED_KEY) && !localStorage.getItem(TRUTHS_V2_KEY)) {
+    const ts = now()
+    const have = new Set((await db.truths.toArray()).map((t) => t.id))
+    const additions = (truthsSeed as Omit<Truth, 'createdAt'>[]).filter((t) => !have.has(t.id)).map((t) => ({ ...t, createdAt: ts }))
+    if (additions.length) await db.truths.bulkAdd(additions)
+  }
+  localStorage.setItem(TRUTHS_V2_KEY, '1')
+
   // Grace truths join the deck once, after the starters.
   if (!localStorage.getItem(GRACE_KEY)) {
     const ts = now()
@@ -48,6 +58,7 @@ export function markUnseeded(): void {
   localStorage.removeItem(SEED_KEY)
   localStorage.removeItem(RINGS_KEY)
   localStorage.removeItem(GRACE_KEY)
+  localStorage.removeItem(TRUTHS_V2_KEY)
 }
 
 /** Restore the suggested default rings (used from Layers when all rings were removed). */
