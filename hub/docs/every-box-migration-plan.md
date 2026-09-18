@@ -53,15 +53,13 @@ Every Box already follows the shame-free rules: no streaks, scores, or overdue l
 
 ## Data: how existing boxes move over
 
-This depends on one fact I can't see from the code: **whether Every Box is already in use with real boxes and history on a live Convex deployment.** The repository is one day old, so it may not be.
+Every Box's real data lives in the production deployment `youthful-mule-878` (Convex project "Every Box"). It moves in one automatic step, built into the Vercel build (`scripts/import-every-box.mjs`):
 
-- **If there is no real data yet:** nothing to move. The plan is code only.
-- **If there is real data:** it moves in three steps, none of which touch the old deployment.
-  1. You download a snapshot of the old Every Box deployment from the Convex dashboard (Settings, Backup & Restore, or Export).
-  2. I write a one-time import that reads the snapshot's `eb*` tables and writes them into The Shire's deployment, replacing the old partner ids with the new partner records linked to your profiles, and dropping the old `users` and auth tables (The Shire already has its own).
-  3. We compare counts and spot-check a few boxes before the old site is retired.
+1. Jen creates a deploy key on the **old** Every Box deployment and adds it to the-shire's Vercel project as `EVERY_BOX_SOURCE_DEPLOY_KEY`.
+2. The next production build exports a snapshot of the old deployment, keeps only the `eb*` tables, renames each partner's old `userId` link to `legacyUserId`, and imports them into The Shire, replacing any Every Box rows created in The Shire before the copy.
+3. It then links each imported partner to the Shire profile whose account uses the same email the old account had, prints before-and-after row counts to the build log, and marks the deployment `EVERY_BOX_IMPORTED` so it never runs twice.
 
-Either way, the old Every Box site keeps running untouched until you say it's done. Nothing is deleted from it by this plan.
+The old deployment is only read, never written. It keeps running untouched until Jen retires it.
 
 ## Order of work
 
@@ -69,7 +67,7 @@ Either way, the old Every Box site keeps running untouched until you say it's do
 2. **Switch to the foundation.** *(done)* Replace the household and partner flow with automatic provisioning from Shire profiles. Delete login, onboarding, join, badge sync, the `.ics` route, and the PWA files. Point every screen at the foundation's user and partner.
 3. **Fit the frame.** *(done)* Sub-navigation tabs, routes under `/every-box`, Every Box settings trimmed to the theme picker, today widget on the home screen.
 4. **Contract behaviors.** *(done)* `category.stuck` event, optional weekly-review calendar event, privacy fields.
-5. **Data (only if needed).** Import script, run against a snapshot, verify.
+5. **Data.** Build-time import from a snapshot of the old deployment, linked by email, with counts in the log. *(code ready; waiting on the source key)*
 6. **Verify and hand over.** Typecheck, lint, copy check, tests, production build. You and John each open Every Box inside The Shire and tend one box. Then the old Every Box site and its Vercel project are archived, not deleted, in case anything was missed.
 
 Each step ends with a push you can see working, so we can stop between steps.

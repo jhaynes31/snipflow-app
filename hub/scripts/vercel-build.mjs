@@ -9,6 +9,7 @@
 // touch the production database.
 import { execFileSync, execSync } from "node:child_process";
 import { generateAuthKeys, siteUrlFromVercel } from "./lib/authKeys.mjs";
+import { importEveryBoxIfNeeded } from "./import-every-box.mjs";
 
 const isProduction = process.env.VERCEL_ENV === "production";
 const hasKey = Boolean(process.env.CONVEX_DEPLOY_KEY);
@@ -56,6 +57,8 @@ async function configureAuth() {
 if (isProduction && hasKey) {
   await configureAuth();
   execSync("npx convex deploy --cmd 'npm run build'", { stdio: "inherit" });
+  // After the functions are deployed, so the import helpers exist.
+  await importEveryBoxIfNeeded();
 } else {
   console.log(
     hasKey

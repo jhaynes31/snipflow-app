@@ -17,6 +17,7 @@ import type * as everyBox_categories from "../everyBox/categories.js";
 import type * as everyBox_commitments from "../everyBox/commitments.js";
 import type * as everyBox_freshness from "../everyBox/freshness.js";
 import type * as everyBox_households from "../everyBox/households.js";
+import type * as everyBox_importLegacy from "../everyBox/importLegacy.js";
 import type * as everyBox_lib from "../everyBox/lib.js";
 import type * as everyBox_reviews from "../everyBox/reviews.js";
 import type * as everyBox_tenders from "../everyBox/tenders.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "everyBox/commitments": typeof everyBox_commitments;
   "everyBox/freshness": typeof everyBox_freshness;
   "everyBox/households": typeof everyBox_households;
+  "everyBox/importLegacy": typeof everyBox_importLegacy;
   "everyBox/lib": typeof everyBox_lib;
   "everyBox/reviews": typeof everyBox_reviews;
   "everyBox/tenders": typeof everyBox_tenders;
