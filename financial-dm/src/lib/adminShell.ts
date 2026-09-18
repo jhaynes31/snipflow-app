@@ -6,7 +6,7 @@ import { QUEST_LOG_STALE_DAYS } from "./questLog";
  * are switched on. Adding a tool later is one entry here.
  */
 
-export type TabId = "home" | "leads" | "quests" | "forge" | "practice" | "quizzes" | "scripts" | "guild" | "howto" | "settings";
+export type TabId = "home" | "leads" | "quests" | "forge" | "studio" | "practice" | "quizzes" | "scripts" | "guild" | "howto" | "settings";
 
 export interface AdminTab {
   id: TabId;
@@ -28,6 +28,8 @@ export const TOOLS_BUILT = {
   leads: true,
   quests: true,
   forge: true,
+  /** The Recording Studio (recording studio spec). */
+  studio: true,
   quizzes: true,
   practice: true,
   /** The DM Screen (presentation script spec). */
@@ -46,6 +48,7 @@ export const ADMIN_TABS: AdminTab[] = [
   { id: "leads", label: "Leads", short: "Leads", icon: "⚔️", to: "/admin/leads", available: TOOLS_BUILT.leads, mobilePrimary: true },
   { id: "quests", label: "Quest Board", short: "Quests", icon: "🗺️", to: "/admin/quests", search: { section: "quests" }, available: TOOLS_BUILT.quests, mobilePrimary: true },
   { id: "forge", label: "Content Forge", short: "Forge", icon: "🧙", to: "/admin/forge", search: { tab: "script", view: "forge" }, available: TOOLS_BUILT.forge, mobilePrimary: true },
+  { id: "studio", label: "Recording Studio", short: "Studio", icon: "🎬", to: "/admin/studio", available: TOOLS_BUILT.studio, mobilePrimary: false },
   { id: "practice", label: "Practice", short: "Practice", icon: "🥊", to: "/admin/practice", available: TOOLS_BUILT.practice, mobilePrimary: false },
   { id: "quizzes", label: "Quizzes", short: "Quizzes", icon: "🎲", to: "/admin/quizzes", available: TOOLS_BUILT.quizzes, mobilePrimary: false },
   { id: "scripts", label: "The DM Screen", short: "Scripts", icon: "📜", to: "/admin/scripts", available: TOOLS_BUILT.scripts, mobilePrimary: false },
@@ -97,6 +100,8 @@ export function crumb(pathname: string, search: Record<string, unknown>): { tab:
     if (v !== "recruits") sub.push(GUILD_VIEWS[v] ?? v);
   } else if (tab.id === "practice") {
     if (/\/admin\/practice\/\d+/.test(p)) sub.push("Practice session");
+  } else if (tab.id === "studio") {
+    if (s("video")) sub.push("Video");
   } else if (tab.id === "scripts") {
     if (/\/admin\/scripts\/\d+/.test(p)) sub.push("Edit script");
     else if (search.archived) sub.push("Archived");

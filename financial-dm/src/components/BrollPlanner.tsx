@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import RecordThisButton from "~/components/studio/RecordThisButton";
+import type { StudioHandoff } from "~/lib/studio";
+import { stripLeadingHook } from "~/server/scriptGenerator";
 import { generateBroll, saveBroll, type BrollPlan } from "~/server/brollGenerator";
 import {
   BROLL_STYLES,
@@ -97,6 +100,29 @@ export default function BrollPlanner({
     }
   }, [source, style]);
 
+  /** saved_broll.id once the shot list is saved, so the Studio can load the picks. */
+  const [savedPlanId, setSavedPlanId] = useState<number | undefined>(undefined);
+
+  /** The saved shot list's id, saving it first if needed. */
+  const ensureSavedPlan = useCallback(async (): Promise<number | undefined> => {
+    if (!plan) return undefined;
+    if (savedPlanId) return savedPlanId;
+    const res = await saveBroll({ data: plan });
+    if (!res.ok || !res.id) {
+      setError(res.error || "Could not save the shot list.");
+      return undefined;
+    }
+    setSavedPlanId(res.id);
+    return res.id;
+  }, [plan, savedPlanId]);
+
+  const studioHandoff = useCallback(async (): Promise<StudioHandoff | null> => {
+    if (!plan) return null;
+    const id = await ensureSavedPlan();
+    if (!id) return null;
+    return { source: "broll", recruiting: false, title: plan.title, topic: plan.topic, painPoint: plan.painPoint, tone: plan.tone, script: { hook: plan.hook, body: stripLeadingHook(plan.script, plan.hook), cta: plan.callToAction }, scriptId: plan.scriptId ?? null, brollId: id, shots: plan.shots };
+  }, [plan, ensureSavedPlan]);
+
   // One click forge: the parent hands us a fresh script and we plan it at once.
   const generateRef = useRef(handleGenerate);
   generateRef.current = handleGenerate;
@@ -115,6 +141,7 @@ export default function BrollPlanner({
         setError(res.error || "Could not save the shot list.");
         return;
       }
+      if (res.id) setSavedPlanId(res.id);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -245,6 +272,7 @@ export default function BrollPlanner({
                   >
                     {downloaded ? "✅ Downloaded!" : "⬇️ Download"}
                   </button>
+                  <RecordThisButton handoff={studioHandoff} onError={setError} />
                 </div>
               </div>
 

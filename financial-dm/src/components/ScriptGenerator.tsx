@@ -13,6 +13,8 @@ import CaptionHashtagPanel from "~/components/generator/CaptionHashtagPanel";
 import CtaPanel from "~/components/generator/CtaPanel";
 import { effectiveCta } from "~/lib/cta";
 import Prompter from "~/components/prompter/Prompter";
+import RecordThisButton from "~/components/studio/RecordThisButton";
+import type { StudioHandoff } from "~/lib/studio";
 import BrollPlanner from "~/components/BrollPlanner";
 import { attachOutputToSlot } from "~/server/campaign";
 import { contextOf, type CampaignBrief } from "~/lib/campaign";
@@ -288,6 +290,29 @@ export default function ScriptGenerator({
     }
   }, [result, cta]);
 
+  /** The saved id, saving the package first if John has not yet (the Studio and the quest need one). */
+  const ensureSavedId = useCallback(async (): Promise<number | undefined> => {
+    if (!result) return undefined;
+    if (savedId) return savedId;
+    const res = await saveScript({ data: { ...result, callToAction: cta } });
+    if (!res.ok || !res.id) {
+      setError(res.error || "Could not save the posting package.");
+      return undefined;
+    }
+    setSavedId(res.id);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    return res.id;
+  }, [result, savedId, cta]);
+
+  /** Everything the Studio needs: the chosen hook, the script body, the call to action, and the topic. */
+  const studioHandoff = useCallback(async (): Promise<StudioHandoff | null> => {
+    if (!result) return null;
+    const id = await ensureSavedId();
+    if (!id) return null;
+    return { source: "script", recruiting: false, title: result.title, topic: result.topic, painPoint: result.painPoint, tone: result.tone, script: { hook: result.hook, body: result.scriptBody, cta }, scriptId: id };
+  }, [result, ensureSavedId, cta]);
+
   /** Save the package, then attach it to the campaign slot (Section 7.2). */
   const handleSaveToQuest = useCallback(async () => {
     if (!result || !campaign) return;
@@ -441,6 +466,7 @@ export default function ScriptGenerator({
                 >
                   🎥 Perform
                 </button>
+                <RecordThisButton handoff={studioHandoff} onError={setError} />
                 {campaign && <button
                   type="button"
                   onClick={handleSaveToQuest}

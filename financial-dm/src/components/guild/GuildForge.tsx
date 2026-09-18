@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import RecordThisButton from "~/components/studio/RecordThisButton";
+import type { StudioHandoff } from "~/lib/studio";
 import {
   FLAG_KIND_LABEL,
   GUILD_CAROUSEL_TOPICS,
@@ -104,13 +106,16 @@ export default function GuildForge({ brief, initialKind }: { brief?: CampaignBri
     }
   };
 
+  const [savedId, setSavedId] = useState<number | null>(null);
   const save = async (): Promise<number | null> => {
     if (!draft) return null;
     setSaved("saving");
     const res = await saveGuildOutput({ data: { kind: draft.kind, title: draft.title, body: draft.body, flags: draft.flags } });
     setSaved(res.ok ? "saved" : "idle");
     if (!res.ok) setError(res.error || "Could not save.");
-    return res.ok && res.id ? res.id : null;
+    const id = res.ok && res.id ? res.id : null;
+    setSavedId(id);
+    return id;
   };
 
   /** Save, then attach to the quest slot: the slot moves to Drafted (recruiting spec, Section 7.1). */
@@ -190,6 +195,14 @@ export default function GuildForge({ brief, initialKind }: { brief?: CampaignBri
             <h3 className="font-fantasy text-[#c08020] text-lg">{kindLabel(draft.kind)} · {draft.title}</h3>
             <div className="flex gap-2">
               <button type="button" onClick={() => navigator.clipboard?.writeText(draft.plain)} className={btnGhost}>📋 Copy text</button>
+              <RecordThisButton
+                className={btnGhost}
+                handoff={async () => {
+                  const id = saved === "saved" && savedId ? savedId : await save();
+                  return id ? guildHandoff(draft.kind, draft.title, draft.body, draft.plain, id) : null;
+                }}
+                onError={setError}
+              />
               <button type="button" onClick={save} disabled={saved !== "idle"} className={brief ? btnGhost : btnPrimary} data-guild-save>
                 {saved === "saving" ? "Saving..." : saved === "saved" ? "✅ Saved" : "💾 Save"}
               </button>
@@ -397,6 +410,25 @@ function FlyerVariations({ body }: { body: GuildFlyerBody }) {
 
 // ── Saved outputs ───────────────────────────────────────────────────
 
+/**
+ * What a Guild piece hands the Studio (spec, Entry points): a recruiting
+ * script goes in as hook and body; anything else becomes talking points
+ * for the prompter. The recruiting flag files the video on the Guild shelf.
+ */
+function guildHandoff(kind: GuildOutputKind, title: string, body: GuildBody, plain: string, id: number): StudioHandoff {
+  const script = kind === "script" ? (body as GuildScriptBody) : null;
+  return {
+    source: "guild",
+    recruiting: true,
+    title,
+    topic: script?.topic ? GUILD_SCRIPT_TOPICS.find((t) => t.id === script.topic)?.label ?? script.topic : "Recruiting",
+    painPoint: "",
+    tone: "",
+    script: script ? { hook: script.hook, body: script.body, cta: "" } : { hook: "", body: plain, cta: "" },
+    guildOutputId: id,
+  };
+}
+
 export function SavedGuildOutputs() {
   const [rows, setRows] = useState<GuildOutput[]>([]);
   const [loading, setLoading] = useState(true);
@@ -451,6 +483,7 @@ export function SavedGuildOutputs() {
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} className={btnGhost}>{open === r.id ? "Hide" : "Show"}</button>
               <button type="button" onClick={() => navigator.clipboard?.writeText(r.plain)} className={btnGhost}>📋 Copy</button>
+              <RecordThisButton className={btnGhost} handoff={() => guildHandoff(r.kind, r.title, r.body, r.plain, r.id)} onError={setError} />
               <button type="button" onClick={() => approve(r, !r.approved)} className={r.approved ? btnGhost : btnPrimary} data-approve-guild>
                 {r.approved ? "Un-approve" : "✅ Approve"}
               </button>

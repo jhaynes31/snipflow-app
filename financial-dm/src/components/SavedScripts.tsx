@@ -8,6 +8,7 @@ import {
 import { HOOK_TYPE_LABELS, buildScriptText, downloadScript, slugify } from "~/lib/scriptUtils";
 
 import Prompter from "~/components/prompter/Prompter";
+import RecordThisButton from "~/components/studio/RecordThisButton";
 import { stripLeadingHook } from "~/server/scriptGenerator";
 
 export default function SavedScripts() {
@@ -217,8 +218,12 @@ export default function SavedScripts() {
                 {/* Expanded script body */}
                 {isExpanded && (
                   <div className="px-4 py-4 space-y-4">
-                    <div className="flex justify-end">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button type="button" onClick={() => setPerforming(s.id)} className="px-4 py-2 rounded-lg bg-[#E0B45C] hover:bg-[#f0c46c] text-[#0d1520] font-bold transition-all text-sm font-fantasy" data-perform>🎥 Perform</button>
+                      <RecordThisButton
+                        handoff={() => ({ source: "script", recruiting: false, title: s.title, topic: s.topic, painPoint: s.painPoint, tone: s.tone, script: { hook: s.hook, body: stripLeadingHook(s.script, s.hook), cta: s.callToAction }, scriptId: s.id })}
+                        onError={setError}
+                      />
                     </div>
                     {s.hook && (
                       <div className="p-4 rounded-lg border border-[#c08020]/30 bg-[#204060]/10">

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import RecordThisButton from "~/components/studio/RecordThisButton";
+import { stripLeadingHook } from "~/server/scriptGenerator";
 import {
   deleteBroll,
   getSavedBroll,
@@ -216,6 +218,10 @@ export default function SavedBroll() {
                         >
                           {downloadedId === p.id ? "✅ Downloaded!" : "⬇️ Download"}
                         </button>
+                        <RecordThisButton
+                          handoff={() => ({ source: "broll", recruiting: false, title: p.title, topic: p.topic, painPoint: p.painPoint, tone: p.tone, script: { hook: p.hook, body: stripLeadingHook(p.script, p.hook), cta: p.callToAction }, scriptId: p.scriptId ?? null, brollId: p.id, shots: shotsFor(p) })}
+                          onError={setError}
+                        />
                         <button
                           type="button"
                           onClick={() => handleDelete(p.id)}
