@@ -79,7 +79,7 @@ Everything else in the visual design section stays the same, including accessibi
 
 ## Implementation notes (added by the build)
 
-- 2026-09-18: the workout app is named **Heartwood**. Changed in `modules/fitness/manifest.tsx` only; id and route remain `fitness`.
+- 2026-09-18: the workout app is named **Heartwood Fitness**. Changed in `modules/fitness/manifest.tsx` only; id and route remain `fitness`.
 
 - `APP_DISPLAY_NAME` lives in `core/config.ts`. Module display names live only in each `modules/<id>/manifest.tsx`.
 - Theme tokens live in `core/theme/tokens.ts` and are written to CSS variables by the root layout. Two shades were adjusted after the contrast check: candlelight gold fails AA as text on parchment (2.56:1), so an `accentText` token (`#8A5A14`, 5.15:1) exists for gold words in light mode, and dark-mode `secondary` was lightened from `#B08A66` to `#C4A07C` because the original was 4.22:1 on deep moss. `tests/theme.test.ts` checks every text pairing the app uses.

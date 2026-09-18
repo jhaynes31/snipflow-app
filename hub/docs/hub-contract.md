@@ -6,7 +6,7 @@
 
 The user-facing name of the Hub is **The Shire**. It comes from `APP_DISPLAY_NAME` in `core/config.ts` and is never written into a screen by hand. In this document, "the Hub" is the internal name for the foundation; the words a person sees are always "The Shire."
 
-The four first modules are Every Box, Tend (the support app), Heartwood (the fitness module; id and route stay `fitness`), and Love & Release. Module display names come only from each module's manifest.
+The four first modules are Every Box, Tend (the support app), Heartwood Fitness (the fitness module; id and route stay `fitness`), and Love & Release. Module display names come only from each module's manifest.
 
 ## Purpose and how to use this contract
 
