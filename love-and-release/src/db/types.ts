@@ -428,7 +428,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   id: 'settings',
   reminders: [],
-  theme: 'system',
+  theme: 'light',
   textSize: 'normal',
   reduceMotion: false,
   circleCues: true,

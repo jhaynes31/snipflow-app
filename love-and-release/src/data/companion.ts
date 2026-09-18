@@ -2,17 +2,17 @@ import type { FawnKind } from '@/db/types'
 
 export const GREETINGS: ((n: string) => string)[] = [(n) => `Hey${n}. I'm glad you're here.`, (n) => `Hi${n}. No catching up needed.`, (n) => `You made it here${n}. That counts.`, (n) => `Hey${n}. Whatever it is, we can go slow.`]
 
-export const DOORS: { id: string; label: string; sub: string; to: string }[] = [
-  { id: 'comfort', label: 'I need comfort', sub: 'No questions. I\'ll just be here.', to: '/comfort' },
-  { id: 'stung', label: 'Something stung', sub: 'Let\'s slow down together.', to: '/pause' },
-  { id: 'loop', label: 'My brain won\'t stop looping', sub: 'Step out of it, gently.', to: '/unhooked/loop' },
-  { id: 'fawn', label: 'I\'m about to say yes when I mean no', sub: 'Or apologize again. Or shape-shift.', to: '/fawn' },
-  { id: 'hard', label: 'I have to say something hard', sub: 'Honest and kind is enough.', to: '/boundaries/new' },
-  { id: 'someone', label: 'I\'m confused about someone', sub: 'Let\'s look at what\'s actually there.', to: '/someone' },
-  { id: 'new', label: 'I met someone and I\'m excited', sub: 'Let\'s keep the excitement, and keep you.', to: '/new-person' },
-  { id: 'low', label: 'I\'m in a low place this week', sub: 'PMS, PMDD, or just low. Lower the bar with me.', to: '/comfort?low=1' },
-  { id: 'okay', label: 'I\'m okay. Just here.', sub: 'A quiet check-in.', to: '/daily' },
-  { id: 'unsure', label: 'I don\'t know', sub: 'That\'s okay. Come sit.', to: '/comfort' },
+export const DOORS: { id: string; label: string; sub: string; to: string; icon: string; tint: string }[] = [
+  { id: 'comfort', label: 'I need comfort', sub: 'No questions. I\'ll just be here.', to: '/comfort', icon: '🫶', tint: 'primary' },
+  { id: 'stung', label: 'Something stung', sub: 'Let\'s slow down together.', to: '/pause', icon: '🍂', tint: 'blush' },
+  { id: 'loop', label: 'My brain won\'t stop looping', sub: 'Step out of it, gently.', to: '/unhooked/loop', icon: '🌀', tint: 'lavender' },
+  { id: 'fawn', label: 'I\'m about to say yes when I mean no', sub: 'Or apologize again. Or shape-shift.', to: '/fawn', icon: '🪞', tint: 'honey' },
+  { id: 'hard', label: 'I have to say something hard', sub: 'Honest and kind is enough.', to: '/boundaries/new', icon: '🕊️', tint: 'plain' },
+  { id: 'someone', label: 'I\'m confused about someone', sub: 'Let\'s look at what\'s actually there.', to: '/someone', icon: '🔍', tint: 'plain' },
+  { id: 'new', label: 'I met someone and I\'m excited', sub: 'Let\'s keep the excitement, and keep you.', to: '/new-person', icon: '🌱', tint: 'sage' },
+  { id: 'low', label: 'I\'m in a low place this week', sub: 'PMS, PMDD, or just low. Lower the bar with me.', to: '/comfort?low=1', icon: '🌙', tint: 'lavender' },
+  { id: 'okay', label: 'I\'m okay. Just here.', sub: 'A quiet check-in.', to: '/daily', icon: '☕', tint: 'sage' },
+  { id: 'unsure', label: 'I don\'t know', sub: 'That\'s okay. Come sit.', to: '/comfort', icon: '🤍', tint: 'plain' },
 ]
 
 export const COMFORT_OPENERS = [

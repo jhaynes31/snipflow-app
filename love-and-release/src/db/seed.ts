@@ -13,6 +13,9 @@ const TRUTHS_V2_KEY = 'lr:truths-seeded:v2'
 export async function ensureSeeded(): Promise<void> {
   const settings = await db.settings.get('settings')
   if (!settings) await db.settings.put(DEFAULT_SETTINGS)
+  // Warm light is the intended look. Installs that never chose a theme move to it once; Soft dark stays a choice in Settings.
+  else if (settings.theme === 'system' && !localStorage.getItem('lr:theme-v2')) await db.settings.put({ ...settings, theme: 'light' })
+  localStorage.setItem('lr:theme-v2', '1')
 
   // Cards are app content: keep them current with the bundled JSON.
   const cards = cardsSeed as JesusCard[]

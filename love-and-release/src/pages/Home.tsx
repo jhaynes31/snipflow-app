@@ -69,9 +69,9 @@ export function Home() {
         {cycle?.inLowWindow && <div className="notice">It's the harder stretch of the month. Some of what stings this week will sting less next week. Be extra gentle with yourself. <Link to="/why/pmdd">Why</Link></div>}
 
         <div className="doors">
-          {doors.map((d, i) => (
-            <button key={d.id} type="button" className={`door ${i === 0 ? 'door-primary' : d.id === 'okay' ? 'door-sage' : ''}`} onClick={() => nav(d.to)}>
-              {d.label}<span>{d.sub}</span>
+          {doors.map((d) => (
+            <button key={d.id} type="button" className={`door ${d.tint !== 'plain' ? `door-${d.tint}` : ''}`} onClick={() => nav(d.to)}>
+              <i aria-hidden="true">{d.icon}</i>{d.label}<span>{d.sub}</span>
             </button>
           ))}
         </div>
