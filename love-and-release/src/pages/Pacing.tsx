@@ -136,9 +136,10 @@ export function PacePage() {
   })()
 
   return (
-    <Shell back={`/people/${person.id}`} action={<div className="chips">{(['review', 'halo', 'used'] as const).map((m) => <button key={m} type="button" className="chip chip-sm" style={{ cursor: 'pointer' }} aria-pressed={mode === m} onClick={() => setParams({ mode: m })}>{m === 'review' ? 'What they\'ve shown' : m === 'halo' ? 'Halo check' : 'Am I being used?'}</button>)}</div>}>
+    <Shell back={`/people/${person.id}`}>
       <div className="stack-lg">
         <div className="row"><Avatar person={person} size={48} /><div><h1 style={{ marginBottom: 0 }}>{person.name}</h1><div className="muted">{placementName(person.ringId, rings)}{known ? ` · known ${known}` : ''}</div></div></div>
+        <div className="chips">{(['review', 'halo', 'used'] as const).map((m) => <button key={m} type="button" className="chip" aria-pressed={mode === m} onClick={() => setParams({ mode: m })}>{m === 'review' ? 'What they\'ve shown' : m === 'halo' ? 'Halo check' : 'Am I being used?'}</button>)}</div>
 
         {mode === 'review' && (<>
           <Speak>{read}</Speak>
