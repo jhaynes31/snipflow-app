@@ -24,8 +24,15 @@ function convexEnvGet(name) {
 }
 
 function convexEnvSet(name, value) {
-  // Arguments are passed as an array, so multi-line and quoted values are safe.
-  execFileSync("npx", ["convex", "env", "set", name, value], { stdio: ["ignore", "ignore", "inherit"] });
+  // `--` ends option parsing, so a value that starts with dashes (a PEM key
+  // does) is read as a value. Output is captured, never printed, so a secret
+  // can't land in the build log even when the command fails.
+  try {
+    execFileSync("npx", ["convex", "env", "set", "--", name, value], { stdio: ["ignore", "pipe", "pipe"] });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString().replace(value, "<redacted>") : "";
+    throw new Error(`Could not set ${name} on the Convex deployment.\n${stderr}`);
+  }
   console.log(`Set ${name} on the Convex deployment.`);
 }
 
