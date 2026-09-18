@@ -44,6 +44,7 @@ export function OnboardingPage() {
           <h1>Welcome to {APP_NAME}</h1>
           <p>This app is your personal trainer and physical therapist in one. It plans every session. You open it, press Start, and follow along.</p>
           <Callout>It cannot diagnose or replace a real PT. With your neck, ankle and knee history, one in-person PT evaluation is a very good idea. Whatever they tell you wins.</Callout>
+          <Field label="What should we call you?"><input className="input" value={profile.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Your name" /></Field>
           <p>You can pause this setup any time and pick it up where you left off.</p>
           <Button size="lg" onClick={next}>Let's begin</Button>
         </div>

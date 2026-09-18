@@ -6,7 +6,8 @@ import type { CoachTone } from '@/domain/types';
  * body-shaming, feedback is information, never guilt about missed days.
  */
 
-export type Moment = 'pre-session' | 'mid-set' | 'post-session' | 'milestone' | 'comeback' | 'quit' | 'rest' | 'sabbath' | 'form' | 'gap-why';
+export type Moment = 'pre-session' | 'mid-set' | 'post-session' | 'milestone' | 'comeback' | 'quit' | 'rest' | 'sabbath' | 'form' | 'gap-why' | 'word' | 'small' | 'freestyle';
+export type Theme = 'perfectionism' | 'overthinking' | 'shame' | 'small-steps' | 'scripture' | 'rest' | 'identity';
 export type Speaker = 'coach' | 'pt';
 
 export interface Message {
@@ -17,10 +18,15 @@ export interface Message {
   text: string;
   /** {{n}} session count, {{name}} user name, {{why}} her why. */
   faith?: boolean;
+  theme?: Theme;
+  /** Scripture reference, shown after the text. */
+  ref?: string;
 }
 
 let i = 0;
-const m = (moment: Moment, tone: Message['tone'], speaker: Message['speaker'], text: string, faith = false): Message => ({ id: `m${++i}`, moment, tone, speaker, text, faith });
+const m = (moment: Moment, tone: Message['tone'], speaker: Message['speaker'], text: string, faith = false, theme?: Theme): Message => ({ id: `m${++i}`, moment, tone, speaker, text, faith, theme });
+/** Scripture line: always faith-track only. */
+const v = (moment: Moment, text: string, ref: string, theme: Theme = 'scripture'): Message => ({ id: `m${++i}`, moment, tone: 'any', speaker: 'coach', text, faith: true, theme, ref });
 
 export const MESSAGES: Message[] = [
   // ---------------- Pre-session ----------------
@@ -158,15 +164,101 @@ export const MESSAGES: Message[] = [
   m('quit', 'gentle', 'coach', 'Nothing about you is broken for wanting to stop. Let us just pick the kindest next step.'),
   m('rest', 'fierce', 'coach', 'Warriors rest. That is how they stay warriors.'),
   m('pre-session', 'calm', 'pt', 'Balance work only on flat, even ground today. Then we begin.'),
+
+  // ---------------- Small movement matters ----------------
+  m('small', 'any', 'coach', 'Ten minutes is a real workout. So is five. So is standing up and reaching for the ceiling.', false, 'small-steps'),
+  m('small', 'any', 'pt', 'Small movements are how the nervous system learns it is safe. They matter more than they feel.', false, 'small-steps'),
+  m('small', 'any', 'coach', 'Little and often beats big and rarely. Every single time.', false, 'small-steps'),
+  m('small', 'any', 'coach', 'Two minutes of movement is not "barely anything". It is your body learning it can trust you.', false, 'small-steps'),
+  m('small', 'any', 'pt', 'One set counts. One rep counts. Your joints do not keep a scoreboard; they just notice they were used.', false, 'small-steps'),
+  m('small', 'any', 'coach', 'You are allowed to do the smaller version and call it a win. Because it is one.', false, 'small-steps'),
+  m('small', 'any', 'coach', 'A short session done is worth more than a long one imagined.', false, 'small-steps'),
+  m('small', 'any', 'coach', 'Moving a little today keeps the door open for tomorrow. That is the whole job.', false, 'small-steps'),
+
+  // ---------------- Freestyle ("just move") ----------------
+  m('freestyle', 'any', 'coach', 'No plan today? Perfect. Tap where you would like some attention and how long you have. I will handle the rest.', false, 'small-steps'),
+  m('freestyle', 'any', 'coach', 'You cannot pick wrong. Every area you choose gets safe, gentle work.', false, 'perfectionism'),
+  m('freestyle', 'any', 'pt', 'Choosing your own focus is listening to your body. That is a skill, not a shortcut.', false, 'identity'),
+  m('freestyle', 'any', 'coach', 'Five minutes is a full choice here. So is forty-five. Neither is more valid than the other.', false, 'small-steps'),
+
+  // ---------------- Perfectionism ----------------
+  m('word', 'any', 'coach', 'Done imperfectly is done. Perfect was never on the plan.', false, 'perfectionism'),
+  m('word', 'any', 'coach', 'A wobbly rep counts exactly the same as a perfect one. It is still a rep.', false, 'perfectionism'),
+  m('word', 'any', 'coach', 'You cannot get this wrong. Skips, swaps and stopping early are built in on purpose.', false, 'perfectionism'),
+  m('word', 'any', 'coach', 'The goal is not a perfect session. The goal is a body that trusts you.', false, 'perfectionism'),
+  m('word', 'any', 'coach', 'Start messy. Tidy comes later, or never. Both are fine.', false, 'perfectionism'),
+  m('word', 'any', 'coach', 'Nobody is grading this. Not even you.', false, 'perfectionism'),
+  m('quit', 'any', 'coach', 'Stopping early is not failing the session. It is finishing a shorter one.', false, 'perfectionism'),
+  m('post-session', 'any', 'coach', 'That was not perfect, and it was not supposed to be. It was done.', false, 'perfectionism'),
+
+  // ---------------- Overthinking ----------------
+  m('word', 'any', 'coach', 'Overthinking is fear in a lab coat. Press Start and let the plan do the thinking.', false, 'overthinking'),
+  m('word', 'any', 'coach', 'You do not have to feel ready. You only have to begin.', false, 'overthinking'),
+  m('word', 'any', 'coach', 'Thinking about it does not count against you. Moving for one minute counts for you.', false, 'overthinking'),
+  m('word', 'any', 'coach', 'The decision is already made: the next step is on the screen. You just take it.', false, 'overthinking'),
+  m('pre-session', 'any', 'coach', 'No deciding today. That part is done. Just the next thing on the screen.', false, 'overthinking'),
+  m('word', 'any', 'coach', 'When the mind spins, let the body lead for ten minutes. The mind usually follows.', false, 'overthinking'),
+
+  // ---------------- Shame ----------------
+  m('word', 'any', 'coach', 'Shame says you are behind. The truth is you are here.', false, 'shame'),
+  m('word', 'any', 'coach', 'Missed days are not evidence about you. They are just days.', false, 'shame'),
+  m('word', 'any', 'coach', 'There is no wrong way to show up.', false, 'shame'),
+  m('word', 'any', 'coach', 'Your worth was settled long before this session. Nothing here can add to it or take from it.', false, 'shame'),
+  m('comeback', 'any', 'coach', 'Nothing to apologise for. Not to me, not to yourself. Welcome back.', false, 'shame'),
+  m('rest', 'any', 'coach', 'Resting is not falling behind. There is no behind.', false, 'shame'),
+  m('word', 'any', 'coach', 'Progress is not a straight line, and neither is a tree.', false, 'identity'),
+
+  // ---------------- Scripture: word for today ----------------
+  v('word', 'Be strong and courageous. Do not be afraid, for the Lord your God is with you wherever you go.', 'Joshua 1:9'),
+  v('word', 'I can do all things through him who strengthens me.', 'Philippians 4:13'),
+  v('word', 'His mercies never come to an end; they are new every morning.', 'Lamentations 3:22-23'),
+  v('word', 'Come to me, all who labor and are heavy laden, and I will give you rest.', 'Matthew 11:28', 'rest'),
+  v('word', 'I praise you, for I am fearfully and wonderfully made.', 'Psalm 139:14', 'identity'),
+  v('word', 'Do not despise the day of small things.', 'Zechariah 4:10', 'small-steps'),
+  v('word', 'My grace is sufficient for you, for my power is made perfect in weakness.', '2 Corinthians 12:9', 'perfectionism'),
+  v('word', 'There is therefore now no condemnation for those who are in Christ Jesus.', 'Romans 8:1', 'shame'),
+  v('word', 'Be still, and know that I am God.', 'Psalm 46:10', 'overthinking'),
+  v('word', 'Cast all your anxieties on him, because he cares for you.', '1 Peter 5:7', 'overthinking'),
+  v('word', 'The Lord is my strength and my shield; my heart trusts in him, and I am helped.', 'Psalm 28:7'),
+  v('word', 'Let us not grow weary of doing good, for in due season we will reap, if we do not give up.', 'Galatians 6:9'),
+  v('word', 'He gives power to the faint, and to him who has no might he increases strength.', 'Isaiah 40:29'),
+  v('word', 'Do not be anxious about anything.', 'Philippians 4:6', 'overthinking'),
+  v('word', 'Whatever you do, work heartily, as for the Lord.', 'Colossians 3:23'),
+  v('word', 'God gave us a spirit not of fear but of power and love and self-control.', '2 Timothy 1:7'),
+  v('word', 'My yoke is easy, and my burden is light.', 'Matthew 11:30', 'perfectionism'),
+  v('word', 'He restores my soul.', 'Psalm 23:3', 'rest'),
+  v('word', 'The joy of the Lord is your strength.', 'Nehemiah 8:10'),
+  v('word', 'Sufficient for the day is its own trouble.', 'Matthew 6:34', 'overthinking'),
+  v('word', 'Though the righteous fall seven times, they rise again.', 'Proverbs 24:16', 'shame'),
+  v('word', 'A bruised reed he will not break, and a faintly burning wick he will not quench.', 'Isaiah 42:3', 'shame'),
+  v('word', 'Before I formed you in the womb I knew you.', 'Jeremiah 1:5', 'identity'),
+  v('word', 'You are not your own, for you were bought with a price. So glorify God in your body.', '1 Corinthians 6:19-20', 'identity'),
+  v('word', 'The steadfast love of the Lord never ceases.', 'Lamentations 3:22'),
+  v('word', 'He will not let your foot be moved; he who keeps you will not slumber.', 'Psalm 121:3'),
+  v('word', 'Even youths shall faint and be weary, but they who wait for the Lord shall renew their strength.', 'Isaiah 40:30-31'),
+  v('word', 'In quietness and in trust shall be your strength.', 'Isaiah 30:15', 'overthinking'),
+  v('word', 'Do everything without grumbling or arguing, so that you may become blameless and pure.', 'Philippians 2:14-15'),
+  v('word', 'For we are his workmanship, created in Christ Jesus for good works.', 'Ephesians 2:10', 'identity'),
+  v('pre-session', 'I can do all things through him who strengthens me.', 'Philippians 4:13'),
+  v('pre-session', 'Be strong and courageous. The Lord your God is with you.', 'Joshua 1:9'),
+  v('post-session', 'Whatever you do, work heartily, as for the Lord.', 'Colossians 3:23'),
+  v('post-session', 'Let us not grow weary of doing good.', 'Galatians 6:9'),
+  v('small', 'Do not despise the day of small things.', 'Zechariah 4:10', 'small-steps'),
+  v('quit', 'My grace is sufficient for you, for my power is made perfect in weakness.', '2 Corinthians 12:9', 'perfectionism'),
+  v('quit', 'A bruised reed he will not break.', 'Isaiah 42:3', 'shame'),
+  v('comeback', 'Though the righteous fall seven times, they rise again.', 'Proverbs 24:16', 'shame'),
+  v('rest', 'Come to me, all who labor and are heavy laden, and I will give you rest.', 'Matthew 11:28', 'rest'),
+  v('milestone', 'For we are his workmanship, created in Christ Jesus for good works.', 'Ephesians 2:10', 'identity'),
+  v('freestyle', 'Do not despise the day of small things.', 'Zechariah 4:10', 'small-steps'),
 ];
 
 const recent: string[] = [];
 
-export interface PickOptions { moment: Moment; tone: CoachTone; faithTrack: boolean; speaker?: Speaker; vars?: Record<string, string | number | undefined>; }
+export interface PickOptions { moment: Moment; tone: CoachTone; faithTrack: boolean; speaker?: Speaker; theme?: Theme; vars?: Record<string, string | number | undefined>; }
 
 /** Pick a message, rotating to avoid repetition. Faith lines only when the track is on. */
 export function pickMessage(opts: PickOptions): Message | null {
-  let pool = MESSAGES.filter((x) => x.moment === opts.moment && (x.tone === 'any' || x.tone === opts.tone) && (opts.faithTrack || !x.faith) && (!opts.speaker || x.speaker === 'any' || x.speaker === opts.speaker));
+  let pool = MESSAGES.filter((x) => x.moment === opts.moment && (x.tone === 'any' || x.tone === opts.tone) && (opts.faithTrack || !x.faith) && (!opts.speaker || x.speaker === 'any' || x.speaker === opts.speaker) && (!opts.theme || x.theme === opts.theme));
   // Drop messages that need a variable we do not have.
   pool = pool.filter((x) => !x.text.includes('{{why}}') || !!opts.vars?.why);
   if (!pool.length) return null;
@@ -177,9 +269,27 @@ export function pickMessage(opts: PickOptions): Message | null {
   return { ...pick, text: interpolate(pick.text, opts.vars ?? {}) };
 }
 
+/** Render a message with its scripture reference, if any. */
+export function messageText(m: Message): string {
+  return m.ref ? `“${m.text}” ${m.ref}` : m.text;
+}
+
+/**
+ * Word for today: deterministic per date so it stays the same all day. With the
+ * faith track on, scripture and gentle words alternate; off, gentle words only.
+ */
+export function dailyWord(dateISO: string, faithTrack: boolean): Message {
+  const pool = MESSAGES.filter((x) => x.moment === 'word' && (faithTrack || !x.faith));
+  const day = Math.floor(Date.parse(dateISO) / 86_400_000);
+  const scripture = pool.filter((x) => x.faith);
+  const plain = pool.filter((x) => !x.faith);
+  if (faithTrack && scripture.length && day % 2 === 0) return scripture[Math.floor(day / 2) % scripture.length];
+  return plain[Math.floor(day / 2) % plain.length];
+}
+
 export function interpolate(text: string, vars: Record<string, string | number | undefined>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ''));
 }
 
 /** Content review guard (11.6): words that must never appear in coaching copy. */
-export const BANNED_PHRASES = ['no excuses', 'lazy', 'fat', 'pathetic', 'weak', 'shame', 'should have', 'you failed', 'lost your streak'];
+export const BANNED_PHRASES = ['no excuses', 'lazy', 'fat', 'pathetic', 'you are weak', 'so weak', 'shame on you', 'should be ashamed', 'should have', 'you failed', 'lost your streak', 'no pain no gain'];

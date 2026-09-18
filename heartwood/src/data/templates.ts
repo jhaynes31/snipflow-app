@@ -46,6 +46,11 @@ export const TEMPLATES: Record<SessionType, SessionTemplate> = {
       { kind: 'cooldown', exerciseIds: ['cd-breathing'] },
     ],
   },
+  freestyle: {
+    id: 'freestyle', name: 'Freestyle', shortName: 'Freestyle', estimatedMinutes: 15,
+    // Built on the fly from chosen body areas and minutes (src/domain/freestyle.ts).
+    blocks: [],
+  },
 };
 
 export const SESSION_ORDER_WEEK_ODD: SessionType[] = ['strengthA', 'ptAnkles', 'strengthB', 'ptKneesHips', 'strengthA', 'ptMobility'];

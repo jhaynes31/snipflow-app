@@ -3,6 +3,7 @@ import type {
   Assessment, CustomMedia, Exercise, LessonUnlock, PlannedSession, ProgressionState, RedFlagEvent, SetLog, TreeState, UserProfile, WeekSettings,
 } from '@/domain/types';
 import { DEFAULT_PREFERRED_DAYS } from '@/domain/schedule';
+import { USER_MAP, dbNameFor, getActiveUserId, type UserId } from './users';
 
 /** A sticker placed on the sticker chart for a day (Progress > Sticker book). */
 export interface PlacedSticker { id?: number; date: string; stickerId: string; sessionId?: string; placedAt: string }
@@ -44,24 +45,33 @@ export class HeartwoodDB extends Dexie {
   }
 }
 
-export const db = new HeartwoodDB();
+/** The active person's database. Switching person reloads the app (see users.ts). */
+export const db = new HeartwoodDB(dbNameFor(getActiveUserId()));
 
-export function defaultProfile(now = new Date().toISOString()): UserProfile {
+export function defaultProfile(now = new Date().toISOString(), userId: UserId | null = getActiveUserId()): UserProfile {
+  const user = userId ? USER_MAP[userId] : USER_MAP.her;
+  // Her body history is pre-filled from the spec; John starts with a clean slate.
+  const her = user.id === 'her';
   return {
     id: 'me',
-    name: '',
+    userId: user.id,
+    bodyType: user.bodyType,
+    name: her ? '' : user.label,
     goals: ['strength', 'balance', 'joint-health', 'feel-better'],
     sessionLength: 35,
     preferredDays: [...DEFAULT_PREFERRED_DAYS],
     sabbathDay: 'sun',
     equipment: { dumbbellWeights: [5, 8, 10, 15], weightUnit: 'lb', bandLevels: ['light', 'medium', 'heavy'], yogaBlocks: true, chair: true, counter: true, wall: true, step: true },
-    bodyHistory: {
+    bodyHistory: her ? {
       neckIssues: true, balanceIssues: true, ankleHistory: true, leftKneeInjury: true, rightKneeInjury: false,
       painAreas: [], tightnessAreas: [], pastInjuryAreas: ['neck', 'ankles-feet', 'left-knee'], notes: '',
+    } : {
+      neckIssues: false, balanceIssues: false, ankleHistory: false, leftKneeInjury: false, rightKneeInjury: false,
+      painAreas: [], tightnessAreas: [], pastInjuryAreas: [], notes: '',
     },
     ptPlan: { restrictions: [], customExerciseIds: [], notes: '', scheduleInto: ['ptKneesHips'] },
     why: {},
-    coachSettings: { tone: 'gentle', critique: 'light', voice: 'cues', faithTrack: false, coachDesign: 'oak', ptDesign: 'fern' },
+    coachSettings: { tone: 'gentle', critique: 'light', voice: 'cues', faithTrack: true, coachDesign: her ? 'willow' : 'oak', ptDesign: her ? 'fern' : 'river' },
     themeMode: 'system',
     sensorySettings: { reducedMotion: false, soundCues: true, vibrationCues: true, visualIntensity: 'normal', outdoorMode: false, keepScreenAwake: true, remindersEnabled: false },
     unlockedCautions: [],

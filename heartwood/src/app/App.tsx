@@ -16,10 +16,13 @@ import { PTPlanPage } from '@/pages/PTPlan';
 import { ReassessmentPage } from '@/pages/Reassessment';
 import { RedFlagPage } from '@/pages/RedFlag';
 import { DisclaimerPage } from '@/pages/Disclaimer';
+import { WhoPage } from '@/pages/Who';
+import { FreestylePage } from '@/pages/Freestyle';
+import { getActiveUserId } from '@/db/users';
 
 function Shell() {
   const { pathname } = useLocation();
-  const hideNav = pathname.startsWith('/session') || pathname.startsWith('/onboarding') || pathname.startsWith('/reassess');
+  const hideNav = pathname.startsWith('/session') || pathname.startsWith('/onboarding') || pathname.startsWith('/reassess') || pathname.startsWith('/freestyle');
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1"><Outlet /></main>
@@ -45,6 +48,12 @@ function Gate() {
 }
 
 export function App() {
+  // No person chosen yet on this device: ask before touching any database.
+  if (!getActiveUserId()) return <WhoPage />;
+  return <Main />;
+}
+
+function Main() {
   const profile = useProfile();
   useApplyTheme(profile);
   useEffect(() => { loadMediaManifest(); }, []);
@@ -64,6 +73,7 @@ export function App() {
           <Route path="/reassess" element={<ReassessmentPage />} />
           <Route path="/red-flag" element={<RedFlagPage />} />
           <Route path="/disclaimer" element={<DisclaimerPage />} />
+          <Route path="/freestyle" element={<FreestylePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

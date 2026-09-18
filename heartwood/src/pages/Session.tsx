@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Pause, Play, Square } from 'lucide-react';
-import { pickMessage } from '@/coach/messages';
+import { messageText, pickMessage } from '@/coach/messages';
 import { getSpeaker } from '@/coach/tts';
 import { CoachBubble } from '@/components/CoachBubble';
 import { CountdownRing } from '@/components/CountdownRing';
@@ -137,7 +137,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
 
   const midSetCue = () => {
     const m = pickMessage({ moment: 'mid-set', tone: cs.tone, faithTrack: cs.faithTrack, vars });
-    if (m) showBubble(m.speaker === 'pt' ? 'pt' : 'coach', m.text, 'cue');
+    if (m) showBubble(m.speaker === 'pt' ? 'pt' : 'coach', messageText(m), 'cue');
   };
 
   // ----- navigation between sets/sides/exercises -----
@@ -184,7 +184,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
     setStage('done');
     const moment = s.milestones.length ? 'milestone' : 'post-session';
     const m = pickMessage({ moment, tone: cs.tone, faithTrack: cs.faithTrack, vars: { ...vars, n: s.totalSessions } });
-    if (m) showBubble('coach', m.text);
+    if (m) showBubble('coach', messageText(m));
   };
 
   const redFlag = async (flag: (typeof RED_FLAGS)[number]) => {
@@ -200,7 +200,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const header = (
     <header className="flex items-center justify-between gap-2">
       <div>
-        <p className="muted text-sm">{template.name}{session.fiveMinute ? ' · 5-minute' : ''}</p>
+        <p className="muted text-sm">{template.name}{session.fiveMinute ? ' · 5-minute' : ''}{session.minutes ? ` · ${session.minutes} min` : ''}</p>
         <p className="font-bold">{stage === 'equipment' ? 'Get ready' : stage === 'reflect' || stage === 'done' ? 'Finished' : `${exIdx + 1} of ${totalSteps}`}</p>
       </div>
       {stage !== 'done' && stage !== 'reflect' && (
@@ -216,7 +216,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const quitDialog = quitOpen && (
     <Card className="stack fade-in" role="dialog" aria-label="I want to quit today">
       <h2>I want to quit today</h2>
-      <p>{pickMessage({ moment: 'quit', tone: cs.tone, faithTrack: cs.faithTrack, vars })?.text}</p>
+      <p>{(() => { const q = pickMessage({ moment: 'quit', tone: cs.tone, faithTrack: cs.faithTrack, vars }); return q ? messageText(q) : ''; })()}</p>
       {profile.why.text && <Callout>Your why: "{profile.why.text}"</Callout>}
       <Button variant="secondary" onClick={() => setQuitOpen(false)}>Give me a minute, then I'll keep going</Button>
       <Button variant="ghost" onClick={async () => { setQuitOpen(false); await finish(true); }}>Stop here. What I did counts.</Button>
@@ -236,7 +236,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
           {eq.length ? eq.map((e) => <p key={e} className="text-lg">✓ {e.replace('-', ' ')}</p>) : <p>Just you today.</p>}
           {session.prescriptions.some((p) => EXERCISE_MAP[p.exerciseId]?.movementPatterns.includes('balance')) && <p className="muted text-sm mt-2">Balance work: flat, even ground, with a counter or wall within reach.</p>}
         </Card>
-        {pre && <CoachBubble speaker="coach" text={pre.text} settings={cs} />}
+        {pre && <CoachBubble speaker={pre.speaker === 'pt' ? 'pt' : 'coach'} text={messageText(pre)} settings={cs} />}
         <p className="muted">What's next: {session.prescriptions.slice(0, 3).map((p) => EXERCISE_MAP[p.exerciseId]?.name ?? 'PT exercise').join(' → ')}…</p>
         <Button variant="start" onClick={() => { setStage('exercise'); if (pre) say(pre.text, 'coach', 'talk'); }}>Start</Button>
       </div>

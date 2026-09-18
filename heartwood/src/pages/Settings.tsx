@@ -9,6 +9,7 @@ import type { Weekday } from '@/domain/types';
 import { updateProfile, useProfile } from '@/hooks/useProfile';
 import { WhyRecorder } from '@/components/WhyRecorder';
 import { CoachStep } from './Onboarding';
+import { setActiveUserId } from '@/db/users';
 
 export function SettingsPage() {
   const profile = useProfile();
@@ -41,6 +42,13 @@ export function SettingsPage() {
     <div className="page stack fade-in">
       <h1>Settings</h1>
       {msg && <p className="callout">{msg}</p>}
+
+      <Card className="stack-sm">
+        <h2>This person</h2>
+        <Field label="Name"><input className="input" value={profile.name} onChange={(e) => updateProfile({ name: e.target.value })} /></Field>
+        <p className="muted text-sm">Body figure: {profile.bodyType === 'man' ? 'man' : 'woman'}.</p>
+        <Button variant="ghost" onClick={() => { setActiveUserId(null); window.location.replace('/'); }}>Switch person</Button>
+      </Card>
 
       <Card className="stack-sm">
         <h2>Appearance</h2>

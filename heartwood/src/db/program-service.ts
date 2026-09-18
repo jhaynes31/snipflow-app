@@ -38,7 +38,7 @@ export async function ensureProgram(database: HeartwoodDB = db, now = todayISO()
 export async function rescheduleFrom(fromISO: string, database: HeartwoodDB = db): Promise<void> {
   const profile = await getProfile(database);
   const resolve = await sabbathResolver(profile, database);
-  const pending = (await database.sessions.where('status').anyOf('planned', 'in-progress').toArray()).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
+  const pending = (await database.sessions.where('status').anyOf('planned', 'in-progress').toArray()).filter((x) => x.sequenceIndex >= 0).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
   const dates = assignDates(pending.length, fromISO, profile.preferredDays, resolve);
   await database.transaction('rw', database.sessions, async () => {
     for (let i = 0; i < pending.length; i++) await database.sessions.update(pending[i].id, { scheduledDate: dates[i] });
@@ -72,7 +72,7 @@ export async function getTodayState(database: HeartwoodDB = db, now = todayISO()
   const ws = weekStartOf(now);
   const weekRow = await database.weeks.get(ws);
   const inProgress = (await database.sessions.where('status').equals('in-progress').first()) ?? null;
-  let next = inProgress ?? (await database.sessions.where('status').equals('planned').sortBy('sequenceIndex'))[0] ?? null;
+  let next = inProgress ?? (await database.sessions.where('status').equals('planned').sortBy('sequenceIndex')).find((x) => x.sequenceIndex >= 0) ?? null;
   // A missed session simply becomes the next one: shift suggested dates forward from today.
   if (next && !inProgress && next.scheduledDate < now) {
     await rescheduleFrom(now, database);
@@ -105,6 +105,7 @@ async function customExercises(profile: UserProfile, database: HeartwoodDB): Pro
 
 /** Build (or reuse) prescriptions for a session. */
 async function materialize(session: PlannedSession, profile: UserProfile, comeback: boolean, database: HeartwoodDB, persist: boolean) {
+  if (session.templateId === 'freestyle') return session.prescriptions;
   if (session.prescriptions.length && session.status === 'in-progress') return session.prescriptions;
   const progression = new Map<string, ProgressionState>((await database.progression.toArray()).map((p) => [p.key, p]));
   const custom = await customExercises(profile, database);

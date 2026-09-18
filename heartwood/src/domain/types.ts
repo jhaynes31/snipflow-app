@@ -66,7 +66,7 @@ export interface Exercise {
 
 // ---------- Program ----------
 
-export type SessionType = 'strengthA' | 'strengthB' | 'ptAnkles' | 'ptKneesHips' | 'ptMobility';
+export type SessionType = 'strengthA' | 'strengthB' | 'ptAnkles' | 'ptKneesHips' | 'ptMobility' | 'freestyle';
 
 export interface TemplateBlock {
   kind: 'warmup' | 'main' | 'cooldown';
@@ -113,6 +113,9 @@ export interface PlannedSession {
   isRecoveryWeek: boolean;
   isComeback: boolean;
   fiveMinute?: boolean;
+  /** Freestyle sessions: chosen body areas and time budget. */
+  focusAreas?: string[];
+  minutes?: number;
   startedAt?: string;
   completedAt?: string;
 }
@@ -212,6 +215,9 @@ export interface PTPlan {
 
 export interface UserProfile {
   id: 'me';
+  /** Which person this database belongs to. */
+  userId?: 'her' | 'john';
+  bodyType?: 'woman' | 'man';
   name: string;
   goals: Goal[];
   sessionLength: 15 | 25 | 35 | 45;

@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TEMPLATES } from '@/data/templates';
 import { CoachBubble } from '@/components/CoachBubble';
 import { Button, Card, Callout } from '@/components/ui';
-import { pickMessage } from '@/coach/messages';
+import { dailyWord, messageText, pickMessage } from '@/coach/messages';
+import { USER_MAP, setActiveUserId } from '@/db/users';
 import { db } from '@/db/db';
 import { applyLongGapReset, getTodayState, makeTodaySabbath, notToday, recordRestDay, setSabbathForWeek, startSession, type TodayState } from '@/db/program-service';
 import { formatLongDate, isWeekend, weekStartOf } from '@/domain/dates';
@@ -33,8 +34,9 @@ export function TodayPage() {
       <div className="page stack fade-in text-center">
         <Grove />
         <h1>Sabbath</h1>
-        <p className="text-xl">{msg?.text ?? 'A day set apart. Nothing to do here today.'}</p>
+        <p className="text-xl">{msg ? messageText(msg) : 'A day set apart. Nothing to do here today.'}</p>
         <p className="muted">Rest is part of the plan. The tree grows roots today.</p>
+        <WordForToday date={state.today} faith={cs.faithTrack} />
         <details className="muted text-sm"><summary>Take a walk anyway</summary><p className="mt-2">A gentle walk on flat ground is always fine. Nothing to log.</p></details>
       </div>
     );
@@ -59,10 +61,12 @@ export function TodayPage() {
 
   return (
     <div className="page stack fade-in">
-      <header className="flex items-baseline justify-between">
+      <header className="flex items-baseline justify-between gap-2">
         <h1>Today</h1>
-        <span className="muted">{formatLongDate(state.today)}</span>
+        <span className="muted text-right">{formatLongDate(state.today)}<br /><button type="button" className="underline text-sm" onClick={() => { setActiveUserId(null); window.location.replace('/'); }}>{profile.name || USER_MAP[profile.userId ?? 'her'].label} · switch</button></span>
       </header>
+
+      <WordForToday date={state.today} faith={cs.faithTrack} />
 
       {!state.weekAsked && (
         <Callout>
@@ -115,7 +119,24 @@ export function TodayPage() {
         </div>
       )}
 
+      <Card soft className="stack-sm">
+        <p className="font-bold">No plan today? Just move.</p>
+        <p className="muted text-sm">Pick the parts of your body you want to work on and how long you have. Five minutes counts.</p>
+        <Link to="/freestyle" className="btn btn-secondary">Choose areas & time</Link>
+      </Card>
+
       <p className="muted text-sm text-center">Sabbath this week: {state.sabbathThisWeek === 'sat' ? 'Saturday' : 'Sunday'} · <Link to="/disclaimer" className="underline">Not medical advice</Link></p>
+    </div>
+  );
+}
+
+function WordForToday({ date, faith }: { date: string; faith: boolean }) {
+  const w = dailyWord(date, faith);
+  return (
+    <div className="callout fade-in" role="note" aria-label="A word for today">
+      <p className="text-sm muted mb-1">A word for today</p>
+      <p className="text-lg" style={{ fontFamily: 'var(--font-display)' }}>{w.ref ? `“${w.text}”` : w.text}</p>
+      {w.ref && <p className="muted text-sm mt-1">{w.ref}</p>}
     </div>
   );
 }
