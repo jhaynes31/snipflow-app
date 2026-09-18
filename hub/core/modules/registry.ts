@@ -11,12 +11,14 @@ export function moduleById(id: string): ModuleManifest | undefined {
   return MODULES.find((m) => m.id === id);
 }
 
-/** Applies a person's on/off choices and tab order to the registry. */
-export function modulesFor(prefs: { disabled: string[]; order: string[] }): ModuleManifest[] {
-  const enabled = MODULES.filter((m) => !prefs.disabled.includes(m.id));
+/**
+ * The registry in a person's chosen tab order. Every place is always on for
+ * both people (Jen's decision, 2026-09-18); only the order is personal.
+ */
+export function modulesFor(prefs: { order: string[] }): ModuleManifest[] {
   const rank = (m: ModuleManifest) => {
     const i = prefs.order.indexOf(m.id);
     return i === -1 ? prefs.order.length + MODULES.indexOf(m) : i;
   };
-  return [...enabled].sort((a, b) => rank(a) - rank(b));
+  return [...MODULES].sort((a, b) => rank(a) - rank(b));
 }

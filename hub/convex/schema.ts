@@ -83,7 +83,7 @@ export default defineSchema({
       theme: v.union(v.literal("system"), v.literal("light"), v.literal("dark")),
     }),
     modules: v.object({
-      /** Module ids this person has turned off. */
+      /** Always empty: every place is on for both people. Kept so existing rows still load. */
       disabled: v.array(v.string()),
       /** Tab order. Ids missing here fall back to registry order. */
       order: v.array(v.string()),

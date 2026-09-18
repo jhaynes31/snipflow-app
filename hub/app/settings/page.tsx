@@ -142,25 +142,16 @@ export default function SettingsPage() {
 
       <Card>
         <h2 className="sh-h2">Places</h2>
-        <p className="sh-muted">Turn a place off to hide its tab and tile for you only. Reorder them however you like.</p>
+        <p className="sh-muted">Every place is always open. Put the tabs in whatever order suits you.</p>
         <ul className="sh-list mt-3">
           {order.map((id, i) => {
             const m = MODULES.find((x) => x.id === id)!;
-            const on = !profile.modules.disabled.includes(id);
             return (
               <li key={id} className="sh-row">
-                <Toggle
-                  checked={on}
-                  onChange={(v) =>
-                    void run(() =>
-                      updateModules({
-                        disabled: v ? profile.modules.disabled.filter((d) => d !== id) : [...profile.modules.disabled, id],
-                      }),
-                    )
-                  }
-                  label={m.name}
-                  hint={`Gentle day: ${m.gentleModeBehavior}`}
-                />
+                <span>
+                  <span className="sh-toggle-label">{m.name}</span>
+                  <span className="sh-hint">Gentle day: {m.gentleModeBehavior}</span>
+                </span>
                 <span className="sh-row">
                   <button type="button" className="sh-iconbtn" aria-label={`Move ${m.name} up`} disabled={busy || i === 0} onClick={() => move(id, -1)}>
                     <ArrowUp size={16} aria-hidden />

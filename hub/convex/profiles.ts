@@ -136,18 +136,13 @@ export const updateAccessibility = mutation({
   },
 });
 
+/** Tab order only. Every place is always on for both people. */
 export const updateModules = mutation({
-  args: {
-    disabled: v.optional(v.array(v.string())),
-    order: v.optional(v.array(v.string())),
-  },
+  args: { order: v.array(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     await ctx.db.patch(me.profile._id, {
-      modules: {
-        disabled: args.disabled ?? me.profile.modules.disabled,
-        order: args.order ?? me.profile.modules.order,
-      },
+      modules: { disabled: [], order: args.order },
     });
   },
 });

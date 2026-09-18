@@ -44,7 +44,7 @@ Other profile fields: display name, photo, time zone, reminder preferences, and 
 
 ## Hub shell and home screen
 
-The shell is the frame around every module: a top bar with the name The Shire, one tab per module, the check-in button, and the profile menu. The "How are you, really?" check-in button is visible on every screen in every module.
+The shell is the frame around every module: a top bar with the name The Shire, one tab per module, the check-in button, and the profile menu. The "How are you, really?" check-in button belongs to the shell, not to any module, and is visible on every screen. Tend enriches what it opens, but the button itself is always there.
 
 The home screen greets the person by name ("Welcome home, Jen.") and shows, top to bottom:
 
@@ -83,7 +83,7 @@ Each manifest declares:
 
 A module works fully on its own even if no other module is installed. Hooks are bonuses, never dependencies.
 
-Modules can be turned on or off per person in settings, and the tab order can be rearranged.
+Every module is always on for both people (decided 2026-09-18). Each person can rearrange the tab order in settings.
 
 ## Privacy model
 

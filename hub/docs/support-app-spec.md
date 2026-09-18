@@ -196,7 +196,7 @@ Tend plugs into the Hub through its manifest, with no custom wiring in the shell
 
 **Events it listens for:** `category.stuck` from Every Box, which offers John or Jen a Project Thinker session for that category.
 
-> **Conflict flagged, contract wins.** The original spec said the check-in button belongs to this module and hides if the module is turned off. The Hub Contract says the "How are you, really?" button is visible on every screen in every module, and phase 1 built it into the shell. So the button stays even when Tend is off: it then opens the shell's own three-choice check-in. When Tend is on, its richer check-in takes over the same button.
+> **Resolved 2026-09-18 (Jen).** The original spec said the check-in button belongs to this module and hides if the module is turned off. Decision: every place is always on for both people, and the check-in button is the shell's own, always present. Tend supplies the richer check-in screen behind that button; it does not own the button.
 
 ## Screens and navigation
 
