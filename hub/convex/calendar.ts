@@ -1,0 +1,47 @@
+import { v } from "convex/values";
+import { query } from "./_generated/server";
+
+/**
+ * Backs the per-person calendar feed at `/calendar/<token>`. The token is a
+ * secret only the owner sees in Settings, which is what lets a calendar app
+ * fetch the feed without a login. Regenerating the token in Settings cuts
+ * off any old subscription.
+ */
+export const feedByToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    if (args.token.length < 16) return null;
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_calendar_token", (q) => q.eq("calendarToken", args.token))
+      .first();
+    if (!profile) return null;
+    const open = await ctx.db
+      .query("headsUps")
+      .withIndex("by_receiver_status", (q) => q.eq("receiverId", profile._id).eq("status", "open"))
+      .collect();
+    const senders = new Map<string, string>();
+    for (const card of open) {
+      if (!card.addToCalendar) continue;
+      if (!senders.has(card.ownerId)) {
+        const s = await ctx.db.get(card.ownerId);
+        senders.set(card.ownerId, s?.displayName ?? "Your partner");
+      }
+    }
+    return {
+      displayName: profile.displayName,
+      timeZone: profile.timeZone,
+      dailyCheckInHour: profile.reminders.dailyCheckInHour,
+      dailyCheckInMinute: profile.reminders.dailyCheckInMinute,
+      headsUps: open
+        .filter((c) => c.addToCalendar)
+        .map((c) => ({
+          id: c._id,
+          from: senders.get(c.ownerId) ?? "Your partner",
+          statusLine: c.statusLine,
+          urgent: c.urgent,
+          createdAt: c.createdAt,
+        })),
+    };
+  },
+});
