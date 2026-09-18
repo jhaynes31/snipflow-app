@@ -43,15 +43,21 @@ Module settings for a person live under `profile.moduleSettings[<id>]`; write th
 
 ## Running it
 
+**On Vercel (the normal way, no terminal needed).** Create a Vercel project from this repo with **Root Directory** set to `hub` and one environment variable, `CONVEX_DEPLOY_KEY`, set for Production only. The build runs `scripts/vercel-build.mjs`, which on the first production deploy generates the Convex Auth signing keys, stores them and `SITE_URL` on the Convex deployment (nothing is printed), pushes the Convex functions, and builds the site. Later deploys see the keys already present and skip that step. Preview builds never touch the production deployment.
+
+The deploy key needs these scopes: `deployment:deploy`, `deployment:env:view`, `deployment:env:write`, and optionally `deployment:logs:view`.
+
+Set `HUB_ALLOWED_EMAILS` on the Convex deployment (Dashboard, Settings, Environment Variables) to the two addresses. The first two sign-ups become the two accounts either way; the allowlist just stops a stranger from taking a seat first.
+
+**Locally (for development).**
+
 ```bash
 cd hub
 npm install
 npx convex dev          # first run creates a Convex project and writes .env.local
-npx @convex-dev/auth    # one time: sets JWT_PRIVATE_KEY, JWKS and SITE_URL on the deployment
+npx @convex-dev/auth    # one time: sets JWT_PRIVATE_KEY, JWKS and SITE_URL on the dev deployment
 npm run dev             # http://localhost:3000
 ```
-
-Set `HUB_ALLOWED_EMAILS` on the Convex deployment (Dashboard, Settings, Environment Variables) to the two addresses. The first two sign-ups become the two accounts either way; the allowlist just stops a stranger from taking a seat first.
 
 Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
 
