@@ -192,6 +192,14 @@ export async function completeSession(sessionId: string, opts: { early?: boolean
     }
   }
 
+  // Counters that feed sticker-pack unlocks (src/data/stickers.ts).
+  const progressed = decisions.filter((d) => d.decision.kind === 'progress');
+  if (progressed.length) {
+    await bumpCounter('progressions', progressed.length, database);
+    const bal = progressed.filter((d) => EXERCISE_MAP[d.exerciseId]?.movementPatterns.includes('balance')).length;
+    if (bal) await bumpCounter('balanceProgressions', bal, database);
+  }
+
   const anyLogged = logs.length > 0;
   const status: PlannedSession['status'] = opts.early ? (anyLogged ? 'partial' : 'skipped') : 'completed';
   const updated: PlannedSession = { ...s, status, completedAt: nowISO };
@@ -231,6 +239,11 @@ export async function completeSession(sessionId: string, opts: { early?: boolean
 
   await rescheduleFrom(addDays(todayISO(now), 1), database);
   return { session: updated, decisions, newLessons, milestones, totalSessions, growthPoints };
+}
+
+export async function bumpCounter(key: string, by: number, database: RootedDB = db): Promise<void> {
+  const cur = (await database.kv.get(`counter:${key}`))?.value;
+  await database.kv.put({ key: `counter:${key}`, value: (typeof cur === 'number' ? cur : 0) + by });
 }
 
 /** "Not today": nothing is lost; the session simply stays next. */

@@ -7,6 +7,9 @@ import { EXERCISE_MAP } from '@/data/exercises';
 import { db, DEFAULT_TREE } from '@/db/db';
 import { SCREEN_TESTS } from '@/domain/assessment';
 import type { SetLog } from '@/domain/types';
+import { useState } from 'react';
+import { Chip } from '@/components/ui';
+import { StickerChart, StickerCollection } from '@/components/Stickers';
 
 const TRACKED = ['sit-to-stand', 'goblet-squat-box', 'db-rdl', 'incline-push-up-counter', 'band-row', 'db-row-one-arm', 'db-floor-press', 'glute-bridge-block'];
 
@@ -15,6 +18,7 @@ export function ProgressPage() {
   const tree = useLiveQuery(() => db.tree.get('tree'), []) ?? DEFAULT_TREE;
   const logs = useLiveQuery(() => db.setLogs.orderBy('loggedAt').toArray(), []) ?? [];
   const assessments = useLiveQuery(() => db.assessments.orderBy('date').toArray(), []) ?? [];
+  const [stickerTab, setStickerTab] = useState<'chart' | 'collection'>('chart');
 
   const trends = useMemo(() => TRACKED.map((id) => {
     const byDay = new Map<string, number>();
@@ -47,6 +51,14 @@ export function ProgressPage() {
       <Card className="text-center">
         <p className="display text-4xl">{tree.totalSessions}</p>
         <p className="muted">sessions, lifetime. Rest days grew {tree.rootPoints} roots.</p>
+      </Card>
+
+      <Card className="stack-sm">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2>Sticker book</h2>
+          <div className="flex gap-1"><Chip active={stickerTab === 'chart'} onClick={() => setStickerTab('chart')}>Chart</Chip><Chip active={stickerTab === 'collection'} onClick={() => setStickerTab('collection')}>Collection</Chip></div>
+        </div>
+        {stickerTab === 'chart' ? <StickerChart /> : <StickerCollection />}
       </Card>
 
       {trends.length > 0 && (

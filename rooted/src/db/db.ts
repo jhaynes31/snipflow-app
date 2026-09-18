@@ -4,6 +4,9 @@ import type {
 } from '@/domain/types';
 import { DEFAULT_PREFERRED_DAYS } from '@/domain/schedule';
 
+/** A sticker placed on the sticker chart for a day (Progress > Sticker book). */
+export interface PlacedSticker { id?: number; date: string; stickerId: string; sessionId?: string; placedAt: string }
+
 /** All data lives on-device (Section 2). Single user, so the profile is keyed 'me'. */
 export class RootedDB extends Dexie {
   profile!: EntityTable<UserProfile, 'id'>;
@@ -19,6 +22,7 @@ export class RootedDB extends Dexie {
   customMedia!: EntityTable<CustomMedia, 'key'>;
   /** Free-form key/value for small bits of state (e.g. last readiness answer). */
   kv!: EntityTable<{ key: string; value: unknown }, 'key'>;
+  stickers!: EntityTable<PlacedSticker, 'id'>;
 
   constructor(name = 'rooted') {
     super(name);
@@ -36,6 +40,7 @@ export class RootedDB extends Dexie {
       customMedia: 'key',
       kv: 'key',
     });
+    this.version(2).stores({ stickers: '++id, date, sessionId' });
   }
 }
 
@@ -100,7 +105,7 @@ export interface BackupFile {
   media?: { key: string; mime: string; createdAt: string; base64: string }[];
 }
 
-const TABLES = ['profile', 'weeks', 'sessions', 'setLogs', 'progression', 'assessments', 'redFlags', 'lessons', 'tree', 'customExercises', 'kv'] as const;
+const TABLES = ['profile', 'weeks', 'sessions', 'setLogs', 'progression', 'assessments', 'redFlags', 'lessons', 'tree', 'customExercises', 'kv', 'stickers'] as const;
 
 async function blobToBase64(b: Blob): Promise<string> {
   const buf = new Uint8Array(await b.arrayBuffer());

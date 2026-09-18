@@ -22,6 +22,10 @@ import { DISCOMFORT_LOCATIONS } from '@/learn/bodymap';
 import { LESSON_MAP } from '@/learn/lessons';
 import { softBuzz, softTone } from '@/player/cues';
 import { useCountdown } from '@/player/useTimer';
+import { StickerPicker } from '@/components/Stickers';
+import { newlyUnlockedPacks, type StickerStats } from '@/data/stickers';
+import { stickerStats } from '@/db/sticker-service';
+import { todayISO } from '@/domain/dates';
 
 type Stage = 'equipment' | 'exercise' | 'log' | 'rest' | 'reflect' | 'done';
 
@@ -70,6 +74,9 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const [summary, setSummary] = useState<CompletionSummary | null>(null);
   const [tree, setTree] = useState({ growth: 0, roots: 0, milestones: [] as string[] });
   const [swappedNote, setSwappedNote] = useState<string | null>(null);
+  const [statsBefore, setStatsBefore] = useState<StickerStats | null>(null);
+  const [newPacks, setNewPacks] = useState<string[]>([]);
+  const [stickerPicked, setStickerPicked] = useState<string | null>(null);
   const [tempoCount, setTempoCount] = useState(0);
   const [tempoPhase, setTempoPhase] = useState<'down' | 'pause' | 'up' | null>(null);
   const speaker = getSpeaker();
@@ -81,7 +88,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const totalSteps = session.prescriptions.length;
   const vars = useMemo(() => ({ n: tree.milestones.length, name: profile.name, why: profile.why.text }), [tree.milestones.length, profile.name, profile.why.text]);
 
-  useEffect(() => { getTree().then((t) => setTree({ growth: t.growthPoints, roots: t.rootPoints, milestones: t.milestones })); }, []);
+  useEffect(() => { getTree().then((t) => setTree({ growth: t.growthPoints, roots: t.rootPoints, milestones: t.milestones })); stickerStats().then(setStatsBefore); }, []);
 
   const say = useCallback((text: string, who: 'coach' | 'pt', kind: 'cue' | 'talk') => {
     if (cs.voice === 'off') return;
@@ -170,6 +177,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const finish = async (early: boolean) => {
     countdown.reset(); stopTempo(); speaker.cancel();
     const s = await completeSession(session.id, { early });
+    if (statsBefore) setNewPacks(newlyUnlockedPacks(statsBefore, await stickerStats()).map((p) => p.name));
     const t = await getTree();
     setTree({ growth: t.growthPoints, roots: t.rootPoints, milestones: t.milestones });
     setSummary(s);
@@ -253,6 +261,14 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
           ))}
           {summary.newLessons.length > 0 && <p className="text-sm">New lesson unlocked: <strong>{summary.newLessons.map((l) => LESSON_MAP[l]?.title).join(', ')}</strong>. Find it under Learn.</p>}
         </Card>
+        {summary.session.status !== 'skipped' && (
+          <Card className="text-left stack-sm">
+            <h2>Pick a sticker for today</h2>
+            {newPacks.length > 0 && <Callout>New sticker pack{newPacks.length > 1 ? 's' : ''} unlocked: <strong>{newPacks.join(', ')}</strong></Callout>}
+            {stickerPicked ? <p className="text-lg">{stickerPicked} is on your chart. Find it under Tree.</p> : <p className="muted text-sm">Your way of marking the day. Add up to three.</p>}
+            <StickerPicker date={todayISO()} sessionId={session.id} compact onPlaced={(st) => setStickerPicked(`${st.emoji} ${st.name}`)} />
+          </Card>
+        )}
         <Button size="lg" onClick={() => nav('/')}>Back to today</Button>
       </div>
     );
