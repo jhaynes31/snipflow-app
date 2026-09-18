@@ -10,7 +10,7 @@ import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, PageTitle, Toggle, useAction } from "@/core/ui";
 
 const HELP: HelpKind[] = ["space", "quietPresence", "practicalHelp", "words", "dontFixIt"];
-const PRESETS = ["Rough day", "Running on empty", "Anxious and tight", "Tender today", "Not okay"];
+const PRESETS = ["Rough day", "Running on empty", "Anxious and tight", "A bit off today", "Not okay"];
 
 /**
  * Compose a heads-up. The preview at the bottom is exactly the card the

@@ -97,7 +97,7 @@ export default function CheckInPage() {
           </Btn>
         )}
         <Btn big variant="secondary" disabled={busy} onClick={() => void answer("tender")}>
-          Tender
+          A bit off
         </Btn>
         <Btn big variant="accent" disabled={busy} onClick={() => void answer("low")}>
           Low
