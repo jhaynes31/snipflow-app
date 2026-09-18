@@ -33,6 +33,12 @@ export interface ModuleManifest {
    * when there is nothing worth showing; the row stays silent for you.
    */
   todayWidget?: ComponentType;
+  /**
+   * Optional larger card for people who pin this place to their home screen
+   * (Settings, "Show on my home screen"). Each person chooses their own pins.
+   * Without one, a pinned place shows an enlarged tile that opens it.
+   */
+  homeWidget?: ComponentType;
   /** Heads-up card kinds this module can hand to the Hub, if any. */
   headsUpTypes: string[];
   /** Data types shared with the partner by default. Everything else is private. */

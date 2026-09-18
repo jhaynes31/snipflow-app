@@ -50,8 +50,9 @@ The home screen greets the person by name ("Welcome home, Jen.") and shows, top 
 
 1. **Heads-up cards** from the partner that are still open, newest first.
 2. **Gentle day banner**, if either person has gentle mode on.
-3. **Today across modules**: at most one small item from each module that has something worth showing, such as a fitness session or an Every Box category. Modules that have nothing to show stay silent.
-4. **Module tiles** that open each module, drawn as little places in the village, each with its own icon and accent.
+3. **Pinned places** (added 2026-09-18 at Jen's direction): each person picks, in Settings, which places sit on their own home screen as widgets. John might pin Every Box; Jen might pin Love & Release. A pinned place shows its `homeWidget` card, or an enlarged tile until it has one. Pins are per person and never affect the partner's home screen.
+4. **Today across modules**: at most one small item from each module that has something worth showing, such as a fitness session or an Every Box category. Modules that have nothing to show stay silent.
+5. **Module tiles** that open each module, drawn as little places in the village, each with its own icon and accent.
 
 On phones, the tabs become a bottom navigation bar, and the check-in button floats in a corner. Each module also gets its own direct URL (for example, `/tend`) so it can be bookmarked or pinned as a phone shortcut. That way either person can go straight to what they need on a hard day without passing through anything else.
 
@@ -81,6 +82,7 @@ Each manifest declares:
 | `id`, `name`, `icon`, `route` | Tab and URL |
 | `theme` | The module's own palette and accents inside the Hub frame |
 | `todayWidget` | Optional small item for the home screen's "Today" row |
+| `homeWidget` | Optional larger card shown when a person pins this place to their home screen |
 | `headsUpTypes` | Heads-up cards this module can send, if any |
 | `sharedData` | Which data types are shared by default (everything else is private) |
 | `crossModuleHooks` | Events it emits or listens for (see below) |

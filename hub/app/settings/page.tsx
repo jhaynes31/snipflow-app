@@ -142,13 +142,25 @@ export default function SettingsPage() {
 
       <Card>
         <h2 className="sh-h2">Places</h2>
-        <p className="sh-muted">Every place is always open. Put the tabs in whatever order suits you.</p>
+        <p className="sh-muted">
+          Every place is always open. Put the tabs in whatever order suits you, and pin the places you use most to your
+          home screen. Pins are yours alone; your partner chooses their own.
+        </p>
         <ul className="sh-list mt-3">
           {order.map((id, i) => {
             const m = MODULES.find((x) => x.id === id)!;
+            const pinned = profile.modules.pinned ?? [];
+            const isPinned = pinned.includes(id);
             return (
               <li key={id} className="sh-row">
-                <span className="sh-toggle-label">{m.name}</span>
+                <Toggle
+                  checked={isPinned}
+                  onChange={(v) =>
+                    void run(() => updateModules({ pinned: v ? [...pinned, id] : pinned.filter((p) => p !== id) }))
+                  }
+                  label={m.name}
+                  hint={isPinned ? "On your home screen." : "Show on my home screen."}
+                />
                 <span className="sh-row">
                   <button type="button" className="sh-iconbtn" aria-label={`Move ${m.name} up`} disabled={busy || i === 0} onClick={() => move(id, -1)}>
                     <ArrowUp size={16} aria-hidden />

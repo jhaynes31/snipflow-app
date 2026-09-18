@@ -22,3 +22,9 @@ export function modulesFor(prefs: { order: string[] }): ModuleManifest[] {
   };
   return [...MODULES].sort((a, b) => rank(a) - rank(b));
 }
+
+/** The places a person pinned to their home screen, in their tab order. */
+export function pinnedFor(prefs: { order: string[]; pinned?: string[] }): ModuleManifest[] {
+  const pinned = new Set(prefs.pinned ?? []);
+  return modulesFor(prefs).filter((m) => pinned.has(m.id));
+}

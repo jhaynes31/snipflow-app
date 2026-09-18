@@ -87,6 +87,8 @@ export default defineSchema({
       disabled: v.array(v.string()),
       /** Tab order. Ids missing here fall back to registry order. */
       order: v.array(v.string()),
+      /** Module ids this person pinned to their home screen as widgets. */
+      pinned: v.optional(v.array(v.string())),
     }),
     /** Per-module settings, keyed by module id. Each module owns its own shape. */
     moduleSettings: v.record(v.string(), v.any()),

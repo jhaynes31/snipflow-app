@@ -19,8 +19,10 @@ export interface HubContextValue {
   gentle: boolean;
   /** Whether the partner has gentle day on. Nothing more is visible. */
   partnerGentle: boolean;
-  /** Enabled modules in this person's chosen order. */
+  /** Every place, in this person's chosen tab order. */
   modules: ModuleManifest[];
+  /** The places this person pinned to their home screen. */
+  pinned: ModuleManifest[];
   /** Open and responded heads-ups addressed to me, newest first. */
   headsUpsForMe: Doc<"headsUps">[];
 }

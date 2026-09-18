@@ -136,13 +136,17 @@ export const updateAccessibility = mutation({
   },
 });
 
-/** Tab order only. Every place is always on for both people. */
+/** Tab order and home-screen pins. Every place is always on for both people. */
 export const updateModules = mutation({
-  args: { order: v.array(v.string()) },
+  args: { order: v.optional(v.array(v.string())), pinned: v.optional(v.array(v.string())) },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     await ctx.db.patch(me.profile._id, {
-      modules: { disabled: [], order: args.order },
+      modules: {
+        disabled: [],
+        order: args.order ?? me.profile.modules.order,
+        pinned: args.pinned ?? me.profile.modules.pinned ?? [],
+      },
     });
   },
 });

@@ -4,7 +4,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { modulesFor } from "@/core/modules/registry";
+import { modulesFor, pinnedFor } from "@/core/modules/registry";
 import { Spinner } from "@/core/ui";
 import { BadgeSync } from "./BadgeSync";
 import { HubContext, type HubContextValue } from "./HubContext";
@@ -68,6 +68,7 @@ export function HubShell({ children }: { children: ReactNode }) {
       gentle: gentle.on,
       partnerGentle: partnerGentle.on,
       modules: modulesFor(me.profile.modules),
+      pinned: pinnedFor(me.profile.modules),
       headsUpsForMe: headsUps,
     };
   }, [me, gentle, partnerGentle, headsUps]);
