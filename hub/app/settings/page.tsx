@@ -148,10 +148,7 @@ export default function SettingsPage() {
             const m = MODULES.find((x) => x.id === id)!;
             return (
               <li key={id} className="sh-row">
-                <span>
-                  <span className="sh-toggle-label">{m.name}</span>
-                  <span className="sh-hint">Gentle day: {m.gentleModeBehavior}</span>
-                </span>
+                <span className="sh-toggle-label">{m.name}</span>
                 <span className="sh-row">
                   <button type="button" className="sh-iconbtn" aria-label={`Move ${m.name} up`} disabled={busy || i === 0} onClick={() => move(id, -1)}>
                     <ArrowUp size={16} aria-hidden />

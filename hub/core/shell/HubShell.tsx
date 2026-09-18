@@ -25,15 +25,14 @@ function useServiceWorker() {
 
 /**
  * Writes the person's view settings onto <html> so CSS can react:
- * data-gentle (low-demand mode), data-quiet (no textures or motion),
- * data-text-size, data-contrast and data-theme.
+ * data-quiet (no textures or motion), data-text-size, data-contrast and
+ * data-theme. A gentle day is a signal only and never changes the view.
  */
 function useViewSettings(value: HubContextValue | null) {
   useEffect(() => {
     const el = document.documentElement;
     if (!value) return;
     const a = value.profile.accessibility;
-    el.dataset.gentle = value.gentle ? "on" : "off";
     el.dataset.quiet = a.quietVisuals ? "on" : "off";
     el.dataset.textSize = a.textSize;
     el.dataset.contrast = a.highContrast ? "high" : "normal";

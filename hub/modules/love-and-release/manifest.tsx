@@ -20,7 +20,6 @@ export const loveAndRelease: ModuleManifest = {
     tint: "#E3EAD6",
     dark: { accent: "#8FB069", onAccent: "#1F261C", tint: "#2F3A28" },
   },
-  gentleModeBehavior: "Opens straight to one small release exercise. No circle list, no history.",
   headsUpTypes: [],
   sharedData: [],
   crossModuleHooks: {

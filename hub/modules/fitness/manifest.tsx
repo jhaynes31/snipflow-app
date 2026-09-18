@@ -22,7 +22,6 @@ export const fitness: ModuleManifest = {
     tint: "#F6EBC8",
     dark: { accent: "#E6C35C", onAccent: "#1F261C", tint: "#3A3A22" },
   },
-  gentleModeBehavior: "Offers one short, easy session and hides every plan and history view.",
   headsUpTypes: [],
   sharedData: [],
   crossModuleHooks: {

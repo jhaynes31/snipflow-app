@@ -22,7 +22,6 @@ export const tend: ModuleManifest = {
     tint: "#F3E7CC",
     dark: { accent: "#E8B866", onAccent: "#1F261C", tint: "#3A3A2A" },
   },
-  gentleModeBehavior: "Shows only the check-in and the three smallest tools. Hides everything that asks for reflection.",
   headsUpTypes: ["roughDay", "needSpace", "urgent"],
   sharedData: ["heads-up cards", "repair conversations", "the Evidence Bank"],
   crossModuleHooks: {

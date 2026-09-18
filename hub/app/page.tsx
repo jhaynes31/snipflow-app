@@ -33,7 +33,7 @@ export default function HomePage() {
       {/* 2. Gentle day banner. */}
       {(partnerGentle || gentle) && (
         <div className="sh-banner" role="status">
-          {gentle ? COPY.gentleDayOn + " Only what you need today." : COPY.partnerGentle(partnerName)}
+          {gentle ? COPY.gentleDayOn : COPY.partnerGentle(partnerName)}
           {partnerGentle && headsUpsForMe.length > 0 && !gentle && (
             <>
               {" "}
@@ -64,7 +64,7 @@ export default function HomePage() {
         </Card>
       )}
 
-      {!profile.setupDone && !gentle && (
+      {!profile.setupDone && (
         <Card tone="alt">
           <h2 className="sh-h2">Your user manual</h2>
           <p>
@@ -114,13 +114,13 @@ export default function HomePage() {
                 <Icon size={26} aria-hidden />
               </span>
               <span className="sh-tile-name">{m.name}</span>
-              {!gentle && <span className="sh-tile-tagline">{m.tagline}</span>}
+              <span className="sh-tile-tagline">{m.tagline}</span>
             </Link>
           );
         })}
         <Link href="/heads-up/new" className="sh-tile sh-tile-plain">
           <span className="sh-tile-name">{COPY.sendHeadsUp}</span>
-          {!gentle && <span className="sh-tile-tagline">Tell {partnerName} how today is and what would help.</span>}
+          <span className="sh-tile-tagline">Tell {partnerName} how today is and what would help.</span>
         </Link>
       </section>
     </div>

@@ -187,7 +187,6 @@ Tend plugs into the Hub through its manifest, with no custom wiring in the shell
 | `id`, `route` | `tend`, `/tend` (the old `/support` redirects here) |
 | `theme` | A warm hearth corner inside the village palette: sage green, warm wood, and candlelight gold (`spec-update-1.md`) |
 | `todayWidget` | Shows only when there's an open heads-up, a tender-week forecast, or a pending repair invite |
-| `gentleModeBehavior` | Opens straight to the three tools that have helped this person most, in low-demand layout |
 | `headsUpTypes` | Check-in heads-up, Story Check question, repair invite, urgent help |
 | `sharedData` | Heads-ups, love menus, Evidence Bank, repair conversations, shared summaries, appreciation notes |
 | `usesAICoach` | Yes |
@@ -210,7 +209,7 @@ The module has five main areas, reached from a simple sub-navigation inside the 
 | Together | Repair, monthly "How are we doing?", shared forecast |
 | My manual | Edit my user manual sections, my Love Menu, my check-in tiles, and which tools are on |
 
-On phones, "Now" is the default screen. On a gentle day, the module skips the sub-navigation entirely and opens to the three most helpful tools.
+On phones, "Now" is the default screen. A gentle day changes nothing here (Hub Contract, revised 2026-09-18); the "Now" screen may always lead with the three tools that have helped this person most.
 
 Make the Loop Breaker sort board, the Project Thinker checklist, and the mood chart visual first, using cards, color, and simple charts, since Jen learns visually. Keep text short on every screen.
 
@@ -229,7 +228,7 @@ Build in four steps, each usable on its own, after the Hub foundation (Hub Contr
 
 - [ ] Private data is blocked at the data layer. Test by trying to read the partner's private rows from the other account.
 - [ ] Nothing in the module shows a streak, score, missed-day count, or red overdue badge.
-- [ ] Every screen has a low-demand version and works during gentle mode.
+- [ ] Screens meant for hard moments (check-in, Shutdown Recovery, Low moments) use the low-demand design.
 - [ ] Crisis wording in any text field or coach chat triggers the Hub's crisis flow, and "Need help now" is reachable from every screen.
 - [ ] The AI coach declines to take sides, does not diagnose, and names repeated reassurance loops gently.
 - [ ] All copy is plain and literal, with no guilt language.

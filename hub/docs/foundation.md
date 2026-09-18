@@ -36,7 +36,7 @@ What that trades:
 3. Put the module's tables in `convex/schema.ts` with the module id as a prefix, each with `ownerId` and `visibility`. Put its functions in `convex/<id>*.ts` and go through `convex/lib.ts` for every read and write.
 4. To react to another module's event, add a listener to `LISTENERS` in `convex/moduleHooks.ts`. To emit one, call `emitEvent` in a mutation or `api.events.emit` from a screen. Names look like `module.thing`.
 5. To reach the partner, call `api.headsUps.send` with `sourceModule: "<id>"`. Never build a notification of your own.
-6. Read `useHub().gentle` and apply the manifest's `gentleModeBehavior`. Include a low-demand version of key screens: at most three large choices, one idea per screen.
+6. A gentle day is a signal only (`useHub().gentle` tells you it is on) and must never change what your module shows. Design screens meant for hard moments with the low-demand layout from the start: at most three large choices, one idea per screen.
 7. Run `npm run lint` (includes the copy check), `npm run typecheck`, and `npm test`.
 
 Module settings for a person live under `profile.moduleSettings[<id>]`; write them with `api.profiles.setModuleSettings`.

@@ -46,10 +46,9 @@ Every Box already follows the shame-free rules: no streaks, scores, or overdue l
 
 ## New behavior the contract requires
 
-- **Gentle day.** The manifest already promises: "Rests every non-urgent category for the day and shows only the boxes that are already thriving." Concretely: while gentle day is on for you, the Every Box dashboard shows only your boxes at thriving or flourishing, plus one line saying the rest are resting today. The review nudge and proposal cards hide. Tending still works. Nothing changes for your partner's view.
+- **Gentle day.** Nothing. Per Jen (2026-09-18), a gentle day never hides or changes anything in any app. Every Box looks and works the same every day.
 - **Privacy fields.** Every Box's tables are household-scoped, which means shared by definition, and its manifest lists them under `sharedData`. To honor "every table has `ownerId` and `visibility`", each table gets an optional `visibility` field that reads as `shared` when missing, and `ownerId` maps to the existing `partnerId`, `createdBy`, or `proposedBy`. No existing row needs rewriting.
 - **Cross-module hook.** Every Box emits `category.stuck` the first time one of your boxes drops to dormant, once per dormant spell, through the Hub's event bus. Nothing listens yet; Tend will (phase 3).
-- **Low-demand versions** of the dashboard and box detail: bigger tend button, at most three choices, the world scene hidden.
 - **Copy check.** Every Box's text runs through `npm run check-copy` like everything else.
 
 ## Data: how existing boxes move over
@@ -69,7 +68,7 @@ Either way, the old Every Box site keeps running untouched until you say it's do
 1. **Move the code in.** Copy the tables into `convex/schema.ts`, the functions into `convex/eb*.ts`, the screens and components into `modules/every-box/`, the stylesheet and tests alongside. Register the module as `ready`. Everything compiles and tests pass, but it still uses its own login and household flow.
 2. **Switch to the foundation.** Replace the household and partner flow with automatic provisioning from Shire profiles. Delete login, onboarding, join, badge sync, the `.ics` route, and the PWA files. Point every screen at the foundation's user and partner.
 3. **Fit the frame.** Sub-navigation tabs, routes under `/every-box`, Every Box settings trimmed to the theme picker, today widget on the home screen.
-4. **Contract behaviors.** Gentle day filtering, low-demand layouts, `category.stuck` event, optional weekly-review calendar event, privacy fields.
+4. **Contract behaviors.** `category.stuck` event, optional weekly-review calendar event, privacy fields.
 5. **Data (only if needed).** Import script, run against a snapshot, verify.
 6. **Verify and hand over.** Typecheck, lint, copy check, tests, production build. You and John each open Every Box inside The Shire and tend one box. Then the old Every Box site and its Vercel project are archived, not deleted, in case anything was missed.
 

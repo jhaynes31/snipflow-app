@@ -33,8 +33,6 @@ export interface ModuleManifest {
    * when there is nothing worth showing; the row stays silent for you.
    */
   todayWidget?: ComponentType;
-  /** What this module hides, softens, or offers when gentle day mode is on. */
-  gentleModeBehavior: string;
   /** Heads-up card kinds this module can hand to the Hub, if any. */
   headsUpTypes: string[];
   /** Data types shared with the partner by default. Everything else is private. */

@@ -9,7 +9,6 @@
  *   data-text-size  normal | large | larger
  *   data-contrast   normal | high
  *   data-quiet      on | off   (quiet visuals: no textures, no motion, muted color)
- *   data-gentle     on | off   (low-demand mode: bigger, fewer, shorter)
  */
 
 @theme {
@@ -80,22 +79,18 @@ a {
   color: inherit;
 }
 
-/* Quiet visuals and low-demand mode remove every texture and decoration. */
-html[data-quiet="on"],
-html[data-gentle="on"] {
+/* Quiet visuals remove every texture and decoration. */
+html[data-quiet="on"] {
   --texture-paper: none;
   --texture-wood: none;
   --texture-moss: none;
   --shadow: none;
 }
-html[data-quiet="on"] body,
-html[data-gentle="on"] body {
+html[data-quiet="on"] body {
   background-image: none;
 }
 html[data-quiet="on"] .sh-tile,
-html[data-quiet="on"] .sh-card,
-html[data-gentle="on"] .sh-tile,
-html[data-gentle="on"] .sh-card {
+html[data-quiet="on"] .sh-card {
   background-image: none;
 }
 html[data-quiet="on"] * {
@@ -752,22 +747,11 @@ html[data-contrast="high"] {
   border-radius: 26px 26px 10px 10px;
 }
 
-/* Low-demand mode: at most three large choices, one idea per screen. */
+/* Low-demand screens (check-in, help now): at most three large choices, one idea per screen. */
 .sh-lowdemand {
   text-align: center;
   padding-top: 1.5rem;
 }
 .sh-lowdemand .sh-h1 {
   font-size: 1.85rem;
-}
-html[data-gentle="on"] .sh-btn {
-  min-height: 56px;
-  font-size: 1.1rem;
-}
-html[data-gentle="on"] .sh-tile-tagline,
-html[data-gentle="on"] .sh-hint {
-  display: none;
-}
-html[data-gentle="on"] .sh-main {
-  max-width: 44rem;
 }

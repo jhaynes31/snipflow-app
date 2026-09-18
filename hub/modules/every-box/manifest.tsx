@@ -22,7 +22,6 @@ export const everyBox: ModuleManifest = {
     tint: "#EFE4D2",
     dark: { accent: "#C4A07C", onAccent: "#1F261C", tint: "#33392B" },
   },
-  gentleModeBehavior: "Rests every non-urgent category for the day and shows only the boxes that are already thriving.",
   headsUpTypes: [],
   sharedData: ["categories", "tending events", "commitments", "weekly reviews"],
   crossModuleHooks: {

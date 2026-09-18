@@ -57,6 +57,19 @@ On phones, the tabs become a bottom navigation bar, and the check-in button floa
 
 The home screen should be settable as John's browser homepage and installable as a phone app (PWA) with an icon badge.
 
+## Module autonomy: what each place is for
+
+Added 2026-09-18 from Jen's direction. The apps work together, but each one keeps its own purpose, its own screens, and its own say over what it shows. No module changes, hides, or overrides what another module shows. Cross-module hooks carry information; what a module does with that information happens inside its own screens, on its own terms.
+
+| Place | What it is for |
+| --- | --- |
+| Every Box | So John can visually see every box in his brain: every facet of life and the relationship, laid out where it can be remembered. Also where Jen adds to-dos and shares feedback instead of having the same conversation again. |
+| Tend | So Jen and John can support each other where each is weak. Especially so John has skills, tools, and resources to know what Jen needs and show up for her, and she for him. |
+| Heartwood Fitness | So Jen and John have an easier time caring for their bodies and managing their physical fitness. |
+| Love & Release | Made for Jen and likely used mostly by her, and open to John if it is a blessing to him too. |
+
+Places for faith and finances are planned later, once The Shire is more complete.
+
 ## Module system and adding future apps
 
 Every module registers itself with the Hub through one manifest file. Adding a new app means writing a manifest plus the module's own screens, with no changes to the shell.
@@ -68,7 +81,6 @@ Each manifest declares:
 | `id`, `name`, `icon`, `route` | Tab and URL |
 | `theme` | The module's own palette and accents inside the Hub frame |
 | `todayWidget` | Optional small item for the home screen's "Today" row |
-| `gentleModeBehavior` | What the module hides, softens, or offers when gentle mode is on |
 | `headsUpTypes` | Heads-up cards this module can send, if any |
 | `sharedData` | Which data types are shared by default (everything else is private) |
 | `crossModuleHooks` | Events it emits or listens for (see below) |
@@ -76,7 +88,7 @@ Each manifest declares:
 
 **Cross-module hooks** let modules help each other through named events instead of reaching into each other's data. For example:
 
-- Tend emits `checkin.low`, and every module listens and responds through gentle mode.
+- Tend emits `checkin.low`; any module may listen, and what it does in response stays inside its own screens.
 - Tend emits `forecast.tenderWeek`, and the fitness module suggests lighter sessions that week.
 - Every Box emits `category.stuck`, and Tend offers to open Project Thinker for it.
 - Tend emits `loveAction.done`, and Every Box can count it toward a relationship category if the couple turns that on.
@@ -131,18 +143,19 @@ Push notifications are optional and off by default. Each person sets quiet hours
 
 ## Gentle day mode
 
-Gentle day mode softens the whole Hub at once when either person is struggling. It is per person: it changes that person's view of the Hub and tells the partner, but it does not change the partner's own view.
+A gentle day is a signal, not a mode. It is per person, and it tells the partner that today is a hard one. Revised 2026-09-18 at Jen's direction: **a gentle day never hides, removes, or changes anything in any module or on any home screen.** Every app looks and works exactly the same on a gentle day as on any other day.
 
 **It turns on** when a person taps the gentle day toggle in the top bar, or when a check-in comes in low and the person accepts the offer to turn it on. It never turns on silently.
 
 **While it's on:**
 
-- Every module applies its `gentleModeBehavior`. For example, Every Box rests non-urgent categories and the fitness module offers a short, easy session.
-- Screens simplify: bigger buttons, at most three choices, and very little text.
-- Nothing asks for input except the check-in button.
+- The person's own top bar shows the toggle as on, so they can see it at a glance.
 - The partner's home screen shows a quiet banner ("Jen's having a gentle day") with a link to her heads-up card, if she sent one.
+- That is all. Modules do not react to it, and no screen simplifies, filters, or rearranges itself.
 
-**It turns off** by tapping the toggle, or automatically at the next morning's check-in if the person chooses "Feeling steadier." If they don't, it stays on. There is no time limit and no counter of gentle days.
+**It turns off** by tapping the toggle, or at the next check-in if the person chooses "Feeling steadier." If they don't, it stays on. There is no time limit and no counter of gentle days.
+
+**Low-demand screens** still exist, but as a fixed design for the screens that need them (the check-in and "Need help now"), not as something that switches on. See Visual design.
 
 ## Shame-free design rules
 
@@ -190,7 +203,7 @@ The Hub frame is a cozy village: green, mossy, woodsy, and welcoming, like comin
 - Clear, predictable layouts that don't move around between visits.
 - Every screen reachable by keyboard and labeled for screen readers.
 
-**Low-demand mode** is the visual side of gentle day mode: at most three large choices per screen, one idea per screen, and short text. Modules must include a low-demand version of their key screens.
+**Low-demand screens** are a fixed design, not a switch: at most three large choices per screen, one idea per screen, and short text. The shell uses it for the check-in and "Need help now." A module may design any of its own screens this way, but nothing turns it on or off.
 
 ## AI coach layer and safety guardrails
 
