@@ -1,4 +1,4 @@
-# Rooted
+# Heartwood
 
 A personal trainer + physical therapist app for one person. Open it, press **Start**, follow along. It plans every session, filters every exercise through her body history, and never shames a missed day.
 
@@ -7,7 +7,7 @@ Installable PWA (phone + desktop browser), fully offline after first load, all d
 ## Run it
 
 ```bash
-cd rooted
+cd heartwood
 npm install
 npm run dev        # http://localhost:5173
 npm test           # 64 unit + integration tests
@@ -53,7 +53,7 @@ EXERCISEDB_API_KEY=... node scripts/fetch-exercisedb.mjs
 
 It downloads matching GIFs from the **ExerciseDB free V1 dataset** into `public/media/gifs/` and writes `public/media/manifest.json`; the app prefers a manifest entry when one exists. Run it from a machine with internet access (it needs a free RapidAPI key). Custom videos for PT exercises are uploaded in-app and stored in IndexedDB.
 
-**Licensing decision: free version only.** The free dataset is non-commercial with attribution. Rooted is a single-user personal app, so it qualifies. Attribution is shown under every ExerciseDB demo and on the Disclaimer page. If the app is ever sold or distributed, the GIFs must be removed or ExerciseDB's paid one-time license purchased.
+**Licensing decision: free version only.** The free dataset is non-commercial with attribution. Heartwood is a single-user personal app, so it qualifies. Attribution is shown under every ExerciseDB demo and on the Disclaimer page. If the app is ever sold or distributed, the GIFs must be removed or ExerciseDB's paid one-time license purchased.
 
 ## Decisions still needed
 

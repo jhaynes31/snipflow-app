@@ -8,7 +8,7 @@ import { DEFAULT_PREFERRED_DAYS } from '@/domain/schedule';
 export interface PlacedSticker { id?: number; date: string; stickerId: string; sessionId?: string; placedAt: string }
 
 /** All data lives on-device (Section 2). Single user, so the profile is keyed 'me'. */
-export class RootedDB extends Dexie {
+export class HeartwoodDB extends Dexie {
   profile!: EntityTable<UserProfile, 'id'>;
   weeks!: EntityTable<WeekSettings, 'weekStart'>;
   sessions!: EntityTable<PlannedSession, 'id'>;
@@ -24,7 +24,7 @@ export class RootedDB extends Dexie {
   kv!: EntityTable<{ key: string; value: unknown }, 'key'>;
   stickers!: EntityTable<PlacedSticker, 'id'>;
 
-  constructor(name = 'rooted') {
+  constructor(name = 'heartwood') {
     super(name);
     this.version(1).stores({
       profile: 'id',
@@ -44,7 +44,7 @@ export class RootedDB extends Dexie {
   }
 }
 
-export const db = new RootedDB();
+export const db = new HeartwoodDB();
 
 export function defaultProfile(now = new Date().toISOString()): UserProfile {
   return {
@@ -74,7 +74,7 @@ export function defaultProfile(now = new Date().toISOString()): UserProfile {
 
 export const DEFAULT_TREE: TreeState = { id: 'tree', growthPoints: 0, rootPoints: 0, milestones: [], totalSessions: 0 };
 
-export async function getProfile(database: RootedDB = db): Promise<UserProfile> {
+export async function getProfile(database: HeartwoodDB = db): Promise<UserProfile> {
   const p = await database.profile.get('me');
   if (p) return p;
   const fresh = defaultProfile();
@@ -82,14 +82,14 @@ export async function getProfile(database: RootedDB = db): Promise<UserProfile> 
   return fresh;
 }
 
-export async function saveProfile(patch: Partial<UserProfile>, database: RootedDB = db): Promise<UserProfile> {
+export async function saveProfile(patch: Partial<UserProfile>, database: HeartwoodDB = db): Promise<UserProfile> {
   const cur = await getProfile(database);
   const next = { ...cur, ...patch, id: 'me' as const };
   await database.profile.put(next);
   return next;
 }
 
-export async function getTree(database: RootedDB = db): Promise<TreeState> {
+export async function getTree(database: HeartwoodDB = db): Promise<TreeState> {
   return (await database.tree.get('tree')) ?? { ...DEFAULT_TREE };
 }
 
@@ -98,7 +98,7 @@ export async function getTree(database: RootedDB = db): Promise<TreeState> {
 // ---------------------------------------------------------------------------
 
 export interface BackupFile {
-  app: 'rooted';
+  app: 'heartwood';
   version: 1;
   exportedAt: string;
   data: Record<string, unknown[]>;
@@ -121,10 +121,10 @@ function base64ToBlob(b64: string, mime: string): Blob {
   return new Blob([arr], { type: mime });
 }
 
-export async function exportAll(database: RootedDB = db, includeMedia = true): Promise<BackupFile> {
+export async function exportAll(database: HeartwoodDB = db, includeMedia = true): Promise<BackupFile> {
   const data: Record<string, unknown[]> = {};
   for (const t of TABLES) data[t] = await database.table(t).toArray();
-  const out: BackupFile = { app: 'rooted', version: 1, exportedAt: new Date().toISOString(), data };
+  const out: BackupFile = { app: 'heartwood', version: 1, exportedAt: new Date().toISOString(), data };
   if (includeMedia) {
     const media = await database.customMedia.toArray();
     out.media = [];
@@ -133,8 +133,8 @@ export async function exportAll(database: RootedDB = db, includeMedia = true): P
   return out;
 }
 
-export async function importAll(file: BackupFile, database: RootedDB = db): Promise<void> {
-  if (file.app !== 'rooted') throw new Error('This file is not a Rooted backup.');
+export async function importAll(file: BackupFile, database: HeartwoodDB = db): Promise<void> {
+  if (file.app !== 'heartwood') throw new Error('This file is not a Heartwood backup.');
   await database.transaction('rw', database.tables, async () => {
     for (const t of TABLES) {
       await database.table(t).clear();

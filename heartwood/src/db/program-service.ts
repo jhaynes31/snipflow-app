@@ -7,7 +7,7 @@ import { contextFromProfile } from '@/domain/safety';
 import { assignDates, isSabbathDate, makeSabbathResolver, type SabbathResolver } from '@/domain/schedule';
 import type { Exercise, PlannedSession, ProgressionState, SabbathDay, SetLog, UserProfile } from '@/domain/types';
 import { LESSONS } from '@/learn/lessons';
-import { db, getProfile, getTree, type RootedDB } from './db';
+import { db, getProfile, getTree, type HeartwoodDB } from './db';
 
 /**
  * Orchestration on top of the pure domain functions. Everything here is
@@ -16,13 +16,13 @@ import { db, getProfile, getTree, type RootedDB } from './db';
 
 export const PROGRAM_WEEKS = 24;
 
-export async function sabbathResolver(profile: UserProfile, database: RootedDB = db): Promise<SabbathResolver> {
+export async function sabbathResolver(profile: UserProfile, database: HeartwoodDB = db): Promise<SabbathResolver> {
   const weeks = await database.weeks.toArray();
   return makeSabbathResolver(weeks, profile.sabbathDay);
 }
 
 /** Make sure the session sequence exists. Idempotent. */
-export async function ensureProgram(database: RootedDB = db, now = todayISO()): Promise<void> {
+export async function ensureProgram(database: HeartwoodDB = db, now = todayISO()): Promise<void> {
   const profile = await getProfile(database);
   const count = await database.sessions.count();
   if (count > 0) return;
@@ -35,7 +35,7 @@ export async function ensureProgram(database: RootedDB = db, now = todayISO()): 
 }
 
 /** Recompute suggested dates for all uncompleted sessions from a given day forward. Never doubles up. */
-export async function rescheduleFrom(fromISO: string, database: RootedDB = db): Promise<void> {
+export async function rescheduleFrom(fromISO: string, database: HeartwoodDB = db): Promise<void> {
   const profile = await getProfile(database);
   const resolve = await sabbathResolver(profile, database);
   const pending = (await database.sessions.where('status').anyOf('planned', 'in-progress').toArray()).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
@@ -45,7 +45,7 @@ export async function rescheduleFrom(fromISO: string, database: RootedDB = db): 
   });
 }
 
-export async function lastCompletedDate(database: RootedDB = db): Promise<string | undefined> {
+export async function lastCompletedDate(database: HeartwoodDB = db): Promise<string | undefined> {
   const done = await database.sessions.where('status').anyOf('completed', 'partial').toArray();
   if (!done.length) return undefined;
   return done.map((s) => (s.completedAt ?? '').slice(0, 10)).sort().at(-1);
@@ -65,7 +65,7 @@ export interface TodayState {
   totalSessions: number;
 }
 
-export async function getTodayState(database: RootedDB = db, now = todayISO()): Promise<TodayState> {
+export async function getTodayState(database: HeartwoodDB = db, now = todayISO()): Promise<TodayState> {
   await ensureProgram(database, now);
   const profile = await getProfile(database);
   const resolve = await sabbathResolver(profile, database);
@@ -98,13 +98,13 @@ export async function getTodayState(database: RootedDB = db, now = todayISO()): 
   };
 }
 
-async function customExercises(profile: UserProfile, database: RootedDB): Promise<Exercise[]> {
+async function customExercises(profile: UserProfile, database: HeartwoodDB): Promise<Exercise[]> {
   if (!profile.ptPlan.customExerciseIds.length) return [];
   return (await database.customExercises.bulkGet(profile.ptPlan.customExerciseIds)).filter((e): e is Exercise => !!e);
 }
 
 /** Build (or reuse) prescriptions for a session. */
-async function materialize(session: PlannedSession, profile: UserProfile, comeback: boolean, database: RootedDB, persist: boolean) {
+async function materialize(session: PlannedSession, profile: UserProfile, comeback: boolean, database: HeartwoodDB, persist: boolean) {
   if (session.prescriptions.length && session.status === 'in-progress') return session.prescriptions;
   const progression = new Map<string, ProgressionState>((await database.progression.toArray()).map((p) => [p.key, p]));
   const custom = await customExercises(profile, database);
@@ -118,7 +118,7 @@ async function materialize(session: PlannedSession, profile: UserProfile, comeba
   return ps;
 }
 
-export async function startSession(sessionId: string, opts: { fiveMinute?: boolean } = {}, database: RootedDB = db, now = new Date()): Promise<PlannedSession> {
+export async function startSession(sessionId: string, opts: { fiveMinute?: boolean } = {}, database: HeartwoodDB = db, now = new Date()): Promise<PlannedSession> {
   const profile = await getProfile(database);
   const s = await database.sessions.get(sessionId);
   if (!s) throw new Error('Session not found');
@@ -130,7 +130,7 @@ export async function startSession(sessionId: string, opts: { fiveMinute?: boole
   return updated;
 }
 
-export async function swapExerciseInSession(sessionId: string, exerciseId: string, replacement: Exercise, database: RootedDB = db): Promise<PlannedSession> {
+export async function swapExerciseInSession(sessionId: string, exerciseId: string, replacement: Exercise, database: HeartwoodDB = db): Promise<PlannedSession> {
   const s = await database.sessions.get(sessionId);
   if (!s) throw new Error('Session not found');
   const profile = await getProfile(database);
@@ -151,7 +151,7 @@ export async function swapExerciseInSession(sessionId: string, exerciseId: strin
   return updated;
 }
 
-export async function logSet(log: Omit<SetLog, 'id' | 'loggedAt'>, database: RootedDB = db, now = new Date()): Promise<number> {
+export async function logSet(log: Omit<SetLog, 'id' | 'loggedAt'>, database: HeartwoodDB = db, now = new Date()): Promise<number> {
   return database.setLogs.add({ ...log, loggedAt: now.toISOString() }) as Promise<number>;
 }
 
@@ -165,7 +165,7 @@ export interface CompletionSummary {
 }
 
 /** Finish a session (fully or early). Completed work always counts (Section 9.5). */
-export async function completeSession(sessionId: string, opts: { early?: boolean } = {}, database: RootedDB = db, now = new Date()): Promise<CompletionSummary> {
+export async function completeSession(sessionId: string, opts: { early?: boolean } = {}, database: HeartwoodDB = db, now = new Date()): Promise<CompletionSummary> {
   const profile = await getProfile(database);
   const s = await database.sessions.get(sessionId);
   if (!s) throw new Error('Session not found');
@@ -241,13 +241,13 @@ export async function completeSession(sessionId: string, opts: { early?: boolean
   return { session: updated, decisions, newLessons, milestones, totalSessions, growthPoints };
 }
 
-export async function bumpCounter(key: string, by: number, database: RootedDB = db): Promise<void> {
+export async function bumpCounter(key: string, by: number, database: HeartwoodDB = db): Promise<void> {
   const cur = (await database.kv.get(`counter:${key}`))?.value;
   await database.kv.put({ key: `counter:${key}`, value: (typeof cur === 'number' ? cur : 0) + by });
 }
 
 /** "Not today": nothing is lost; the session simply stays next. */
-export async function notToday(database: RootedDB = db, now = todayISO()): Promise<void> {
+export async function notToday(database: HeartwoodDB = db, now = todayISO()): Promise<void> {
   await rescheduleFrom(addDays(now, 1), database);
 }
 
@@ -255,14 +255,14 @@ export async function notToday(database: RootedDB = db, now = todayISO()): Promi
 // Sabbath (Section 8.4)
 // ---------------------------------------------------------------------------
 
-export async function setSabbathForWeek(weekStart: string, day: SabbathDay, database: RootedDB = db, now = todayISO()): Promise<void> {
+export async function setSabbathForWeek(weekStart: string, day: SabbathDay, database: HeartwoodDB = db, now = todayISO()): Promise<void> {
   await database.weeks.put({ weekStart, sabbathDay: day, askedAt: new Date().toISOString() });
   await database.profile.update('me', { sabbathDay: day });
   await rescheduleFrom(now, database);
 }
 
 /** Day-of: "Make today my Sabbath". Only meaningful on a weekend day. */
-export async function makeTodaySabbath(database: RootedDB = db, now = todayISO()): Promise<boolean> {
+export async function makeTodaySabbath(database: HeartwoodDB = db, now = todayISO()): Promise<boolean> {
   if (!isWeekend(now)) return false;
   const day: SabbathDay = weekdayOf(now) === 6 ? 'sat' : 'sun';
   await setSabbathForWeek(weekStartOf(now), day, database, now);
@@ -272,7 +272,7 @@ export async function makeTodaySabbath(database: RootedDB = db, now = todayISO()
   return true;
 }
 
-export async function recordRestDay(database: RootedDB = db): Promise<void> {
+export async function recordRestDay(database: HeartwoodDB = db): Promise<void> {
   const tree = await getTree(database);
   await database.tree.put({ ...tree, rootPoints: tree.rootPoints + 1 });
 }
@@ -281,7 +281,7 @@ export async function recordRestDay(database: RootedDB = db): Promise<void> {
 // Maintain / reset
 // ---------------------------------------------------------------------------
 
-export async function setMaintainMode(on: boolean, database: RootedDB = db): Promise<void> {
+export async function setMaintainMode(on: boolean, database: HeartwoodDB = db): Promise<void> {
   const profile = await getProfile(database);
   await database.profile.update('me', { maintainMode: on });
   const pending = (await database.sessions.where('status').equals('planned').toArray()).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
@@ -294,7 +294,7 @@ export async function setMaintainMode(on: boolean, database: RootedDB = db): Pro
 }
 
 /** After a 3+ week gap: rebuild the remaining program at a reduced version of the current phase. */
-export async function applyLongGapReset(database: RootedDB = db): Promise<void> {
+export async function applyLongGapReset(database: HeartwoodDB = db): Promise<void> {
   const pending = (await database.sessions.where('status').equals('planned').toArray()).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
   if (!pending.length) return;
   const first = pending[0];

@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.svg', 'media/**/*'],
       manifest: {
-        name: 'Rooted',
-        short_name: 'Rooted',
+        name: 'Heartwood',
+        short_name: 'Heartwood',
         description: 'Your personal trainer and physical therapist. Open, press Start, follow along.',
         theme_color: '#2F4A2E',
         background_color: '#FAF6EC',

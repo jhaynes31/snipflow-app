@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { RootedDB, defaultProfile, exportAll, importAll } from './db';
+import { HeartwoodDB, defaultProfile, exportAll, importAll } from './db';
 import { completeSession, ensureProgram, getTodayState, logSet, makeTodaySabbath, notToday, setSabbathForWeek, startSession, swapExerciseInSession } from './program-service';
 import { isSabbathDate, makeSabbathResolver } from '@/domain/schedule';
 import { EXERCISE_MAP } from '@/data/exercises';
@@ -8,10 +8,10 @@ import { isAllowed, DEFAULT_SAFETY_CONTEXT } from '@/domain/safety';
 // 2026-09-14 is a Monday.
 const MON = '2026-09-14';
 let n = 0;
-let database: RootedDB;
+let database: HeartwoodDB;
 
 beforeEach(async () => {
-  database = new RootedDB(`test-${++n}`);
+  database = new HeartwoodDB(`test-${++n}`);
   await database.profile.put({ ...defaultProfile(), onboardingComplete: true, programStartDate: MON });
 });
 
@@ -171,7 +171,7 @@ describe('program service', () => {
     await logSet({ sessionId: s.id, exerciseId: 'db-rdl', setNumber: 1, reps: 10, effort: 5, discomfort: 0, discomfortLocations: [] }, database);
     await completeSession(s.id, {}, database, at(MON, 11));
     const backup = await exportAll(database, false);
-    const other = new RootedDB(`test-import-${n}`);
+    const other = new HeartwoodDB(`test-import-${n}`);
     await importAll(backup, other);
     expect(await other.sessions.count()).toBe(await database.sessions.count());
     expect(await other.setLogs.count()).toBe(1);

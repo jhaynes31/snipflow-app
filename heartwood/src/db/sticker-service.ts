@@ -1,13 +1,13 @@
 import { EMPTY_STATS, type StickerStats } from '@/data/stickers';
-import { db, getTree, type PlacedSticker, type RootedDB } from './db';
+import { db, getTree, type PlacedSticker, type HeartwoodDB } from './db';
 
-async function counter(key: string, database: RootedDB): Promise<number> {
+async function counter(key: string, database: HeartwoodDB): Promise<number> {
   const v = (await database.kv.get(`counter:${key}`))?.value;
   return typeof v === 'number' ? v : 0;
 }
 
 /** Lifetime stats that drive sticker-pack unlocks. Derived, so unlocks are retroactive and never lost. */
-export async function stickerStats(database: RootedDB = db): Promise<StickerStats> {
+export async function stickerStats(database: HeartwoodDB = db): Promise<StickerStats> {
   const done = await database.sessions.where('status').anyOf('completed', 'partial').toArray();
   const tree = await getTree(database);
   return {
@@ -26,7 +26,7 @@ export async function stickerStats(database: RootedDB = db): Promise<StickerStat
 
 export const MAX_STICKERS_PER_DAY = 3;
 
-export async function placeSticker(date: string, stickerId: string, sessionId: string | undefined, database: RootedDB = db): Promise<PlacedSticker | null> {
+export async function placeSticker(date: string, stickerId: string, sessionId: string | undefined, database: HeartwoodDB = db): Promise<PlacedSticker | null> {
   const existing = await database.stickers.where('date').equals(date).toArray();
   if (existing.length >= MAX_STICKERS_PER_DAY) return null;
   const row: PlacedSticker = { date, stickerId, sessionId, placedAt: new Date().toISOString() };
@@ -34,11 +34,11 @@ export async function placeSticker(date: string, stickerId: string, sessionId: s
   return row;
 }
 
-export async function removeSticker(id: number, database: RootedDB = db): Promise<void> {
+export async function removeSticker(id: number, database: HeartwoodDB = db): Promise<void> {
   await database.stickers.delete(id);
 }
 
-export async function stickersForMonth(year: number, month0: number, database: RootedDB = db): Promise<PlacedSticker[]> {
+export async function stickersForMonth(year: number, month0: number, database: HeartwoodDB = db): Promise<PlacedSticker[]> {
   const from = `${year}-${String(month0 + 1).padStart(2, '0')}-01`;
   const to = `${year}-${String(month0 + 1).padStart(2, '0')}-31`;
   return database.stickers.where('date').between(from, to, true, true).toArray();
