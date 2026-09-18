@@ -1,0 +1,105 @@
+/**
+ * Pure iCalendar builder for the per-person feed. The daily check-in is a
+ * floating local time (no time zone) so it lands at the chosen wall-clock
+ * time wherever the calendar lives. Heads-up events are UTC instants.
+ */
+export interface FeedInput {
+  displayName: string;
+  appName: string;
+  siteUrl: string;
+  dailyCheckInHour: number;
+  dailyCheckInMinute: number;
+  headsUps: { id: string; from: string; statusLine: string; urgent: boolean; createdAt: number }[];
+  /** For tests. Defaults to now. */
+  now?: Date;
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function floating(d: Date, hour: number, minute: number): string {
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(hour)}${pad(minute)}00`;
+}
+
+function utc(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+}
+
+/** RFC 5545 text escaping. */
+export function escapeText(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+
+/** Lines longer than 75 octets are folded with CRLF + space. */
+export function fold(line: string): string {
+  const out: string[] = [];
+  let rest = line;
+  while (rest.length > 73) {
+    out.push(rest.slice(0, 73));
+    rest = " " + rest.slice(73);
+  }
+  out.push(rest);
+  return out.join("\r\n");
+}
+
+export function buildFeed(input: FeedInput): string {
+  const now = input.now ?? new Date();
+  const stamp = utc(now.getTime());
+  const start = new Date(now);
+  start.setDate(start.getDate() + 1);
+  const endMinutes = input.dailyCheckInHour * 60 + input.dailyCheckInMinute + 5;
+
+  const lines: string[] = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    `PRODID:-//${escapeText(input.appName)}//Feed//EN`,
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${escapeText(input.appName)}`,
+    "BEGIN:VEVENT",
+    `UID:daily-checkin@${slug(input.appName)}`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${floating(start, input.dailyCheckInHour, input.dailyCheckInMinute)}`,
+    `DTEND:${floating(start, Math.floor(endMinutes / 60) % 24, endMinutes % 60)}`,
+    "RRULE:FREQ=DAILY",
+    `SUMMARY:${escapeText(`${input.appName}: how are you, really?`)}`,
+    `DESCRIPTION:${escapeText(`A minute to check in with yourself. Nothing to prepare. ${input.siteUrl}/check-in`)}`,
+    `URL:${input.siteUrl}/check-in`,
+    "TRANSP:TRANSPARENT",
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${escapeText("How are you, really?")}`,
+    "TRIGGER:PT0M",
+    "END:VALARM",
+    "END:VEVENT",
+  ];
+
+  for (const h of input.headsUps) {
+    const summary = `${h.from} sent a heads-up${h.urgent ? " (urgent)" : ""}`;
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:headsup-${h.id}@${slug(input.appName)}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${utc(h.createdAt)}`,
+      `DTEND:${utc(h.createdAt + 15 * 60 * 1000)}`,
+      `SUMMARY:${escapeText(summary)}`,
+      `DESCRIPTION:${escapeText(`"${h.statusLine}" ${input.siteUrl}/heads-up/${h.id}`)}`,
+      `URL:${input.siteUrl}/heads-up/${h.id}`,
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${escapeText(summary)}`,
+      "TRIGGER:PT0M",
+      "END:VALARM",
+      "END:VEVENT",
+    );
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.map(fold).join("\r\n") + "\r\n";
+}
+
+function slug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
