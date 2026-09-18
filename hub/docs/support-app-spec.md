@@ -239,5 +239,5 @@ Build in four steps, each usable on its own, after the Hub foundation (Hub Contr
 - [x] Module name: **Tend** (`spec-update-1.md`).
 - [x] Final color palette for this module: sage green, warm wood, candlelight gold, inside the village tokens (`spec-update-1.md`).
 - [x] The Hub's own name: **The Shire** (`spec-update-1.md`).
-- [ ] Whether John wants to review and edit the starter guidance for supporting him before build step 1.
-- [ ] Whether faith features (Anchor, the Pray line) are on by default for both, or opt-in per person.
+- [ ] Whether John wants to review and edit the starter guidance for supporting him before build step 1. (Pending; John will review when he has time.)
+- [x] Faith features (Anchor, the Pray line) are on by default for both. Decided 2026-09-18. Either person can still turn them off in their own settings.
