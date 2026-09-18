@@ -80,6 +80,10 @@ export function Pause() {
     <Shell back="/" title="You're here. That counts." subtitle="Whatever you do next is your choice. Nothing is required.">
       <div className="stack">
         <JesusLine tags={feelings.length ? ['Handling emotions', 'Feeling alone or unsupported'] : ['Needing rest', 'Anxiety & Uncertainty']} />
+        <button type="button" className="card card-link" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => nav('/personal')}>
+          <div className="item-title">Am I taking this personally?</div>
+          <div className="muted small">Their side, my slice, what's mine to do.</div>
+        </button>
         <button type="button" className="card card-link" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => nav('/check-in')}>
           <div className="item-title">Want to untangle it?</div>
           <div className="muted small">Fact vs. Story: separate what happened from what my brain is telling me.</div>

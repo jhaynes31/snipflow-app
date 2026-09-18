@@ -46,6 +46,7 @@ export function Someone() {
         <div className="doors">
           <button type="button" className="door" onClick={() => nav(`/people/${person.id}`)}>See everything I've logged<span>Green flags, watch notes, reciprocity, moves</span></button>
           <button type="button" className="door" onClick={() => { setCurrentThread(null); nav('/check-in') }}>Untangle the specific thing<span>Fact vs. Story, linked to {person.name}</span></button>
+          <button type="button" className="door" onClick={() => { setCurrentThread(null); nav('/personal') }}>Am I taking something personally?<span>Their side, my slice</span></button>
           <button type="button" className="door" onClick={() => nav(`/pace/${person.id}?mode=halo`)}>I think they're amazing<span>A halo check, five questions</span></button>
           <button type="button" className="door" onClick={() => nav(`/pace/${person.id}?mode=used`)}>Am I being used?<span>Six honest questions</span></button>
           <button type="button" className="door" onClick={() => nav('/unhooked/loop')}>It might be the loop<span>Step out first, decide later</span></button>

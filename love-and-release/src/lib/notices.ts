@@ -56,6 +56,12 @@ export function useNotices(): Notice[] {
     for (const f of favors) { const v = byPerson.get(f.personId) ?? { asked: 0, gave: 0 }; v.asked++; if (f.theyGave.trim()) v.gave++; byPerson.set(f.personId, v) }
     for (const [pid, v] of byPerson) if (v.asked >= 3 && v.gave === 0) { const name = people.find((p) => p.id === pid)?.name; if (name) { out.push({ id: `favors-${pid}`, text: `${name} has asked for ${v.asked} things and, as far as you've logged, given nothing back. The halo hides that. The log doesn't.`, link: `/pace/${pid}?mode=used`, linkLabel: 'Am I being used?' }); break } }
 
+    const personal = await db.personalMoments.where('createdAt').above(since30).toArray()
+    if (personal.length >= 2) {
+      const avgDrop = personal.reduce((a, m) => a + (m.sliceBefore - m.sliceAfter), 0) / personal.length
+      const meaning = top(count(personal, (m) => m.meanings))
+      out.push({ id: 'personal', text: avgDrop > 0 ? `${personal.length} times this month something landed like a verdict. Every time you looked at their side, your slice dropped, by about ${Math.round(avgDrop)} points on average.${meaning ? ` The story that shows up most is "${meaning[0].toLowerCase()}." It's a story.` : ''}` : `${personal.length} times this month you stopped to ask whether something was really about you. That pause is the whole skill.`, link: '/personal', linkLabel: 'The next one' })
+    }
     const evenings = daily.filter((d) => d.kind === 'evening')
     const loved = top(count(evenings, (d) => (Array.isArray(d.answers.loved) ? d.answers.loved : [])))
     if (loved && loved[1] >= 3 && !loved[0].startsWith('Nothing')) out.push({ id: 'loved', text: `"${loved[0]}" is where you've felt most loved lately, ${loved[1]} evenings this month. More of that.` })

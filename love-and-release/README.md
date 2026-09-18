@@ -22,6 +22,7 @@ Deploy `dist/` to any static host. `vercel.json` includes the SPA rewrite so dee
 | `/` | The front door: "What's going on?" with feeling-language doors, something I noticed, today's truth |
 | `/comfort` | Comfort path: the app speaks first, breath, truth, Jesus, flashback check; `?low=1` for PMS/PMDD days |
 | `/fawn` | Fawn alarm: catch the yes before it leaves your mouth |
+| `/personal` | Taking it personally: the fact, the story, first flash, their side, do I know, a friend's voice, the slice now, mine to do |
 | `/someone` | Confused about someone: look at what's logged before deciding |
 | `/new-person` | I met someone: set a pace before the attachment sets in (waiting period, pearls held back, watch list) |
 | `/pace/:personId` | What they've shown, halo check, "am I being used?" check, favor log, scheduled check-ins |

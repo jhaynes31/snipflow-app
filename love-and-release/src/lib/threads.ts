@@ -25,6 +25,7 @@ export function useThreadTimeline(thread: Thread | undefined): TimelineItem[] {
     if (!thread) return []
     const id = thread.id, pid = thread.personId
     const mine = <T extends { threadId?: string; personId?: string }>(rows: T[]) => rows.filter((r) => r.threadId === id || (pid && r.personId === pid))
+    const pm = await db.personalMoments.toArray()
     const [c, p, r, b, w, l, f, cf, rf, ts, mv] = await Promise.all([
       db.checkIns.toArray(), db.pauses.toArray(), db.releases.toArray(), db.boundaries.toArray(), db.wins.toArray(), db.loopEpisodes.toArray(), db.fawnMoments.toArray(), db.comforts.toArray(),
       pid ? db.redFlags.where('personId').equals(pid).toArray() : Promise.resolve([]), pid ? db.trustSignals.where('personId').equals(pid).toArray() : Promise.resolve([]), pid ? db.ringMoves.where('personId').equals(pid).toArray() : Promise.resolve([]),
@@ -37,6 +38,7 @@ export function useThreadTimeline(thread: Thread | undefined): TimelineItem[] {
       ...mine(w).map((x) => ({ id: x.id, kind: 'win', label: 'Win', title: x.note || 'Honored myself', at: x.createdAt })),
       ...mine(l).map((x) => ({ id: x.id, kind: 'loop', label: 'Stepped out of a loop', title: x.theme || x.triggerTags[0] || 'A loop', at: x.createdAt })),
       ...mine(f).map((x) => ({ id: x.id, kind: 'fawn', label: 'Fawn moment', title: x.situation || x.kind, body: x.outcome === 'fawned' ? 'Fawned this time. Noticed it.' : x.outcome === 'not-yet' ? 'Still deciding' : x.honest, at: x.createdAt })),
+      ...mine(pm).map((x) => ({ id: x.id, kind: 'personal', label: 'Took it personally, then looked', title: x.fact || x.meanings[0] || 'A sting', body: `Slice ${x.sliceBefore}% → ${x.sliceAfter}%${x.action ? ` · ${x.action}` : ''}`, at: x.createdAt })),
       ...mine(cf).map((x) => ({ id: x.id, kind: 'comfort', label: 'Comfort', title: x.kind === 'low' ? 'A low day' : 'Came for comfort', body: x.flashback ? 'Named a flashback' : undefined, at: x.createdAt })),
       ...rf.map((x) => ({ id: x.id, kind: 'flag', label: 'Watch note', title: x.note || 'Noticed a pattern', at: x.date, link: pid ? `/people/${pid}` : undefined })),
       ...ts.map((x) => ({ id: x.id, kind: 'signal', label: 'Green flag', title: x.type, at: x.date })),

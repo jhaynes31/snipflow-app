@@ -23,7 +23,8 @@
     "tags": [
       "Words and actions not matching",
       "Unreciprocated effort",
-      "Going slow & self-protection"
+      "Going slow & self-protection",
+      "Taking things personally"
     ]
   },
   {
@@ -101,7 +102,8 @@
     "prompt": "Who am I still trying to convince, and what would it be like to stop?",
     "tags": [
       "Rejection",
-      "Redefining a relationship / chosen family"
+      "Redefining a relationship / chosen family",
+      "Taking things personally"
     ]
   },
   {
@@ -114,7 +116,8 @@
     "prompt": "Is there a rejection I'm still standing outside of, when I could walk somewhere warmer?",
     "tags": [
       "Rejection",
-      "Letting someone walk away"
+      "Letting someone walk away",
+      "Taking things personally"
     ]
   },
   {
@@ -166,7 +169,8 @@
     "prompt": "Is there something I gave that I'm quietly waiting to be paid back for?",
     "tags": [
       "Unreciprocated effort",
-      "Being forgotten or dropped"
+      "Being forgotten or dropped",
+      "Taking things personally"
     ]
   },
   {
@@ -243,7 +247,8 @@
     "prompt": "What would it feel like to hand one specific hurt to God today, without deciding whether it was okay?",
     "tags": [
       "Forgiving without pretending it's fine",
-      "Grief over someone's choices"
+      "Grief over someone's choices",
+      "Taking things personally"
     ]
   },
   {
@@ -330,7 +335,8 @@
     "prompt": "What question about someone else am I circling that He might answer with \"follow Me\"?",
     "tags": [
       "Anxiety & Uncertainty",
-      "Unreciprocated effort"
+      "Unreciprocated effort",
+      "Taking things personally"
     ]
   },
   {
@@ -839,6 +845,71 @@
     "tags": [
       "Going slow & self-protection",
       "Betrayal"
+    ]
+  },
+  {
+    "id": "jc-out-of-his-mind",
+    "title": "His Own Family Said He Was Out of His Mind",
+    "reference": "Mark 3:20–21, 31–35",
+    "whatHappened": "Crowds gathered so thick that Jesus and His disciples couldn't even eat. When His family heard about it, they went to take charge of Him, saying, \"He is out of His mind.\" Later they arrived and stood outside, sending word for Him.",
+    "howHeHandledIt": "He didn't stop what He was doing to defend Himself to them, and He didn't collapse under their verdict. He let their opinion of Him be their opinion. Then He looked at the people actually with Him and called them family.",
+    "meaningForMe": "The people closest to me can be wrong about me. Their read isn't a verdict, and I don't have to argue it or absorb it.",
+    "prompt": "Whose opinion of me am I carrying around as if it were the truth?",
+    "tags": [
+      "Taking things personally",
+      "Redefining a relationship / chosen family"
+    ]
+  },
+  {
+    "id": "jc-glutton-and-drunkard",
+    "title": "Called a Glutton and a Drunkard",
+    "reference": "Matthew 11:16–19",
+    "whatHappened": "Jesus described His generation as children in the marketplace complaining that nobody dances or mourns on cue. John came fasting and they said he had a demon. Jesus came eating and drinking and they said, \"Here is a glutton and a drunkard, a friend of tax collectors and sinners.\"",
+    "howHeHandledIt": "He noticed the pattern: no matter what He or John did, the critics found a label. So He didn't take the label. \"Wisdom is proved right by her deeds.\" He let what He actually did answer for Him.",
+    "meaningForMe": "Some people will label me whatever I do. That's about their marketplace, not my character. My deeds can answer; I don't have to.",
+    "prompt": "What label am I trying to talk someone out of, when no version of me would have satisfied them?",
+    "tags": [
+      "Taking things personally",
+      "Naming poor behavior"
+    ]
+  },
+  {
+    "id": "jc-anything-from-nazareth",
+    "title": "Can Anything Good Come From Nazareth?",
+    "reference": "John 1:43–51",
+    "whatHappened": "Philip told Nathanael he'd found the one Moses wrote about: Jesus of Nazareth. Nathanael said, \"Nazareth! Can anything good come from there?\" When Nathanael walked up, Jesus said, \"Here is a true Israelite, in whom there is nothing false.\"",
+    "howHeHandledIt": "He heard a dismissal based on where He came from, and He didn't get defensive or cold. He met Nathanael's prejudice with a kind, specific word about who Nathanael was. The snub didn't get to set the tone.",
+    "meaningForMe": "Someone's first dismissal of me is usually about their assumptions, not my worth. I can meet it with warmth instead of a defense.",
+    "prompt": "Where have I let a snub decide how I show up, instead of showing up as myself anyway?",
+    "tags": [
+      "Taking things personally",
+      "Rejection"
+    ]
+  },
+  {
+    "id": "jc-through-the-crowd",
+    "title": "He Walked Right Through Them",
+    "reference": "Luke 4:24–30",
+    "whatHappened": "In His hometown synagogue, Jesus said no prophet is accepted in his hometown and pointed to times God blessed outsiders. The people were furious, drove Him to the edge of a cliff, and meant to throw Him off. \"But He walked right through the crowd and went on His way.\"",
+    "howHeHandledIt": "A whole room turned on Him at once. He didn't plead, argue, or make it mean something about His calling. He walked through the crowd and went on with His day.",
+    "meaningForMe": "Even a whole room's rejection doesn't have to stop me. I can walk through it and go on my way.",
+    "prompt": "What crowd am I standing at the edge of the cliff with, when I could simply walk through?",
+    "tags": [
+      "Taking things personally",
+      "Rejection"
+    ]
+  },
+  {
+    "id": "jc-grumblers-at-zacchaeus",
+    "title": "The Grumblers at Zacchaeus's House",
+    "reference": "Luke 19:1–10",
+    "whatHappened": "Jesus called Zacchaeus, a despised tax collector, down from a tree and invited Himself to his house. \"All the people saw this and began to mutter, 'He has gone to be the guest of a sinner.'\" Jesus went anyway. Zacchaeus was changed.",
+    "howHeHandledIt": "He heard the muttering, and He went in anyway. He didn't adjust His choices to the crowd's disapproval, and He didn't take their disapproval as information about whether He was right.",
+    "meaningForMe": "People muttering about my choices doesn't mean my choices are wrong. I can hear it and still walk into the house.",
+    "prompt": "What good thing am I hesitating over because I can already hear the muttering?",
+    "tags": [
+      "Taking things personally",
+      "Pressure to perform or prove myself"
     ]
   }
 ]

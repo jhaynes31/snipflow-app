@@ -19,6 +19,7 @@ export type Tag =
   | 'Handling emotions'
   | 'Compassion fatigue'
   | 'Going slow & self-protection'
+  | 'Taking things personally'
 
 export const UNSURE = 'unsure'
 export const RELEASED = 'released'
@@ -385,6 +386,21 @@ export interface DailyEntry {
   date: string // YYYY-MM-DD
   kind: 'morning' | 'evening'
   answers: Record<string, string | string[]>
+  createdAt: string
+}
+
+export interface PersonalMoment {
+  id: string
+  fact: string
+  meanings: string[]
+  theirLens: string[]
+  sliceBefore: number
+  sliceAfter: number
+  knowIntent: 'know' | 'guessing' | 'asked' | ''
+  friendWouldSay: string
+  action: string
+  personId?: string
+  threadId?: string
   createdAt: string
 }
 

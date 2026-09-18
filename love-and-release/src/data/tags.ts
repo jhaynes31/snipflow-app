@@ -21,4 +21,5 @@ export const TAGS: Tag[] = [
   'Handling emotions',
   'Compassion fatigue',
   'Going slow & self-protection',
+  'Taking things personally',
 ]

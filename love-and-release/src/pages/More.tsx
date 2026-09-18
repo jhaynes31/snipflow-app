@@ -9,6 +9,7 @@ export function More() {
         <section><h3>In the moment</h3><div className="grid-links">
           <Link to="/comfort">Comfort<span>I'll just be here</span></Link>
           <Link to="/pause">Pause<span>Something stung</span></Link>
+          <Link to="/personal">Taking it personally<span>Their side, my slice</span></Link>
           <Link to="/unhooked/loop">I'm in a loop<span>Step out of it</span></Link>
           <Link to="/fawn">Fawn alarm<span>Before the yes</span></Link>
           <Link to="/hurting">I'm hurting<span>Starred truths</span></Link>

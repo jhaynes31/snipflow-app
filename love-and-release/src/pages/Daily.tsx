@@ -80,20 +80,21 @@ export function Evening() {
   const [step, setStep] = useState(0)
   const [loved, setLoved] = useState<string[]>([])
   const [fawned, setFawned] = useState<string[]>([])
+  const [personal, setPersonal] = useState<string[]>([])
   const [honored, setHonored] = useState<string[]>([])
   const [body, setBody] = useState<string[]>([])
   const [setting, setSetting] = useState('')
   const [prayer, setPrayer] = useState('')
   const save = async () => {
     const ts = now()
-    await db.daily.add({ id: newId(), date: dayKey(), kind: 'evening', answers: { loved, fawned, honored, body, setting, prayer }, createdAt: ts })
+    await db.daily.add({ id: newId(), date: dayKey(), kind: 'evening', answers: { loved, fawned, personal, honored, body, setting, prayer }, createdAt: ts })
     const winTypes = honored.map((h) => WINS.find((w) => w.label.replace(/^I /, '').toLowerCase() === h.toLowerCase())?.type).filter(Boolean)
     if (winTypes.length) await db.wins.bulkAdd(winTypes.map((type) => ({ id: newId(), type: type!, note: 'From tonight\'s check-in', createdAt: ts })))
     nav('/', { replace: true })
   }
   return (
     <Shell back="/" hideNav>
-      <Stepper step={step} total={5} />
+      <Stepper step={step} total={6} />
       {step === 0 && (<div className="stack">
         <Speak>Evening{settings.name ? `, ${settings.name}` : ''}. Let's set today down together. Where did you feel loved?</Speak>
         <Chips options={EVENING.loved} value={loved} onChange={setLoved} allowCustom variant="sage" />
@@ -105,17 +106,22 @@ export function Evening() {
         <button type="button" className="btn btn-primary btn-block" onClick={() => setStep(2)}>Next</button>
       </div>)}
       {step === 2 && (<div className="stack">
-        <Speak>And where did you honor yourself? Even a small one. Especially a small one.</Speak>
-        <Chips options={EVENING.honored} value={honored} onChange={setHonored} allowCustom variant="sage" />
-        <p className="help">These become wins. I'll log them for you.</p>
+        <Speak>Did you take anything personally today? Just noticing. Most of it was about their day.</Speak>
+        <Chips options={EVENING.personal} value={personal} onChange={setPersonal} allowCustom />
         <button type="button" className="btn btn-primary btn-block" onClick={() => setStep(3)}>Next</button>
       </div>)}
       {step === 3 && (<div className="stack">
-        <p className="question">How's the body tonight?</p>
-        <Chips options={EVENING.body} value={body} onChange={setBody} />
+        <Speak>And where did you honor yourself? Even a small one. Especially a small one.</Speak>
+        <Chips options={EVENING.honored} value={honored} onChange={setHonored} allowCustom variant="sage" />
+        <p className="help">These become wins. I'll log them for you.</p>
         <button type="button" className="btn btn-primary btn-block" onClick={() => setStep(4)}>Next</button>
       </div>)}
       {step === 4 && (<div className="stack">
+        <p className="question">How's the body tonight?</p>
+        <Chips options={EVENING.body} value={body} onChange={setBody} />
+        <button type="button" className="btn btn-primary btn-block" onClick={() => setStep(5)}>Next</button>
+      </div>)}
+      {step === 5 && (<div className="stack">
         <Speak>What are you setting down before sleep? It'll keep until morning, and you don't have to carry it there.</Speak>
         <VoiceTextarea value={setting} onChange={setSetting} placeholder="Tonight I set down…" />
         <JesusLine tags={['Needing rest', 'Anxiety & Uncertainty', 'Grief over someone\'s choices']} />

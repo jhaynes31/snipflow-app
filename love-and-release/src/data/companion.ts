@@ -5,6 +5,7 @@ export const GREETINGS: ((n: string) => string)[] = [(n) => `Hey${n}. I'm glad y
 export const DOORS: { id: string; label: string; sub: string; to: string; icon: string; tint: string }[] = [
   { id: 'comfort', label: 'I need comfort', sub: 'No questions. I\'ll just be here.', to: '/comfort', icon: '🫶', tint: 'primary' },
   { id: 'stung', label: 'Something stung', sub: 'Let\'s slow down together.', to: '/pause', icon: '🍂', tint: 'blush' },
+  { id: 'personal', label: 'I\'m taking something personally', sub: 'Let\'s see how much is actually yours.', to: '/personal', icon: '🪶', tint: 'gold' },
   { id: 'loop', label: 'My brain won\'t stop looping', sub: 'Step out of it, gently.', to: '/unhooked/loop', icon: '🌀', tint: 'lavender' },
   { id: 'fawn', label: 'I\'m about to say yes when I mean no', sub: 'Or apologize again. Or shape-shift.', to: '/fawn', icon: '🪞', tint: 'honey' },
   { id: 'hard', label: 'I have to say something hard', sub: 'Honest and kind is enough.', to: '/boundaries/new', icon: '🕊️', tint: 'plain' },
@@ -91,6 +92,7 @@ export const MORNING = {
 }
 export const EVENING = {
   loved: ['A kind word', 'Someone showed up', 'Time with John', 'Time with Percy', 'A prayer answered', 'Quiet', 'A friend reached out', 'Being understood', 'Nothing I can name, and that\'s okay'],
+  personal: ['A late reply', 'Someone\'s tone', 'Being left out', 'A change of plans', 'Feedback at work', 'A look or a sigh', 'Not today that I noticed'],
   fawned: ['Said yes when I meant no', 'Apologized for a need', 'Over-explained', 'Shape-shifted', 'Absorbed someone\'s mood', 'Not today that I noticed'],
   honored: ['Said no', 'Didn\'t over-explain', 'Let their reaction be theirs', 'Asked for what I need', 'Rested without guilt', 'Told the truth kindly', 'Let something be unfinished'],
   body: ['Rested', 'Fed', 'Overstimulated', 'Exhausted', 'Sore', 'Steady', 'It\'s the hard week'],

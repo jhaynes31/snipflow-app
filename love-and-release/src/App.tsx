@@ -39,6 +39,7 @@ import { Someone } from '@/pages/Someone'
 import { Me, Notices } from '@/pages/Me'
 import { More } from '@/pages/More'
 import { NewPerson, PacePage } from '@/pages/Pacing'
+import { Personal } from '@/pages/Personal'
 import { ScrollToTop } from '@/components/ScrollToTop'
 
 export default function App() {
@@ -122,6 +123,7 @@ export default function App() {
         <Route path="/notices" element={<Notices />} />
         <Route path="/more" element={<More />} />
         <Route path="/new-person" element={<NewPerson />} />
+        <Route path="/personal" element={<Personal />} />
         <Route path="/pace/:personId" element={<PacePage />} />
         <Route path="/release" element={<ReleaseList />} />
         <Route path="/release/new" element={<ReleaseNew />} />
