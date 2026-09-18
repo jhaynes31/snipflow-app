@@ -21,3 +21,5 @@ npm run dev
 ```
 
 Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
+
+Deployed on Vercel as the `the-shire` project (root directory `hub`).
