@@ -6,10 +6,9 @@
 // then links partners to Shire profiles by email. Never writes to the old
 // deployment.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import JSZip from "jszip";
 import yauzl from "yauzl";
 
 /**
@@ -40,8 +39,6 @@ function readZip(path) {
     });
   });
 }
-
-const EB_TABLES = ["ebHouseholds", "ebPartners", "ebCategories", "ebTendingEvents", "ebCategoryNotes", "ebWeeklyReviews", "ebCommitments"];
 
 function run(args, env = {}, capture = false) {
   return execFileSync("npx", ["convex", ...args], {
@@ -78,50 +75,32 @@ export async function importEveryBoxIfNeeded() {
   run(["export", "--path", snapshot], { CONVEX_DEPLOY_KEY: source });
 
   const zip = await readZip(snapshot);
-  console.log("Snapshot contains:", [...zip.keys()].join(", "));
-  const out = new JSZip();
-  const counts = {};
-  const legacyUsers = [];
-
-  const usersFile = zip.get("users/documents.jsonl");
-  if (usersFile) {
-    for (const line of usersFile.split("\n")) {
-      if (!line.trim()) continue;
-      const u = JSON.parse(line);
-      if (u._id && u.email) legacyUsers.push({ legacyUserId: u._id, email: u.email });
-    }
-  }
-
-  for (const table of EB_TABLES) {
-    const file = zip.get(`${table}/documents.jsonl`);
-    if (!file) {
-      counts[table] = 0;
-      continue;
-    }
-    const rows = file
+  const rowsOf = (table) =>
+    (zip.get(`${table}/documents.jsonl`) ?? "")
       .split("\n")
       .filter((l) => l.trim())
       .map((l) => JSON.parse(l));
-    for (const row of rows) {
-      if (table === "ebPartners" && row.userId !== undefined) {
-        row.legacyUserId = String(row.userId);
-        delete row.userId;
-      }
-      if (table === "ebHouseholds" && row.createdBy !== undefined) row.createdBy = String(row.createdBy);
-    }
-    counts[table] = rows.length;
-    out.file(`${table}/documents.jsonl`, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
-  }
-  const ebZip = join(dir, "every-box.zip");
-  writeFileSync(ebZip, await out.generateAsync({ type: "nodebuffer" }));
-  console.log("Rows found in the old deployment:", JSON.stringify(counts));
 
-  console.log("Importing into The Shire (replacing any Every Box rows created before the copy)...");
-  run(["import", ebZip, "--replace", "--yes"]);
+  const legacyUsers = rowsOf("users")
+    .filter((u) => u._id && u.email)
+    .map((u) => ({ legacyUserId: String(u._id), email: String(u.email) }));
 
-  console.log("Linking partners to Shire profiles by email...");
-  const linkResult = run(["run", "everyBox/importLegacy:link", JSON.stringify({ links: legacyUsers })], {}, true).toString();
-  console.log(linkResult.trim());
+  const payload = {
+    households: rowsOf("ebHouseholds"),
+    partners: rowsOf("ebPartners"),
+    categories: rowsOf("ebCategories"),
+    tendingEvents: rowsOf("ebTendingEvents"),
+    categoryNotes: rowsOf("ebCategoryNotes"),
+    weeklyReviews: rowsOf("ebWeeklyReviews"),
+    commitments: rowsOf("ebCommitments"),
+    legacyUsers,
+  };
+  const found = Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, v.length]));
+  console.log("Rows found in the old deployment:", JSON.stringify(found));
+
+  console.log("Copying into The Shire in one transaction (old ids are replaced, links rebuilt)...");
+  const result = run(["run", "everyBox/importLegacy:importAll", JSON.stringify(payload)], {}, true).toString();
+  console.log(result.trim());
 
   const after = run(["run", "everyBox/importLegacy:counts", "{}"], {}, true).toString();
   console.log("Rows now in The Shire:", after.trim());
