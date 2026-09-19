@@ -119,7 +119,7 @@ function RepairFlow({ r, me, name }: { r: Repair; me: string; name: string }) {
             void run(() => submit({ id: r._id, happened, felt, needed }));
           }}
         >
-          <p className="sh-hint">Written privately. {name} sees it only when you've both submitted, and you both see each other's at the same time.</p>
+          <p className="sh-hint">Written privately. {name} sees it only when you&apos;ve both submitted, and you both see each other&apos;s at the same time.</p>
           <Field label="What happened, for me">
             <textarea className="sh-input sh-textarea" rows={3} value={happened} onChange={(e) => setHappened(e.target.value)} maxLength={1500} required />
           </Field>
