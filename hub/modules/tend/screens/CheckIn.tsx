@@ -160,6 +160,11 @@ export function CheckIn() {
       <h1 className="sh-h1">{low ? "Thank you for saying so." : "Noted."}</h1>
       <p>{low ? "Would any of these help right now?" : "That's the whole check-in."}</p>
       <ErrorNote error={error} />
+      {energy >= 4 && settings.pauseRule && (
+        <div className="sh-banner" role="status">
+          <strong>Your own rule, in your words:</strong> {settings.pauseRule}
+        </div>
+      )}
       {suggested.length > 0 && (
         <div className="sh-stack" aria-label="Support for me">
           {suggested.map((t) => (

@@ -2,6 +2,11 @@
 
 import { Anchor } from "./Anchor";
 import { EvidenceBank } from "./EvidenceBank";
+import { FocusMode } from "./FocusMode";
+import { PauseBigMoves } from "./PauseBigMoves";
+import { ProjectThinker } from "./ProjectThinker";
+import { SitWithIt } from "./SitWithIt";
+import { ThenOrNow } from "./ThenOrNow";
 import { GoodEnough } from "./GoodEnough";
 import { GroundMe } from "./GroundMe";
 import { LoopBreaker } from "./LoopBreaker";
@@ -31,6 +36,16 @@ export function ToolScreen({ toolKey, id }: { toolKey: string; id?: string }) {
       return <StoryCheck />;
     case "evidenceBank":
       return <EvidenceBank />;
+    case "projectThinker":
+      return <ProjectThinker projectId={id} />;
+    case "focusMode":
+      return <FocusMode />;
+    case "thenOrNow":
+      return <ThenOrNow />;
+    case "sitWithIt":
+      return <SitWithIt />;
+    case "pauseBigMoves":
+      return <PauseBigMoves />;
     default:
       return null;
   }

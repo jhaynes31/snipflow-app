@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { HeadsUpCard } from "@/core/shell/HeadsUpCard";
 import { useHub } from "@/core/shell/HubContext";
-import { Card, PageTitle, timeAgo } from "@/core/ui";
+import { Btn, Card, PageTitle, timeAgo } from "@/core/ui";
 import { GuidanceCard } from "../components/GuidanceCard";
 
 /** The partner's open heads-ups, each with its guidance card and Love Menu. */
@@ -16,6 +16,7 @@ export function ForYou() {
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title={`For ${name}`} subtitle="What they've sent, and how to love them well right now." />
+      <BodyDouble name={name} />
       {headsUpsForMe.length === 0 ? (
         <Card>
           <p className="sh-muted">No open heads-ups from {name}.</p>
@@ -51,6 +52,27 @@ export function ForYou() {
         </Card>
       )}
     </div>
+  );
+}
+
+function BodyDouble({ name }: { name: string }) {
+  const { profile } = useHub();
+  const focus = useQuery(api.tend.focus.current);
+  const join = useMutation(api.tend.focus.join);
+  const s = focus?.partner;
+  if (!s) return null;
+  const joined = s.joinedProfileId === profile._id;
+  return (
+    <Card tone="alt">
+      <p>
+        <strong>{name} is focusing</strong> on &ldquo;{s.task}&rdquo; and asked for company.
+      </p>
+      <div className="sh-choices">
+        <Btn variant={joined ? "secondary" : "primary"} onClick={() => void join({ id: s._id, joining: !joined })}>
+          {joined ? "Leave (you're body-doubling now)" : "Join as a body double"}
+        </Btn>
+      </div>
+    </Card>
   );
 }
 

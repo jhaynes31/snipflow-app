@@ -48,6 +48,8 @@ export interface TendSettings {
   tiles: { key: string; label?: string; hidden?: boolean }[];
   /** True once the person chose a starter guidance set or declined one. */
   starterChosen: boolean;
+  /** Pause Before Big Moves: the person's own rule, set on a steady day. Shown when energy reads revved. */
+  pauseRule?: string;
 }
 
 export function readTendSettings(moduleSettings: Record<string, unknown> | undefined): TendSettings {
@@ -56,6 +58,7 @@ export function readTendSettings(moduleSettings: Record<string, unknown> | undef
     faith: raw.faith !== false,
     tiles: Array.isArray(raw.tiles) ? raw.tiles : [],
     starterChosen: raw.starterChosen === true,
+    pauseRule: typeof raw.pauseRule === "string" && raw.pauseRule.trim() ? raw.pauseRule : undefined,
   };
 }
 

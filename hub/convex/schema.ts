@@ -288,6 +288,49 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_about_time", ["aboutProfileId", "date"]),
 
+  /**
+   * A Project Thinker project: what done looks like, the big parts, what
+   * each needs first, blockers, and the very first physical action. Private
+   * until the person shares it for body-doubling.
+   */
+  tendProjects: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    done: v.optional(v.string()),
+    parts: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        needsFirst: v.optional(v.string()),
+        blocker: v.optional(v.string()),
+        planIfBlocked: v.optional(v.string()),
+        steps: v.array(v.object({ id: v.string(), text: v.string(), done: v.boolean() })),
+      }),
+    ),
+    firstAction: v.optional(v.string()),
+    firstActionWhen: v.optional(v.string()),
+    sentToEveryBoxAt: v.optional(v.number()),
+    status: v.union(v.literal("open"), v.literal("finished")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "updatedAt"]),
+
+  /** A Focus Mode session. Shared only so the partner can body-double. */
+  tendFocusSessions: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    task: v.string(),
+    minutes: v.number(),
+    startedAt: v.number(),
+    endsAt: v.number(),
+    status: v.union(v.literal("running"), v.literal("ended")),
+    /** The person asked for company. */
+    bodyDoubleWanted: v.boolean(),
+    /** The partner who joined, if any. */
+    joinedProfileId: v.optional(v.id("profiles")),
+  }).index("by_owner_time", ["ownerId", "startedAt"]),
+
   /** A love-menu item the partner picked and did. Shared. Emits `loveAction.done`. */
   tendLoveActions: defineTable({
     ownerId: v.id("profiles"),

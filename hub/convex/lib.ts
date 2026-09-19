@@ -77,7 +77,7 @@ export function access(
 
 /** Loads a record and throws unless the viewer owns it. Used before any write. */
 export async function requireOwned<
-  T extends "userManualSections" | "headsUps" | "checkIns" | "coachConversations" | "safetyPlans" | "tendGuidance" | "tendLoveMenu" | "tendLoveActions" | "tendToolUses" | "tendLoops" | "tendEvidence",
+  T extends "userManualSections" | "headsUps" | "checkIns" | "coachConversations" | "safetyPlans" | "tendGuidance" | "tendLoveMenu" | "tendLoveActions" | "tendToolUses" | "tendLoops" | "tendEvidence" | "tendProjects" | "tendFocusSessions",
 >(
   ctx: Ctx,
   me: Me,

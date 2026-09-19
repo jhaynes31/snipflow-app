@@ -171,3 +171,23 @@
   background: var(--surface);
   border: 1px solid var(--border);
 }
+
+/* Step 3 tools */
+.tend-part {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+.tend-focus {
+  text-align: center;
+  display: grid;
+  gap: 0.75rem;
+  padding: 2rem 0;
+}
+.tend-timer-big {
+  font-size: 4rem;
+}
+.tend-range {
+  width: 100%;
+  accent-color: var(--accent);
+}

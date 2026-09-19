@@ -22,6 +22,11 @@ export const TOOLS: ToolMeta[] = [
   { key: "loopBreaker", name: "Loop Breaker", forWhen: "Careful logic has become a trap", kinds: ["loop"], twoMinute: "Dump the loop as cards. Sort later." },
   { key: "storyCheck", name: "Story Check", forWhen: "The sting of feeling rejected or left out", kinds: ["rejected", "oldPain"], twoMinute: "Just the facts a camera would record." },
   { key: "evidenceBank", name: "Evidence Bank", forWhen: "Low self-worth, or noticing something good", kinds: ["shame", "low"], twoMinute: "Read three entries. Or add one." },
+  { key: "projectThinker", name: "Project Thinker", forWhen: "A project from idea to finish", kinds: ["overwhelmed", "cantStart"], twoMinute: "Name the project and what done looks like." },
+  { key: "focusMode", name: "Focus Mode", forWhen: "One task, one timer, nothing else", kinds: ["cantStart", "overwhelmed"], twoMinute: "One task, a short timer, start." },
+  { key: "thenOrNow", name: "Then or Now", forWhen: "Old pain showing up in the present", kinds: ["oldPain", "rejected"], twoMinute: "Name the year, the room, one thing that is different now." },
+  { key: "sitWithIt", name: "Sit With It", forWhen: "A worry asking for the same reassurance again", kinds: ["loop", "wired"], twoMinute: "Name the urge, rate it, sit five minutes." },
+  { key: "pauseBigMoves", name: "Pause Before Big Moves", forWhen: "Revved up, on a steady day", kinds: ["wired"], twoMinute: "Read your own rule." },
 ];
 
 export interface ToolStats {

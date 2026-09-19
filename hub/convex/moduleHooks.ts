@@ -1,5 +1,6 @@
 import type { MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { partnerForProfile } from "./everyBox/lib";
 
 /**
  * Cross-module hooks: the server side of the event bus.
@@ -20,9 +21,34 @@ import type { Doc } from "./_generated/dataModel";
  */
 export type Listener = (ctx: MutationCtx, event: Doc<"events">) => Promise<void>;
 
+/**
+ * Every Box: a Project Thinker project sent over becomes a commitment for
+ * the person who sent it, active right away since it is their own. Tend
+ * never touches Every Box's tables; this is Every Box acting on its own
+ * terms in response to information.
+ */
+async function everyBoxCommitmentFromProject(ctx: MutationCtx, event: Doc<"events">): Promise<void> {
+  const partner = await partnerForProfile(ctx, event.ownerId);
+  if (!partner) return;
+  const payload = event.payload as { title?: string; firstAction?: string | null };
+  const title = (payload.firstAction ? `${payload.title}: ${payload.firstAction}` : payload.title ?? "Project").slice(0, 120);
+  const now = Date.now();
+  await ctx.db.insert("ebCommitments", {
+    householdId: partner.householdId,
+    title,
+    proposedBy: partner._id,
+    assignedToIds: [partner._id],
+    status: "active",
+    createdAt: now,
+    agreedAt: now,
+    activatedAt: now,
+    lastTendedAt: now,
+    visibility: "shared",
+  });
+}
+
 export const LISTENERS: Record<string, Listener[]> = {
-  // Example, once Rooted is in:
-  // "forecast.tenderWeek": [rootedSuggestLighterSessions],
+  "project.sendToEveryBox": [everyBoxCommitmentFromProject],
 };
 
 export async function runListeners(ctx: MutationCtx, event: Doc<"events">): Promise<void> {
