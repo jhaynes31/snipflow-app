@@ -109,3 +109,12 @@ passage for the other with a note; one question a week), Permissions (editable).
 
 Not yet: a weekly Rest invitation; a "Jesus through the Old Testament" thread; John and
 Jen's review of the starter content.
+
+**Translations, next (asked 2026-09-19):** Jen wants ESV, and possibly NIV and NLT, as
+options. She has no capacity for key work right now. Plan when she says "set up ESV":
+Claude builds a translation switch in the reader with the Berean always built in and
+working; ESV via Crossway's free personal-use API (Jen creates the key at api.esv.org and
+pastes it into Convex as `ESV_API_KEY`); NIV/NLT via a licensed service such as
+API.Bible (`BIBLE_API_KEY`), availability per translation to be confirmed. Fetched
+passages cached in Convex so each is fetched once. A translation without a key shows
+"add a key to turn this on", never hides.
