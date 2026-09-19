@@ -126,3 +126,10 @@ up to three translations side by side, verse by verse, with an optional verse ra
 "Ask about the differences" (coach task `well.compare`, which quotes only the pasted
 text and never crowns a translation). ESV, NIV, and NLT appear as "later" chips until
 their keys exist.
+
+**For me (built 2026-09-19):** each person chooses a path, never assumed: "as a man, and a
+husband" or "as a woman, and a wife" (`core/well/paths.ts`). Four sections each: God's
+heart for you, the men Jesus and the Father called / the women Jesus met, as a husband /
+as a wife, and "when this has been used against you" (Ephesians 5:21 heads the marriage
+passage in both). A daily pick shows on Today; the coach inside The Well is told the
+chosen path. First draft for John and Jen to review line by line.

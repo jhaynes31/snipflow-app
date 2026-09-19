@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Anchor, BookOpen, Compass, Footprints, HandHeart, Scissors, Shield, Sunrise, Users } from "lucide-react";
+import { Anchor, BookOpen, Compass, Footprints, HandHeart, Heart, Scissors, Shield, Sunrise, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import "./the-well.css";
 
@@ -11,6 +11,7 @@ const NAV = [
   { href: ROUTE, label: "Today", icon: Sunrise, exact: true },
   { href: `${ROUTE}/bible`, label: "Bible", icon: BookOpen },
   { href: `${ROUTE}/ways`, label: "Ways of Jesus", icon: Footprints },
+  { href: `${ROUTE}/for-me`, label: "For me", icon: Heart },
   { href: `${ROUTE}/lies`, label: "Lies and truth", icon: Shield },
   { href: `${ROUTE}/untangle`, label: "Untangle", icon: Scissors },
   { href: `${ROUTE}/talking`, label: "Talking with him", icon: HandHeart },

@@ -7,6 +7,7 @@ import { DEFAULT_PERMISSIONS, LAMENT_PSALMS, TOGETHER_QUESTIONS } from "../core/
 import { parseRef, refHref, refLabel, sliceVerses } from "../core/well/refs.ts";
 import { TODAY } from "../core/well/today.ts";
 import { WAYS } from "../core/well/ways.ts";
+import { PATHS, pathPassages, readWellPath } from "../core/well/paths.ts";
 import { findBanned } from "../core/copy/banned.mjs";
 import { contrastRatio, AA_NORMAL_TEXT } from "../core/theme/contrast.ts";
 import { alignVerses, builtInTranslations, TRANSLATIONS } from "../core/well/translations.ts";
@@ -21,7 +22,7 @@ describe("The Well content", () => {
     for (const g of BOOK_GUIDES) assert.ok(g.start.chapter <= chapters.get(g.slug)!, `${g.slug} start`);
   });
   it("every reference points at a real book and chapter", () => {
-    const refs = [...TODAY.map((t) => t.ref), ...WAYS.flatMap((w) => w.passages.map((p) => p.ref)), ...LIES.map((l) => l.ref)];
+    const refs = [...TODAY.map((t) => t.ref), ...WAYS.flatMap((w) => w.passages.map((p) => p.ref)), ...LIES.map((l) => l.ref), ...PATHS.flatMap((p) => pathPassages(p).map((x) => x.ref))];
     assert.ok(refs.length > 60);
     for (const r of refs) {
       assert.ok(chapters.has(r.book), r.book);
@@ -43,6 +44,7 @@ describe("The Well content", () => {
       ...BOOK_GUIDES.flatMap((g) => [g.who, g.toWhom, g.why, g.jesus]),
       ...DEFAULT_PERMISSIONS,
       ...TOGETHER_QUESTIONS,
+      ...PATHS.flatMap((p) => [p.tagline, ...p.sections.flatMap((s) => [s.line, ...s.passages.map((x) => x.note)])]),
     ].join("\n");
     assert.deepEqual(findBanned(text), []);
     assert.doesNotMatch(text, /quiet time/i);
@@ -94,5 +96,22 @@ describe("translations", () => {
     const rows = alignVerses([["a1", "a2", "a3"], ["b1", "b2"], null]);
     assert.equal(rows.length, 3);
     assert.deepEqual(rows[2].texts, ["a3", null, null]);
+  });
+});
+
+describe("For me paths", () => {
+  it("has both paths with the four sections each, and every path is chosen, never assumed", () => {
+    assert.deepEqual(PATHS.map((p) => p.key), ["man", "woman"]);
+    for (const p of PATHS) {
+      assert.equal(p.sections.length, 4);
+      assert.ok(p.sections.some((s) => /used against you/.test(s.title)), p.key);
+      assert.ok(pathPassages(p).length >= 15, p.key);
+    }
+    assert.equal(readWellPath(undefined), null);
+    assert.equal(readWellPath({ well: { path: "man" } }), "man");
+    assert.equal(readWellPath({ well: { path: "other" } }), null);
+  });
+  it("both paths carry Ephesians 5:21, the heading over the marriage passage", () => {
+    for (const p of PATHS) assert.ok(pathPassages(p).some((x) => x.ref.book === "ephesians" && x.ref.chapter === 5 && x.ref.from === 21), p.key);
   });
 });

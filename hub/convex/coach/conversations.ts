@@ -122,7 +122,10 @@ export const contextFor = internalQuery({
       }
     }
     const settings = readTendSettings(me.profile.moduleSettings);
+    const wellPath = (me.profile.moduleSettings?.well as { path?: unknown } | undefined)?.path;
+    const path: "man" | "woman" | null = wellPath === "man" ? "man" : wellPath === "woman" ? "woman" : null;
     return {
+      wellPath: path,
       module: row.module,
       messages: row.messages.slice(-CONTEXT_MESSAGES).map((m) => ({ role: m.role, content: m.content })),
       displayName: me.profile.displayName,

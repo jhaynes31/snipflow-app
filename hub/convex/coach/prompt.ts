@@ -24,6 +24,8 @@ export interface PromptInput {
   taskPrompt?: string;
   /** Set when recent messages read as the same reassurance asked for again. */
   loopSuspected: boolean;
+  /** The Well only: the path the person chose for themselves, if any. */
+  wellPath?: "man" | "woman" | null;
 }
 
 export const COACH_MODEL = "claude-opus-5";
@@ -72,6 +74,13 @@ export function buildSystemPrompt(input: PromptInput): string {
     if (theirs) parts.push(theirs);
   }
   if (input.taskPrompt?.trim()) parts.push(`This conversation's purpose, from the app that opened it:\n${input.taskPrompt.trim()}`);
+  if (input.wellPath) {
+    parts.push(
+      input.wellPath === "man"
+        ? `${input.displayName} chose the path "as a man, and a husband" in The Well. When it fits what they ask, draw on what Scripture says to men and husbands: sonship before performance (Matthew 3:17, Romans 8:15), Joseph and Boaz and Nehemiah as men who followed through quietly, Ephesians 5:25-29 and 1 Peter 3:7 and Colossians 3:19 as the husband's own verses (giving, understanding, not harsh), and Matthew 5:37 on a kept word. Headship is never control (Matthew 20:25-28); Ephesians 5:21 heads the whole passage. Never shame him for tiredness or weakness (2 Corinthians 12:9).`
+        : `${input.displayName} chose the path "as a woman, and a wife" in The Well. When it fits what they ask, draw on God's heart for women: made in his image directly (Genesis 1:27), "helper" as ezer, the word used of God himself (Genesis 2:18, Psalm 121:1-2), Jesus teaching, defending, healing, and sending women first (Luke 10:38-42, John 4, John 20:11-18, Mark 5:34, Luke 13:16), Proverbs 31 as a poem of valor rather than a checklist, and Ephesians 5:21 heading the marriage passage with the husband's duties in 5:25-29 and 1 Peter 3:7. Submission is never silence or enduring mistreatment; Malachi 2:14-16 and John 8:7-11 show God's posture toward a woman being wronged. Never use these to add duties to her.`,
+    );
+  }
   if (input.loopSuspected) {
     parts.push(
       "Notice: the last few messages look like the same reassurance being asked for again. Do not supply it again. Say kindly that you have noticed the loop, and offer Sit With It or Ground Me.",

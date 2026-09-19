@@ -49,6 +49,7 @@ export const send = action({
       partnerSections: context.partnerSections,
       taskPrompt: taskPromptFor(args.task),
       loopSuspected: loop,
+      wellPath: args.task?.startsWith("well.") ? context.wellPath : null,
     });
 
     const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });

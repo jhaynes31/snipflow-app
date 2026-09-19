@@ -5,6 +5,7 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { WellShell } from "./WellShell";
 import { Book, Books, Chapter, Glossary } from "./screens/Bible";
 import { Compare } from "./screens/Compare";
+import { ForMe } from "./screens/ForMe";
 import { Lies } from "./screens/Lies";
 import { Permissions } from "./screens/Permissions";
 import { Remembering } from "./screens/Remembering";
@@ -47,6 +48,7 @@ export const theWell: ModuleManifest = {
     else if (first === "bible" && second) screen = <Book slug={second} />;
     else if (first === "bible") screen = <Books />;
     else if (first === "ways") screen = <Ways area={second} />;
+    else if (first === "for-me") screen = <ForMe section={second} />;
     else if (first === "lies") screen = <Lies />;
     else if (first === "untangle") screen = <Untangle />;
     else if (first === "talking") screen = <Talking />;

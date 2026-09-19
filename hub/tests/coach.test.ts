@@ -123,6 +123,12 @@ describe("system prompt", () => {
     assert.match(p, /has not joined yet/);
     assert.doesNotMatch(p, /Time to process/);
   });
+  it("adds the chosen path only when given", () => {
+    const p = buildSystemPrompt({ ...base, wellPath: "woman" });
+    assert.match(p, /ezer/);
+    assert.match(p, /Ephesians 5:21/);
+    assert.doesNotMatch(buildSystemPrompt(base), /ezer/);
+  });
   it("ignores unknown task keys", () => {
     assert.equal(taskPromptFor("nope"), undefined);
     assert.equal(taskPromptFor(undefined), undefined);

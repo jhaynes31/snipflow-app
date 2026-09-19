@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { lastPlace } from "@/core/well/bible";
+import { pathByKey, pathPassages, readWellPath } from "@/core/well/paths";
 import { TODAY } from "@/core/well/today";
+import { useHub } from "@/core/shell/HubContext";
 import { pickForDay } from "@/convex/reCentered/pure";
 import { Card, PageTitle } from "@/core/ui";
 import { Passage } from "../components/Passage";
@@ -13,6 +15,8 @@ import { Passage } from "../components/Passage";
  * says how long it has been, because that is not the point.
  */
 export function Today() {
+  const { profile } = useHub();
+  const path = pathByKey(readWellPath(profile.moduleSettings) ?? undefined);
   const [day] = useState(() => new Date().toISOString().slice(0, 10));
   const [place] = useState(() => lastPlace());
   const entry = pickForDay(TODAY, day)!;
@@ -37,6 +41,24 @@ export function Today() {
           </p>
         )}
       </Card>
+      {path ? (
+        (() => {
+          const d = pickForDay(pathPassages(path), day)!;
+          return (
+            <Card tone="alt">
+              <p className="sh-eyebrow">For you, {path.title.toLowerCase()} · {d.section}</p>
+              <p>{d.note}</p>
+              <p className="mt-3">
+                <Link href="/the-well/for-me" className="sh-link">Read it, and more like it</Link>
+              </p>
+            </Card>
+          );
+        })()
+      ) : (
+        <p className="sh-hint">
+          There is a <Link href="/the-well/for-me" className="sh-link">For me</Link> page with passages for the path you choose: as a man and husband, or as a woman and wife.
+        </p>
+      )}
       <p className="sh-hint">
         {place ? (
           <>
