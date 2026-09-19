@@ -1,8 +1,8 @@
 # Heartwood Fitness: moving it into The Shire
 
 Written 2026-09-19 after reading the Heartwood app on branch `claude/brave-dirac-5rvz7q`
-(folder `heartwood/`, built 2026-09-17 to 18 in session "Heartwood"). Jen approves this
-plan before anything moves.
+(folder `heartwood/`, built 2026-09-17 to 18 in session "Heartwood"). Approved and built
+the same day; the "How it is wired" section at the end says where everything lives now.
 
 ## What Heartwood is today
 
@@ -64,6 +64,8 @@ stickers, the PT plan, and the offline behavior all stay.
 
 ## Existing data
 
+Heartwood was never used before the move (Jen, 2026-09-19), so nothing was migrated.
+
 Any sessions logged on the old `heartwood-*.vercel.app` address stay in that browser's
 storage; browsers do not move data between addresses. Heartwood already has a JSON
 export and import in Settings. If either of you has logged sessions there: open the old
@@ -84,3 +86,26 @@ haven't used it yet, there is nothing to move. The old address can be deleted af
   can include sessions.
 - "Ask My Coach" through the shared coach, with Heartwood's safety context.
 - Real exercise GIFs, which need a free ExerciseDB key and a build-time download.
+
+## How it is wired (built 2026-09-19)
+
+- `hub/heartwood/` is the Heartwood app, unchanged apart from: Vite `base` and the PWA
+  `start_url`, `scope` and offline fallback at `/fitness/app/`; `src/app/base.ts`
+  (`assetUrl` turns the data files' `/media/...` paths into `/fitness/app/media/...`);
+  `src/app/handoff.ts` (reads `?who=her|john`, `gentle`, `tender`, `weather` once at
+  startup, sets the person, keeps the signals for the visit only, clears the address);
+  a "Shire" link in the bottom nav; "Switch person" sends you to `/fitness` instead of
+  Heartwood's Who screen; Today starts on the 5-minute version when the day is gentle or
+  tender. Its own tests still run with `npm test` inside `hub/heartwood`.
+- `hub/scripts/build-heartwood.mjs` installs and builds Heartwood and copies `dist` to
+  `hub/public/fitness/app/` (gitignored). `scripts/vercel-build.mjs` runs it before the
+  site builds; `npm run build:heartwood` runs it alone.
+- `next.config.ts` rewrites `/fitness/app` and any deeper path to Heartwood's
+  `index.html` after real files are checked, so deep links and reloads work; its
+  service worker at `/fitness/app/sw.js` is never served stale.
+- `modules/fitness/`: `settings.ts` (which person: `moduleSettings.fitness.who`, or the
+  profile's first name when it is Jen or John), `heartwoodData.ts` (reads Heartwood's
+  IndexedDB `heartwood-her` / `heartwood-john` read-only for the Today line),
+  `screens/Open.tsx` (the `/fitness` page), `widgets.tsx` (home Today line).
+- Heartwood's data never leaves the device. Seasons and the coach cannot see it.
+- `hub/tsconfig.json` and `eslint.config.mjs` leave `heartwood/` to its own toolchain.

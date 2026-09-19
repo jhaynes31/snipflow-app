@@ -1,0 +1,159 @@
+import Dexie, { type EntityTable } from 'dexie';
+import type {
+  Assessment, CustomMedia, Exercise, LessonUnlock, PlannedSession, ProgressionState, RedFlagEvent, SetLog, TreeState, UserProfile, WeekSettings,
+} from '@/domain/types';
+import { DEFAULT_PREFERRED_DAYS } from '@/domain/schedule';
+import { USER_MAP, dbNameFor, getActiveUserId, type UserId } from './users';
+
+/** A sticker placed on the sticker chart for a day (Progress > Sticker book). */
+export interface PlacedSticker { id?: number; date: string; stickerId: string; sessionId?: string; placedAt: string }
+
+/** All data lives on-device (Section 2). Single user, so the profile is keyed 'me'. */
+export class HeartwoodDB extends Dexie {
+  profile!: EntityTable<UserProfile, 'id'>;
+  weeks!: EntityTable<WeekSettings, 'weekStart'>;
+  sessions!: EntityTable<PlannedSession, 'id'>;
+  setLogs!: EntityTable<SetLog, 'id'>;
+  progression!: EntityTable<ProgressionState, 'key'>;
+  assessments!: EntityTable<Assessment, 'id'>;
+  redFlags!: EntityTable<RedFlagEvent, 'id'>;
+  lessons!: EntityTable<LessonUnlock, 'lessonId'>;
+  tree!: EntityTable<TreeState, 'id'>;
+  customExercises!: EntityTable<Exercise, 'id'>;
+  customMedia!: EntityTable<CustomMedia, 'key'>;
+  /** Free-form key/value for small bits of state (e.g. last readiness answer). */
+  kv!: EntityTable<{ key: string; value: unknown }, 'key'>;
+  stickers!: EntityTable<PlacedSticker, 'id'>;
+
+  constructor(name = 'heartwood') {
+    super(name);
+    this.version(1).stores({
+      profile: 'id',
+      weeks: 'weekStart',
+      sessions: 'id, sequenceIndex, status, scheduledDate, completedAt',
+      setLogs: '++id, sessionId, exerciseId, [exerciseId+side], loggedAt',
+      progression: 'key, exerciseId',
+      assessments: '++id, date, kind',
+      redFlags: '++id, date',
+      lessons: 'lessonId',
+      tree: 'id',
+      customExercises: 'id',
+      customMedia: 'key',
+      kv: 'key',
+    });
+    this.version(2).stores({ stickers: '++id, date, sessionId' });
+  }
+}
+
+/** The active person's database. Switching person reloads the app (see users.ts). */
+export const db = new HeartwoodDB(dbNameFor(getActiveUserId()));
+
+export function defaultProfile(now = new Date().toISOString(), userId: UserId | null = getActiveUserId()): UserProfile {
+  const user = userId ? USER_MAP[userId] : USER_MAP.her;
+  // Her body history is pre-filled from the spec; John starts with a clean slate.
+  const her = user.id === 'her';
+  return {
+    id: 'me',
+    userId: user.id,
+    bodyType: user.bodyType,
+    name: her ? '' : user.label,
+    goals: ['strength', 'balance', 'joint-health', 'feel-better'],
+    sessionLength: 35,
+    preferredDays: [...DEFAULT_PREFERRED_DAYS],
+    sabbathDay: 'sun',
+    equipment: { dumbbellWeights: [5, 8, 10, 15], weightUnit: 'lb', bandLevels: ['light', 'medium', 'heavy'], yogaBlocks: true, chair: true, counter: true, wall: true, step: true },
+    bodyHistory: her ? {
+      neckIssues: true, balanceIssues: true, ankleHistory: true, leftKneeInjury: true, rightKneeInjury: false,
+      painAreas: [], tightnessAreas: [], pastInjuryAreas: ['neck', 'ankles-feet', 'left-knee'], notes: '',
+    } : {
+      neckIssues: false, balanceIssues: false, ankleHistory: false, leftKneeInjury: false, rightKneeInjury: false,
+      painAreas: [], tightnessAreas: [], pastInjuryAreas: [], notes: '',
+    },
+    ptPlan: { restrictions: [], customExerciseIds: [], notes: '', scheduleInto: ['ptKneesHips'] },
+    why: {},
+    coachSettings: { tone: 'gentle', critique: 'light', voice: 'cues', faithTrack: true, coachDesign: her ? 'willow' : 'oak', ptDesign: her ? 'fern' : 'river' },
+    themeMode: 'system',
+    sensorySettings: { reducedMotion: false, soundCues: true, vibrationCues: true, visualIntensity: 'normal', outdoorMode: false, keepScreenAwake: true, remindersEnabled: false },
+    unlockedCautions: [],
+    onboardingStep: 0,
+    onboardingComplete: false,
+    createdAt: now,
+    maintainMode: false,
+  };
+}
+
+export const DEFAULT_TREE: TreeState = { id: 'tree', growthPoints: 0, rootPoints: 0, milestones: [], totalSessions: 0 };
+
+export async function getProfile(database: HeartwoodDB = db): Promise<UserProfile> {
+  const p = await database.profile.get('me');
+  if (p) return p;
+  const fresh = defaultProfile();
+  await database.profile.put(fresh);
+  return fresh;
+}
+
+export async function saveProfile(patch: Partial<UserProfile>, database: HeartwoodDB = db): Promise<UserProfile> {
+  const cur = await getProfile(database);
+  const next = { ...cur, ...patch, id: 'me' as const };
+  await database.profile.put(next);
+  return next;
+}
+
+export async function getTree(database: HeartwoodDB = db): Promise<TreeState> {
+  return (await database.tree.get('tree')) ?? { ...DEFAULT_TREE };
+}
+
+// ---------------------------------------------------------------------------
+// Export / import (Section 2: JSON backup)
+// ---------------------------------------------------------------------------
+
+export interface BackupFile {
+  app: 'heartwood';
+  version: 1;
+  exportedAt: string;
+  data: Record<string, unknown[]>;
+  media?: { key: string; mime: string; createdAt: string; base64: string }[];
+}
+
+const TABLES = ['profile', 'weeks', 'sessions', 'setLogs', 'progression', 'assessments', 'redFlags', 'lessons', 'tree', 'customExercises', 'kv', 'stickers'] as const;
+
+async function blobToBase64(b: Blob): Promise<string> {
+  const buf = new Uint8Array(await b.arrayBuffer());
+  let s = '';
+  for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+function base64ToBlob(b64: string, mime: string): Blob {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+export async function exportAll(database: HeartwoodDB = db, includeMedia = true): Promise<BackupFile> {
+  const data: Record<string, unknown[]> = {};
+  for (const t of TABLES) data[t] = await database.table(t).toArray();
+  const out: BackupFile = { app: 'heartwood', version: 1, exportedAt: new Date().toISOString(), data };
+  if (includeMedia) {
+    const media = await database.customMedia.toArray();
+    out.media = [];
+    for (const m of media) out.media.push({ key: m.key, mime: m.mime, createdAt: m.createdAt, base64: await blobToBase64(m.blob) });
+  }
+  return out;
+}
+
+export async function importAll(file: BackupFile, database: HeartwoodDB = db): Promise<void> {
+  if (file.app !== 'heartwood') throw new Error('This file is not a Heartwood backup.');
+  await database.transaction('rw', database.tables, async () => {
+    for (const t of TABLES) {
+      await database.table(t).clear();
+      const rows = file.data[t];
+      if (Array.isArray(rows) && rows.length) await database.table(t).bulkPut(rows);
+    }
+    await database.customMedia.clear();
+    for (const m of file.media ?? []) {
+      await database.customMedia.put({ key: m.key, mime: m.mime, createdAt: m.createdAt, blob: base64ToBlob(m.base64, m.mime) });
+    }
+  });
+}

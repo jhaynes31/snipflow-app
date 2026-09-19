@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="prone position">
+<style>@media (prefers-reduced-motion: no-preference){ .b{ animation: breathe 4s ease-in-out infinite; transform-origin: 150px 150px; } @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} } }</style>
+<rect width="320" height="240" rx="24" fill="#E6ECD8"/>
+<circle cx="270" cy="44" r="22" fill="#F2C94C" opacity="0.6"/>
+<line x1="24" y1="204" x2="296" y2="204" stroke="#6B4F3A" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+<g class="b"><circle cx="60" cy="186" r="13" fill="#2F4A2E"/><line x1="74" y1="184" x2="150" y2="184" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="150" y1="184" x2="240" y2="186" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="100" y1="184" x2="90" y2="204" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="200" y1="186" x2="205" y2="204" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/></g>
+</svg>

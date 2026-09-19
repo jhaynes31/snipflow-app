@@ -10,6 +10,7 @@
 import { execFileSync, execSync } from "node:child_process";
 import { generateAuthKeys, siteUrlFromVercel } from "./lib/authKeys.mjs";
 import { importEveryBoxIfNeeded } from "./import-every-box.mjs";
+import { buildHeartwood } from "./build-heartwood.mjs";
 
 const isProduction = process.env.VERCEL_ENV === "production";
 const hasKey = Boolean(process.env.CONVEX_DEPLOY_KEY);
@@ -53,6 +54,9 @@ async function configureAuth() {
     convexEnvSet("SITE_URL", siteUrl);
   }
 }
+
+// Heartwood Fitness first, so `next build` picks up public/fitness/app.
+buildHeartwood();
 
 if (isProduction && hasKey) {
   await configureAuth();

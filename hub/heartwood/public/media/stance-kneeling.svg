@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-label="kneeling position">
+<style>@media (prefers-reduced-motion: no-preference){ .b{ animation: breathe 4s ease-in-out infinite; transform-origin: 150px 150px; } @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} } }</style>
+<rect width="320" height="240" rx="24" fill="#E6ECD8"/>
+<circle cx="270" cy="44" r="22" fill="#F2C94C" opacity="0.6"/>
+<line x1="24" y1="204" x2="296" y2="204" stroke="#6B4F3A" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+<g class="b"><circle cx="150" cy="78" r="13" fill="#2F4A2E"/><line x1="150" y1="92" x2="150" y2="150" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="150" y1="150" x2="110" y2="154" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="110" y1="154" x2="110" y2="204" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="150" y1="150" x2="190" y2="200" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/><line x1="150" y1="110" x2="200" y2="120" stroke="#2F4A2E" stroke-width="10" stroke-linecap="round"/></g>
+</svg>
