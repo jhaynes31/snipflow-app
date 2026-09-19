@@ -29,8 +29,14 @@ function convexEnvGet(name) {
 }
 
 export async function importEveryBoxIfNeeded() {
-  const source = process.env.EVERY_BOX_SOURCE_DEPLOY_KEY;
-  if (!source) return;
+  // Accept the variable name in any capitalization; it was typed as
+  // Every_Box_Source_Deploy_Key once and names are case-sensitive.
+  const sourceName = Object.keys(process.env).find((k) => k.toUpperCase() === "EVERY_BOX_SOURCE_DEPLOY_KEY");
+  const source = sourceName ? process.env[sourceName] : undefined;
+  if (!source) {
+    console.log("No Every Box source key set; skipping the data copy.");
+    return;
+  }
   if (convexEnvGet("EVERY_BOX_IMPORTED")) {
     console.log("Every Box data was already copied in; skipping.");
     return;
