@@ -1,0 +1,37 @@
+# Love & Release: moving it into The Shire
+
+Done 2026-09-19, the same way as Heartwood Fitness (docs/heartwood-migration-plan.md).
+The app came from branch `claude/eloquent-meitner-ysxxf6` (folder `love-and-release/`,
+built 2026-09-17 to 18 in session "Love & Release app").
+
+## What it is
+
+A faith-centered people-pleasing recovery companion built for a CPTSD and neurodivergent
+brain: the front door with feeling-language doors, comfort path, fawn alarm, taking it
+personally, threads, circles with layers and moves, red flags, boundaries, Unhooked (the
+loop tools), Walk With Jesus cards, truths, release journal, wins, a sixty-second morning
+and evening, and settings with a passcode lock, reminders, export and import. Everything is
+on the device in IndexedDB; there is no server and no account. Its README lists every route.
+
+## What changed to live inside The Shire
+
+- `hub/love-and-release/`: Vite `base` and the PWA `start_url`, `scope` and offline
+  fallback at `/love-and-release/app/`; `src/app/person.ts` reads `?who=her|john` once at
+  startup, remembers it on the device, and clears it from the address. Jen's database keeps
+  its original name, so nothing of hers moves; John's gets `-john` on the database and the
+  seed markers. A "Shire" link sits in the bottom nav; "Reset everything" returns to the
+  Shire page. The hosted-preview build (`PREVIEW=1`) is untouched.
+- `hub/scripts/build-embedded-apps.mjs` builds it with Heartwood and copies `dist` to
+  `hub/public/love-and-release/app/` (gitignored). `next.config.ts` rewrites
+  `/love-and-release/app` and deeper paths to its `index.html`; its service worker is never
+  served stale.
+- `modules/love-and-release/`: `settings.ts` (which person, `moduleSettings["love-and-release"].who`
+  or the profile's first name), `screens/Open.tsx` (the `/love-and-release` page with one button).
+  No Today line on purpose: what happens in there is private, and The Shire does not read it.
+- `hub/tsconfig.json` and `eslint.config.mjs` leave `love-and-release/` to its own toolchain.
+
+## Existing data
+
+Anything written at the app's old address stays in that browser. Its Settings has Export
+and Import: open the old address, Settings, Export, save the file; open it from The Shire,
+Settings, Import.

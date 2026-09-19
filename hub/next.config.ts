@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
       afterFiles: [
         { source: "/fitness/app", destination: "/fitness/app/index.html" },
         { source: "/fitness/app/:path*", destination: "/fitness/app/index.html" },
+        // Love & Release, the same way (hub/love-and-release → public/love-and-release/app).
+        { source: "/love-and-release/app", destination: "/love-and-release/app/index.html" },
+        { source: "/love-and-release/app/:path*", destination: "/love-and-release/app/index.html" },
       ],
     };
   },
@@ -22,6 +25,13 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/love-and-release/app/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
       {
         // Heartwood's own service worker, same rule.
         source: "/fitness/app/sw.js",

@@ -5,8 +5,9 @@
 /.next/
 /out/
 
-# Heartwood Fitness build output (scripts/build-heartwood.mjs)
+# Embedded app build output (scripts/build-embedded-apps.mjs)
 /public/fitness/app/
+/public/love-and-release/app/
 
 # env files
 .env*

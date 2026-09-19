@@ -2,11 +2,13 @@
 
 import { Leaf } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
-import { PlannedScreen } from "@/modules/_shared/PlannedScreen";
+import { Open } from "./screens/Open";
 
 /**
- * Love & Release: circles for letting go. Private by default. Built in
- * phase 6 from its own spec.
+ * Love & Release: circles for letting go. Private by default. Built on its
+ * own (hub/love-and-release, a Vite app with its data on the device) and
+ * moved into The Shire on 2026-09-19 as an embedded app served at
+ * /love-and-release/app/. This module is the doorway.
  */
 export const loveAndRelease: ModuleManifest = {
   id: "love-and-release",
@@ -24,11 +26,11 @@ export const loveAndRelease: ModuleManifest = {
   sharedData: [],
   crossModuleHooks: {
     emits: [],
-    listens: ["checkin.low"],
+    listens: [],
   },
-  usesAICoach: true,
-  status: "planned",
+  usesAICoach: false,
+  status: "ready",
   Screen: function LoveAndReleaseScreen() {
-    return <PlannedScreen manifest={loveAndRelease} phase={6} />;
+    return <Open />;
   },
 };

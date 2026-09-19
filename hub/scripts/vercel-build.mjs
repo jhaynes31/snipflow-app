@@ -10,7 +10,7 @@
 import { execFileSync, execSync } from "node:child_process";
 import { generateAuthKeys, siteUrlFromVercel } from "./lib/authKeys.mjs";
 import { importEveryBoxIfNeeded } from "./import-every-box.mjs";
-import { buildHeartwood } from "./build-heartwood.mjs";
+import { buildEmbeddedApps } from "./build-embedded-apps.mjs";
 
 const isProduction = process.env.VERCEL_ENV === "production";
 const hasKey = Boolean(process.env.CONVEX_DEPLOY_KEY);
@@ -55,8 +55,8 @@ async function configureAuth() {
   }
 }
 
-// Heartwood Fitness first, so `next build` picks up public/fitness/app.
-buildHeartwood();
+// Heartwood Fitness and Love & Release first, so `next build` picks up their files under public/.
+buildEmbeddedApps();
 
 if (isProduction && hasKey) {
   await configureAuth();

@@ -4,21 +4,15 @@
  * The Shire decides which one the signed-in person opens: by their profile name
  * when it is plainly one of the two, otherwise by a one-time choice kept here.
  */
-export type HeartwoodPerson = "her" | "john";
+import { personFromName, readPersonSetting, type EmbeddedPerson } from "@/core/person";
+
+export type HeartwoodPerson = EmbeddedPerson;
+export { personFromName };
 
 export const FITNESS_MODULE_ID = "fitness";
 
 export function readFitnessSettings(moduleSettings: Record<string, unknown> | undefined): { who: HeartwoodPerson | null } {
-  const raw = (moduleSettings?.[FITNESS_MODULE_ID] ?? {}) as { who?: unknown };
-  return { who: raw.who === "her" || raw.who === "john" ? raw.who : null };
-}
-
-/** "John" (any case, with or without a surname) is John's database; nothing else is assumed. */
-export function personFromName(displayName: string): HeartwoodPerson | null {
-  const first = displayName.trim().split(/\s+/)[0]?.toLowerCase();
-  if (first === "john") return "john";
-  if (first === "jen" || first === "jennifer") return "her";
-  return null;
+  return { who: readPersonSetting(moduleSettings, FITNESS_MODULE_ID) };
 }
 
 /** IndexedDB name Heartwood uses for a person. Must match hub/heartwood/src/db/users.ts. */

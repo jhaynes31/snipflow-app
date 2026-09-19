@@ -18,7 +18,7 @@ helps through the event bus.
 
 Suggested first specs: Hearth and The Pantry. Names are placeholders until Jen chooses.
 
-Still planned from the original contract: Heartwood Fitness (phase 5) and Love & Release (phase 6).
+Heartwood Fitness and Love & Release, planned in the original contract, were both moved in on 2026-09-19 as embedded apps.
 
 ---
 

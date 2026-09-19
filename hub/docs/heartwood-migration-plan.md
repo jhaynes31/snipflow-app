@@ -97,9 +97,9 @@ haven't used it yet, there is nothing to move. The old address can be deleted af
   a "Shire" link in the bottom nav; "Switch person" sends you to `/fitness` instead of
   Heartwood's Who screen; Today starts on the 5-minute version when the day is gentle or
   tender. Its own tests still run with `npm test` inside `hub/heartwood`.
-- `hub/scripts/build-heartwood.mjs` installs and builds Heartwood and copies `dist` to
-  `hub/public/fitness/app/` (gitignored). `scripts/vercel-build.mjs` runs it before the
-  site builds; `npm run build:heartwood` runs it alone.
+- `hub/scripts/build-embedded-apps.mjs` installs and builds Heartwood (and Love & Release)
+  and copies `dist` to `hub/public/fitness/app/` (gitignored). `scripts/vercel-build.mjs`
+  runs it before the site builds; `npm run build:embedded` runs it alone.
 - `next.config.ts` rewrites `/fitness/app` and any deeper path to Heartwood's
   `index.html` after real files are checked, so deep links and reloads work; its
   service worker at `/fitness/app/sw.js` is never served stale.
