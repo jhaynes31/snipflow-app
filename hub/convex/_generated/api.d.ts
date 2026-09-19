@@ -34,11 +34,16 @@ import type * as tend_checkIns from "../tend/checkIns.js";
 import type * as tend_evidence from "../tend/evidence.js";
 import type * as tend_focus from "../tend/focus.js";
 import type * as tend_guidance from "../tend/guidance.js";
+import type * as tend_log from "../tend/log.js";
 import type * as tend_loops from "../tend/loops.js";
 import type * as tend_loveMenu from "../tend/loveMenu.js";
+import type * as tend_notes from "../tend/notes.js";
+import type * as tend_patterns from "../tend/patterns.js";
 import type * as tend_projects from "../tend/projects.js";
 import type * as tend_pure from "../tend/pure.js";
+import type * as tend_repair from "../tend/repair.js";
 import type * as tend_starter from "../tend/starter.js";
+import type * as tend_together from "../tend/together.js";
 import type * as tend_tools from "../tend/tools.js";
 
 import type {
@@ -74,11 +79,16 @@ declare const fullApi: ApiFromModules<{
   "tend/evidence": typeof tend_evidence;
   "tend/focus": typeof tend_focus;
   "tend/guidance": typeof tend_guidance;
+  "tend/log": typeof tend_log;
   "tend/loops": typeof tend_loops;
   "tend/loveMenu": typeof tend_loveMenu;
+  "tend/notes": typeof tend_notes;
+  "tend/patterns": typeof tend_patterns;
   "tend/projects": typeof tend_projects;
   "tend/pure": typeof tend_pure;
+  "tend/repair": typeof tend_repair;
   "tend/starter": typeof tend_starter;
+  "tend/together": typeof tend_together;
   "tend/tools": typeof tend_tools;
 }>;
 

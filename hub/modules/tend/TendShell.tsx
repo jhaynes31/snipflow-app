@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, HeartHandshake, Sunrise, Wrench } from "lucide-react";
+import { BookOpen, HeartHandshake, LineChart, Sunrise, Users, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
 import "./tend.css";
 
@@ -10,7 +10,9 @@ const ROUTE = "/tend";
 const NAV = [
   { href: ROUTE, label: "Now", icon: Sunrise, exact: true },
   { href: `${ROUTE}/tools`, label: "My tools", icon: Wrench },
+  { href: `${ROUTE}/log`, label: "My log", icon: LineChart },
   { href: `${ROUTE}/for-you`, label: "For you", icon: HeartHandshake },
+  { href: `${ROUTE}/together`, label: "Together", icon: Users },
   { href: `${ROUTE}/my-manual`, label: "My manual", icon: BookOpen },
 ];
 

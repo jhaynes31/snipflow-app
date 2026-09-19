@@ -28,7 +28,9 @@ export function MyTools() {
         ))}
       </div>
       <Card tone="alt">
-        <p className="sh-muted">Talk It Out, the private chat with the coach, arrives with the AI coach in a later build phase. Your log and chart, and your safety plan, come in later steps too.</p>
+        <p className="sh-muted">
+          Your log and chart are under <Link href="/tend/log" className="sh-link">My log</Link>. Talk It Out, the private chat with the coach, and your safety plan arrive with the AI coach in the next build phase.
+        </p>
       </Card>
     </div>
   );

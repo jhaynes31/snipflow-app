@@ -331,6 +331,63 @@ export default defineSchema({
     joinedProfileId: v.optional(v.id("profiles")),
   }).index("by_owner_time", ["ownerId", "startedAt"]),
 
+  /** Cycle start dates. Private. The partner only ever sees the forecast summary, and only if shared. */
+  tendCycleStarts: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** Local calendar day as YYYY-MM-DD. */
+    day: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_day", ["ownerId", "day"]),
+
+  /** Optional sleep hours per day. Private. */
+  tendSleep: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    hours: v.number(),
+    createdAt: v.number(),
+  }).index("by_owner_day", ["ownerId", "day"]),
+
+  /**
+   * A Repair conversation. Shared between the two, but each person's
+   * writing stays hidden from the other until both have submitted, and the
+   * reveal happens at the same time for both.
+   */
+  tendRepairs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    partnerId: v.id("profiles"),
+    status: v.union(v.literal("invited"), v.literal("later"), v.literal("writing"), v.literal("revealed"), v.literal("closed")),
+    laterAt: v.optional(v.number()),
+    entries: v.array(
+      v.object({
+        profileId: v.id("profiles"),
+        happened: v.string(),
+        felt: v.string(),
+        needed: v.string(),
+        submittedAt: v.number(),
+        heard: v.optional(v.string()),
+        own: v.optional(v.string()),
+        nextTime: v.optional(v.string()),
+        gesture: v.optional(v.string()),
+      }),
+    ),
+    revealedAt: v.optional(v.number()),
+    closedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "updatedAt"]),
+
+  /** "I saw you" appreciation notes. Shared. */
+  tendNotes: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    toProfileId: v.id("profiles"),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_to_time", ["toProfileId", "createdAt"]),
+
   /** A love-menu item the partner picked and did. Shared. Emits `loveAction.done`. */
   tendLoveActions: defineTable({
     ownerId: v.id("profiles"),

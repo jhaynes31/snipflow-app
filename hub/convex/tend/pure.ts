@@ -50,6 +50,13 @@ export interface TendSettings {
   starterChosen: boolean;
   /** Pause Before Big Moves: the person's own rule, set on a steady day. Shown when energy reads revved. */
   pauseRule?: string;
+  /** Share my tender-week forecast with my partner as a summary. Off until turned on. */
+  shareForecast: boolean;
+  /** Days before a predicted cycle start that count as the tender week, and after. */
+  tenderBefore: number;
+  tenderAfter: number;
+  /** Include which tools helped me in the monthly "how are we doing" view. Off until turned on. */
+  shareToolHelps: boolean;
 }
 
 export function readTendSettings(moduleSettings: Record<string, unknown> | undefined): TendSettings {
@@ -59,6 +66,10 @@ export function readTendSettings(moduleSettings: Record<string, unknown> | undef
     tiles: Array.isArray(raw.tiles) ? raw.tiles : [],
     starterChosen: raw.starterChosen === true,
     pauseRule: typeof raw.pauseRule === "string" && raw.pauseRule.trim() ? raw.pauseRule : undefined,
+    shareForecast: raw.shareForecast === true,
+    tenderBefore: typeof raw.tenderBefore === "number" ? Math.min(10, Math.max(0, raw.tenderBefore)) : 5,
+    tenderAfter: typeof raw.tenderAfter === "number" ? Math.min(10, Math.max(0, raw.tenderAfter)) : 2,
+    shareToolHelps: raw.shareToolHelps === true,
   };
 }
 

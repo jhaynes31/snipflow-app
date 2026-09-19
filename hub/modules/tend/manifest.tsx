@@ -7,6 +7,9 @@ import { ForYou } from "./screens/ForYou";
 import { MyManual } from "./screens/MyManual";
 import { MyTools } from "./screens/MyTools";
 import { Now } from "./screens/Now";
+import { Log } from "./screens/Log";
+import { Together } from "./screens/Together";
+import { TendToday } from "./widgets";
 import { ToolScreen } from "./tools/index";
 
 /**
@@ -27,10 +30,11 @@ export const tend: ModuleManifest = {
     tint: "#F3E7CC",
     dark: { accent: "#E8B866", onAccent: "#1F261C", tint: "#3A3A2A" },
   },
+  todayWidget: TendToday,
   headsUpTypes: ["checkIn", "storyCheck", "repairInvite", "urgent"],
   sharedData: ["heads-up cards", "guidance entries", "love menus", "love actions", "the Evidence Bank"],
   crossModuleHooks: {
-    emits: ["checkin.low", "checkin.revved", "loveAction.done"],
+    emits: ["checkin.low", "checkin.revved", "loveAction.done", "forecast.tenderWeek", "repair.completed", "project.sendToEveryBox"],
     listens: ["category.stuck"],
   },
   usesAICoach: true,
@@ -43,6 +47,8 @@ export const tend: ModuleManifest = {
     else if (first === "my-manual") screen = <MyManual />;
     else if (first === "tools" && second) screen = <ToolScreen toolKey={second} id={third} />;
     else if (first === "tools") screen = <MyTools />;
+    else if (first === "log") screen = <Log />;
+    else if (first === "together") screen = <Together />;
     else screen = <Now />;
     return <TendShell>{screen}</TendShell>;
   },
