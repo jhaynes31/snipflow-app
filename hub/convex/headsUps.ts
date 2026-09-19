@@ -29,6 +29,8 @@ export const send = mutation({
     urgent: v.optional(v.boolean()),
     addToCalendar: v.optional(v.boolean()),
     sourceModule: v.optional(v.string()),
+    kinds: v.optional(v.array(v.string())),
+    checkInId: v.optional(v.id("checkIns")),
   },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
@@ -48,6 +50,8 @@ export const send = mutation({
       urgent: args.urgent ?? false,
       addToCalendar: args.addToCalendar ?? false,
       sourceModule: args.sourceModule ?? "hub",
+      kinds: args.kinds?.slice(0, 12),
+      checkInId: args.checkInId,
       createdAt: Date.now(),
     });
     await emitEvent(ctx, {

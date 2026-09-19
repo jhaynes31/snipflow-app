@@ -35,7 +35,16 @@ export const helpKind = v.union(
   v.literal("quietPresence"),
   v.literal("practicalHelp"),
   v.literal("words"),
+  v.literal("prayer"),
   v.literal("dontFixIt"),
+);
+
+export const weatherKind = v.union(
+  v.literal("sunny"),
+  v.literal("partlyCloudy"),
+  v.literal("foggy"),
+  v.literal("stormy"),
+  v.literal("heavy"),
 );
 
 export const headsUpResponse = v.union(
@@ -132,6 +141,9 @@ export default defineSchema({
     addToCalendar: v.boolean(),
     /** Which module handed this to the Hub. `hub` when sent from the shell. */
     sourceModule: v.string(),
+    /** Tend: the "what kind of hard" tiles the sender picked, for guidance cards. */
+    kinds: v.optional(v.array(v.string())),
+    checkInId: v.optional(v.id("checkIns")),
     response: v.optional(headsUpResponse),
     respondedAt: v.optional(v.number()),
     closedAt: v.optional(v.number()),
@@ -162,12 +174,66 @@ export default defineSchema({
     .index("by_owner_time", ["ownerId", "createdAt"])
     .index("by_name", ["name", "createdAt"]),
 
-  /** "How are you, really?" answers. Private. The Support module builds on this. */
+  /**
+   * "How are you, really?" answers. Private. `answer` is the shell's
+   * three-way summary; the rest is Tend's fuller check-in (phase 3).
+   */
   checkIns: defineTable({
     ownerId: v.id("profiles"),
     visibility: visibilityValidator,
     answer: checkInAnswer,
     note: v.optional(v.string()),
+    weather: v.optional(weatherKind),
+    /** 1 = running on empty … 5 = revved up. */
+    energy: v.optional(v.number()),
+    /** Tile keys from Tend's "what kind of hard" step. */
+    kinds: v.optional(v.array(v.string())),
+    need: v.optional(helpKind),
+    /** "Just logging, I'm fine." */
+    justLogging: v.optional(v.boolean()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  // ---------------------------------------------------------------------
+  // Tend (module id "tend"). See docs/support-app-spec.md.
+  // ---------------------------------------------------------------------
+
+  /**
+   * "Love them well" guidance a person writes about themselves: what helps
+   * when they're in a certain kind of hard. Shared, so the partner can read
+   * it on a heads-up card. Each person edits only their own.
+   */
+  tendGuidance: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** "When I'm…" in the owner's words. */
+    title: v.string(),
+    /** Check-in tile keys this applies to; empty means always offered. */
+    kinds: v.array(v.string()),
+    do: v.string(),
+    say: v.string(),
+    skip: v.string(),
+    pray: v.optional(v.string()),
+    sortOrder: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId", "sortOrder"]),
+
+  /** Small ways a person likes to be loved, in three columns. Shared. */
+  tendLoveMenu: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    column: v.union(v.literal("practical"), v.literal("emotional"), v.literal("spiritual")),
+    text: v.string(),
+    sortOrder: v.number(),
+  }).index("by_owner", ["ownerId", "column", "sortOrder"]),
+
+  /** A love-menu item the partner picked and did. Shared. Emits `loveAction.done`. */
+  tendLoveActions: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    forProfileId: v.id("profiles"),
+    itemText: v.string(),
+    headsUpId: v.optional(v.id("headsUps")),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
 

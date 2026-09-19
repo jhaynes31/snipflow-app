@@ -26,6 +26,7 @@ export const COPY = {
     quietPresence: "Quiet presence",
     practicalHelp: "Practical help",
     words: "Words",
+    prayer: "Prayer",
     dontFixIt: "Please don't fix it",
   },
   helpDescription: {
@@ -33,6 +34,7 @@ export const COPY = {
     quietPresence: "Be nearby without needing to talk.",
     practicalHelp: "Take something off my plate.",
     words: "Say something kind, out loud or in a message.",
+    prayer: "Pray with me, or over me.",
     dontFixIt: "Listen. No solutions right now.",
   },
   response: {

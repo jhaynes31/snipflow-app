@@ -1,0 +1,110 @@
+/* Tend: a hearth corner inside the village. Sage, warm wood, candlelight. */
+.tend {
+  --tend-hearth: color-mix(in srgb, var(--surface) 82%, var(--accent) 18%);
+  border-radius: 18px;
+}
+.tend-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0;
+}
+.tend-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.tend-subnav a[aria-current="page"] {
+  color: var(--accent-text);
+  background: var(--tend-hearth);
+}
+
+/* Check-in */
+.tend-weather {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+@media (max-width: 480px) {
+  .tend-weather {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.tend-weather-btn {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  padding: 0.75rem 0.4rem;
+  border-radius: var(--radius-arch);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.tend-weather-btn.is-on {
+  border-color: var(--accent);
+  background: var(--tend-hearth);
+}
+.tend-weather-glyph {
+  font-size: 1.8rem;
+}
+.tend-energy {
+  display: grid;
+  gap: 0.3rem;
+  text-align: left;
+}
+.tend-energy input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.tend-energy-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.tend-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.tend-tile {
+  min-height: 44px;
+  font-size: 1rem;
+}
+.sh-chip.is-on {
+  border-color: var(--primary);
+  background: var(--tend-hearth, var(--surface));
+  color: var(--text);
+}
+
+/* Guidance */
+.tend-guidance {
+  border-left: 5px solid var(--accent);
+}
+.tend-guidance-entry + .tend-guidance-entry {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+.tend-menu {
+  margin-top: 0.75rem;
+}
+.tend-menu-columns {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+.sh-input-tile {
+  max-width: 16rem;
+}

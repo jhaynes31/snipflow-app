@@ -35,6 +35,13 @@ export function HeadsUpCard({ card, senderName }: { card: Doc<"headsUps">; sende
         <strong>What would help:</strong> {COPY.help[card.help]}. {COPY.helpDescription[card.help]}
       </p>
       <SuggestionList card={card} />
+      {card.kinds && card.kinds.length > 0 && (
+        <p>
+          <Link href="/tend/for-you" className="sh-link">
+            How to love {senderName} right now
+          </Link>
+        </p>
+      )}
       <ErrorNote error={error} />
       {card.status === "open" ? (
         <div className="sh-choices">

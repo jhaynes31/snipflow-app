@@ -4,12 +4,13 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { COPY, type HelpKind } from "@/core/copy/strings";
 import { MANUAL_SECTIONS, suggestionLines } from "@/core/manual/sections";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, PageTitle, Toggle, useAction } from "@/core/ui";
 
-const HELP: HelpKind[] = ["space", "quietPresence", "practicalHelp", "words", "dontFixIt"];
+const HELP: HelpKind[] = ["space", "quietPresence", "practicalHelp", "words", "prayer", "dontFixIt"];
 const PRESETS = ["Rough day", "Running on empty", "Anxious and tight", "A bit off today", "Not okay"];
 
 /**
@@ -24,8 +25,13 @@ function ComposeForm() {
   const send = useMutation(api.headsUps.send);
   const { busy, error, run } = useAction();
 
-  const [statusLine, setStatusLine] = useState(params.get("preset") === "low" ? "Not okay" : "");
-  const [help, setHelp] = useState<HelpKind>("quietPresence");
+  const fromCheckIn = params.get("status");
+  const paramHelp = params.get("help");
+  const kindsParam = params.get("kinds");
+  const kinds = kindsParam ? kindsParam.split(",").filter(Boolean) : [];
+  const checkInId = params.get("checkIn");
+  const [statusLine, setStatusLine] = useState(fromCheckIn ?? (params.get("preset") === "low" ? "Not okay" : ""));
+  const [help, setHelp] = useState<HelpKind>(HELP.includes(paramHelp as HelpKind) ? (paramHelp as HelpKind) : "quietPresence");
   const [include, setInclude] = useState({ do: true, say: true, skip: true });
   const [urgent, setUrgent] = useState(false);
   const [addToCalendar, setAddToCalendar] = useState(false);
@@ -68,7 +74,16 @@ function ComposeForm() {
         onSubmit={(e) => {
           e.preventDefault();
           void run(async () => {
-            await send({ statusLine, help, suggestions: chosen, urgent, addToCalendar });
+            await send({
+              statusLine,
+              help,
+              suggestions: chosen,
+              urgent,
+              addToCalendar,
+              sourceModule: kinds.length || checkInId ? "tend" : "hub",
+              kinds: kinds.length ? kinds : undefined,
+              checkInId: checkInId ? (checkInId as Id<"checkIns">) : undefined,
+            });
             router.push("/");
           });
         }}
