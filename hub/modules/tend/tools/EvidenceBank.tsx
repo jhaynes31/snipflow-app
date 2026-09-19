@@ -27,7 +27,8 @@ function Body() {
   const [text, setText] = useState("");
   const [showed, setShowed] = useState("");
   const [saved, setSaved] = useState(false);
-  const aboutName = about === profile._id ? "you" : partner?.displayName ?? "your partner";
+  const aboutMe = about === profile._id;
+  const aboutName = aboutMe ? "you" : partner?.displayName ?? "your partner";
 
   return (
     <div className="sh-stack">
@@ -56,10 +57,10 @@ function Body() {
             });
           }}
         >
-          <Field label="What they did, specifically" hint="Not general praise. A real thing, with a detail.">
+          <Field label={aboutMe ? "What I did, specifically" : "What they did, specifically"} hint={aboutMe ? "Not general praise. A real thing I did, with a detail." : "Not general praise. A real thing, with a detail."}>
             <input className="sh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={300} required />
           </Field>
-          <Field label="What it showed" hint="For example: followed through, patient, figured it out.">
+          <Field label={aboutMe ? "What it showed about me" : "What it showed"} hint={aboutMe ? "For example: I followed through, I was patient, I figured it out." : "For example: followed through, patient, figured it out."}>
             <input className="sh-input" value={showed} onChange={(e) => setShowed(e.target.value)} maxLength={120} />
           </Field>
           <ErrorNote error={error} />
