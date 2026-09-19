@@ -20,8 +20,10 @@ export function buildHeartwood() {
     return;
   }
   console.log("Building Heartwood Fitness…");
-  const opts = { cwd: app, stdio: "inherit" };
-  execSync("npm ci --no-audit --no-fund", opts);
+  // Vercel builds with NODE_ENV=production, which makes npm skip devDependencies;
+  // Heartwood's compiler and bundler live there, so ask for them explicitly.
+  const opts = { cwd: app, stdio: "inherit", env: { ...process.env, NODE_ENV: "development" } };
+  execSync("npm ci --no-audit --no-fund --include=dev", opts);
   execSync("npm run build", opts);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(dirname(out), { recursive: true });
