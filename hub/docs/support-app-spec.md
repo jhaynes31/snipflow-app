@@ -220,7 +220,7 @@ Build in four steps, each usable on its own, after the Hub foundation (Hub Contr
 | Step | Build | Done when |
 | --- | --- | --- |
 | 1 | Check-in, heads-up cards, guidance cards, Love Menus *(built 2026-09-19)* | Jen checks in and sends a heads-up, and John sees Do/Say/Skip and responds, in under 2 minutes total |
-| 2 | Shared tools, Loop Breaker, Story Check, Evidence Bank | Each tool works end to end, has a 2-minute version, and saves privately |
+| 2 | Shared tools, Loop Breaker, Story Check, Evidence Bank *(built 2026-09-19; Talk It Out waits for the AI coach)* | Each tool works end to end, has a 2-minute version, and saves privately |
 | 3 | Project Thinker, Focus Mode, Then or Now, Sit With It, Pause Before Big Moves | Project Thinker produces a saved checklist that can be sent to Every Box |
 | 4 | Cycle forecast, mood and sleep log, pattern notices, Repair, monthly view | John sees the forecast summary but cannot see any underlying tracking data |
 

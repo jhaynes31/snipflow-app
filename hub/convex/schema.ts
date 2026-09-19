@@ -227,6 +227,67 @@ export default defineSchema({
     sortOrder: v.number(),
   }).index("by_owner", ["ownerId", "column", "sortOrder"]),
 
+  /**
+   * One use of a Tend tool. Private. `helped` is the gentle close every tool
+   * ends with; over time it decides which tools are offered first. `saved`
+   * holds whatever the tool produced worth keeping (a kinder sentence, a
+   * finish line, a first step, Story Check answers).
+   */
+  tendToolUses: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    tool: v.string(),
+    helped: v.optional(v.union(v.literal("little"), v.literal("notReally"), v.literal("notAtAll"))),
+    saved: v.optional(v.any()),
+    checkInId: v.optional(v.id("checkIns")),
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+  })
+    .index("by_owner_time", ["ownerId", "startedAt"])
+    .index("by_owner_tool", ["ownerId", "tool", "startedAt"]),
+
+  /** A Loop Breaker session: the dump, sorted into columns, one card to test. Private. */
+  tendLoops: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.optional(v.string()),
+    cards: v.array(
+      v.object({
+        id: v.string(),
+        text: v.string(),
+        column: v.union(v.literal("dump"), v.literal("now"), v.literal("later"), v.literal("cantThink")),
+        parkedUntil: v.optional(v.number()),
+      }),
+    ),
+    pickedCardId: v.optional(v.string()),
+    testAction: v.optional(v.string()),
+    decision: v.optional(
+      v.object({
+        defaultChoice: v.string(),
+        deadline: v.number(),
+        decidedAt: v.optional(v.number()),
+        byDefault: v.optional(v.boolean()),
+      }),
+    ),
+    status: v.union(v.literal("open"), v.literal("closed")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "updatedAt"]),
+
+  /**
+   * The Evidence Bank: real, specific things a person did well, logged by
+   * either partner about either partner. Shared.
+   */
+  tendEvidence: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    aboutProfileId: v.id("profiles"),
+    text: v.string(),
+    showed: v.optional(v.string()),
+    date: v.number(),
+    createdAt: v.number(),
+  }).index("by_about_time", ["aboutProfileId", "date"]),
+
   /** A love-menu item the partner picked and did. Shared. Emits `loveAction.done`. */
   tendLoveActions: defineTable({
     ownerId: v.id("profiles"),

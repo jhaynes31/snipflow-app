@@ -19,6 +19,9 @@ export function Now() {
         <LinkBtn href="/check-in" big variant="accent">
           {COPY.checkInButton}
         </LinkBtn>
+        <LinkBtn href="/tend/tools" big variant="secondary">
+          My tools
+        </LinkBtn>
         {partner && (
           <LinkBtn href="/heads-up/new" big variant="secondary">
             Send {partner.displayName} a heads-up
@@ -42,7 +45,7 @@ export function Now() {
               </li>
             ))}
           </ul>
-          <p className="sh-hint">Private to you. Tools for each kind of hard arrive in the next build step.</p>
+          <p className="sh-hint">Private to you.</p>
         </Card>
       )}
       <p className="sh-muted">

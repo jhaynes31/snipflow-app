@@ -5,7 +5,9 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { TendShell } from "./TendShell";
 import { ForYou } from "./screens/ForYou";
 import { MyManual } from "./screens/MyManual";
+import { MyTools } from "./screens/MyTools";
 import { Now } from "./screens/Now";
+import { ToolScreen } from "./tools/index";
 
 /**
  * Tend: the support app. So Jen and John can support each other where
@@ -26,7 +28,7 @@ export const tend: ModuleManifest = {
     dark: { accent: "#E8B866", onAccent: "#1F261C", tint: "#3A3A2A" },
   },
   headsUpTypes: ["checkIn", "storyCheck", "repairInvite", "urgent"],
-  sharedData: ["heads-up cards", "guidance entries", "love menus", "love actions"],
+  sharedData: ["heads-up cards", "guidance entries", "love menus", "love actions", "the Evidence Bank"],
   crossModuleHooks: {
     emits: ["checkin.low", "checkin.revved", "loveAction.done"],
     listens: ["category.stuck"],
@@ -34,11 +36,13 @@ export const tend: ModuleManifest = {
   usesAICoach: true,
   status: "ready",
   Screen: function TendScreen({ path }: { path: string[] }) {
-    const [first] = path;
+    const [first, second, third] = path;
     let screen: React.ReactNode;
     if (!first) screen = <Now />;
     else if (first === "for-you") screen = <ForYou />;
     else if (first === "my-manual") screen = <MyManual />;
+    else if (first === "tools" && second) screen = <ToolScreen toolKey={second} id={third} />;
+    else if (first === "tools") screen = <MyTools />;
     else screen = <Now />;
     return <TendShell>{screen}</TendShell>;
   },

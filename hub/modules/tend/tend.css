@@ -108,3 +108,66 @@
 .sh-input-tile {
   max-width: 16rem;
 }
+
+/* Tools */
+.tend-close {
+  margin-top: 1rem;
+}
+.tend-timer {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 2.2rem;
+  text-align: center;
+  margin: 0.75rem 0 0;
+}
+.tend-breathe-card {
+  text-align: center;
+}
+.tend-breathe {
+  display: grid;
+  place-items: center;
+  height: 12rem;
+  margin: 0.5rem 0;
+}
+.tend-breathe-circle {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 999px;
+  background: var(--tend-hearth);
+  border: 2px solid var(--accent);
+}
+.tend-breathe.is-running .tend-breathe-circle {
+  animation: tend-breath 14s ease-in-out infinite;
+}
+@keyframes tend-breath {
+  0% { transform: scale(1); }
+  28% { transform: scale(2.2); }   /* in, 4s */
+  57% { transform: scale(2.2); }   /* hold, 4s */
+  100% { transform: scale(1); }    /* out, 6s */
+}
+.tend-breathe-words {
+  color: var(--text-muted);
+  min-height: 1.5rem;
+}
+.tend-anchor-text {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+.tend-loop-columns {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.tend-loop-column {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.75rem;
+}
+.tend-loop-card {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}

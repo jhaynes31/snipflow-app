@@ -31,10 +31,13 @@ import type * as moduleHooks from "../moduleHooks.js";
 import type * as privacy from "../privacy.js";
 import type * as profiles from "../profiles.js";
 import type * as tend_checkIns from "../tend/checkIns.js";
+import type * as tend_evidence from "../tend/evidence.js";
 import type * as tend_guidance from "../tend/guidance.js";
+import type * as tend_loops from "../tend/loops.js";
 import type * as tend_loveMenu from "../tend/loveMenu.js";
 import type * as tend_pure from "../tend/pure.js";
 import type * as tend_starter from "../tend/starter.js";
+import type * as tend_tools from "../tend/tools.js";
 
 import type {
   ApiFromModules,
@@ -66,10 +69,13 @@ declare const fullApi: ApiFromModules<{
   privacy: typeof privacy;
   profiles: typeof profiles;
   "tend/checkIns": typeof tend_checkIns;
+  "tend/evidence": typeof tend_evidence;
   "tend/guidance": typeof tend_guidance;
+  "tend/loops": typeof tend_loops;
   "tend/loveMenu": typeof tend_loveMenu;
   "tend/pure": typeof tend_pure;
   "tend/starter": typeof tend_starter;
+  "tend/tools": typeof tend_tools;
 }>;
 
 /**

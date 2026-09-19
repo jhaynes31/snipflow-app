@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ENERGY_LABELS, readTendSettings, statusLineFor, tilesFor, WEATHER, type Weather } from "@/convex/tend/pure";
 import { COPY, type HelpKind } from "@/core/copy/strings";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, ErrorNote, LinkBtn, useAction } from "@/core/ui";
+import { suggestTools } from "../tools/registry";
 
 const NEEDS: HelpKind[] = ["space", "quietPresence", "practicalHelp", "words", "prayer", "dontFixIt"];
 
@@ -24,6 +25,7 @@ export function CheckIn() {
   const { profile, partner, gentle } = useHub();
   const record = useMutation(api.tend.checkIns.record);
   const setGentle = useMutation(api.gentleMode.set);
+  const stats = useQuery(api.tend.tools.stats);
   const { busy, error, run } = useAction();
   const settings = readTendSettings(profile.moduleSettings);
   const tiles = tilesFor(settings);
@@ -33,7 +35,7 @@ export function CheckIn() {
   const [energy, setEnergy] = useState(3);
   const [kinds, setKinds] = useState<string[]>([]);
   const [need, setNeed] = useState<HelpKind | null>(null);
-  const [saved, setSaved] = useState<{ id: string; answer: "steady" | "tender" | "low" } | null>(null);
+  const [saved, setSaved] = useState<{ id: string; answer: "steady" | "tender" | "low"; justLogging?: boolean } | null>(null);
 
   async function finish(finalNeed: HelpKind | null, opts: { justLogging?: boolean; turnGentleOff?: boolean } = {}) {
     const w = weather ?? "partlyCloudy";
@@ -41,7 +43,7 @@ export function CheckIn() {
       record({ weather: w, energy, kinds, need: finalNeed ?? undefined, justLogging: opts.justLogging, turnGentleOff: opts.turnGentleOff }),
     );
     if (!result) return;
-    setSaved(result);
+    setSaved({ ...result, justLogging: opts.justLogging });
     if (opts.justLogging) router.push("/");
     else setStep("after");
   }
@@ -152,11 +154,21 @@ export function CheckIn() {
   if (need) params.set("help", need);
   if (kinds.length) params.set("kinds", kinds.join(","));
   if (saved) params.set("checkIn", saved.id);
+  const suggested = saved?.justLogging ? [] : suggestTools(kinds, stats ?? {}, settings.faith, 3);
   return (
     <div className="sh-container sh-narrow sh-lowdemand tend-checkin">
       <h1 className="sh-h1">{low ? "Thank you for saying so." : "Noted."}</h1>
-      <p>{low ? "Would either of these help right now?" : "That's the whole check-in."}</p>
+      <p>{low ? "Would any of these help right now?" : "That's the whole check-in."}</p>
       <ErrorNote error={error} />
+      {suggested.length > 0 && (
+        <div className="sh-stack" aria-label="Support for me">
+          {suggested.map((t) => (
+            <LinkBtn key={t.key} href={`/tend/tools/${t.key}`} big variant="secondary">
+              {t.name}: {t.twoMinute}
+            </LinkBtn>
+          ))}
+        </div>
+      )}
       <div className="sh-stack">
         {partner && (
           <LinkBtn href={`/heads-up/new?${params.toString()}`} big variant={low ? "primary" : "secondary"}>
