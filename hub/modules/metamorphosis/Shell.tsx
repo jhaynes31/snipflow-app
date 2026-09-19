@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { Anchor, BookHeart, Compass, Eye, FileText, Flame, Home, Map, MessageCircle, Navigation, ScrollText, Shield, Sunrise, Swords, Telescope } from "lucide-react";
+import { Anchor, BookHeart, Compass, Eye, FileText, Flame, Gift, Hammer, HeartHandshake, History, Home, Landmark, Mail, Map, MessageCircle, Navigation, ScrollText, Shield, Sparkles, Sunrise, Swords, Telescope, Users, Wind } from "lucide-react";
+import { BlessingWriter } from "./screens/Step3";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
 import { HEADER } from "@/core/metamorphosis/charter";
@@ -24,6 +25,18 @@ const NAV = [
   { href: `${ROUTE}/iron`, label: "Iron", icon: Anchor },
   { href: `${ROUTE}/compass`, label: "The Compass", icon: Navigation },
   { href: `${ROUTE}/seen`, label: "Seen", icon: Eye },
+  { href: `${ROUTE}/actually`, label: "Actually", icon: History },
+  { href: `${ROUTE}/present`, label: "Present", icon: HeartHandshake },
+  { href: `${ROUTE}/no-condemnation`, label: "No Condemnation", icon: Wind },
+  { href: `${ROUTE}/origins`, label: "Where This Came From", icon: Landmark },
+  { href: `${ROUTE}/party`, label: "The Party", icon: Users },
+  { href: `${ROUTE}/men`, label: "Men in the Story", icon: Sparkles },
+  { href: `${ROUTE}/horizon`, label: "The Horizon", icon: Telescope },
+  { href: `${ROUTE}/small-ways`, label: "Small Ways", icon: Hammer },
+  { href: `${ROUTE}/builder`, label: "The Builder", icon: Hammer },
+  { href: `${ROUTE}/blessing`, label: "The Blessing", icon: Gift },
+  { href: `${ROUTE}/letters`, label: "Letters", icon: Mail },
+  { href: `${ROUTE}/therapist`, label: "For my therapist", icon: FileText },
   { href: `${ROUTE}/landing`, label: "The Landing", icon: MessageCircle },
   { href: `${ROUTE}/charter`, label: "The Charter", icon: Compass },
   { href: `${ROUTE}/export`, label: "My pages", icon: FileText },
@@ -48,6 +61,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <p>This room is {status.ownerName}&apos;s.</p>
           <LinkBtn href="/" variant="ghost">Back home</LinkBtn>
         </Card>
+        <BlessingWriter ownerName={status.ownerName} />
       </div>
     );
   }

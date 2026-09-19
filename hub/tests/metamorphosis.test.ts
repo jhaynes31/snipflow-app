@@ -7,6 +7,7 @@ import { MENTOR_TASKS, MENTOR_VOICE } from "../convex/coach/prompt.ts";
 import { SURVIVAL_SIGNS, WAY_BACK } from "../core/metamorphosis/mirror.ts";
 import { SHEET, sessionZero } from "../core/metamorphosis/sheet.ts";
 import { STREAM_LABEL, VOICE } from "../core/metamorphosis/voice.ts";
+import { BLESSING_SCRIPTURE, BUILDER_LINES, HORIZON_PROMPTS, MEN_IN_STORY, NO_CONDEMNATION, ORIGINS, PARTY_STEPS, PARTY_WHERE, SMALL_WAYS } from "../core/metamorphosis/step3.ts";
 import { findBanned } from "../core/copy/banned.mjs";
 import { contrastRatio, AA_NORMAL_TEXT } from "../core/theme/contrast.ts";
 
@@ -15,7 +16,8 @@ const chapters = new Map(index.books.map((b) => [b.slug, b.chapters]));
 
 describe("Metamorphosis content", () => {
   it("every reference points at a real book and chapter", () => {
-    for (const r of [...VOICE.map((v) => v.ref), ...KNOWING.map((k) => k.ref)]) {
+    const step3 = [...NO_CONDEMNATION.map((n) => n.ref), ...BLESSING_SCRIPTURE.map((b) => b.ref), ...ORIGINS.flatMap((o) => (o.ref ? [o.ref] : [])), ...MEN_IN_STORY.flatMap((m) => (m.ref ? [m.ref] : []))];
+    for (const r of [...VOICE.map((v) => v.ref), ...KNOWING.map((k) => k.ref), ...step3]) {
       assert.ok(chapters.has(r.book), r.book);
       assert.ok(r.chapter >= 1 && r.chapter <= chapters.get(r.book)!, `${r.book} ${r.chapter}`);
     }
@@ -33,6 +35,14 @@ describe("Metamorphosis content", () => {
       ...SHEET.flatMap((q) => [q.label, q.hint]),
       ...SURVIVAL_SIGNS,
       ...WAY_BACK.flatMap((w) => [w.step, w.why]),
+      ...NO_CONDEMNATION.map((n) => n.note),
+      ...ORIGINS.flatMap((o) => [o.title, o.body]),
+      ...PARTY_WHERE,
+      ...PARTY_STEPS.flatMap((p) => [p.title, p.body]),
+      ...MEN_IN_STORY.map((m) => m.line),
+      ...HORIZON_PROMPTS,
+      ...SMALL_WAYS.flatMap((w) => [w.title, w.body]),
+      ...BUILDER_LINES,
     ].join("\n");
     assert.deepEqual(findBanned(text), []);
     for (const bad of [/boy to man/i, /step up/i, /real men/i, /\byou should\b/i, /man up/i]) assert.doesNotMatch(text, bad);

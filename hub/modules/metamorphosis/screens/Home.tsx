@@ -53,6 +53,17 @@ export function Home() {
         <Link href="/metamorphosis/iron" className="sh-tile"><span className="sh-tile-name">Iron</span><span className="sh-tile-tagline">Your word to yourself. Only this room asks.</span></Link>
         <Link href="/metamorphosis/compass" className="sh-tile"><span className="sh-tile-name">The Compass</span><span className="sh-tile-tagline">One thing you&apos;ll lead this week.</span></Link>
         <Link href="/metamorphosis/seen" className="sh-tile"><span className="sh-tile-name">Seen</span><span className="sh-tile-tagline">One small chosen act of being seen.</span></Link>
+        <Link href="/metamorphosis/actually" className="sh-tile"><span className="sh-tile-name">Actually</span><span className="sh-tile-tagline">What you really did, caught from your own logs.</span></Link>
+        <Link href="/metamorphosis/present" className="sh-tile"><span className="sh-tile-name">Present</span><span className="sh-tile-tagline">One way you were here. One thing you fought for.</span></Link>
+        <Link href="/metamorphosis/no-condemnation" className="sh-tile"><span className="sh-tile-name">No Condemnation</span><span className="sh-tile-tagline">Conviction or shame? Here&apos;s the difference.</span></Link>
+        <Link href="/metamorphosis/origins" className="sh-tile"><span className="sh-tile-name">Where This Came From</span><span className="sh-tile-tagline">The survival story, told straight.</span></Link>
+        <Link href="/metamorphosis/party" className="sh-tile"><span className="sh-tile-name">The Party</span><span className="sh-tile-tagline">Where men like you are, and how it goes.</span></Link>
+        <Link href="/metamorphosis/men" className="sh-tile"><span className="sh-tile-name">Men in the Story</span><span className="sh-tile-tagline">Joseph, Boaz, Peter. Aragorn, Sam, Faramir.</span></Link>
+        <Link href="/metamorphosis/horizon" className="sh-tile"><span className="sh-tile-name">The Horizon</span><span className="sh-tile-tagline">Dreams back. Nothing becomes a task.</span></Link>
+        <Link href="/metamorphosis/small-ways" className="sh-tile"><span className="sh-tile-name">Small Ways</span><span className="sh-tile-tagline">Things a father teaches. One a day.</span></Link>
+        <Link href="/metamorphosis/builder" className="sh-tile"><span className="sh-tile-name">The Builder</span><span className="sh-tile-tagline">One business action a day.</span></Link>
+        <Link href="/metamorphosis/blessing" className="sh-tile"><span className="sh-tile-name">The Blessing</span><span className="sh-tile-tagline">The thing fathers give.</span></Link>
+        <Link href="/metamorphosis/letters" className="sh-tile"><span className="sh-tile-name">Letters</span><span className="sh-tile-tagline">From the mentor, once a month.</span></Link>
       </div>
       <p className="sh-hint">
         Resources across The Shire, one direction only: <Link href="/tend/tools" className="sh-link">Tend&apos;s tools</Link>, <Link href="/the-well/for-me" className="sh-link">For me, as a man and husband</Link>, <Link href="/kept-word/ways" className="sh-link">Ways to show up</Link>. None of them can see in here.

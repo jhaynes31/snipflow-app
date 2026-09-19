@@ -12,10 +12,11 @@ import { MapScreen } from "./screens/MapScreen";
 import { Mirror } from "./screens/Mirror";
 import { Sheet } from "./screens/Sheet";
 import { CompassScreen, Iron, Quests, Scout, Seen, Shield, Tired } from "./screens/Tools";
+import { Actually, Blessing, Builder, Horizon, Letters, MenInStory, NoCondemnation, Origins, Party, Present, SmallWaysScreen, Therapist } from "./screens/Step3";
 
 /**
  * Metamorphosis: one man's own room, claimed by him. Romans 12:2. Built
- * from docs/metamorphose-spec.md in three steps; steps 1 and 2 are in.
+ * from docs/metamorphose-spec.md in three steps; all three steps are in.
  */
 export const metamorphosis: ModuleManifest = {
   id: "metamorphosis",
@@ -52,6 +53,18 @@ export const metamorphosis: ModuleManifest = {
     else if (first === "iron") screen = <Iron />;
     else if (first === "compass") screen = <CompassScreen />;
     else if (first === "seen") screen = <Seen />;
+    else if (first === "no-condemnation") screen = <NoCondemnation />;
+    else if (first === "origins") screen = <Origins />;
+    else if (first === "party") screen = <Party />;
+    else if (first === "men") screen = <MenInStory />;
+    else if (first === "horizon") screen = <Horizon />;
+    else if (first === "small-ways") screen = <SmallWaysScreen />;
+    else if (first === "actually") screen = <Actually />;
+    else if (first === "present") screen = <Present />;
+    else if (first === "builder") screen = <Builder />;
+    else if (first === "therapist") screen = <Therapist />;
+    else if (first === "blessing") screen = <Blessing />;
+    else if (first === "letters") screen = <Letters />;
     else screen = <Home />;
     return <Shell>{screen}</Shell>;
   },

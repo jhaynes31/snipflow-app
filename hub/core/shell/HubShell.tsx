@@ -12,7 +12,7 @@ import { BottomNav, FloatingCheckIn, TopBar } from "./Nav";
 import { Setup } from "./Setup";
 
 /** Routes that render without a signed-in, set-up person. */
-const PUBLIC_PREFIXES = ["/login", "/help-now", "/calendar"];
+const PUBLIC_PREFIXES = ["/login", "/help-now", "/calendar", "/share"];
 
 function useServiceWorker() {
   useEffect(() => {

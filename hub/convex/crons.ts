@@ -8,4 +8,5 @@ import { internal } from "./_generated/api";
  */
 const crons = cronJobs();
 crons.daily("seasons: write due reports", { hourUTC: 13, minuteUTC: 0 }, internal.seasons.generate.tick);
+crons.daily("metamorphosis: the mentor's monthly letter", { hourUTC: 13, minuteUTC: 20 }, internal.metamorphosis.letter.tick);
 export default crons;

@@ -871,4 +871,98 @@ export default defineSchema({
     createdAt: v.number(),
     doneAt: v.optional(v.number()),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+  /** Letters he writes and will not send, and letters the mentor writes him. */
+  mmLetters: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    kind: v.union(v.literal("mine"), v.literal("mentor")),
+    key: v.optional(v.string()),
+    title: v.string(),
+    body: v.string(),
+    periodStart: v.optional(v.string()),
+    createdAt: v.number(),
+    openedAt: v.optional(v.number()),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The Party: real men, and where he is with each. */
+  mmParty: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    where: v.optional(v.string()),
+    lastTalked: v.optional(v.string()),
+    nextStep: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The Horizon: dreams, sketches, someday lists. Never tasks. */
+  mmHorizon: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    prompt: v.optional(v.string()),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Small Ways done, in his words. */
+  mmSmallWays: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    note: v.optional(v.string()),
+    day: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Present: one way I was here, one thing I fought for. */
+  mmPresent: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    here: v.optional(v.string()),
+    fought: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The Builder: one business action a day. */
+  mmBuilder: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    action: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Failure Check entries. */
+  mmFailureChecks: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    answers: v.array(v.object({ key: v.string(), text: v.string() })),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Therapist shares: a read-only link to chosen sections, with an expiry. */
+  mmShares: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    token: v.string(),
+    sections: v.array(v.string()),
+    expiresAt: v.number(),
+    revokedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_owner_time", ["ownerId", "createdAt"])
+    .index("by_token", ["token"]),
+
+  /** Blessings from the partner: sealed until the room's owner opens them. */
+  mmBlessings: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** The room this is for; readable only by that room's owner. */
+    roomId: v.string(),
+    occasion: v.string(),
+    body: v.string(),
+    createdAt: v.number(),
+    openedAt: v.optional(v.number()),
+  }).index("by_room", ["roomId", "createdAt"]),
 });
