@@ -47,12 +47,13 @@ const NAV = [
  * after that the other account sees one line. Every function behind these
  * screens checks the same claim on the server.
  */
-export function Shell({ children }: { children: ReactNode }) {
+export function Shell({ children, open }: { children: ReactNode; open?: boolean }) {
   const pathname = usePathname();
   const status = useQuery(api.rooms.status, { moduleId: "metamorphosis" });
   const claim = useMutation(api.rooms.claim);
   const { busy, error, run } = useAction();
 
+  if (open) return <>{children}</>;
   if (!status) return <Spinner />;
   if (status.state === "theirs") {
     return (
@@ -77,9 +78,13 @@ export function Shell({ children }: { children: ReactNode }) {
             Whoever claims it keeps it. The other account will only ever see one line: that the room is yours. Nothing inside can be shared, on purpose. No one is counting anything in here.
           </p>
           <ErrorNote error={error} />
-          <Btn big disabled={busy} onClick={() => void run(() => claim({ moduleId: "metamorphosis" }))}>
-            This is my room
-          </Btn>
+          <div className="sh-choices">
+            <Btn big disabled={busy} onClick={() => void run(() => claim({ moduleId: "metamorphosis" }))}>
+              This is my room
+            </Btn>
+            <LinkBtn href="/metamorphosis/tour" big variant="secondary">Look around first</LinkBtn>
+          </div>
+          <p className="sh-hint mt-3">Looking around saves nothing and claims nothing.</p>
         </Card>
       </div>
     );

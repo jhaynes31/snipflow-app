@@ -11,6 +11,7 @@ import { Landing } from "./screens/Landing";
 import { MapScreen } from "./screens/MapScreen";
 import { Mirror } from "./screens/Mirror";
 import { Sheet } from "./screens/Sheet";
+import { Tour } from "./screens/Tour";
 import { CompassScreen, Iron, Quests, Scout, Seen, Shield, Tired } from "./screens/Tools";
 import { Actually, Blessing, Builder, Horizon, Letters, MenInStory, NoCondemnation, Origins, Party, Present, SmallWaysScreen, Therapist } from "./screens/Step3";
 
@@ -37,6 +38,7 @@ export const metamorphosis: ModuleManifest = {
   status: "ready",
   Screen: function MetamorphosisScreen({ path }: { path: string[] }) {
     const [first, second] = path;
+    if (first === "tour") return <Shell open><Tour /></Shell>;
     let screen: React.ReactNode;
     if (!first) screen = <Home />;
     else if (first === "mirror") screen = <Mirror />;

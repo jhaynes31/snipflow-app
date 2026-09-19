@@ -50,3 +50,33 @@ export const claim = mutation({
     await ctx.db.insert("moduleOwners", { moduleId: args.moduleId, ownerId: me.profile._id, claimedAt: Date.now() });
   },
 });
+
+/** Tables a released room wipes, so the next person starts clean. */
+const ROOM_TABLES = {
+  metamorphosis: ["mmSheet", "mmMirror", "mmMaps", "mmScout", "mmTired", "mmShield", "mmQuests", "mmIron", "mmIronWeek", "mmCompass", "mmSeen", "mmLetters", "mmParty", "mmHorizon", "mmSmallWays", "mmPresent", "mmBuilder", "mmFailureChecks", "mmShares"] as const,
+};
+
+/**
+ * The owner gives the room back: the claim is removed and every row they
+ * wrote in it is deleted, so whoever claims it next starts clean. Blessings
+ * written for the room by the other person stay sealed for the next owner.
+ * Coach conversations under the room's module are deleted too.
+ */
+export const release = mutation({
+  args: { moduleId: roomId, confirm: v.literal("release") },
+  handler: async (ctx, args) => {
+    const me = await requireRoomOf(ctx, args.moduleId);
+    const id = me.profile._id;
+    for (const table of ROOM_TABLES[args.moduleId]) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) if (row.ownerId === id) await ctx.db.delete(row._id);
+    }
+    const convos = await ctx.db.query("coachConversations").withIndex("by_owner_time", (q) => q.eq("ownerId", id)).collect();
+    for (const c of convos) if (c.module === args.moduleId) await ctx.db.delete(c._id);
+    const owner = await roomOwnerOf(ctx, args.moduleId);
+    if (owner) await ctx.db.delete(owner._id);
+    const settings = { ...(me.profile.moduleSettings ?? {}) };
+    delete settings[args.moduleId];
+    await ctx.db.patch(id, { moduleSettings: settings });
+  },
+});
