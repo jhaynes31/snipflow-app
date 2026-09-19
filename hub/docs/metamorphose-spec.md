@@ -63,6 +63,22 @@ The coach task prompts (`metamorphosis.*`) carry this voice and his Character Sh
 (only what he allowed). They also know: he is in survival more often than he knows;
 when the Mirror or a message reads as survival, drop growth and go to safety first.
 
+## The Charter: what a father gives, and what this room will try to give
+
+From Jen's research on what boys need from fathers (2026-09-19). The room is honest
+that it cannot be his dad; it can do some of what a dad does, and it says so on one
+page he can open any time, so he knows what the room is for.
+
+| What a father gives | Where the room does it |
+|---|---|
+| Being there, Unconditional love, Special (the "BUS" principle) | The Father's Voice every day, never tied to yesterday; the mentor's first words are "you're mine"; The Blessing |
+| Presence: time, listening, shared activity | The Landing (listened to, not fixed); the mentor's voice in every tool; The Party pushing him toward real men |
+| Life skills: cooking, budgeting, home maintenance, independent living | Small Ways and the Workbench: short practical cards he was never taught, one a day, never assigned; The Builder for the money side |
+| Emotional modeling: men can cry, apologize, be vulnerable without losing strength | The Mirror; Shield Down; Men in the Story (Jesus weeping, David's honesty, Peter's tears); the mentor admits its own limits |
+| Discipline and boundaries with compassion: consequences and self-control | Iron (his own word, asked by the app alone); Quest Log ("abandoned," never "failed"); The Compass |
+| Role modeling: integrity, respect for women, healthy conflict | Men in the Story; For me as a man and husband in The Well; Shield Down; Present |
+| Resilience: safe risks, failing and recovering, mistakes as growth not shame | Actually and Failure Check; Do It Tired; Seen (small chosen risks); No Condemnation |
+
 ## Survival first
 
 Every visit opens with one quiet question: "Right now, am I in survival?" with the plain
@@ -101,7 +117,7 @@ until he is back. If no, the room opens normally. This is never counted.
 | For my therapist | When he starts therapy: a plain-text export of any parts of the room he chooses, and a read-only link with a secret token (like the calendar feed) to the sections he picks, with an expiry he sets and a revoke button. His therapist sees only what he chose, and he can turn it off any time. | therapy |
 | The Landing | A safe place to land. Vent to the mentor with no fixing unless he asks for it; seen, heard, supported. Opens with "I'm listening. Say it however it comes out." The coach task for this place is told: reflect first, ask at most one question, offer a tool only if he asks or if it is clearly the kindest next step. Crisis wording still opens the crisis card. | seen, heard, vent, support |
 | The Horizon | Creativity, dreams, and visions of the future, because survival robs him of them. Prompts in his language: "If this were a campaign, what's the story you'd want to be in?" "What would you build if no one was watching?" "What did you love at ten?" "Describe a Saturday five years from now." A place for sketches, ideas, and someday lists that are never turned into tasks unless he chooses. The coach can riff with him here, playfully, and never turns a dream into a to-do. | creativity, dreams, vision |
-| Small Ways | Small, practical ways to think for himself and care for himself and those around him. Short cards: how to decide something small without deferring; how to notice what you need before you're empty; how to make a meal you actually want; how to check on someone; how to plan one thing for the family; how to rest on purpose. One a day on the front page, never assigned. | self-care, caring for others, thinking for himself |
+| Small Ways | Small, practical ways to think for himself and care for himself and those around him. Short cards: how to decide something small without deferring; how to notice what you need before you're empty; how to make a meal you actually want; how to check on someone; how to plan one thing for the family; how to rest on purpose. Plus the life skills a father teaches: a simple weekly budget, how to fix the small things in a house, how to cook three meals well, how to handle a bill you're scared of. One a day on the front page, never assigned. | self-care, caring for others, thinking for himself, life skills |
 
 ## Data
 
