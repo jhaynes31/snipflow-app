@@ -149,3 +149,40 @@ of them on how to find and build friendships (John has none right now; both fami
 toxic). Elements are in Metamorphosis's The Party for John. A shared version would hold:
 where people like us are, the one small ask, following up, hosting something small,
 being a friend back, and what to do when it fizzles. Parked until Jen says.
+
+---
+
+## The Storehouse (finances): brainstorm 2026-09-19
+
+Jen's ask: replace the beginning-of-month budget ritual (an ODT spreadsheet); enter every
+debt; enter planned income for the month and where it should go; suggest payment
+strategies and payoff dates. Context: consolidation loan denied; both credit scores
+low; savings gone; a lot of debt. She does not want bankruptcy; she wants support.
+
+**Rule:** no red numbers, no "over budget," no scorekeeping between the two of them. The
+app does the math so neither is the money police. What's true, then what's next.
+
+**Proposed places:** The Sit-Down (guided monthly plan, ends with both tapping "we
+agree"; says-so items go to Kept Word); Debts (balance, rate, minimum, due day; snowball,
+avalanche, blend, and "with a counseling plan" compared as dates and interest, with a
+what-if slider); Where the money goes (every dollar a job; safe to spend; due days on the
+calendar feed); The Barns (sinking funds); Freedom Day (the date only, no bar); Big-purchase
+pause (links to Pause Before Big Moves); Money worries said once (private, shareable).
+
+**The Lifeboat (added at Jen's ask):** hardship and get-out-of-debt support, not
+bankruptcy. Nonprofit credit counseling and debt management plans (NFCC 800-388-2227;
+no loan, no credit check); lenders' own hardship and forbearance programs with a phone
+script and a per-debt call log (who, what they offered, what was accepted); hospital
+financial assistance for medical bills; income-driven repayment and deferment for
+student loans; utility assistance, 211, church benevolence, food assistance; collector
+rights (FDCPA, debt validation in writing, CFPB complaints); what to avoid (for-profit
+settlement companies, payday loans); rebuilding (12–24 months of on-time payments,
+secured card, credit-union payday-alternative loan). Calls become Kept Word words or
+quests. Details to be verified against current program terms at build time.
+
+**Left out on purpose:** bank syncing; per-transaction tracking (plan + bills + debts,
+revisited monthly). **John:** treated as the man who knows this; the Sit-Down is led by
+whoever they choose, his to accept.
+
+**Waiting on Jen:** the ODT file (to mirror categories); giving as a first line, yes or
+no; plan-only versus a rough actual-spending view at month's end.
