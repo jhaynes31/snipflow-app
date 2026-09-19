@@ -474,26 +474,35 @@ html[data-contrast="high"] {
 }
 .sh-tabs {
   display: flex;
-  gap: 0.25rem;
+  align-items: stretch;
+  gap: 0.35rem;
   flex: 1;
+  min-width: 0;
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 .sh-tab {
   --tab-accent: var(--primary);
   display: inline-flex;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.1rem;
   min-width: 4.5rem;
-  padding: 0.45rem 0.7rem 0.35rem;
+  max-width: 7rem;
+  padding: 0.45rem 0.6rem 0.35rem;
   border-radius: var(--radius-arch);
   border: 1px solid transparent;
   border-bottom: 3px solid transparent;
   text-decoration: none;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
   color: var(--text-muted);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .sh-tab:hover {
   background: var(--background);
