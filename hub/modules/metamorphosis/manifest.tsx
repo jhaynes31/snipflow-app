@@ -11,10 +11,11 @@ import { Landing } from "./screens/Landing";
 import { MapScreen } from "./screens/MapScreen";
 import { Mirror } from "./screens/Mirror";
 import { Sheet } from "./screens/Sheet";
+import { CompassScreen, Iron, Quests, Scout, Seen, Shield, Tired } from "./screens/Tools";
 
 /**
  * Metamorphosis: one man's own room, claimed by him. Romans 12:2. Built
- * from docs/metamorphose-spec.md in three steps; this is step 1.
+ * from docs/metamorphose-spec.md in three steps; steps 1 and 2 are in.
  */
 export const metamorphosis: ModuleManifest = {
   id: "metamorphosis",
@@ -44,6 +45,13 @@ export const metamorphosis: ModuleManifest = {
     else if (first === "landing") screen = <Landing />;
     else if (first === "charter") screen = <Charter />;
     else if (first === "export") screen = <Export />;
+    else if (first === "scout") screen = <Scout />;
+    else if (first === "tired") screen = <Tired />;
+    else if (first === "shield") screen = <Shield />;
+    else if (first === "quests") screen = <Quests />;
+    else if (first === "iron") screen = <Iron />;
+    else if (first === "compass") screen = <CompassScreen />;
+    else if (first === "seen") screen = <Seen />;
     else screen = <Home />;
     return <Shell>{screen}</Shell>;
   },

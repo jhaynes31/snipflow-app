@@ -78,7 +78,7 @@ export function access(
 
 /** Loads a record and throws unless the viewer owns it. Used before any write. */
 export async function requireOwned<
-  T extends "userManualSections" | "headsUps" | "checkIns" | "coachConversations" | "safetyPlans" | "tendGuidance" | "tendLoveMenu" | "tendLoveActions" | "tendToolUses" | "tendLoops" | "tendEvidence" | "tendProjects" | "tendFocusSessions" | "tendCycleStarts" | "tendSleep" | "tendRepairs" | "tendNotes" | "rcSorts" | "rcPauses" | "rcLandings" | "rcSecurityTaps" | "rcOwnLife" | "rcKeptByMe" | "kwWords" | "kwHeard" | "kwAsks" | "seasonReports" | "wellPrayers" | "wellRemembering" | "wellLies" | "wellUntangle" | "wellMarks" | "wellAnswers" | "mmSheet" | "mmMirror" | "mmMaps",
+  T extends "userManualSections" | "headsUps" | "checkIns" | "coachConversations" | "safetyPlans" | "tendGuidance" | "tendLoveMenu" | "tendLoveActions" | "tendToolUses" | "tendLoops" | "tendEvidence" | "tendProjects" | "tendFocusSessions" | "tendCycleStarts" | "tendSleep" | "tendRepairs" | "tendNotes" | "rcSorts" | "rcPauses" | "rcLandings" | "rcSecurityTaps" | "rcOwnLife" | "rcKeptByMe" | "kwWords" | "kwHeard" | "kwAsks" | "seasonReports" | "wellPrayers" | "wellRemembering" | "wellLies" | "wellUntangle" | "wellMarks" | "wellAnswers" | "mmSheet" | "mmMirror" | "mmMaps" | "mmScout" | "mmTired" | "mmShield" | "mmQuests" | "mmIron" | "mmIronWeek" | "mmCompass" | "mmSeen",
 >(
   ctx: Ctx,
   me: Me,

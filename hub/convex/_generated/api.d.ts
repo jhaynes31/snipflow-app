@@ -38,6 +38,7 @@ import type * as keptWord_words from "../keptWord/words.js";
 import type * as lib from "../lib.js";
 import type * as manual from "../manual.js";
 import type * as metamorphosis_entries from "../metamorphosis/entries.js";
+import type * as metamorphosis_tools from "../metamorphosis/tools.js";
 import type * as moduleHooks from "../moduleHooks.js";
 import type * as privacy from "../privacy.js";
 import type * as profiles from "../profiles.js";
@@ -105,6 +106,7 @@ declare const fullApi: ApiFromModules<{
   lib: typeof lib;
   manual: typeof manual;
   "metamorphosis/entries": typeof metamorphosis_entries;
+  "metamorphosis/tools": typeof metamorphosis_tools;
   moduleHooks: typeof moduleHooks;
   privacy: typeof privacy;
   profiles: typeof profiles;

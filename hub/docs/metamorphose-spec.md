@@ -168,7 +168,7 @@ man. No "step up." No "real men." No comparison to other men. No counts of misse
 | Step | What | Done when |
 |---|---|---|
 | 1 | Claim, Session Zero, The Father's Voice, The Mirror with survival first and The Way Back, Character Sheet, The Map, Getting to know him, The Landing, The Charter, plain-text export *(built 2026-09-19)* | John claims it; a survival check-in drops to The Way Back; Jen's account cannot read a row |
-| 2 | The Scout, Do It Tired, Shield Down, Quest Log, Iron, The Compass, Seen | Each works end to end and saves privately; Iron asks him and only him |
+| 2 | The Scout, Do It Tired, Shield Down, Quest Log, Iron, The Compass, Seen *(built 2026-09-19)* | Each works end to end and saves privately; Iron asks him and only him |
 | 3 | No Condemnation, Where This Came From, The Party with the friendship builder, Men in the Story, The Landing, The Horizon, Small Ways, Actually, Present, The Builder, For my therapist, The Blessing, monthly Letters | The monthly letter arrives in the mentor's voice from his own logs; the Blessing opens only for him |
 
 **Open decisions:** whether Jen writes the Blessing; whether the coach should write the monthly letter at all (John decides

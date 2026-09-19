@@ -46,6 +46,13 @@ export function Home() {
         <Link href="/metamorphosis/map" className="sh-tile"><span className="sh-tile-name">The Map</span><span className="sh-tile-tagline">Zoom out from the one thing.</span></Link>
         <Link href="/metamorphosis/knowing" className="sh-tile"><span className="sh-tile-name">Getting to know him</span><span className="sh-tile-tagline">One story of Jesus at a time. Relationship, not religion.</span></Link>
         <Link href="/metamorphosis/landing" className="sh-tile"><span className="sh-tile-name">The Landing</span><span className="sh-tile-tagline">Say it however it comes out. Heard, not fixed.</span></Link>
+        <Link href="/metamorphosis/scout" className="sh-tile"><span className="sh-tile-name">The Scout</span><span className="sh-tile-tagline">Notice first. Move before anyone asks.</span></Link>
+        <Link href="/metamorphosis/tired" className="sh-tile"><span className="sh-tile-name">Do It Tired</span><span className="sh-tile-tagline">The plan is the plan. Two minutes, tired.</span></Link>
+        <Link href="/metamorphosis/shield" className="sh-tile"><span className="sh-tile-name">Shield Down</span><span className="sh-tile-tagline">Three sentences for the next hard conversation.</span></Link>
+        <Link href="/metamorphosis/quests" className="sh-tile"><span className="sh-tile-name">Quest Log</span><span className="sh-tile-tagline">One main quest at a time.</span></Link>
+        <Link href="/metamorphosis/iron" className="sh-tile"><span className="sh-tile-name">Iron</span><span className="sh-tile-tagline">Your word to yourself. Only this room asks.</span></Link>
+        <Link href="/metamorphosis/compass" className="sh-tile"><span className="sh-tile-name">The Compass</span><span className="sh-tile-tagline">One thing you&apos;ll lead this week.</span></Link>
+        <Link href="/metamorphosis/seen" className="sh-tile"><span className="sh-tile-name">Seen</span><span className="sh-tile-tagline">One small chosen act of being seen.</span></Link>
       </div>
       <p className="sh-hint">
         Resources across The Shire, one direction only: <Link href="/tend/tools" className="sh-link">Tend&apos;s tools</Link>, <Link href="/the-well/for-me" className="sh-link">For me, as a man and husband</Link>, <Link href="/kept-word/ways" className="sh-link">Ways to show up</Link>. None of them can see in here.

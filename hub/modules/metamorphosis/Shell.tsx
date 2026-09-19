@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { BookHeart, Compass, FileText, Home, Map, MessageCircle, ScrollText, Sunrise } from "lucide-react";
+import { Anchor, BookHeart, Compass, Eye, FileText, Flame, Home, Map, MessageCircle, Navigation, ScrollText, Shield, Sunrise, Swords, Telescope } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
 import { HEADER } from "@/core/metamorphosis/charter";
@@ -17,6 +17,13 @@ const NAV = [
   { href: `${ROUTE}/sheet`, label: "Character Sheet", icon: ScrollText },
   { href: `${ROUTE}/map`, label: "The Map", icon: Map },
   { href: `${ROUTE}/knowing`, label: "Getting to know him", icon: BookHeart },
+  { href: `${ROUTE}/scout`, label: "The Scout", icon: Telescope },
+  { href: `${ROUTE}/tired`, label: "Do It Tired", icon: Flame },
+  { href: `${ROUTE}/shield`, label: "Shield Down", icon: Shield },
+  { href: `${ROUTE}/quests`, label: "Quest Log", icon: Swords },
+  { href: `${ROUTE}/iron`, label: "Iron", icon: Anchor },
+  { href: `${ROUTE}/compass`, label: "The Compass", icon: Navigation },
+  { href: `${ROUTE}/seen`, label: "Seen", icon: Eye },
   { href: `${ROUTE}/landing`, label: "The Landing", icon: MessageCircle },
   { href: `${ROUTE}/charter`, label: "The Charter", icon: Compass },
   { href: `${ROUTE}/export`, label: "My pages", icon: FileText },

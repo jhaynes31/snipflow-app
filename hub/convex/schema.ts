@@ -787,4 +787,88 @@ export default defineSchema({
     levels: v.array(v.object({ key: v.string(), text: v.string() })),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+  /** The Scout: what I noticed, and what I did about it before anyone asked. */
+  mmScout: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    noticed: v.string(),
+    did: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Do It Tired: a thing done without the feeling. */
+  mmTired: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Shield Down: a practice or a real one. */
+  mmShield: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    threat: v.string(),
+    truePart: v.string(),
+    sentences: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Quest Log: one active main quest, side quests allowed. Abandoned, never failed. */
+  mmQuests: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    kind: v.union(v.literal("main"), v.literal("side")),
+    status: v.union(v.literal("active"), v.literal("done"), v.literal("abandoned")),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+    closedAt: v.optional(v.number()),
+    sentToEveryBoxAt: v.optional(v.number()),
+  }).index("by_owner_status", ["ownerId", "status"]),
+
+  /** Iron: his word to himself. Asked by the room and only the room. */
+  mmIron: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    dueDay: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("kept"), v.literal("didnt")),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+    closedAt: v.optional(v.number()),
+  }).index("by_owner_status", ["ownerId", "status"]),
+
+  /** Iron, weekly: which older man did I talk to this week? */
+  mmIronWeek: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    weekKey: v.string(),
+    man: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_week", ["ownerId", "weekKey"]),
+
+  /** The Compass: one thing I'll lead this week, and one decision I'll make myself. */
+  mmCompass: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    weekKey: v.string(),
+    lead: v.string(),
+    decision: v.optional(v.string()),
+    done: v.optional(v.boolean()),
+    createdAt: v.number(),
+  }).index("by_owner_week", ["ownerId", "weekKey"]),
+
+  /** Seen: a small, chosen act of being seen, and how it went. */
+  mmSeen: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    act: v.string(),
+    after: v.optional(v.string()),
+    done: v.boolean(),
+    createdAt: v.number(),
+    doneAt: v.optional(v.number()),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });
