@@ -60,14 +60,21 @@ export const ensure = mutation({
       household = (await ctx.db.get(id))!;
     }
 
-    // An imported partner row that matches this person by name and has no
-    // profile yet is claimed rather than duplicated, so history stays theirs.
-    const unlinked = (await ctx.db
+    // An imported partner row with no profile yet is claimed rather than
+    // duplicated, so its boxes and history stay with the right person. With
+    // only two people, a single unclaimed seat can only be this person's;
+    // if there were somehow several, a matching name decides.
+    const rows = await ctx.db
       .query("ebPartners")
       .withIndex("by_household", (q) => q.eq("householdId", household._id))
-      .collect()).find((p) => !p.profileId && p.displayName.trim().toLowerCase() === me.profile.displayName.trim().toLowerCase());
-    if (unlinked) {
-      await ctx.db.patch(unlinked._id, { profileId: me.profile._id });
+      .collect();
+    const unlinked = rows.filter((p) => !p.profileId);
+    const claim =
+      unlinked.length === 1
+        ? unlinked[0]
+        : unlinked.find((p) => p.displayName.trim().toLowerCase() === me.profile.displayName.trim().toLowerCase());
+    if (claim) {
+      await ctx.db.patch(claim._id, { profileId: me.profile._id, displayName: me.profile.displayName });
       return household._id;
     }
 

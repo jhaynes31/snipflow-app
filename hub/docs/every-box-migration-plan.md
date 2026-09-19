@@ -1,6 +1,6 @@
 # Every Box migration plan (Phase 2)
 
-2026-09-18 · Approved by Jen the same day. Steps 1 through 4 below are done and live; step 5 (data) and step 6 (hand-over) remain.
+2026-09-18 · Approved by Jen the same day. Steps 1 through 5 are done and live; step 6 (hand-over and retiring the old site) remains.
 
 Source: the `jhaynes31/every-box` repository at commit `eb5a940` (one commit, "Replace emoji stage art with vector illustrations"). Target: `hub/modules/every-box` in The Shire, on the Hub Contract's foundation.
 
@@ -67,7 +67,7 @@ The old deployment is only read, never written. It keeps running untouched until
 2. **Switch to the foundation.** *(done)* Replace the household and partner flow with automatic provisioning from Shire profiles. Delete login, onboarding, join, badge sync, the `.ics` route, and the PWA files. Point every screen at the foundation's user and partner.
 3. **Fit the frame.** *(done)* Sub-navigation tabs, routes under `/every-box`, Every Box settings trimmed to the theme picker, today widget on the home screen.
 4. **Contract behaviors.** *(done)* `category.stuck` event, optional weekly-review calendar event, privacy fields.
-5. **Data.** Build-time import from a snapshot of the old deployment, linked by email, with counts in the log. *(code ready; waiting on the source key)*
+5. **Data.** *(done 2026-09-19)* Copied in one transaction: 15 boxes, 6 commitments, 1 review, 2 partners. Jen linked by email; John's seat is claimed automatically the first time he opens Every Box in The Shire.
 6. **Verify and hand over.** Typecheck, lint, copy check, tests, production build. You and John each open Every Box inside The Shire and tend one box. Then the old Every Box site and its Vercel project are archived, not deleted, in case anything was missed.
 
 Each step ends with a push you can see working, so we can stop between steps.
