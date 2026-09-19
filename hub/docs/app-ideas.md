@@ -184,5 +184,4 @@ quests. Details to be verified against current program terms at build time.
 revisited monthly). **John:** treated as the man who knows this; the Sit-Down is led by
 whoever they choose, his to accept.
 
-**Waiting on Jen:** the ODT file (to mirror categories); giving as a first line, yes or
-no; plan-only versus a rough actual-spending view at month's end.
+**Built 2026-09-19** as `docs/storehouse-spec.md`. Still waiting on Jen: the ODT file (to mirror categories); giving as a first line (on by default, switchable); plan-only versus a rough actual-spending view later.

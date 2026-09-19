@@ -965,4 +965,102 @@ export default defineSchema({
     createdAt: v.number(),
     openedAt: v.optional(v.number()),
   }).index("by_room", ["roomId", "createdAt"]),
+  // ---------------------------------------------------------------------
+  // The Storehouse (module id "storehouse"): household money. Shared by
+  // nature; either person can edit. Only money worries are private.
+  // See docs/app-ideas.md (The Storehouse) until its own spec lands.
+  // ---------------------------------------------------------------------
+
+  shDebts: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    kind: v.union(v.literal("card"), v.literal("personal"), v.literal("auto"), v.literal("medical"), v.literal("student"), v.literal("other")),
+    lender: v.optional(v.string()),
+    balance: v.number(),
+    apr: v.number(),
+    minimum: v.number(),
+    dueDay: v.optional(v.number()),
+    status: v.union(v.literal("open"), v.literal("paid")),
+    hardship: v.union(v.literal("none"), v.literal("asked"), v.literal("enrolled"), v.literal("declined")),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    paidAt: v.optional(v.number()),
+  }).index("by_status", ["status"]),
+
+  /** A call to a lender or agency about a debt, and what came of it. */
+  shCalls: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    debtId: v.optional(v.id("shDebts")),
+    who: v.string(),
+    offered: v.optional(v.string()),
+    accepted: v.optional(v.string()),
+    note: v.optional(v.string()),
+    at: v.number(),
+  }).index("by_debt", ["debtId", "at"]),
+
+  /** Money coming in, per month. */
+  shIncome: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    month: v.string(),
+    label: v.string(),
+    amount: v.number(),
+    expectedDay: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_month", ["month"]),
+
+  /** Where the money goes, per month: one line per category. */
+  shLines: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    month: v.string(),
+    group: v.union(v.literal("giving"), v.literal("needs"), v.literal("debt"), v.literal("barns"), v.literal("savings"), v.literal("fun"), v.literal("buffer")),
+    category: v.string(),
+    planned: v.number(),
+    note: v.optional(v.string()),
+    debtId: v.optional(v.id("shDebts")),
+    order: v.number(),
+  }).index("by_month", ["month", "order"]),
+
+  /** The Barns: sinking funds for the things that aren't monthly but always come. */
+  shBarns: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    target: v.optional(v.number()),
+    balance: v.number(),
+    monthly: v.number(),
+    createdAt: v.number(),
+  }),
+
+  /** The Sit-Down, per month: the honest line, the strategy, and who agreed. */
+  shSitDowns: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    month: v.string(),
+    lastMonthLine: v.optional(v.string()),
+    agreedBy: v.array(v.id("profiles")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_month", ["month"]),
+
+  /** Household settings: one row. */
+  shSettings: defineTable({
+    strategy: v.union(v.literal("snowball"), v.literal("avalanche"), v.literal("blend"), v.literal("dmp")),
+    extraMonthly: v.number(),
+    giving: v.boolean(),
+    pauseAmount: v.number(),
+    updatedAt: v.number(),
+  }),
+
+  /** A money worry, said once. Private unless shared. */
+  shWorries: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

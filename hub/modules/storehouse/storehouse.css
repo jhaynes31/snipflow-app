@@ -1,0 +1,52 @@
+/* The Storehouse: grain, oak, and ledger paper. Calm on purpose. */
+.sh-subnav-store {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.sh-subnav-store a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.sh-subnav-store a[aria-current="page"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+  border-color: transparent;
+}
+.st-line {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-top: 1px dashed var(--border);
+}
+.st-line input[type="number"] {
+  width: 7rem;
+  text-align: right;
+}
+.st-group {
+  margin-top: 1rem;
+}
+.st-total {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.3rem;
+}
+.st-entry + .st-entry {
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}
+.st-truth {
+  border-left: 5px solid var(--tile-accent);
+  font-size: 1.05rem;
+}

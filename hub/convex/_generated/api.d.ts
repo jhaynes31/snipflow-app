@@ -53,6 +53,8 @@ import type * as seasons_collect from "../seasons/collect.js";
 import type * as seasons_generate from "../seasons/generate.js";
 import type * as seasons_pure from "../seasons/pure.js";
 import type * as seasons_reports from "../seasons/reports.js";
+import type * as storehouse_money from "../storehouse/money.js";
+import type * as storehouse_pure from "../storehouse/pure.js";
 import type * as tend_checkIns from "../tend/checkIns.js";
 import type * as tend_evidence from "../tend/evidence.js";
 import type * as tend_focus from "../tend/focus.js";
@@ -123,6 +125,8 @@ declare const fullApi: ApiFromModules<{
   "seasons/generate": typeof seasons_generate;
   "seasons/pure": typeof seasons_pure;
   "seasons/reports": typeof seasons_reports;
+  "storehouse/money": typeof storehouse_money;
+  "storehouse/pure": typeof storehouse_pure;
   "tend/checkIns": typeof tend_checkIns;
   "tend/evidence": typeof tend_evidence;
   "tend/focus": typeof tend_focus;

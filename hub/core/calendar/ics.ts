@@ -14,6 +14,8 @@ export interface FeedInput {
   everyBoxWeeklyReview?: boolean;
   /** Kept Word: my open words with a day, as all-day events with a morning alarm. */
   words?: { id: string; text: string; dueDay: string }[];
+  /** The Storehouse: bills due monthly on a day, as repeating all-day events. */
+  bills?: { id: string; name: string; dueDay: number; minimum: number }[];
   /** For tests. Defaults to now. */
   now?: Date;
 }
@@ -97,6 +99,31 @@ export function buildFeed(input: FeedInput): string {
       "ACTION:DISPLAY",
       `DESCRIPTION:${escapeText(`Kept Word: ${w.text}`)}`,
       "TRIGGER:-PT15H",
+      "END:VALARM",
+      "END:VEVENT",
+    );
+  }
+
+  for (const b of input.bills ?? []) {
+    // Anchor on the next occurrence of the due day, then repeat monthly.
+    const anchor = new Date(Date.UTC(now.getFullYear(), now.getMonth(), Math.min(b.dueDay, 28)));
+    if (anchor.getTime() < Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) anchor.setUTCMonth(anchor.getUTCMonth() + 1);
+    const day = `${anchor.getUTCFullYear()}${pad(anchor.getUTCMonth() + 1)}${pad(anchor.getUTCDate())}`;
+    const next = new Date(anchor.getTime() + 86_400_000);
+    const nextDay = `${next.getUTCFullYear()}${pad(next.getUTCMonth() + 1)}${pad(next.getUTCDate())}`;
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:storehouse-bill-${b.id}@${slug(input.appName)}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${day}`,
+      `DTEND;VALUE=DATE:${nextDay}`,
+      `RRULE:FREQ=MONTHLY;BYMONTHDAY=${Math.min(b.dueDay, 28)}`,
+      `SUMMARY:${escapeText(`Bill: ${b.name}`)}`,
+      `DESCRIPTION:${escapeText(`Minimum ${Math.round(b.minimum)}. ${input.siteUrl}/storehouse/debts`)}`,
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${escapeText(`Bill: ${b.name}`)}`,
+      "TRIGGER:-P2D",
       "END:VALARM",
       "END:VEVENT",
     );

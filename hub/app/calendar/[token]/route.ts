@@ -26,6 +26,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ token: 
     headsUps: feed.headsUps,
     everyBoxWeeklyReview: feed.everyBoxWeeklyReview,
     words: feed.words,
+    bills: feed.bills,
   });
   return new Response(body, {
     headers: {
