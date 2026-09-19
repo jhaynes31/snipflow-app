@@ -94,7 +94,8 @@ until he is back. If no, the room opens normally. This is never counted.
 | Place | What it does | Jen's list it answers |
 |---|---|---|
 | Session Zero | The first visit. "Who is this character?" A handful of questions answered in his own words, saved to the Character Sheet, revisited any time. | not knowing himself |
-| The Father's Voice | One thing a day the Father says to a son, from Scripture, plus one line in the mentor's voice. Never tied to yesterday. First on the front page, on purpose. | worth, not enough, absent father |
+| The Father's Voice | One thing a day the Father says to a son, from Scripture, plus one line in the mentor's voice. Never tied to yesterday. First on the front page, on purpose. Three streams rotate, because John is still getting to know him after growing up in religion: **Who he actually is** (not religion's version), **Who he says you are**, and **What he promises you**. Each entry names which stream it is, and links to Untangle in The Well for the "what religion said" side. | worth, not enough, absent father, getting to know Jesus |
+| Getting to know him | For a man learning relationship instead of religion. A slow, private walk through who Jesus is, in the mentor's voice: one story of Jesus at a time from the Gospels, with "what this shows about him" and "what he'd say to you here." No plan, no order he has to keep; pick up anywhere. Links to The Well's Today and Ways of Jesus. | who Jesus is, relationship not religion |
 | The Mirror | A daily emotional check-in built for a man told feelings are weakness: name it from a list, then "what's under it," then a body check, then "what do I want right now?" Builds vocabulary over months. Private. | emotional absence, unawareness of wants |
 | Character Sheet | Wants, needs, desires, values, loves, hates, limits, "what makes me feel alive," "what I'm actually good at." Filled in slowly: one question a day, never all at once. He chooses which parts the coach may read. | unawareness of wants/needs/desires, self-knowledge |
 | The Map | The zoom-out tool. From the one room he's stuck in: this room, the house, the week, the year, the life, and "what would matter in five years?" Also a timeline zoom. Links to Loop Breaker in Tend for the loop itself. | loops, zooming in |
@@ -166,7 +167,7 @@ man. No "step up." No "real men." No comparison to other men. No counts of misse
 
 | Step | What | Done when |
 |---|---|---|
-| 1 | Claim, Session Zero, The Father's Voice, The Mirror with survival first and The Way Back, Character Sheet, The Map | John claims it; a survival check-in drops to The Way Back; Jen's account cannot read a row |
+| 1 | Claim, Session Zero, The Father's Voice, The Mirror with survival first and The Way Back, Character Sheet, The Map, Getting to know him, The Landing, The Charter, plain-text export *(built 2026-09-19)* | John claims it; a survival check-in drops to The Way Back; Jen's account cannot read a row |
 | 2 | The Scout, Do It Tired, Shield Down, Quest Log, Iron, The Compass, Seen | Each works end to end and saves privately; Iron asks him and only him |
 | 3 | No Condemnation, Where This Came From, The Party with the friendship builder, Men in the Story, The Landing, The Horizon, Small Ways, Actually, Present, The Builder, For my therapist, The Blessing, monthly Letters | The monthly letter arrives in the mentor's voice from his own logs; the Blessing opens only for him |
 

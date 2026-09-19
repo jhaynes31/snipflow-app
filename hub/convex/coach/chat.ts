@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
-import { buildSystemPrompt, COACH_MODEL, taskPromptFor } from "./prompt";
+import { buildSystemPrompt, COACH_MODEL, MENTOR_VOICE, taskPromptFor } from "./prompt";
 import { crisisReply, detectCrisis, detectReassuranceLoop } from "./safety";
 
 /**
@@ -50,6 +50,7 @@ export const send = action({
       taskPrompt: taskPromptFor(args.task),
       loopSuspected: loop,
       wellPath: args.task?.startsWith("well.") ? context.wellPath : null,
+      mentor: args.task?.startsWith("metamorphosis.") ? { voice: MENTOR_VOICE, sheet: context.mentorSheet } : null,
     });
 
     const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });

@@ -9,6 +9,7 @@ export const MODULE_NAMES: Record<string, string> = {
   "the-well": "The Well",
   "kept-word": "Kept Word",
   "re-centered": "Re-Centered",
+  metamorphosis: "Metamorphosis",
   seasons: "Seasons",
   fitness: "Heartwood Fitness",
   "love-and-release": "Love & Release",

@@ -751,4 +751,40 @@ export default defineSchema({
     text: v.string(),
     createdAt: v.number(),
   }).index("by_owner_week", ["ownerId", "weekKey"]),
+  // ---------------------------------------------------------------------
+  // Metamorphosis (module id "metamorphosis"): one man's own room, claimed
+  // by him. Every row private, no share switch. See docs/metamorphose-spec.md.
+  // ---------------------------------------------------------------------
+
+  /** The Character Sheet: one answer per question key, in his words. */
+  mmSheet: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    text: v.string(),
+    /** He chooses which parts the coach may read. */
+    coachAllowed: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerId", "key"]),
+
+  /** The Mirror: a check-in, survival first. */
+  mmMirror: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    survival: v.boolean(),
+    feeling: v.optional(v.string()),
+    under: v.optional(v.string()),
+    body: v.optional(v.string()),
+    want: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The Map: one zoom-out, level by level. */
+  mmMaps: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    levels: v.array(v.object({ key: v.string(), text: v.string() })),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

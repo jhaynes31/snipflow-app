@@ -124,7 +124,13 @@ export const contextFor = internalQuery({
     const settings = readTendSettings(me.profile.moduleSettings);
     const wellPath = (me.profile.moduleSettings?.well as { path?: unknown } | undefined)?.path;
     const path: "man" | "woman" | null = wellPath === "man" ? "man" : wellPath === "woman" ? "woman" : null;
+    const mentorSheet = row.module === "metamorphosis"
+      ? (await ctx.db.query("mmSheet").withIndex("by_owner_key", (q) => q.eq("ownerId", me.profile._id)).collect())
+          .filter((r) => r.coachAllowed && r.text.trim())
+          .map((r) => ({ key: r.key, text: r.text }))
+      : [];
     return {
+      mentorSheet,
       wellPath: path,
       module: row.module,
       messages: row.messages.slice(-CONTEXT_MESSAGES).map((m) => ({ role: m.role, content: m.content })),
