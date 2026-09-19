@@ -19,3 +19,59 @@ helps through the event bus.
 Suggested first specs: Hearth and The Pantry. Names are placeholders until Jen chooses.
 
 Still planned from the original contract: Heartwood Fitness (phase 5) and Love & Release (phase 6).
+
+---
+
+## The faith app (Jen's own idea, 2026-09-19): notes toward a spec
+
+Jen's brief, in her words: a faith-based app rooted in the simplicity and truth of the
+Gospel of Jesus Christ, focused on being like Jesus, learning from his ways, and
+following his example in all areas (managing the home, marriage, people, unexpected
+circumstances). A way to tend to a relationship with Jesus as neurodivergent people who
+generally forget to read daily. Both Jen and John grew up with religious and church
+trauma; they know religion so well it gets in the way of Jesus. The focus is building
+and maintaining a relationship with Jesus. Built-in tools to understand the Bible (Old
+and New Testaments) and to combat lies and shame-based identities.
+
+**The one test:** does this help John or Jen know Jesus better today, or does it just
+help them feel religious? If the second, it doesn't go in.
+
+**Ruled out:** reading plans with days to catch up on; streaks, badges, counts; a
+devotional voice; "quiet time", "devotions", "backsliding", "conviction", "should";
+any notification that the app misses you. The app gets its own banned-words list that
+Jen and John add to.
+
+**Working names:** The Well (John 4), Emmaus (Luke 24), Abide (John 15). Jen to pick.
+
+**Places inside it (proposed):**
+
+| Place | What it does |
+|---|---|
+| Today | One small thing whenever you open it, not on a schedule: a short passage (Gospels first), one plain sentence on what Jesus did or said, one question to carry. Two-minute version and read-aloud. Never mentions the gap since last time. |
+| The Ways of Jesus | His example organized by real life: home, marriage, people who hurt you, money, rest, unexpected trouble, anger, grief, being misunderstood, being wrong, being tired. What Jesus did and said, not rules drawn from it. Claude drafts from the Gospels; Jen and John review every line. |
+| The Bible, with a guide | Full Bible reader; a "Where am I?" card per book (who, to whom, why, how it points to Jesus); plain-words glossary for churchy terms; a thread of Jesus through the Old Testament; "ask about this passage" with the coach. Coach rule: quote scripture only from the built-in text, never from memory; say "Christians read this differently" instead of picking a side. |
+| Lies and truth | Cards pairing a lie with what Jesus says and does. Identity lies ("I'm too much", "I'm lazy", "I'm a burden") and religious lies ("God is disappointed when I don't read", "I have to earn it", "doubt is disobedience", "my needs are selfish"). Personal lie cards with the truth found. Offered by Tend's Shame Interrupter; saved truths can go to the Evidence Bank. |
+| Untangle | The church-trauma tool: two columns, "what I was taught" and "what Jesus actually did". The person writes the first; the app helps find the second in the Gospels. No one grades it; the coach points to text and never declares doctrine. |
+| Talking with him | Prayer in your own words, no formulas. Lament allowed, Psalms at hand. An "I can't pray right now" button that shows one line and nothing else. A "pray for me about this" heads-up to the partner (the Hub's prayer help kind). |
+| Remembering | Private log of times he showed up, to reread on low days. Tend's Anchor tool draws from this so anchors live in one place. |
+| Together | A passage one marks for the other with a note; one question a week for the two of them; never a comparison of who read what. |
+
+**Additions proposed by Claude:** a Permissions page (to skip, doubt, be angry at God,
+rest, not finish, come back after months; written by Jen and John); a weekly Rest
+invitation (Jesus slept in the boat); a "Jesus and a neurodivergent brain" section (the
+disciples were messy, literal, impulsive, forgetful, anxious); audio everywhere;
+reminders that are off by default and worded by the person who turns them on.
+
+**How it fits The Shire:** stays in its lane. Tend may offer a Remembering card after a
+low check-in only if faith features are on, and changes nothing. Anchor reads from it.
+Nothing from it appears in Every Box. Everything private by default; sharing is a choice.
+
+**Decisions still open (Jen and John):**
+1. The name.
+2. Bible translation: Berean Standard Bible is modern, readable, and free to build in; ESV can be added with a free personal-use key; NIV and most others cost money.
+3. Whether the coach answers scripture questions (with the strict quoting rule) or stays out of this app.
+4. Whether Untangle and the religious-lies cards are in, or the app stays a Jesus-only space.
+5. Their banned-words list.
+
+Next step when they return to it: Claude writes the full spec in the shape of the Tend
+spec, saves it to docs, and they review before any code.
