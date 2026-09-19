@@ -25,7 +25,7 @@ describe("Re-Centered helpers", () => {
     const text = exportRoom({
       name: "Jen",
       settings: { boundaries: "I won't remind.", ifThen: "I go anyway." },
-      sorts: [{ createdAt: 0, text: "Missed the call", whose: "theirs" }],
+      sorts: [{ createdAt: 0, text: "Missed the call", whose: "theirs" }, { createdAt: 0, text: "The leak", whose: "ours", myPart: "Pick a day", theirPart: "Call the plumber" }],
       pauses: [],
       landings: [{ createdAt: 0, text: "Let the bill sit", after: "Shaky, then fine" }],
       taps: [{ day: "2026-09-19", where: "self" }],
@@ -34,6 +34,8 @@ describe("Re-Centered helpers", () => {
     });
     assert.match(text, /Jen's room/);
     assert.match(text, /Theirs to carry/);
+    assert.match(text, /Ours: a piece each/);
+    assert.match(text, /Their part: Call the plumber/);
     assert.match(text, /In me and God/);
     assert.match(text, /Went to dinner/);
     assert.doesNotMatch(text, /John/);

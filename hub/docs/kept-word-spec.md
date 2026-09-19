@@ -39,7 +39,7 @@ enforced in the Convex functions, not the screen.
 | Place | What it does |
 |---|---|
 | Now | The four tools below as big buttons, plus "What I will and won't do" read-only at the top when it has content. Low-demand design. |
-| Whose is this? | Something has landed. Write it in one line, then sort it: mine to carry / his to carry / not mine at all. Optional line: "what I'll do about the part that's mine". Saved. Two minutes. |
+| Whose is this? | Something has landed. Write it in one line, then sort it: mine to carry / theirs to carry / ours, a piece each / not mine at all / I don't know yet. "Ours" names my piece and their piece; I commit only to mine. "I don't know yet" shows the three sorting questions (whose action caused it, who has the power to change it, whose consequence is it) plus "is this mine, or just familiar?", and can stay unsure to be re-sorted later. Two minutes. |
 | The pause before rescuing | Four questions, one per screen: If I do nothing, what happens? Who does that land on? What am I afraid of? What do I need right now? Ends with "I'm going to step in", "I'm going to let it land", or "I don't know yet". No wrong answer. Can end in a Tend tool (Ground Me, Sit With It) or nothing. |
 | Let it land | The log of times Jen didn't fix or manage it, written in her words, with how it felt after. This is her evidence of her own change. Reread on hard days. Never shows a count of John's failures; it is only ever about what Jen did. |
 | Where my security is sitting today | One tap, any day, optional: in John / in others / in me and God / mixed. No score, no chart with a target line. A calm monthly view shows the taps as dots so she can notice drift over months. |

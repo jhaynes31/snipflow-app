@@ -11,7 +11,7 @@ import { requireRoom } from "./room";
  * and there is no share switch anywhere.
  */
 
-const whose = v.union(v.literal("mine"), v.literal("theirs"), v.literal("notMine"));
+const whose = v.union(v.literal("mine"), v.literal("theirs"), v.literal("ours"), v.literal("notMine"), v.literal("unsure"));
 const where = v.union(v.literal("partner"), v.literal("others"), v.literal("self"), v.literal("mixed"));
 const ending = v.union(v.literal("stepIn"), v.literal("letItLand"), v.literal("notYet"));
 
@@ -30,7 +30,7 @@ export const sorts = query({
 });
 
 export const addSort = mutation({
-  args: { text: v.string(), whose, myPart: v.optional(v.string()) },
+  args: { text: v.string(), whose, myPart: v.optional(v.string()), theirPart: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireRoom(ctx);
     return await ctx.db.insert("rcSorts", {
@@ -39,7 +39,22 @@ export const addSort = mutation({
       text: cleanText(args.text, 500, "What landed"),
       whose: args.whose,
       myPart: optionalText(args.myPart, 500, "My part"),
+      theirPart: optionalText(args.theirPart, 500, "Their part"),
       createdAt: Date.now(),
+    });
+  },
+});
+
+/** Re-sort something later, once it's clearer. Unsure is allowed to stay unsure. */
+export const resort = mutation({
+  args: { id: v.id("rcSorts"), whose, myPart: v.optional(v.string()), theirPart: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const me = await requireRoom(ctx);
+    const row = await requireOwned(ctx, me, "rcSorts", args.id);
+    await ctx.db.patch(row._id, {
+      whose: args.whose,
+      myPart: optionalText(args.myPart, 500, "My part"),
+      theirPart: optionalText(args.theirPart, 500, "Their part"),
     });
   },
 });
@@ -254,7 +269,7 @@ export const now = query({
       ctx.db.query("rcOwnLife").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).collect(),
       ctx.db.query("rcSecurityTaps").withIndex("by_owner_day", (q) => q.eq("ownerId", me.profile._id).eq("day", today)).first(),
     ]);
-    const hardDay = recentSorts.some((s) => s.whose !== "mine") || recentLandings.length > 0;
+    const hardDay = recentSorts.some((s) => s.whose === "theirs" || s.whose === "notMine" || s.whose === "ours") || recentLandings.length > 0;
     return {
       today,
       hardDay,

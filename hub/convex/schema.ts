@@ -549,8 +549,9 @@ export default defineSchema({
     ownerId: v.id("profiles"),
     visibility: visibilityValidator,
     text: v.string(),
-    whose: v.union(v.literal("mine"), v.literal("theirs"), v.literal("notMine")),
+    whose: v.union(v.literal("mine"), v.literal("theirs"), v.literal("ours"), v.literal("notMine"), v.literal("unsure")),
     myPart: v.optional(v.string()),
+    theirPart: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
 

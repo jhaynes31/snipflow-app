@@ -2,15 +2,25 @@
  * Re-Centered's pure helpers, shared by the Convex functions and the screens.
  */
 
-export type Whose = "mine" | "theirs" | "notMine";
+export type Whose = "mine" | "theirs" | "ours" | "notMine" | "unsure";
 export type SecurityWhere = "partner" | "others" | "self" | "mixed";
 export type PauseEnding = "stepIn" | "letItLand" | "notYet";
 
 export const WHOSE_LABEL: Record<Whose, string> = {
   mine: "Mine to carry",
   theirs: "Theirs to carry",
+  ours: "Ours: a piece each",
   notMine: "Not mine at all",
+  unsure: "I don't know yet",
 };
+
+/** The three questions that usually settle it, plus the one that matters most. */
+export const SORTING_QUESTIONS = [
+  "Whose action or choice caused this?",
+  "Who has the power to change it?",
+  "Whose consequence is it, if no one steps in?",
+  "Is this mine, or is it just familiar? Familiar is not the same as mine.",
+];
 
 export const WHERE_LABEL: Record<SecurityWhere, string> = {
   partner: "In my partner",
@@ -65,7 +75,7 @@ export function pickForDay<T>(items: T[], day: string): T | null {
 export function exportRoom(input: {
   name: string;
   settings: ReCenteredSettings;
-  sorts: { createdAt: number; text: string; whose: Whose; myPart?: string }[];
+  sorts: { createdAt: number; text: string; whose: Whose; myPart?: string; theirPart?: string }[];
   pauses: { createdAt: number; ifNothing: string; landsOn: string; afraid: string; need: string; ending: PauseEnding }[];
   landings: { createdAt: number; text: string; after?: string }[];
   taps: { day: string; where: SecurityWhere }[];
@@ -77,7 +87,7 @@ export function exportRoom(input: {
   if (input.settings.boundaries) lines.push("What I will and won't do", input.settings.boundaries, "");
   if (input.settings.ifThen) lines.push("If a word isn't kept, then I will…", input.settings.ifThen, "");
   lines.push("Whose is this?");
-  for (const s of input.sorts) lines.push(`${date(s.createdAt)}: ${s.text} [${WHOSE_LABEL[s.whose]}]${s.myPart ? ` My part: ${s.myPart}` : ""}`);
+  for (const s of input.sorts) lines.push(`${date(s.createdAt)}: ${s.text} [${WHOSE_LABEL[s.whose]}]${s.myPart ? ` My part: ${s.myPart}` : ""}${s.theirPart ? ` Their part: ${s.theirPart}` : ""}`);
   lines.push("", "The pause before rescuing");
   for (const p of input.pauses) lines.push(`${date(p.createdAt)}: if nothing: ${p.ifNothing} / lands on: ${p.landsOn} / afraid: ${p.afraid} / need: ${p.need} [${ENDING_LABEL[p.ending]}]`);
   lines.push("", "Let it land");
