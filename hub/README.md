@@ -22,8 +22,6 @@ npm run dev
 
 Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
 
-Deployed on Vercel as the `the-shire` project (root directory `hub`).
+Deployed on Vercel as the `the-shire` project (root directory `hub`). Live at https://the-shire-lilac.vercel.app (share this one; `-git-main-` addresses are gated behind a Vercel login).
 
 Data copy from the standalone Every Box: see `docs/every-box-migration-plan.md`.
-
-Rebuild note: full deploy key in place for the data copy.
