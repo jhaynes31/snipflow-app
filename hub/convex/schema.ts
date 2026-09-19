@@ -684,4 +684,71 @@ export default defineSchema({
   })
     .index("by_owner_time", ["ownerId", "createdAt"])
     .index("by_kind_period", ["kind", "interval", "periodStart"]),
+  // ---------------------------------------------------------------------
+  // The Well (module id "the-well"): tending a relationship with Jesus.
+  // Private by default; marks and weekly answers are shared on purpose.
+  // See docs/app-ideas.md (faith app) until its own spec lands.
+  // ---------------------------------------------------------------------
+
+  /** Talking with him: prayer in the person's own words. */
+  wellPrayers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    answeredAt: v.optional(v.number()),
+    answerNote: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Remembering: a time he showed up. Tend's Anchor reads these too. */
+  wellRemembering: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    happenedOn: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** A personal lie card with the truth found. */
+  wellLies: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    lie: v.string(),
+    truth: v.string(),
+    ref: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Untangle: what I was taught, beside what Jesus actually did. */
+  wellUntangle: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    taught: v.string(),
+    jesusDid: v.optional(v.string()),
+    ref: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** A passage one person marked for the other, with a note. Shared. */
+  wellMarks: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    toProfileId: v.id("profiles"),
+    book: v.string(),
+    chapter: v.number(),
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_to_time", ["toProfileId", "createdAt"]),
+
+  /** One answer to the week's question. Shared once written. */
+  wellAnswers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    weekKey: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_week", ["ownerId", "weekKey"]),
 });

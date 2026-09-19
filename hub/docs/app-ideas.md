@@ -85,3 +85,27 @@ Specified in full in `docs/kept-word-spec.md`. Jen approved building both. Solid
 is a visible tile only Jen can open; Kept Word is shared and John does the writing;
 Seasons is the cross-app pattern report (My season, private; Our season, shared and
 identical for both). Name for Solid Ground still to be chosen by Jen.
+
+
+### Built 2026-09-19 as "The Well" (step 1)
+
+Jen said "move onto the faith app"; Claude built step 1 under stated assumptions
+rather than wait on the five decisions. Each is one string or one switch to change:
+
+1. **Name:** The Well (working). Rename by changing `name` in `modules/the-well/manifest.tsx` and `core/modules/names.ts`.
+2. **Translation:** Berean Standard Bible (public domain), built into `public/bible/bsb/` by `scripts/build-bible.mjs` from the scrollmapper/bible_databases JSON.
+3. **Coach on scripture:** on, with the quoting rule (task prompts `well.passage` and `well.untangle` in `convex/coach/prompt.ts`). The passage text is sent with the question so the coach quotes only the text in front of it.
+4. **Untangle and the religious-lies cards:** included.
+5. **Banned words:** "you should have" added to the Hub list; The Well's own copy avoids "quiet time", "devotions", "backsliding" except to defuse them in the glossary. Jen and John to add theirs.
+
+Built: Today (45 Gospel passages by day, read-aloud, a question to carry), Bible (66
+"Where am I?" cards, chapter reader, pick up where you left off with no gap shown,
+plain-words glossary, ask about this passage), Ways of Jesus (12 areas incl. "Jesus and
+a brain like yours"), Lies and truth (17 starter cards + personal cards, save to
+Evidence Bank, linked from Shame Interrupter), Untangle (two columns + coach), Talking
+with him (prayer notes, answered → Remembering, "I can't pray right now", lament
+Psalms, "pray for me" heads-up), Remembering (feeds Tend's Anchor), Together (mark a
+passage for the other with a note; one question a week), Permissions (editable).
+
+Not yet: a weekly Rest invitation; a "Jesus through the Old Testament" thread; John and
+Jen's review of the starter content.

@@ -63,6 +63,8 @@ import type * as tend_repair from "../tend/repair.js";
 import type * as tend_starter from "../tend/starter.js";
 import type * as tend_together from "../tend/together.js";
 import type * as tend_tools from "../tend/tools.js";
+import type * as well_entries from "../well/entries.js";
+import type * as well_together from "../well/together.js";
 
 import type {
   ApiFromModules,
@@ -126,6 +128,8 @@ declare const fullApi: ApiFromModules<{
   "tend/starter": typeof tend_starter;
   "tend/together": typeof tend_together;
   "tend/tools": typeof tend_tools;
+  "well/entries": typeof well_entries;
+  "well/together": typeof well_together;
 }>;
 
 /**

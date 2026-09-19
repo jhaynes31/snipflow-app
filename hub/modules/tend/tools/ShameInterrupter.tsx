@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -34,6 +35,7 @@ function Body() {
           <textarea className="sh-input sh-textarea" rows={2} value={voice} onChange={(e) => setVoice(e.target.value)} maxLength={500} />
         </Field>
         <CrisisNotice texts={[voice, toPartner, kinder]} />
+        <p className="sh-hint">If the voice sounds like religion, <Link href="/the-well/lies" className="sh-link">Lies and truth</Link> in The Well has the answers Jesus gave.</p>
       </Card>
       <Card>
         <Field label={`What would you say to ${name} if they did this?`} hint="You already know how to be kind. Borrow it.">

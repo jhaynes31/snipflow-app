@@ -1,0 +1,96 @@
+/* The Well: deep water, stone, and morning light. */
+.well-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.well-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.well-subnav a[aria-current="page"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+  border-color: transparent;
+}
+.well-passage {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.2rem;
+  line-height: 1.7;
+}
+.well-passage sup {
+  font-size: 0.65em;
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+  font-family: var(--font-sans);
+}
+.well-verse:target {
+  background: var(--tile-tint);
+  border-radius: 6px;
+}
+.well-chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.well-chapters a {
+  min-width: 2.4rem;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text);
+}
+.well-chapters a[aria-current="page"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+}
+.well-books {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.4rem;
+}
+.well-books a {
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text);
+}
+.well-quiet {
+  text-align: center;
+  padding: 3rem 1rem;
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.5rem;
+  line-height: 1.6;
+}
+.well-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+@media (max-width: 640px) {
+  .well-columns {
+    grid-template-columns: 1fr;
+  }
+}
+.well-entry + .well-entry {
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}
+.well-did {
+  font-size: 1.05rem;
+}

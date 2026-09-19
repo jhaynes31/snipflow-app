@@ -19,6 +19,7 @@ export const BANNED_PHRASES = [
   "behind schedule",
   "falling behind",
   "coming soon",
+  "you should have",
 ];
 
 /** Returns the phrases found in a piece of text. */
