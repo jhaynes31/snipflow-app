@@ -75,3 +75,13 @@ Nothing from it appears in Every Box. Everything private by default; sharing is 
 
 Next step when they return to it: Claude writes the full spec in the shape of the Tend
 spec, saves it to docs, and they review before any code.
+
+
+---
+
+## Urgent build (2026-09-19): Solid Ground and Kept Word, then Seasons
+
+Specified in full in `docs/kept-word-spec.md`. Jen approved building both. Solid Ground
+is a visible tile only Jen can open; Kept Word is shared and John does the writing;
+Seasons is the cross-app pattern report (My season, private; Our season, shared and
+identical for both). Name for Solid Ground still to be chosen by Jen.
