@@ -9,7 +9,6 @@ import { EveryBoxShell } from "./EveryBoxShell";
 import { useEveryBox } from "./components/context";
 import { StageArt } from "./components/StageArt";
 import { useNow } from "./components/useNow";
-import { WorldScene } from "./components/WorldScene";
 
 const REVIEW_NUDGE_AFTER_DAYS = 5;
 
@@ -80,7 +79,19 @@ function HomeCard() {
   for (const c of categories) counts[computeFreshness(c.lastTendedAt, c.idealCadenceDays, now).stage - 1]++;
   return (
     <div className="grid gap-3">
-      <WorldScene categories={categories} now={now} />
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {categories.slice(0, 8).map((c) => {
+          const stage = computeFreshness(c.lastTendedAt, c.idealCadenceDays, now).stage;
+          return (
+            <Link key={c._id} href={`/every-box/box/${c._id}`} className="eb-card-alt flex flex-col items-center gap-1 p-2 text-center no-underline">
+              <StageArt theme={theme.id} stage={stage} size={1.8} />
+              <span className="line-clamp-1 text-xs font-medium">
+                <span aria-hidden>{c.icon}</span> {c.name}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {theme.stages.map((s, i) =>
           counts[i] > 0 ? (

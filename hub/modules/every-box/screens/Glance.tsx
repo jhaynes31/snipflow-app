@@ -8,7 +8,6 @@ import { stageVisual } from "@/convex/everyBox/themes";
 import { useEveryBox } from "@/modules/every-box/components/context";
 import { StageVisual } from "@/modules/every-box/components/StageVisual";
 import { useNow } from "@/modules/every-box/components/useNow";
-import { WorldScene } from "@/modules/every-box/components/WorldScene";
 
 /**
  * The glanceable view: no navigation, no buttons, just the state of every
@@ -32,9 +31,6 @@ export function Glance() {
         <p className="text-sm eb-muted">Nothing planted yet.</p>
       ) : (
         <>
-        <div className="mb-4">
-          <WorldScene categories={categories} now={now} />
-        </div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
           {categories.map((c) => {
             const stage = computeFreshness(c.lastTendedAt, c.idealCadenceDays, now).stage;

@@ -13,7 +13,6 @@ import { useEveryBox } from "@/modules/every-box/components/context";
 import { StageVisual } from "@/modules/every-box/components/StageVisual";
 import { Spinner } from "@/modules/every-box/components/ui";
 import { useNow } from "@/modules/every-box/components/useNow";
-import { WorldScene } from "@/modules/every-box/components/WorldScene";
 import { StageArt } from "@/modules/every-box/components/StageArt";
 
 const REVIEW_NUDGE_AFTER_DAYS = 5;
@@ -66,11 +65,6 @@ export function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tight">
           {theme.worldName.charAt(0).toUpperCase() + theme.worldName.slice(1)}
         </h1>
-        {categories.length > 0 && (
-          <div className="mt-3">
-            <WorldScene categories={shown} now={now} />
-          </div>
-        )}
         {categories.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5" aria-label="How things are right now">
             {theme.stages.map((s, i) =>
