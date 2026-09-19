@@ -1,0 +1,34 @@
+/* Seasons: the pattern report. Bark and moss. */
+.se-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.se-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.se-subnav a[aria-current="page"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+  border-color: transparent;
+}
+.se-body {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 1.05rem;
+}
+.se-row + .se-row {
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}

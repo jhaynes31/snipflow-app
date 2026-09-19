@@ -8,6 +8,7 @@ export const MODULE_NAMES: Record<string, string> = {
   tend: "Tend",
   "kept-word": "Kept Word",
   "re-centered": "Re-Centered",
+  seasons: "Seasons",
   fitness: "Heartwood Fitness",
   "love-and-release": "Love & Release",
 };

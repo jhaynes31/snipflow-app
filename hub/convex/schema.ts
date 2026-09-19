@@ -663,4 +663,25 @@ export default defineSchema({
   })
     .index("by_to_time", ["toProfileId", "createdAt"])
     .index("by_owner_time", ["ownerId", "createdAt"]),
+  // ---------------------------------------------------------------------
+  // Seasons (module id "seasons"): the pattern report. "mine" is private to
+  // its owner; "ours" is shared, identical for both, deleted for both by
+  // either. See docs/kept-word-spec.md.
+  // ---------------------------------------------------------------------
+
+  seasonReports: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    kind: v.union(v.literal("mine"), v.literal("ours")),
+    interval: v.union(v.literal("weekly"), v.literal("biweekly"), v.literal("monthly"), v.literal("now")),
+    periodStart: v.string(),
+    periodEnd: v.string(),
+    title: v.string(),
+    body: v.string(),
+    /** The counts the coach was given, kept so the report can be checked against them. */
+    facts: v.any(),
+    createdAt: v.number(),
+  })
+    .index("by_owner_time", ["ownerId", "createdAt"])
+    .index("by_kind_period", ["kind", "interval", "periodStart"]),
 });
