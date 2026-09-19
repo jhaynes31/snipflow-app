@@ -6,10 +6,40 @@
 // then links partners to Shire profiles by email. Never writes to the old
 // deployment.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import JSZip from "jszip";
+import yauzl from "yauzl";
+
+/**
+ * Reads every file in a zip into memory as { path: string }. Uses yauzl
+ * because Convex's snapshot zips use zip64 records that jszip can't read.
+ */
+function readZip(path) {
+  return new Promise((resolve, reject) => {
+    const files = new Map();
+    yauzl.open(path, { lazyEntries: true }, (err, zip) => {
+      if (err) return reject(err);
+      zip.on("error", reject);
+      zip.on("end", () => resolve(files));
+      zip.on("entry", (entry) => {
+        if (/\/$/.test(entry.fileName)) return zip.readEntry();
+        zip.openReadStream(entry, (err2, stream) => {
+          if (err2) return reject(err2);
+          const chunks = [];
+          stream.on("data", (c) => chunks.push(c));
+          stream.on("error", reject);
+          stream.on("end", () => {
+            files.set(entry.fileName, Buffer.concat(chunks).toString("utf8"));
+            zip.readEntry();
+          });
+        });
+      });
+      zip.readEntry();
+    });
+  });
+}
 
 const EB_TABLES = ["ebHouseholds", "ebPartners", "ebCategories", "ebTendingEvents", "ebCategoryNotes", "ebWeeklyReviews", "ebCommitments"];
 
@@ -47,14 +77,15 @@ export async function importEveryBoxIfNeeded() {
   console.log("Exporting a snapshot of the old Every Box deployment...");
   run(["export", "--path", snapshot], { CONVEX_DEPLOY_KEY: source });
 
-  const zip = await JSZip.loadAsync(readFileSync(snapshot));
+  const zip = await readZip(snapshot);
+  console.log("Snapshot contains:", [...zip.keys()].join(", "));
   const out = new JSZip();
   const counts = {};
   const legacyUsers = [];
 
-  const usersFile = zip.file("users/documents.jsonl");
+  const usersFile = zip.get("users/documents.jsonl");
   if (usersFile) {
-    for (const line of (await usersFile.async("string")).split("\n")) {
+    for (const line of usersFile.split("\n")) {
       if (!line.trim()) continue;
       const u = JSON.parse(line);
       if (u._id && u.email) legacyUsers.push({ legacyUserId: u._id, email: u.email });
@@ -62,12 +93,12 @@ export async function importEveryBoxIfNeeded() {
   }
 
   for (const table of EB_TABLES) {
-    const file = zip.file(`${table}/documents.jsonl`);
+    const file = zip.get(`${table}/documents.jsonl`);
     if (!file) {
       counts[table] = 0;
       continue;
     }
-    const rows = (await file.async("string"))
+    const rows = file
       .split("\n")
       .filter((l) => l.trim())
       .map((l) => JSON.parse(l));
