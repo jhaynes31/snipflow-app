@@ -9,10 +9,13 @@
 export type Person = 'her' | 'john'
 
 const KEY = 'lr:person'
+const PLAN_KEY = 'lr:plan'
 
 export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
-/** The Shire page this app is opened from; "Switch person" and a full reset go back there. */
+/** The Shire page this app is opened from; a full reset goes back there. */
 export const SHIRE_PAGE = '/love-and-release'
+/** Re-Centered, the "partner, and me" room, kept in The Shire. */
+export const SHIRE_ROOM = '/love-and-release/john'
 
 export function getPerson(): Person {
   try { return localStorage.getItem(KEY) === 'john' ? 'john' : 'her' } catch { return 'her' }
@@ -32,9 +35,18 @@ export function takeHandoff(): void {
   let url: URL
   try { url = new URL(window.location.href) } catch { return }
   const who = url.searchParams.get('who')
-  if (who !== 'her' && who !== 'john') return
-  setPerson(who)
+  const plan = url.searchParams.get('plan') === '1'
+  if (who !== 'her' && who !== 'john' && !plan) return
+  if (who === 'her' || who === 'john') setPerson(who)
+  // One yes-or-no for this visit: a word wasn't kept recently, so the plan in Re-Centered is ready.
+  try { if (plan) sessionStorage.setItem(PLAN_KEY, '1') } catch { /* ignore */ }
   url.searchParams.delete('who')
+  url.searchParams.delete('plan')
   const q = [...url.searchParams.keys()].length ? `?${url.searchParams}` : ''
   try { window.history.replaceState(null, '', url.pathname + q + url.hash) } catch { /* ignore */ }
+}
+
+/** True when The Shire said, on the way in, that the plan in Re-Centered is ready. */
+export function planReady(): boolean {
+  try { return sessionStorage.getItem(PLAN_KEY) === '1' } catch { return false }
 }

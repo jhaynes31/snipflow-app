@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { modulesFor, pinnedFor } from "@/core/modules/registry";
+import { readBackground } from "@/core/theme/backgrounds";
 import { Spinner } from "@/core/ui";
 import { BadgeSync } from "./BadgeSync";
 import { HubContext, type HubContextValue } from "./HubContext";
@@ -37,6 +38,7 @@ function useViewSettings(value: HubContextValue | null) {
     el.dataset.textSize = a.textSize;
     el.dataset.contrast = a.highContrast ? "high" : "normal";
     el.dataset.theme = a.theme;
+    el.dataset.bg = readBackground(value.profile.moduleSettings);
   }, [value]);
 }
 

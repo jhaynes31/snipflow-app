@@ -813,3 +813,39 @@ html[data-contrast="high"] {
   font-size: 1.08rem;
   line-height: 1.55;
 }
+
+/* Background color picker (core/theme/BackgroundPicker.tsx). */
+.sh-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.sh-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem 0.3rem 0.35rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.sh-swatch[aria-checked="true"] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.sh-swatch-dot {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--swatch);
+  border: 1px solid var(--border);
+}
+.sh-swatch:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

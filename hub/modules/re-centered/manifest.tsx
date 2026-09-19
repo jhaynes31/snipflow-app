@@ -12,16 +12,21 @@ import { Security } from "./screens/Security";
 import { Whose } from "./screens/Whose";
 
 /**
- * Re-Centered: one person's own room, named by Jen (2026-09-19). A visible
- * tile that only the person who claimed it can open. Every row is private
- * with no share switch. Built from docs/kept-word-spec.md.
+ * Re-Centered: one person's own room, named by Jen (2026-09-19). Only the
+ * person who claimed it can open it. Every row is private with no share
+ * switch. Built from docs/kept-word-spec.md.
+ *
+ * Since 2026-09-19 it has no tile of its own: it is the "{partner}, and me"
+ * door inside Love & Release, served at /love-and-release/john/… by that
+ * module's Screen. Its data, the Kept Word hook and the Seasons report are
+ * untouched; only the address changed (docs/love-and-release-migration.md).
  */
 export const reCentered: ModuleManifest = {
   id: "re-centered",
   name: "Re-Centered",
   tagline: "One person's own quiet room, for standing on your own ground.",
   icon: Compass,
-  route: "/re-centered",
+  route: "/love-and-release/john",
   theme: {
     accent: "#6B5B8E",
     onAccent: "#FFFFFF",

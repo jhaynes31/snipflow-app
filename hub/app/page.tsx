@@ -7,6 +7,7 @@ import { COPY } from "@/core/copy/strings";
 import { HeadsUpCard } from "@/core/shell/HeadsUpCard";
 import { useHub } from "@/core/shell/HubContext";
 import type { ModuleManifest } from "@/core/modules/types";
+import { BackgroundPicker } from "@/core/theme/BackgroundPicker";
 import { Btn, Card, LinkBtn, timeAgo } from "@/core/ui";
 
 function tileStyle(m: ModuleManifest): React.CSSProperties {
@@ -150,6 +151,12 @@ export default function HomePage() {
           <span className="sh-tile-tagline">Tell {partnerName} how today is and what would help.</span>
         </Link>
       </section>
+
+      {/* 6. This person's own background color. */}
+      <details className="sh-menu sh-bg-menu">
+        <summary>Background color</summary>
+        <BackgroundPicker />
+      </details>
     </div>
   );
 }

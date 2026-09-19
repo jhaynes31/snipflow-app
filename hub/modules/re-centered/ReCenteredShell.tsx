@@ -9,7 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { Btn, Card, ErrorNote, LinkBtn, Spinner, useAction } from "@/core/ui";
 import "./re-centered.css";
 
-const ROUTE = "/re-centered";
+const ROUTE = "/love-and-release/john";
 const NAV = [
   { href: ROUTE, label: "Now", icon: Home, exact: true },
   { href: `${ROUTE}/whose`, label: "Whose is this?", icon: Scale },

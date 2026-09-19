@@ -266,7 +266,7 @@ Build the foundation first, then add modules one at a time. Each phase ends with
 | 3. Tend | Build from its own spec | Check-in, core tools, and partner cards work end to end |
 | 4. AI coach and safety *(built 2026-09-19)* | Shared coach service (`convex/coach/`), crisis flow, safety plan | Crisis detection tested and "Need help now" works from every screen |
 | 5. Fitness module *(moved in 2026-09-19)* | Heartwood, built on its own, moved in as an embedded app at `/fitness/app/` (docs/heartwood-migration-plan.md) | First generated plan runs inside The Shire |
-| 6. Love & Release *(moved in 2026-09-19)* | Built on its own, moved in as an embedded app at `/love-and-release/app/` (docs/love-and-release-migration.md) | Circles work with private-by-default data |
+| 6. Love & Release *(moved in 2026-09-19)* | Built on its own, moved in as an embedded app at `/love-and-release/app/`; Re-Centered became its second door the same day (docs/love-and-release-migration.md) | Circles work with private-by-default data |
 
 Deferred from phase 1 on purpose: optional push notifications and quiet hours (no channel exists yet to apply them to). The crisis screen with 988, 911, the one-tap urgent heads-up, and the safety plan editor are built.
 

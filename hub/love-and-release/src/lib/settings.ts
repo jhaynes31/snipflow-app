@@ -23,5 +23,5 @@ export function applyTheme(s: Settings): void {
   root.dataset.reduceMotion = s.reduceMotion ? 'true' : 'false'
   const dark =
     s.theme === 'dark' || (s.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#221c19' : '#f6efe6')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#1F261C' : '#F5EFE0')
 }

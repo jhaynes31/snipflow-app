@@ -30,6 +30,28 @@ on the device in IndexedDB; there is no server and no account. Its README lists 
   No Today line on purpose: what happens in there is private, and The Shire does not read it.
 - `hub/tsconfig.json` and `eslint.config.mjs` leave `love-and-release/` to its own toolchain.
 
+## One place, two doors (2026-09-19)
+
+Jen asked to combine Love & Release and Re-Centered without cutting Re-Centered's wire to
+Kept Word. So Re-Centered's data did not move; its address did.
+
+- The Love & Release tile is the front door for both. "Everyone, and me" opens the app
+  above. "{partner}, and me" opens Re-Centered's screens at `/love-and-release/john/…`,
+  rendered by `modules/love-and-release/manifest.tsx` from `modules/re-centered`. The
+  Re-Centered tile is gone from the tab bar; `/re-centered/…` redirects.
+- Re-Centered's rows stay in The Shire's database, so Kept Word's `word.didnt` still
+  lights up the if-then plan on its Now screen within three days, and Seasons still reads
+  its sorts, pauses, landings and security taps. The room's claim is unchanged.
+- One signal crosses over: when a word wasn't kept recently, the front door opens the app
+  with `plan=1`, and the app's own front door shows "the plan is ready" with a link to
+  Re-Centered. Only the yes-or-no travels, never the word.
+- Cross-links: Re-Centered's Now has "Fawn alarm," "I'm in a loop," "A breathing pause"
+  and "Boundaries with anyone," each opening that tool in the app. The app's front door
+  has a "This is about John" door (Jen's copy only) that opens Re-Centered.
+- The app now wears The Shire's palette (parchment, cream, moss, candlelight, and the
+  lantern-lit dark) with the fonts it already shared. Its own tokens in
+  `src/styles/global.css` were remapped; no screen changed.
+
 ## Existing data
 
 Anything written at the app's old address stays in that browser. Its Settings has Export

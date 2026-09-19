@@ -7,7 +7,13 @@ export function readLoveAndReleaseSettings(moduleSettings: Record<string, unknow
   return { who: readPersonSetting(moduleSettings, LOVE_AND_RELEASE_MODULE_ID) };
 }
 
-/** The address that opens Love & Release as this person. Nothing else travels. */
-export function loveAndReleaseUrl(who: EmbeddedPerson): string {
-  return `${LOVE_AND_RELEASE_APP_PATH}?who=${who}`;
+/**
+ * The address that opens Love & Release as this person. `plan` is the one
+ * signal that travels: a word wasn't kept recently, so the app's front door
+ * can point at the plan in Re-Centered. Never what the word was.
+ */
+export function loveAndReleaseUrl(who: EmbeddedPerson, signals: { plan?: boolean } = {}): string {
+  const p = new URLSearchParams({ who });
+  if (signals.plan) p.set("plan", "1");
+  return `${LOVE_AND_RELEASE_APP_PATH}?${p.toString()}`;
 }

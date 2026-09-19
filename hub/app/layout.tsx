@@ -4,6 +4,7 @@ import "./globals.css";
 import { ConvexClientProvider } from "@/core/auth/ConvexClientProvider";
 import { APP_DESCRIPTION, APP_DISPLAY_NAME } from "@/core/config";
 import { HubShell } from "@/core/shell/HubShell";
+import { backgroundCss } from "@/core/theme/backgrounds";
 import { cssVariables, LIGHT, DARK } from "@/core/theme/tokens";
 
 const heading = Fraunces({ variable: "--font-heading", subsets: ["latin"], display: "swap" });
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${heading.variable} ${body.variable} h-full`} data-theme="system">
       <head>
         {/* Every color on every screen comes from core/theme/tokens.ts. */}
-        <style dangerouslySetInnerHTML={{ __html: cssVariables() }} />
+        <style dangerouslySetInnerHTML={{ __html: cssVariables() + "\n" + backgroundCss() }} />
       </head>
       <body className="min-h-full">
         <ConvexClientProvider>

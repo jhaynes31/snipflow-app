@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
       // The support app was renamed Tend (docs/spec-update-1.md).
       { source: "/support", destination: "/tend", permanent: true },
       { source: "/support/:path*", destination: "/tend/:path*", permanent: true },
+      // Re-Centered moved inside Love & Release (docs/love-and-release-migration.md).
+      { source: "/re-centered", destination: "/love-and-release/john", permanent: true },
+      { source: "/re-centered/:path*", destination: "/love-and-release/john/:path*", permanent: true },
     ];
   },
   async headers() {

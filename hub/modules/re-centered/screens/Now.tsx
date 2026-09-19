@@ -4,19 +4,25 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { pickForDay, WHERE_LABEL } from "@/convex/reCentered/pure";
+import { personFromName, readPersonSetting } from "@/core/person";
+import { useHub } from "@/core/shell/HubContext";
 import { Card, PageTitle, Spinner, timeAgo } from "@/core/ui";
 
 const TOOLS = [
-  { href: "/re-centered/whose", name: "Whose is this?", line: "Something landed. Sort it: mine, theirs, or not mine at all." },
-  { href: "/re-centered/pause", name: "The pause before rescuing", line: "Four questions before I step in." },
-  { href: "/re-centered/landed", name: "Let it land", line: "I didn't fix it. Write that down." },
-  { href: "/re-centered/security", name: "Where I stand today", line: "One tap: where my security is sitting." },
+  { href: "/love-and-release/john/whose", name: "Whose is this?", line: "Something landed. Sort it: mine, theirs, or not mine at all." },
+  { href: "/love-and-release/john/pause", name: "The pause before rescuing", line: "Four questions before I step in." },
+  { href: "/love-and-release/john/landed", name: "Let it land", line: "I didn't fix it. Write that down." },
+  { href: "/love-and-release/john/security", name: "Where I stand today", line: "One tap: where my security is sitting." },
 ];
 
 /** The front room: my own words first, then the four tools, then one way back into my own life. */
 export function Now() {
+  const { profile } = useHub();
   const now = useQuery(api.reCentered.entries.now);
   if (!now) return <Spinner />;
+  // The rest of Love & Release keeps its data on this device, per person.
+  const who = readPersonSetting(profile.moduleSettings, "love-and-release") ?? personFromName(profile.displayName) ?? "her";
+  const lr = (path: string) => `/love-and-release/app/${path}?who=${who}`;
   const wayBack = pickForDay(now.ownLife, now.today);
   return (
     <div className="sh-container sh-narrow">
@@ -47,7 +53,7 @@ export function Now() {
       {!wayBack && (
         <Card tone="alt">
           <p className="sh-muted">
-            <Link href="/re-centered/own-life" className="sh-link">My own life</Link> is empty for now. When you add the things that are yours, one shows here each day.
+            <Link href="/love-and-release/john/own-life" className="sh-link">My own life</Link> is empty for now. When you add the things that are yours, one shows here each day.
           </p>
         </Card>
       )}
@@ -60,7 +66,7 @@ export function Now() {
               <p>{now.settings.ifThen}</p>
             </>
           ) : (
-            <p className="sh-muted">You haven&apos;t written your if-then plan yet. <Link href="/re-centered/boundaries" className="sh-link">Write it</Link> when you&apos;re steady, and it will be here next time.</p>
+            <p className="sh-muted">You haven&apos;t written your if-then plan yet. <Link href="/love-and-release/john/boundaries" className="sh-link">Write it</Link> when you&apos;re steady, and it will be here next time.</p>
           )}
         </Card>
       )}
@@ -70,6 +76,15 @@ export function Now() {
           <p>{now.settings.ifThen}</p>
         </Card>
       )}
+      <Card tone="alt">
+        <p className="sh-eyebrow">In the rest of Love &amp; Release</p>
+        <div className="sh-choices">
+          <a href={lr("fawn")} className="sh-btn sh-btn-secondary">Fawn alarm</a>
+          <a href={lr("unhooked/loop")} className="sh-btn sh-btn-secondary">I&apos;m in a loop</a>
+          <a href={lr("pause")} className="sh-btn sh-btn-secondary">A breathing pause</a>
+          <a href={lr("boundaries")} className="sh-btn sh-btn-ghost">Boundaries with anyone</a>
+        </div>
+      </Card>
     </div>
   );
 }

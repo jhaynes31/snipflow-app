@@ -9,6 +9,7 @@ import { APP_DISPLAY_NAME } from "@/core/config";
 import { COPY } from "@/core/copy/strings";
 import { MODULES } from "@/core/modules/registry";
 import { useHub } from "@/core/shell/HubContext";
+import { BackgroundPicker } from "@/core/theme/BackgroundPicker";
 import { Btn, Card, CopyButton, ErrorNote, Field, PageTitle, Toggle, useAction } from "@/core/ui";
 
 const noopSubscribe = () => () => {};
@@ -129,6 +130,9 @@ export default function SettingsPage() {
               <option value="light">Light (parchment)</option>
               <option value="dark">Dark (lantern-lit evening)</option>
             </select>
+          </Field>
+          <Field label="Background color" hint="Yours alone; it never changes the other person's screen.">
+            <BackgroundPicker />
           </Field>
           <Toggle checked={a.highContrast} onChange={(v) => void run(() => updateAccessibility({ highContrast: v }))} label="Higher contrast" hint="Darker text and stronger borders." />
           <Toggle

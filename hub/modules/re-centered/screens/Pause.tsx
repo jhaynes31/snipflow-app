@@ -34,10 +34,10 @@ export function Pause() {
         <h1 className="sh-h1">{ENDING_LABEL[ending]}.</h1>
         <p>{ending === "letItLand" ? "That's yours to be proud of, whatever happens next." : ending === "stepIn" ? "Then step in with your eyes open. You chose it; it didn't choose you." : "Not knowing is allowed. The answer can wait an hour."}</p>
         <div className="sh-stack">
-          {ending === "letItLand" && <LinkBtn href="/re-centered/landed" big>Write it in Let it land</LinkBtn>}
+          {ending === "letItLand" && <LinkBtn href="/love-and-release/john/landed" big>Write it in Let it land</LinkBtn>}
           <LinkBtn href="/tend/tools/groundMe" big variant="secondary">Ground Me, two minutes</LinkBtn>
           <LinkBtn href="/tend/tools/sitWithIt" big variant="secondary">Sit With It</LinkBtn>
-          <LinkBtn href="/re-centered" big variant="ghost">Back to the room</LinkBtn>
+          <LinkBtn href="/love-and-release/john" big variant="ghost">Back to the room</LinkBtn>
         </div>
       </div>
     );

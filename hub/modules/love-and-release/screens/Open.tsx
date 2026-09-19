@@ -1,23 +1,32 @@
 "use client";
 
-import { useMutation } from "convex/react";
+import Link from "next/link";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { personFromName, type EmbeddedPerson } from "@/core/person";
 import { useHub } from "@/core/shell/HubContext";
-import { Btn, Card, ErrorNote, Note, PageTitle, useAction } from "@/core/ui";
+import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
 import { LOVE_AND_RELEASE_MODULE_ID, loveAndReleaseUrl, readLoveAndReleaseSettings } from "../settings";
 
 /**
- * The Love & Release page inside The Shire: one button that opens the app
- * as the signed-in person. The app itself is separate (hub/love-and-release)
- * and keeps everything on this device: people and circles, threads, truths,
- * release entries, all of it. The Shire never reads any of it, and nothing
- * from here reaches the partner, Seasons, or the coach.
+ * The front door of Love & Release inside The Shire. Two doors:
+ *
+ *  - "Everyone, and me": the Love & Release app (hub/love-and-release), a
+ *    separate app that keeps everything on this device. The Shire never
+ *    reads it. It gets one yes-or-no signal on the way in: whether a word
+ *    wasn't kept in the last few days, so its front door can point at the
+ *    plan. Never the word itself.
+ *  - "{partner}, and me": Re-Centered, one person's own room, kept in The
+ *    Shire's database so Kept Word and Seasons can still reach it. Only the
+ *    person who claimed it can open it (modules/re-centered).
  */
 export function Open() {
-  const { profile } = useHub();
+  const { profile, partner } = useHub();
   const setModuleSettings = useMutation(api.profiles.setModuleSettings);
+  const room = useQuery(api.reCentered.room.status);
+  const now = useQuery(api.reCentered.entries.now, room?.state === "mine" ? {} : "skip");
   const { run, error, busy } = useAction();
+  const partnerName = partner?.displayName ?? "your partner";
 
   const who: EmbeddedPerson | null = readLoveAndReleaseSettings(profile.moduleSettings).who ?? personFromName(profile.displayName);
 
@@ -45,34 +54,59 @@ export function Open() {
     );
   }
 
+  if (!room) return <Spinner />;
+  const wordNotKept = now?.wordNotKept ?? null;
+  const appHref = loveAndReleaseUrl(who, { plan: Boolean(wordNotKept) });
+
   return (
     <div className="sh-container sh-narrow sh-stack">
-      <PageTitle title="Love & Release" subtitle="A quiet place to set things down." />
+      <PageTitle title="Love & Release" subtitle="A quiet place to set things down. Loving people fully, and releasing what is theirs to carry." />
 
-      <Card>
-        <p>
-          Loving people fully and releasing what is theirs to carry. Circles, threads, the fawn alarm, taking it
-          personally, Unhooked, truths, boundaries, the release journal, and a sixty-second morning and evening.
-        </p>
-        <div style={{ marginTop: "0.8rem" }}>
-          <a href={loveAndReleaseUrl(who)} className="sh-btn sh-btn-primary sh-btn-big">
-            Open Love &amp; Release
-          </a>
+      {wordNotKept && (
+        <div className="sh-banner" role="status">
+          A word wasn&apos;t kept, {timeAgo(wordNotKept)}. The plan you wrote on a steady day is ready.{" "}
+          <Link href="/love-and-release/john" className="sh-link">
+            Open it
+          </Link>
         </div>
-      </Card>
+      )}
+
+      <div className="sh-tiles">
+        <a href={appHref} className="sh-tile">
+          <span className="sh-tile-name">Everyone, and me</span>
+          <span className="sh-tile-tagline">
+            Comfort, the fawn alarm, taking it personally, loops, circles, threads, truths, boundaries, the release journal.
+          </span>
+        </a>
+        {room.state === "theirs" ? (
+          <div className="sh-tile sh-tile-plain" aria-disabled>
+            <span className="sh-tile-name">Re-Centered</span>
+            <span className="sh-tile-tagline">This room is {room.ownerName}&apos;s.</span>
+          </div>
+        ) : (
+          <Link href="/love-and-release/john" className="sh-tile">
+            <span className="sh-tile-name">{partnerName}, and me</span>
+            <span className="sh-tile-tagline">
+              Re-Centered: whose is this, the pause before rescuing, let it land, where I stand, my own life, my word to me.
+              {room.state === "unclaimed" ? " For one person; the first to open it keeps it." : ""}
+            </span>
+          </Link>
+        )}
+      </div>
 
       <Note>
-        Everything you write there stays on this device. The Shire cannot see it, and neither can anyone else. It works
-        offline once it has opened once, and its Settings has a passcode lock, export and import.
+        &ldquo;Everyone, and me&rdquo; stays on this device; The Shire cannot see it. &ldquo;{partnerName}, and me&rdquo; lives in
+        The Shire so Kept Word can hand it a &ldquo;didn&apos;t&rdquo; and Seasons can notice patterns, and it is private to whoever
+        claimed it. Nothing in either reaches the other person.
       </Note>
 
       <details className="sh-menu">
-        <summary>About this page</summary>
+        <summary>About this place</summary>
         <div className="sh-stack-sm" style={{ marginTop: "0.5rem" }}>
           <p>
-            Love &amp; Release was built on its own and moved into The Shire whole. This page only opens it as{" "}
-            {who === "john" ? "John" : "you"}. Opening it on a new phone or laptop starts a fresh copy there; a backup
-            from its Settings moves your entries if you ever want them on another device.
+            Love &amp; Release was built on its own and moved into The Shire whole; Re-Centered was built inside The Shire
+            and moved under this door on 2026-09-19 so the two feel like one place. Opening &ldquo;Everyone, and me&rdquo;
+            on a new phone or laptop starts a fresh copy there; a backup from its Settings moves your entries.
           </p>
         </div>
       </details>
