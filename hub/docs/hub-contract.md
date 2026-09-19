@@ -264,11 +264,13 @@ Build the foundation first, then add modules one at a time. Each phase ends with
 | 1. Foundation | Shell, login, profiles, user manual, privacy, heads-ups, three delivery channels, gentle mode, shame-free copy, event bus | Both can log in, fill a manual section, and send and answer a heads-up |
 | 2. Every Box | Move the existing Every Box code into `/modules/every-box` and connect it to the foundation | Every Box works as before, inside The Shire, using its login and reminders |
 | 3. Tend | Build from its own spec | Check-in, core tools, and partner cards work end to end |
-| 4. AI coach and safety | Shared coach service, crisis flow, safety plan | Crisis detection tested and "Need help now" works from every screen |
+| 4. AI coach and safety *(built 2026-09-19)* | Shared coach service (`convex/coach/`), crisis flow, safety plan | Crisis detection tested and "Need help now" works from every screen |
 | 5. Fitness module | Build from its own spec | First generated plan runs inside The Shire |
 | 6. Love & Release | Build from its own spec | Circles work with private-by-default data |
 
-Deferred from phase 1 on purpose: optional push notifications and quiet hours (no channel exists yet to apply them to), and the safety plan editor (phase 4). The crisis screen with 988, 911, and the one-tap urgent heads-up is built.
+Deferred from phase 1 on purpose: optional push notifications and quiet hours (no channel exists yet to apply them to). The crisis screen with 988, 911, the one-tap urgent heads-up, and the safety plan editor are built.
+
+**How the coach is wired (phase 4):** the only model call is the Node action `convex/coach/chat.ts`, which reads `ANTHROPIC_API_KEY` from the Convex environment. Modules pass a task key (never prompt text) and a conversation id. The system prompt is built in `convex/coach/prompt.ts` from the base character, the guardrails, the person's coach-allowed manual sections, and the partner's shared sections. Crisis wording is checked by the pure `convex/coach/safety.ts` both in the browser (every text field shows the crisis card as someone types) and on the server (the coach answers with a fixed care message and never calls the model). Reassurance loops are detected the same way and the coach is told to name them.
 
 **Moving Every Box in:** before changing any code, Claude Code should read the current Every Box project and write a short migration plan. The plan covers what it will keep, what it will switch to the foundation (login, reminders, notifications), and how existing data will move over. Jen approves the plan before migration starts. No existing data should be lost.
 

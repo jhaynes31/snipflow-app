@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, Field, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
 
@@ -29,6 +30,7 @@ function Body() {
         <Field label="What does &ldquo;good enough to be done&rdquo; look like?" hint="Not perfect. Done. One or two lines.">
           <textarea className="sh-input sh-textarea" rows={2} value={finish} onChange={(e) => setFinish(e.target.value)} maxLength={400} />
         </Field>
+        <CrisisNotice texts={[task, finish]} />
         <div className="sh-row mt-3">
           <Btn disabled={!task.trim() || !finish.trim()} onClick={() => void keep({ task: task.trim(), finishLine: finish.trim() }).then(() => setSaved(true))}>
             Save as the finish line

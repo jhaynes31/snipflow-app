@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { COPY } from "@/core/copy/strings";
-import { Btn, Card, ErrorNote, LinkBtn, useAction } from "@/core/ui";
+import { SafetyPlan } from "@/core/safety/SafetyPlan";
+import { UrgentHeadsUp } from "@/core/safety/UrgentHeadsUp";
+import { Card, LinkBtn } from "@/core/ui";
 
 /**
  * Reachable from the profile menu on every screen, and without signing in.
@@ -14,9 +15,6 @@ import { Btn, Card, ErrorNote, LinkBtn, useAction } from "@/core/ui";
 export default function HelpNowPage() {
   const { isAuthenticated } = useConvexAuth();
   const me = useQuery(api.profiles.me, isAuthenticated ? {} : "skip");
-  const send = useMutation(api.headsUps.send);
-  const { busy, error, run } = useAction();
-  const [sent, setSent] = useState(false);
   const partner = me?.setUp ? me.partner : null;
 
   return (
@@ -36,41 +34,12 @@ export default function HelpNowPage() {
       </div>
       <p className="sh-muted">988 is the Suicide &amp; Crisis Lifeline in the US. Call or text, any hour.</p>
 
-      {partner && !sent && (
+      {partner && (
         <Card className="mt-6">
-          <p>
-            <strong>Tell {partner.displayName} with one tap.</strong> This sends an urgent heads-up that says you&apos;re not
-            okay and asks them to come.
-          </p>
-          <ErrorNote error={error} />
-          <Btn
-            big
-            variant="secondary"
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                await send({
-                  statusLine: "I'm not okay right now. Please come.",
-                  help: "quietPresence",
-                  suggestions: { do: [], say: [], skip: [] },
-                  urgent: true,
-                  addToCalendar: true,
-                });
-                setSent(true);
-              })
-            }
-          >
-            Send {partner.displayName} an urgent heads-up
-          </Btn>
+          <UrgentHeadsUp />
         </Card>
       )}
-      {sent && partner && (
-        <Card className="mt-6">
-          <p>
-            <strong>Sent.</strong> {partner.displayName} will see it at the top of their home screen and on their icon badge.
-          </p>
-        </Card>
-      )}
+      {me?.setUp && <SafetyPlan partnerName={partner?.displayName ?? null} />}
       {isAuthenticated && (
         <p className="mt-6">
           <LinkBtn href="/" variant="ghost">
@@ -78,7 +47,7 @@ export default function HelpNowPage() {
           </LinkBtn>
         </p>
       )}
-      <p className="sh-muted mt-6">A personal safety plan (warning signs, what calms you, people to call, reasons to hold on) is planned for a later build phase and will live on this screen.</p>
+      {!isAuthenticated && <p className="sh-muted mt-6">Sign in to see your safety plan here.</p>}
     </div>
   );
 }

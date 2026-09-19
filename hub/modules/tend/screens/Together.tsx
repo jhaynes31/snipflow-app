@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, timeAgo, useAction } from "@/core/ui";
@@ -129,6 +130,7 @@ function RepairFlow({ r, me, name }: { r: Repair; me: string; name: string }) {
           <Field label="What I needed">
             <textarea className="sh-input sh-textarea" rows={2} value={needed} onChange={(e) => setNeeded(e.target.value)} maxLength={800} required />
           </Field>
+          <CrisisNotice texts={[happened, felt, needed]} />
           <div>
             <Btn type="submit" disabled={busy}>Submit, and wait for {name}</Btn>
           </div>
@@ -231,6 +233,7 @@ function Notes({ name }: { name: string }) {
           }}
         >
           <input className="sh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={400} placeholder={`I saw you ${name === "your partner" ? "" : name + " "}…`} aria-label="Note" required />
+          <CrisisNotice texts={[text]} />
           <Toggle checked={toEvidence} onChange={setToEvidence} label={`Also save it to ${name}'s Evidence Bank`} />
           <div className="sh-row">
             <Btn type="submit" disabled={busy || !text.trim()}>Send</Btn>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import type { Doc } from "@/convex/_generated/dataModel";
 import type { Visibility } from "@/convex/privacy";
 import { VISIBILITY_LABEL } from "@/convex/privacy";
@@ -120,7 +121,8 @@ function SectionEditor({
         maxLength={4000}
         aria-label={meta.title}
       />
-      <Toggle checked={coach} onChange={setCoach} label="The AI coach may read this section" hint="The coach arrives in a later phase. Off means it never sees this." />
+      <CrisisNotice texts={[body]} />
+      <Toggle checked={coach} onChange={setCoach} label="The AI coach may read this section" hint="Only for Talk It Out and other coach chats you open. Off means the coach never sees this section." />
       <ErrorNote error={error} />
       <div className="sh-row sh-wrap">
         <Btn

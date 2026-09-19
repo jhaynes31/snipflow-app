@@ -276,3 +276,35 @@
 .tend-forecast {
   border-left: 5px solid var(--accent);
 }
+
+/* Talk It Out */
+.tend-chat {
+  display: grid;
+  gap: 0.6rem;
+}
+.tend-msg {
+  max-width: 88%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 16px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+.tend-msg-user {
+  justify-self: end;
+  background: var(--tile-accent, var(--accent));
+  color: var(--tile-on-accent, #fff);
+  border-bottom-right-radius: 6px;
+}
+.tend-msg-coach {
+  justify-self: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+}
+.tend-msg-thinking {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.tend-chat-form textarea {
+  min-height: 4.5rem;
+}

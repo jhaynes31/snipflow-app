@@ -14,6 +14,7 @@ import { ShameInterrupter } from "./ShameInterrupter";
 import { ShutdownRecovery } from "./ShutdownRecovery";
 import { SmallestStep } from "./SmallestStep";
 import { StoryCheck } from "./StoryCheck";
+import { TalkItOut } from "./TalkItOut";
 
 /** Routes /tend/tools/<key>[/<id>] to a tool screen. */
 export function ToolScreen({ toolKey, id }: { toolKey: string; id?: string }) {
@@ -46,6 +47,8 @@ export function ToolScreen({ toolKey, id }: { toolKey: string; id?: string }) {
       return <SitWithIt />;
     case "pauseBigMoves":
       return <PauseBigMoves />;
+    case "talkItOut":
+      return <TalkItOut conversationId={id} />;
     default:
       return null;
   }

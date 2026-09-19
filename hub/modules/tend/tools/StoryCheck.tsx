@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, Field, LinkBtn, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
@@ -82,6 +83,7 @@ function Body() {
       <Field label={q.label} hint={q.hint}>
         <textarea className="sh-input sh-textarea" rows={3} value={answers[q.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.key]: e.target.value })} maxLength={800} />
       </Field>
+      <CrisisNotice texts={Object.values(answers)} />
       <div className="sh-choices">
         <Btn onClick={() => setI(i + 1)}>{i === QUESTIONS.length - 1 ? "Finish" : "Next"}</Btn>
         {i > 0 && <Btn variant="ghost" onClick={() => setI(i - 1)}>Back</Btn>}

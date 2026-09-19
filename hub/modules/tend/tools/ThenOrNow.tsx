@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useHub } from "@/core/shell/HubContext";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, Field, LinkBtn, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
 
@@ -53,6 +54,7 @@ function Body() {
       <Field label={q.label} hint={q.hint}>
         <textarea className="sh-input sh-textarea" rows={2} value={answers[q.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.key]: e.target.value })} maxLength={500} />
       </Field>
+      <CrisisNotice texts={Object.values(answers)} />
       <div className="sh-choices">
         <Btn onClick={() => setI(i + 1)}>{i === QUESTIONS.length - 1 ? "Ground" : "Next"}</Btn>
         {i > 0 && <Btn variant="ghost" onClick={() => setI(i - 1)}>Back</Btn>}

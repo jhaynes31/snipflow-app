@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, Spinner, timeAgo, useAction } from "@/core/ui";
 import { ToolFrame } from "./ToolFrame";
@@ -139,6 +140,7 @@ function Board({ loop }: { loop: Doc<"tendLoops"> }) {
           <input className="sh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={300} placeholder="But what about…" aria-label="New card" />
           <Btn type="submit" disabled={busy || !text.trim()}>Add</Btn>
         </form>
+        <CrisisNotice texts={[text]} />
         {dump.length > 0 && (
           <ul className="sh-list mt-3">
             {dump.map((c) => (

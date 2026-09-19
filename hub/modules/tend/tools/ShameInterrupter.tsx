@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, Field, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
@@ -32,6 +33,7 @@ function Body() {
         <Field label="What is the shame voice saying?" hint="Its exact words. Naming it is the first move.">
           <textarea className="sh-input sh-textarea" rows={2} value={voice} onChange={(e) => setVoice(e.target.value)} maxLength={500} />
         </Field>
+        <CrisisNotice texts={[voice, toPartner, kinder]} />
       </Card>
       <Card>
         <Field label={`What would you say to ${name} if they did this?`} hint="You already know how to be kind. Borrow it.">

@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { COPY, type HelpKind } from "@/core/copy/strings";
 import { MANUAL_SECTIONS, suggestionLines } from "@/core/manual/sections";
+import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, PageTitle, Toggle, useAction } from "@/core/ui";
 
@@ -92,6 +93,7 @@ function ComposeForm() {
           <Field label="How today is, in your words">
             <input className="sh-input" value={statusLine} onChange={(e) => setStatusLine(e.target.value)} maxLength={140} required />
           </Field>
+          <CrisisNotice texts={[statusLine]} />
           <div className="sh-chips" aria-label="Quick phrases">
             {PRESETS.map((p) => (
               <button key={p} type="button" className="sh-chip" onClick={() => setStatusLine(p)}>

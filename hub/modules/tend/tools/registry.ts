@@ -26,6 +26,7 @@ export const TOOLS: ToolMeta[] = [
   { key: "focusMode", name: "Focus Mode", forWhen: "One task, one timer, nothing else", kinds: ["cantStart", "overwhelmed"], twoMinute: "One task, a short timer, start." },
   { key: "thenOrNow", name: "Then or Now", forWhen: "Old pain showing up in the present", kinds: ["oldPain", "rejected"], twoMinute: "Name the year, the room, one thing that is different now." },
   { key: "sitWithIt", name: "Sit With It", forWhen: "A worry asking for the same reassurance again", kinds: ["loop", "wired"], twoMinute: "Name the urge, rate it, sit five minutes." },
+  { key: "talkItOut", name: "Talk It Out", forWhen: "Anything. A private chat with the coach", kinds: ["unsure", "overwhelmed", "low", "heavy", "loop", "rejected", "oldPain", "shame", "wired", "cantStart", "shutDown", "sensory"], twoMinute: "Say what's going on. Get one small next step." },
   { key: "pauseBigMoves", name: "Pause Before Big Moves", forWhen: "Revved up, on a steady day", kinds: ["wired"], twoMinute: "Read your own rule." },
 ];
 

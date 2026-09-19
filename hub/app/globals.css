@@ -784,3 +784,23 @@ html[data-contrast="high"] {
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Crisis card: same numbers everywhere, never hides anything around it */
+.sh-crisis {
+  border-left: 5px solid var(--accent);
+  display: grid;
+  gap: 0.6rem;
+}
+.sh-h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+.sh-plan-part + .sh-plan-part {
+  margin-top: 0.85rem;
+}
+.sh-plan-text {
+  white-space: pre-wrap;
+  font-size: 1.08rem;
+  line-height: 1.55;
+}

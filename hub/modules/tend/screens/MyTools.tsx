@@ -29,7 +29,7 @@ export function MyTools() {
       </div>
       <Card tone="alt">
         <p className="sh-muted">
-          Your log and chart are under <Link href="/tend/log" className="sh-link">My log</Link>. Talk It Out, the private chat with the coach, and your safety plan arrive with the AI coach in the next build phase.
+          Your log and chart are under <Link href="/tend/log" className="sh-link">My log</Link>. Your safety plan lives behind <Link href="/help-now" className="sh-link">Need help now</Link>, so it is one tap away from every screen.
         </p>
       </Card>
     </div>
