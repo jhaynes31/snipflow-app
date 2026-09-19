@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { emitEvent } from "./events";
 import { cleanText, requireMe, requireOwned, requirePartner } from "./lib";
@@ -124,8 +124,8 @@ export const respond = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const card = await ctx.db.get(args.id);
-    if (!card || card.receiverId !== me.profile._id) throw new Error("That card wasn't sent to you.");
-    if (card.status === "closed") throw new Error("That card is already closed.");
+    if (!card || card.receiverId !== me.profile._id) throw new ConvexError("That card wasn't sent to you.");
+    if (card.status === "closed") throw new ConvexError("That card is already closed.");
     await ctx.db.patch(card._id, { status: "responded", response: args.response, respondedAt: Date.now() });
     await emitEvent(ctx, {
       ownerId: me.profile._id,
@@ -143,8 +143,8 @@ export const dismiss = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const card = await ctx.db.get(args.id);
-    if (!card || card.receiverId !== me.profile._id) throw new Error("That card wasn't sent to you.");
-    if (card.status !== "responded") throw new Error("Respond to the card first.");
+    if (!card || card.receiverId !== me.profile._id) throw new ConvexError("That card wasn't sent to you.");
+    if (card.status !== "responded") throw new ConvexError("Respond to the card first.");
     await ctx.db.patch(card._id, { status: "closed", closedAt: Date.now() });
   },
 });

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { access, requireMe } from "./lib";
 import { visibilityValidator } from "./privacy";
@@ -46,7 +46,7 @@ export const partners = query({
 
 function clip(value: string, label: string): string {
   const t = value.trim();
-  if (t.length > MAX) throw new Error(`${label} is too long (max ${MAX} characters).`);
+  if (t.length > MAX) throw new ConvexError(`${label} is too long (max ${MAX} characters).`);
   return t;
 }
 
@@ -93,7 +93,7 @@ export const setShared = mutation({
       .query("safetyPlans")
       .withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id))
       .first();
-    if (!existing) throw new Error("Write your plan first, then share it.");
+    if (!existing) throw new ConvexError("Write your plan first, then share it.");
     await ctx.db.patch(existing._id, { visibility: args.shared ? "shared" : "private", updatedAt: Date.now() });
   },
 });

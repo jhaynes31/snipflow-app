@@ -115,7 +115,12 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
       const out = await send({ id, message, task: "tend.talkItOut" });
       setCrisis(out.crisis);
       setLoop(out.loop);
-    }).finally(() => setPending(null));
+      return true;
+    }).then((ok) => {
+      // A failed send puts the words back so nothing is lost.
+      if (!ok) setDraft(message);
+      setPending(null);
+    });
   }
 
   return (

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
 import { access, cleanText, requireMe, requireOwned, requirePartner } from "../lib";
@@ -63,7 +63,7 @@ export const did = mutation({
     const me = await requireMe(ctx);
     const partner = await requirePartner(ctx, me);
     const item = await ctx.db.get(args.itemId);
-    if (!item || item.ownerId !== partner._id) throw new Error("That item isn't on your partner's menu.");
+    if (!item || item.ownerId !== partner._id) throw new ConvexError("That item isn't on your partner's menu.");
     await ctx.db.insert("tendLoveActions", {
       ownerId: me.profile._id,
       visibility: "shared",

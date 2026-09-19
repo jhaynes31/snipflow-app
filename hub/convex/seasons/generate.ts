@@ -1,7 +1,7 @@
 "use node";
 
 import Anthropic from "@anthropic-ai/sdk";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
@@ -19,7 +19,7 @@ const period = v.object({ interval: v.union(v.literal("weekly"), v.literal("biwe
 
 async function write(ctx: ActionCtx, profileId: Id<"profiles">, kind: "mine" | "ours", p: Period): Promise<Id<"seasonReports">> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("Seasons needs the coach. Add ANTHROPIC_API_KEY to the Convex environment and try again.");
+  if (!apiKey) throw new ConvexError("Seasons needs the coach. Add ANTHROPIC_API_KEY to the Convex environment and try again.");
   const facts = kind === "mine" ? await ctx.runQuery(internal.seasons.collect.mine, { profileId, period: p }) : await ctx.runQuery(internal.seasons.collect.ours, { profileId, period: p });
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 120_000 });
   const response = await client.messages.create({
@@ -62,7 +62,7 @@ export const writeOursNow = action({
   args: {},
   handler: async (ctx): Promise<Id<"seasonReports">> => {
     const me = await ctx.runQuery(internal.seasons.collect.whoAmI, {});
-    if (!me.partnerId) throw new Error("Your partner hasn't joined yet.");
+    if (!me.partnerId) throw new ConvexError("Your partner hasn't joined yet.");
     return await write(ctx, me.profileId, "ours", nowPeriod(me.today));
   },
 });

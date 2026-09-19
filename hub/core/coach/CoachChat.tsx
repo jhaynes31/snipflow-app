@@ -45,7 +45,11 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
       const message = opening && count === 0 && !id ? `${opening}\n\nMy question: ${question}` : question;
       const out = await send({ id: convo, message, task });
       setCrisis(out.crisis);
-    }).finally(() => setPending(null));
+      return true;
+    }).then((ok) => {
+      if (!ok) setDraft(question);
+      setPending(null);
+    });
   }
 
   const shown = (row?.messages ?? []).map((m, i) => ({

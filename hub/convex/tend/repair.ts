@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
 import { cleanText, optionalText, requireMe, requirePartner } from "../lib";
@@ -68,7 +68,7 @@ export const respond = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = await ctx.db.get(args.id);
-    if (!r || r.partnerId !== me.profile._id) throw new Error("That invite isn't for you.");
+    if (!r || r.partnerId !== me.profile._id) throw new ConvexError("That invite isn't for you.");
     await ctx.db.patch(r._id, args.now ? { status: "writing", updatedAt: Date.now() } : { status: "later", laterAt: args.laterAt, updatedAt: Date.now() });
   },
 });
@@ -79,7 +79,7 @@ export const begin = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = await ctx.db.get(args.id);
-    if (!r || !mine(r, me.profile._id)) throw new Error("That repair isn't yours.");
+    if (!r || !mine(r, me.profile._id)) throw new ConvexError("That repair isn't yours.");
     if (r.status !== "later" && r.status !== "invited") return;
     await ctx.db.patch(r._id, { status: "writing", updatedAt: Date.now() });
   },
@@ -91,8 +91,8 @@ export const submit = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = await ctx.db.get(args.id);
-    if (!r || !mine(r, me.profile._id)) throw new Error("That repair isn't yours.");
-    if (r.status !== "writing") throw new Error("This repair isn't at the writing step.");
+    if (!r || !mine(r, me.profile._id)) throw new ConvexError("That repair isn't yours.");
+    if (r.status !== "writing") throw new ConvexError("This repair isn't at the writing step.");
     const entry = {
       profileId: me.profile._id,
       happened: cleanText(args.happened, 1500, "What happened"),
@@ -112,8 +112,8 @@ export const reflect = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = await ctx.db.get(args.id);
-    if (!r || !mine(r, me.profile._id)) throw new Error("That repair isn't yours.");
-    if (r.status !== "revealed") throw new Error("Both need to have written first.");
+    if (!r || !mine(r, me.profile._id)) throw new ConvexError("That repair isn't yours.");
+    if (r.status !== "revealed") throw new ConvexError("Both need to have written first.");
     const entries = r.entries.map((e) =>
       e.profileId === me.profile._id
         ? {
@@ -134,7 +134,7 @@ export const close = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = await ctx.db.get(args.id);
-    if (!r || !mine(r, me.profile._id)) throw new Error("That repair isn't yours.");
+    if (!r || !mine(r, me.profile._id)) throw new ConvexError("That repair isn't yours.");
     await ctx.db.patch(r._id, { status: "closed", closedAt: Date.now(), updatedAt: Date.now() });
     await emitEvent(ctx, { ownerId: me.profile._id, source: "tend", name: "repair.completed", payload: { repairId: r._id }, visibility: "shared" });
   },
@@ -146,7 +146,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = await ctx.db.get(args.id);
-    if (!r || !mine(r, me.profile._id)) throw new Error("That repair isn't yours.");
+    if (!r || !mine(r, me.profile._id)) throw new ConvexError("That repair isn't yours.");
     await ctx.db.delete(r._id);
   },
 });

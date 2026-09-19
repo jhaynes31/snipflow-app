@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
 import { access, requireMe, requireOwned } from "../lib";
@@ -43,7 +43,7 @@ export const setSleep = mutation({
   args: { day: v.string(), hours: v.number() },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.day)) throw new Error("Pick a day.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.day)) throw new ConvexError("Pick a day.");
     const hours = Math.min(16, Math.max(0, Math.round(args.hours * 2) / 2));
     const existing = await ctx.db
       .query("tendSleep")
@@ -74,7 +74,7 @@ export const addCycleStart = mutation({
   args: { day: v.string() },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.day)) throw new Error("Pick a day.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.day)) throw new ConvexError("Pick a day.");
     const existing = await ctx.db
       .query("tendCycleStarts")
       .withIndex("by_owner_day", (q) => q.eq("ownerId", me.profile._id).eq("day", args.day))

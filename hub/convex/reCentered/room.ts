@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireMe, type Ctx, type Me } from "../lib";
@@ -21,7 +22,7 @@ export async function roomOwner(ctx: Ctx): Promise<Doc<"moduleOwners"> | null> {
 export async function requireRoom(ctx: Ctx): Promise<Me> {
   const me = await requireMe(ctx);
   const owner = await roomOwner(ctx);
-  if (!owner || owner.ownerId !== me.profile._id) throw new Error("This room isn't yours.");
+  if (!owner || owner.ownerId !== me.profile._id) throw new ConvexError("This room isn't yours.");
   return me;
 }
 
@@ -43,7 +44,7 @@ export const claim = mutation({
     const owner = await roomOwner(ctx);
     if (owner) {
       if (owner.ownerId === me.profile._id) return;
-      throw new Error("This room already belongs to someone.");
+      throw new ConvexError("This room already belongs to someone.");
     }
     await ctx.db.insert("moduleOwners", { moduleId: MODULE_ID, ownerId: me.profile._id, claimedAt: Date.now() });
   },

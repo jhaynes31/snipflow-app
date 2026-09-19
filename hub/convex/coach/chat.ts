@@ -1,7 +1,7 @@
 "use node";
 
 import Anthropic from "@anthropic-ai/sdk";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { buildSystemPrompt, COACH_MODEL, taskPromptFor } from "./prompt";
@@ -22,8 +22,8 @@ export const send = action({
   },
   handler: async (ctx, args): Promise<{ reply: string; crisis: boolean; loop: boolean }> => {
     const message = args.message.trim();
-    if (!message) throw new Error("Write something first.");
-    if (message.length > 4000) throw new Error("That message is long (max 4000 characters). Try it in two parts.");
+    if (!message) throw new ConvexError("Write something first.");
+    if (message.length > 4000) throw new ConvexError("That message is long (max 4000 characters). Try it in two parts.");
 
     const context = await ctx.runQuery(internal.coach.conversations.contextFor, { id: args.id });
 
@@ -36,7 +36,7 @@ export const send = action({
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error("The coach isn't connected yet. Add ANTHROPIC_API_KEY to the Convex environment and try again.");
+      throw new ConvexError("The coach isn't connected yet. Add ANTHROPIC_API_KEY to the Convex environment and try again.");
     }
 
     const userMessages = [...context.messages.filter((m) => m.role === "user").map((m) => m.content), message];
@@ -73,16 +73,20 @@ export const send = action({
         if (!reply) reply = "I didn't manage a reply that time. Say it again, or say it a different way, and I'll try again.";
       }
     } catch (err) {
+      console.error("coach.chat.send: model call failed", err instanceof Error ? `${err.name}: ${err.message}` : String(err));
       if (err instanceof Anthropic.AuthenticationError) {
-        throw new Error("The coach's key isn't being accepted. Check ANTHROPIC_API_KEY in Convex.");
+        throw new ConvexError("The coach's key isn't being accepted. Check ANTHROPIC_API_KEY in Convex.");
       }
       if (err instanceof Anthropic.RateLimitError) {
-        throw new Error("The coach is busy right now. Give it a minute and try again. Nothing was lost.");
+        throw new ConvexError("The coach is busy right now. Give it a minute and try again. Your message is still in the box.");
+      }
+      if (err instanceof Anthropic.APIConnectionTimeoutError) {
+        throw new ConvexError("The coach took too long to answer. Try again, or try a shorter message. Your message is still in the box.");
       }
       if (err instanceof Anthropic.APIError) {
-        throw new Error("The coach couldn't answer just now. Try again in a moment. Nothing was lost.");
+        throw new ConvexError(`The coach couldn't answer just now (${err.status ?? "no status"}). Try again in a moment. Your message is still in the box.`);
       }
-      throw err;
+      throw new ConvexError(`The coach hit a snag: ${err instanceof Error ? err.message : String(err)}. Your message is still in the box.`);
     }
 
     await ctx.runMutation(internal.coach.conversations.append, { id: args.id, userMessage: message, assistantMessage: reply });

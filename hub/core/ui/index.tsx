@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Lock, Users } from "lucide-react";
+import { ConvexError } from "convex/values";
 import type { Visibility } from "@/convex/privacy";
 
 type Variant = "primary" | "secondary" | "ghost" | "accent";
@@ -120,6 +121,11 @@ export function VisibilityMark({ visibility }: { visibility: Visibility }) {
 
 /** Turn a thrown Convex error into a short, human sentence. */
 export function errorMessage(err: unknown): string {
+  // Application errors travel as ConvexError so production doesn't redact them to "Server Error".
+  if (err instanceof ConvexError) {
+    const data: unknown = err.data;
+    return typeof data === "string" ? data : "Something went wrong. Nothing was lost.";
+  }
   if (err instanceof Error) {
     const m = err.message.match(/(?:Uncaught )?Error: (.*?)(?:\n|$)/);
     return (m?.[1] ?? err.message).trim();

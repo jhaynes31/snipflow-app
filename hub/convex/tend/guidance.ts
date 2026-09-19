@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { access, cleanText, optionalText, requireMe, requireOwned } from "../lib";
 import { STARTER } from "./starter";
@@ -102,7 +102,7 @@ export const seedStarter = mutation({
       .query("tendGuidance")
       .withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id))
       .first();
-    if (existing) throw new Error("You already have guidance entries. Add to them instead.");
+    if (existing) throw new ConvexError("You already have guidance entries. Add to them instead.");
     let i = 1;
     for (const g of STARTER[args.set]) {
       await ctx.db.insert("tendGuidance", {

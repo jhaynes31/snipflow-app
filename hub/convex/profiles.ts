@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import {
@@ -52,7 +52,7 @@ export const create = mutation({
   args: { displayName: v.string(), timeZone: v.string() },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    if (await profileForUser(ctx, userId)) throw new Error("Your profile already exists.");
+    if (await profileForUser(ctx, userId)) throw new ConvexError("Your profile already exists.");
     const now = Date.now();
     return await ctx.db.insert("profiles", {
       userId,
@@ -103,13 +103,13 @@ export const updateReminders = mutation({
     const r = { ...me.profile.reminders };
     if (args.dailyCheckInHour !== undefined) {
       if (!Number.isInteger(args.dailyCheckInHour) || args.dailyCheckInHour < 0 || args.dailyCheckInHour > 23) {
-        throw new Error("Pick an hour from 0 to 23.");
+        throw new ConvexError("Pick an hour from 0 to 23.");
       }
       r.dailyCheckInHour = args.dailyCheckInHour;
     }
     if (args.dailyCheckInMinute !== undefined) {
       if (!Number.isInteger(args.dailyCheckInMinute) || args.dailyCheckInMinute < 0 || args.dailyCheckInMinute > 59) {
-        throw new Error("Pick a minute from 0 to 59.");
+        throw new ConvexError("Pick a minute from 0 to 59.");
       }
       r.dailyCheckInMinute = args.dailyCheckInMinute;
     }

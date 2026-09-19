@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { Id, TableNames } from "../_generated/dataModel";
 
@@ -47,7 +47,7 @@ export const importAll = internalMutation({
     const categories = new Map<string, Id<"ebCategories">>();
     const mapped = <T extends TableNames>(map: Map<string, Id<T>>, oldId: unknown, what: string): Id<T> => {
       const id = map.get(String(oldId));
-      if (!id) throw new Error(`Import stopped: a ${what} points at a row that isn't in the snapshot (${String(oldId)}).`);
+      if (!id) throw new ConvexError(`Import stopped: a ${what} points at a row that isn't in the snapshot (${String(oldId)}).`);
       return id;
     };
 

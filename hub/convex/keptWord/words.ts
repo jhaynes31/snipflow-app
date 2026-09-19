@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../events";
@@ -18,7 +18,7 @@ const whatNow = v.union(v.literal("smaller"), v.literal("notHappening"), v.liter
 
 function cleanDay(day: string | undefined): string | undefined {
   if (!day) return undefined;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("Pick a day from the calendar.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new ConvexError("Pick a day from the calendar.");
   return day;
 }
 
@@ -129,7 +129,7 @@ export const close = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const word = await requireOwned(ctx, me, "kwWords", args.id);
-    if (word.status !== "open") throw new Error("That word is already closed.");
+    if (word.status !== "open") throw new ConvexError("That word is already closed.");
     const note = optionalText(args.note, 400, "Note");
     const now = Date.now();
     if (args.outcome === "notYet") {
@@ -141,10 +141,10 @@ export const close = mutation({
       await emitEvent(ctx, { ownerId: me.profile._id, source: "kept-word", name: "word.kept", payload: { wordId: word._id, area: word.area, forWhom: word.forWhom }, visibility: "shared" });
       return null;
     }
-    if (!args.reason || !args.whatNow) throw new Error("Say what got in the way, and what now. Those are the two honest parts.");
+    if (!args.reason || !args.whatNow) throw new ConvexError("Say what got in the way, and what now. Those are the two honest parts.");
     let replacedBy: Id<"kwWords"> | undefined;
     if (args.whatNow === "smaller") {
-      if (!args.smaller?.text.trim()) throw new Error("Write the smaller word.");
+      if (!args.smaller?.text.trim()) throw new ConvexError("Write the smaller word.");
       replacedBy = await ctx.db.insert("kwWords", {
         ownerId: me.profile._id,
         visibility: "shared",
@@ -175,9 +175,9 @@ export const renegotiate = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const word = await requireOwned(ctx, me, "kwWords", args.id);
-    if (word.status !== "open") throw new Error("That word is already closed.");
+    if (word.status !== "open") throw new ConvexError("That word is already closed.");
     const today = dayKey(Date.now(), me.profile.timeZone);
-    if (word.dueDay && word.dueDay < today) throw new Error("The day has passed, so this one is kept, not yet, or didn't.");
+    if (word.dueDay && word.dueDay < today) throw new ConvexError("The day has passed, so this one is kept, not yet, or didn't.");
     const now = Date.now();
     const newId = await ctx.db.insert("kwWords", {
       ownerId: me.profile._id,
@@ -200,7 +200,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const word = await requireOwned(ctx, me, "kwWords", args.id);
-    if (word.status !== "open") throw new Error("Closed words stay on the record.");
+    if (word.status !== "open") throw new ConvexError("Closed words stay on the record.");
     await ctx.db.delete(word._id);
   },
 });
@@ -211,7 +211,7 @@ export const sendToEveryBox = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const word = await requireOwned(ctx, me, "kwWords", args.id);
-    if (word.sentToEveryBoxAt) throw new Error("Already in Every Box.");
+    if (word.sentToEveryBoxAt) throw new ConvexError("Already in Every Box.");
     await ctx.db.patch(word._id, { sentToEveryBoxAt: Date.now() });
     await emitEvent(ctx, { ownerId: me.profile._id, source: "kept-word", name: "word.sendToEveryBox", payload: { title: word.text, wordId: word._id } });
   },
@@ -242,8 +242,8 @@ export const answerHeard = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const h = await ctx.db.get(args.id);
-    if (!h || h.aboutProfileId !== me.profile._id) throw new Error("That isn't about you.");
-    if (h.status !== "waiting") throw new Error("Already answered.");
+    if (!h || h.aboutProfileId !== me.profile._id) throw new ConvexError("That isn't about you.");
+    if (h.status !== "waiting") throw new ConvexError("Already answered.");
     if (!args.confirm) {
       await ctx.db.patch(h._id, { status: "declined" });
       return null;
@@ -269,7 +269,7 @@ export const removeHeard = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const h = await requireOwned(ctx, me, "kwHeard", args.id);
-    if (h.status !== "waiting") throw new Error("Answered drafts stay on the record.");
+    if (h.status !== "waiting") throw new ConvexError("Answered drafts stay on the record.");
     await ctx.db.delete(h._id);
   },
 });

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { cleanText, optionalText, requireMe, requireOwned } from "../lib";
 
@@ -40,7 +40,7 @@ export const add = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     if (args.aboutProfileId !== me.profile._id && args.aboutProfileId !== me.partner?._id) {
-      throw new Error("Evidence is about you or your partner.");
+      throw new ConvexError("Evidence is about you or your partner.");
     }
     return await ctx.db.insert("tendEvidence", {
       ownerId: me.profile._id,

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { runListeners } from "./moduleHooks";
@@ -44,7 +44,7 @@ export const emit = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     if (!/^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)+$/.test(args.name)) {
-      throw new Error("Event names look like `module.thing` (for example `category.stuck`).");
+      throw new ConvexError("Event names look like `module.thing` (for example `category.stuck`).");
     }
     return await emitEvent(ctx, {
       ownerId: me.profile._id,

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { partnerForProfile } from "../everyBox/lib";
@@ -151,7 +151,7 @@ export const mine = internalQuery({
   args: { profileId: v.id("profiles"), period },
   handler: async (ctx, args) => {
     const profile = await ctx.db.get(args.profileId);
-    if (!profile) throw new Error("No such person.");
+    if (!profile) throw new ConvexError("No such person.");
     return await mineFor(ctx, profile, args.period);
   },
 });
@@ -161,11 +161,11 @@ export const ours = internalQuery({
   args: { profileId: v.id("profiles"), period },
   handler: async (ctx, args) => {
     const a = await ctx.db.get(args.profileId);
-    if (!a) throw new Error("No such person.");
+    if (!a) throw new ConvexError("No such person.");
     const b = await partnerOf(ctx, a);
-    if (!b) throw new Error("Your partner hasn't joined yet.");
+    if (!b) throw new ConvexError("Your partner hasn't joined yet.");
     if (!readSeasonsSettings(a.moduleSettings).ours || !readSeasonsSettings(b.moduleSettings).ours) {
-      throw new Error("Our season is written only when you both have it on in Seasons.");
+      throw new ConvexError("Our season is written only when you both have it on in Seasons.");
     }
     return await oursFor(ctx, a, b, args.period);
   },

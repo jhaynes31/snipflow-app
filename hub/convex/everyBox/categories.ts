@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import {
   cleanCadence,
@@ -17,11 +17,11 @@ import { emitEvent } from "../events";
 /** Every tender must be a partner in this household, and there must be at least one. */
 async function cleanTenderIds(ctx: Ctx, m: Membership, ids: Id<"ebPartners">[]): Promise<Id<"ebPartners">[]> {
   const unique = uniqueIds(ids);
-  if (unique.length === 0) throw new Error("Pick at least one person to tend this.");
+  if (unique.length === 0) throw new ConvexError("Pick at least one person to tend this.");
   for (const id of unique) {
     const tender = await ctx.db.get(id);
     if (!tender || tender.householdId !== m.household._id) {
-      throw new Error("Tenders must be partners in your household.");
+      throw new ConvexError("Tenders must be partners in your household.");
     }
   }
   return unique;
@@ -188,7 +188,7 @@ export const tend = mutation({
     const m = await requireMembership(ctx);
     const category = await requireCategory(ctx, m, args.categoryId);
     if (!isTender(category, m.partner._id)) {
-      throw new Error("Only a tender of this category can mark it tended.");
+      throw new ConvexError("Only a tender of this category can mark it tended.");
     }
     const now = Date.now();
     const tendedAt = Math.min(args.tendedAt ?? now, now);
@@ -217,8 +217,8 @@ export const undoTend = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const event = await ctx.db.get(args.eventId);
-    if (!event || event.householdId !== m.household._id) throw new Error("That entry is already gone.");
-    if (event.partnerId !== m.partner._id) throw new Error("You can only remove entries you logged yourself.");
+    if (!event || event.householdId !== m.household._id) throw new ConvexError("That entry is already gone.");
+    if (event.partnerId !== m.partner._id) throw new ConvexError("You can only remove entries you logged yourself.");
     await ctx.db.delete(event._id);
 
     const category = await ctx.db.get(event.categoryId);
@@ -253,8 +253,8 @@ export const deleteNote = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const note = await ctx.db.get(args.noteId);
-    if (!note || note.householdId !== m.household._id) throw new Error("Note not found.");
-    if (note.partnerId !== m.partner._id) throw new Error("You can only remove your own notes.");
+    if (!note || note.householdId !== m.household._id) throw new ConvexError("Note not found.");
+    if (note.partnerId !== m.partner._id) throw new ConvexError("You can only remove your own notes.");
     await ctx.db.delete(note._id);
   },
 });

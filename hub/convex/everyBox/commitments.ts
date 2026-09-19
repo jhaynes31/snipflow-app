@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { cleanCadence, cleanText, currentMembership, requireCommitment, requireMembership } from "./lib";
 import { isAssignee, uniqueIds } from "./tenders";
@@ -38,11 +38,11 @@ export const propose = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const assignedToIds = uniqueIds(args.assignedToIds);
-    if (assignedToIds.length === 0) throw new Error("Pick who this is for.");
+    if (assignedToIds.length === 0) throw new ConvexError("Pick who this is for.");
     for (const id of assignedToIds) {
       const assignee = await ctx.db.get(id);
       if (!assignee || assignee.householdId !== m.household._id) {
-        throw new Error("Assignees must be partners in your household.");
+        throw new ConvexError("Assignees must be partners in your household.");
       }
     }
     const now = Date.now();
@@ -74,9 +74,9 @@ export const agree = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const c = await requireCommitment(ctx, m, args.commitmentId);
-    if (c.status !== "proposed") throw new Error("This commitment isn't waiting for agreement.");
+    if (c.status !== "proposed") throw new ConvexError("This commitment isn't waiting for agreement.");
     if (!isAssignee(c, m.partner._id) || c.proposedBy === m.partner._id) {
-      throw new Error("Only the partner it's proposed to can agree to it.");
+      throw new ConvexError("Only the partner it's proposed to can agree to it.");
     }
     const now = Date.now();
     await ctx.db.patch(c._id, {
@@ -94,9 +94,9 @@ export const decline = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const c = await requireCommitment(ctx, m, args.commitmentId);
-    if (c.status !== "proposed") throw new Error("Only a proposal can be declined or withdrawn.");
+    if (c.status !== "proposed") throw new ConvexError("Only a proposal can be declined or withdrawn.");
     if (!isAssignee(c, m.partner._id) && c.proposedBy !== m.partner._id) {
-      throw new Error("You can't decline this commitment.");
+      throw new ConvexError("You can't decline this commitment.");
     }
     await ctx.db.patch(c._id, { status: "declined" });
   },
@@ -108,8 +108,8 @@ export const tend = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const c = await requireCommitment(ctx, m, args.commitmentId);
-    if (c.status !== "active" && c.status !== "agreed") throw new Error("This commitment isn't active.");
-    if (!isAssignee(c, m.partner._id)) throw new Error("Only an assigned partner can check in on it.");
+    if (c.status !== "active" && c.status !== "agreed") throw new ConvexError("This commitment isn't active.");
+    if (!isAssignee(c, m.partner._id)) throw new ConvexError("Only an assigned partner can check in on it.");
     await ctx.db.patch(c._id, { status: "active", lastTendedAt: Date.now() });
   },
 });
@@ -120,8 +120,8 @@ export const markDone = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const c = await requireCommitment(ctx, m, args.commitmentId);
-    if (c.status !== "active" && c.status !== "agreed") throw new Error("This commitment isn't active.");
-    if (!isAssignee(c, m.partner._id)) throw new Error("Only an assigned partner can mark it done.");
+    if (c.status !== "active" && c.status !== "agreed") throw new ConvexError("This commitment isn't active.");
+    if (!isAssignee(c, m.partner._id)) throw new ConvexError("Only an assigned partner can mark it done.");
     await ctx.db.patch(c._id, { status: "done", doneAt: Date.now() });
   },
 });
@@ -131,9 +131,9 @@ export const updateTitle = mutation({
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
     const c = await requireCommitment(ctx, m, args.commitmentId);
-    if (c.status === "done") throw new Error("Completed commitments are archived.");
+    if (c.status === "done") throw new ConvexError("Completed commitments are archived.");
     if (c.proposedBy !== m.partner._id && !isAssignee(c, m.partner._id)) {
-      throw new Error("You can't edit this commitment.");
+      throw new ConvexError("You can't edit this commitment.");
     }
     await ctx.db.patch(c._id, { title: cleanText(args.title, 120, "Title") });
   },

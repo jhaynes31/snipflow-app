@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { access, requireMe, requireOwned } from "../lib";
 
@@ -57,7 +57,7 @@ export const remove = mutation({
     const row = await ctx.db.get(args.id);
     if (!row) return;
     if (row.kind === "ours") {
-      if (access(me, row) !== "full") throw new Error("That isn't yours to change.");
+      if (access(me, row) !== "full") throw new ConvexError("That isn't yours to change.");
       await ctx.db.delete(row._id);
       return;
     }

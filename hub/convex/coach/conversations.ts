@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { access, cleanText, requireMe, requireOwned } from "../lib";
 import { readTendSettings } from "../tend/pure";
@@ -99,7 +99,7 @@ export const contextFor = internalQuery({
     const me = await requireMe(ctx);
     const row = await requireOwned(ctx, me, "coachConversations", args.id);
     if (row.messages.length >= MAX_MESSAGES) {
-      throw new Error("This conversation has gotten long. Start a fresh one and it will feel lighter.");
+      throw new ConvexError("This conversation has gotten long. Start a fresh one and it will feel lighter.");
     }
     const mine = await ctx.db
       .query("userManualSections")

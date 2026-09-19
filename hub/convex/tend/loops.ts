@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { cleanText, optionalText, requireMe, requireOwned } from "../lib";
 
@@ -91,7 +91,7 @@ export const decide = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const loop = await requireOwned(ctx, me, "tendLoops", args.id);
-    if (!loop.decision) throw new Error("There's no default set yet.");
+    if (!loop.decision) throw new ConvexError("There's no default set yet.");
     await ctx.db.patch(loop._id, {
       decision: { ...loop.decision, decidedAt: Date.now(), byDefault: args.byDefault },
       updatedAt: Date.now(),

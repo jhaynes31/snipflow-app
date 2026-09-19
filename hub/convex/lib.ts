@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -17,7 +18,7 @@ export interface Me {
 
 export async function requireUserId(ctx: Ctx): Promise<Id<"users">> {
   const userId = await getAuthUserId(ctx);
-  if (!userId) throw new Error("Please sign in first.");
+  if (!userId) throw new ConvexError("Please sign in first.");
   return userId;
 }
 
@@ -52,13 +53,13 @@ export async function currentMe(ctx: Ctx): Promise<Me | null> {
 
 export async function requireMe(ctx: Ctx): Promise<Me> {
   const me = await currentMe(ctx);
-  if (!me) throw new Error("Finish setting up your profile first.");
+  if (!me) throw new ConvexError("Finish setting up your profile first.");
   return me;
 }
 
 export async function requirePartner(ctx: Ctx, me: Me): Promise<Doc<"profiles">> {
   if (!me.partner) {
-    throw new Error("Your partner hasn't signed in yet, so there's no one to send this to.");
+    throw new ConvexError("Your partner hasn't signed in yet, so there's no one to send this to.");
   }
   return me.partner;
 }
@@ -86,15 +87,15 @@ export async function requireOwned<
 ): Promise<Doc<T>> {
   const doc = await ctx.db.get(id);
   if (!doc || doc.ownerId !== me.profile._id) {
-    throw new Error("That isn't yours to change.");
+    throw new ConvexError("That isn't yours to change.");
   }
   return doc;
 }
 
 export function cleanText(value: string, max: number, label: string): string {
   const trimmed = value.trim();
-  if (!trimmed) throw new Error(`${label} can't be empty.`);
-  if (trimmed.length > max) throw new Error(`${label} is too long (max ${max} characters).`);
+  if (!trimmed) throw new ConvexError(`${label} can't be empty.`);
+  if (trimmed.length > max) throw new ConvexError(`${label} is too long (max ${max} characters).`);
   return trimmed;
 }
 
@@ -103,7 +104,7 @@ export function optionalText(value: string | undefined, max: number, label: stri
   if (value === undefined) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
-  if (trimmed.length > max) throw new Error(`${label} is too long (max ${max} characters).`);
+  if (trimmed.length > max) throw new ConvexError(`${label} is too long (max ${max} characters).`);
   return trimmed;
 }
 

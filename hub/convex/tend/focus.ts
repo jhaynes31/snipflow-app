@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { cleanText, requireMe } from "../lib";
 
@@ -63,7 +63,7 @@ export const extend = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const s = await ctx.db.get(args.id);
-    if (!s || s.ownerId !== me.profile._id) throw new Error("That isn't your session.");
+    if (!s || s.ownerId !== me.profile._id) throw new ConvexError("That isn't your session.");
     const add = Math.min(180, Math.max(1, Math.round(args.minutes)));
     await ctx.db.patch(s._id, { endsAt: Math.max(s.endsAt, Date.now()) + add * 60_000, minutes: s.minutes + add, status: "running" });
   },
@@ -74,7 +74,7 @@ export const end = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const s = await ctx.db.get(args.id);
-    if (!s || s.ownerId !== me.profile._id) throw new Error("That isn't your session.");
+    if (!s || s.ownerId !== me.profile._id) throw new ConvexError("That isn't your session.");
     await ctx.db.patch(s._id, { status: "ended" });
   },
 });
@@ -85,7 +85,7 @@ export const join = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const s = await ctx.db.get(args.id);
-    if (!s || !me.partner || s.ownerId !== me.partner._id) throw new Error("That isn't your partner's session.");
+    if (!s || !me.partner || s.ownerId !== me.partner._id) throw new ConvexError("That isn't your partner's session.");
     await ctx.db.patch(s._id, { joinedProfileId: args.joining ? me.profile._id : undefined });
   },
 });

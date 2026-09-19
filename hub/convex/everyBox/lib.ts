@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { currentMe, type Me } from "../lib";
@@ -36,7 +37,7 @@ export async function currentMembership(ctx: Ctx): Promise<Membership | null> {
 
 export async function requireMembership(ctx: Ctx): Promise<Membership> {
   const m = await currentMembership(ctx);
-  if (!m) throw new Error("Open Every Box once from The Shire first.");
+  if (!m) throw new ConvexError("Open Every Box once from The Shire first.");
   return m;
 }
 
@@ -44,7 +45,7 @@ export async function requireMembership(ctx: Ctx): Promise<Membership> {
 export async function requireCategory(ctx: Ctx, m: Membership, categoryId: Id<"ebCategories">): Promise<Doc<"ebCategories">> {
   const category = await ctx.db.get(categoryId);
   if (!category || category.householdId !== m.household._id) {
-    throw new Error("That box isn't in your household.");
+    throw new ConvexError("That box isn't in your household.");
   }
   return category;
 }
@@ -52,7 +53,7 @@ export async function requireCategory(ctx: Ctx, m: Membership, categoryId: Id<"e
 export async function requireCommitment(ctx: Ctx, m: Membership, commitmentId: Id<"ebCommitments">): Promise<Doc<"ebCommitments">> {
   const c = await ctx.db.get(commitmentId);
   if (!c || c.householdId !== m.household._id) {
-    throw new Error("That commitment isn't in your household.");
+    throw new ConvexError("That commitment isn't in your household.");
   }
   return c;
 }
@@ -81,14 +82,14 @@ export async function partnersWithNames(ctx: Ctx, householdId: Id<"ebHouseholds"
 
 export function cleanText(value: string, max: number, label: string): string {
   const trimmed = value.trim();
-  if (!trimmed) throw new Error(`${label} can't be empty.`);
-  if (trimmed.length > max) throw new Error(`${label} is too long (max ${max} characters).`);
+  if (!trimmed) throw new ConvexError(`${label} can't be empty.`);
+  if (trimmed.length > max) throw new ConvexError(`${label} is too long (max ${max} characters).`);
   return trimmed;
 }
 
 export function cleanCadence(days: number): number {
-  if (!Number.isFinite(days)) throw new Error("Cadence must be a number of days.");
+  if (!Number.isFinite(days)) throw new ConvexError("Cadence must be a number of days.");
   const rounded = Math.round(days);
-  if (rounded < 1 || rounded > 365) throw new Error("Cadence must be between 1 and 365 days.");
+  if (rounded < 1 || rounded > 365) throw new ConvexError("Cadence must be between 1 and 365 days.");
   return rounded;
 }

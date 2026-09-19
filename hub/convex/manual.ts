@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { emitEvent } from "./events";
 import { access, optionalText, requireMe, requireOwned } from "./lib";
@@ -56,7 +56,7 @@ export const save = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const body = args.body.trim();
-    if (body.length > 4000) throw new Error("That section is too long (max 4000 characters).");
+    if (body.length > 4000) throw new ConvexError("That section is too long (max 4000 characters).");
     const summary = optionalText(args.summary, 300, "Summary");
     const existing = await ctx.db
       .query("userManualSections")
@@ -95,7 +95,7 @@ export const setVisibility = mutation({
     const section = await requireOwned(ctx, me, "userManualSections", args.id);
     const summary = optionalText(args.summary, 300, "Summary") ?? section.summary;
     if (args.visibility === "sharedSummary" && !summary) {
-      throw new Error("Write the one-line summary your partner will see first.");
+      throw new ConvexError("Write the one-line summary your partner will see first.");
     }
     await ctx.db.patch(section._id, { visibility: args.visibility, summary, updatedAt: Date.now() });
   },

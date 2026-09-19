@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
 import type { MutationCtx } from "./_generated/server";
@@ -22,7 +23,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
       validatePasswordRequirements(password) {
-        if (password.length < 8) throw new Error("Use a password of at least 8 characters.");
+        if (password.length < 8) throw new ConvexError("Use a password of at least 8 characters.");
       },
     }),
   ],
@@ -31,16 +32,16 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       if (args.existingUserId) return args.existingUserId;
 
       const email = args.profile.email?.toLowerCase();
-      if (!email) throw new Error("An email address is needed to sign in.");
+      if (!email) throw new ConvexError("An email address is needed to sign in.");
 
       const allowed = allowedEmails();
       if (allowed && !allowed.includes(email)) {
-        throw new Error("This Hub is private. That email isn't one of its two accounts.");
+        throw new ConvexError("This Hub is private. That email isn't one of its two accounts.");
       }
 
       const existing = await ctx.db.query("users").collect();
       if (existing.length >= MAX_ACCOUNTS) {
-        throw new Error("This Hub already has its two accounts. Sign in instead.");
+        throw new ConvexError("This Hub already has its two accounts. Sign in instead.");
       }
 
       return await ctx.db.insert("users", {

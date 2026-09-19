@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
 import { cleanText, requireMe, requireOwned, requirePartner } from "../lib";
@@ -40,7 +40,7 @@ export const answer = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const ask = await ctx.db.get(args.id);
-    if (!ask || ask.toProfileId !== me.profile._id) throw new Error("That ask isn't for you.");
+    if (!ask || ask.toProfileId !== me.profile._id) throw new ConvexError("That ask isn't for you.");
     await ctx.db.patch(ask._id, { answer: args.answer, answeredAt: Date.now() });
     await emitEvent(ctx, { ownerId: me.profile._id, source: "kept-word", name: "ask.answered", payload: { askId: ask._id, answer: args.answer }, visibility: "shared" });
   },
@@ -51,7 +51,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const ask = await requireOwned(ctx, me, "kwAsks", args.id);
-    if (ask.answer) throw new Error("Answered asks stay on the record.");
+    if (ask.answer) throw new ConvexError("Answered asks stay on the record.");
     await ctx.db.delete(ask._id);
   },
 });

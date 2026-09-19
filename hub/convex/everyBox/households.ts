@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { currentMe, requireMe } from "../lib";
 import { currentMembership, partnerForProfile, partnersWithNames, requireMembership } from "./lib";
@@ -94,7 +94,7 @@ export const setTheme = mutation({
   args: { theme: v.string() },
   handler: async (ctx, args) => {
     const m = await requireMembership(ctx);
-    if (!isThemeId(args.theme)) throw new Error("Unknown theme.");
+    if (!isThemeId(args.theme)) throw new ConvexError("Unknown theme.");
     await ctx.db.patch(m.household._id, { activeTheme: args.theme });
   },
 });
