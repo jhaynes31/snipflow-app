@@ -17,6 +17,7 @@ import type * as coach_prompt from "../coach/prompt.js";
 import type * as coach_safety from "../coach/safety.js";
 import type * as coach_titles from "../coach/titles.js";
 import type * as crons from "../crons.js";
+import type * as crossroads_entries from "../crossroads/entries.js";
 import type * as events from "../events.js";
 import type * as everyBox_areas from "../everyBox/areas.js";
 import type * as everyBox_categories from "../everyBox/categories.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   calendar: typeof calendar;
   checkIns: typeof checkIns;
   crons: typeof crons;
+  "crossroads/entries": typeof crossroads_entries;
   events: typeof events;
   "coach/chat": typeof coach_chat;
   "coach/conversations": typeof coach_conversations;

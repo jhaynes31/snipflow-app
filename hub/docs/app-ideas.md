@@ -185,3 +185,13 @@ revisited monthly). **John:** treated as the man who knows this; the Sit-Down is
 whoever they choose, his to accept.
 
 **Built 2026-09-19** as `docs/storehouse-spec.md`. Still waiting on Jen: the ODT file (to mirror categories); giving as a first line (on by default, switchable); plan-only versus a rough actual-spending view later.
+
+
+---
+
+## The Crossroads (built 2026-09-19)
+
+Deciding where to live: stay, another state, or another country. Specified in
+`docs/crossroads-spec.md`. Questions each person answers alone, Together, Places with a
+fit on what both said matters, Ask the guide, The Road with steps in order and costs, and
+Sources. Ratings are labeled starting points; the guide never picks.

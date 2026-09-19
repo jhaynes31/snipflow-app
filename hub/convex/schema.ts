@@ -1063,4 +1063,50 @@ export default defineSchema({
     text: v.string(),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+  // ---------------------------------------------------------------------
+  // The Crossroads (module id "crossroads"): deciding where to live, and
+  // the road there. Answers are each person's own but visible to both,
+  // because the decision is joint. See docs/crossroads-spec.md.
+  // ---------------------------------------------------------------------
+
+  crAnswers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    importance: v.optional(v.number()),
+    text: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerId", "key"]),
+
+  /** A place either of them added, or a rating override on a built-in one. */
+  crPlaces: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    name: v.optional(v.string()),
+    kind: v.optional(v.union(v.literal("country"), v.literal("state"))),
+    line: v.optional(v.string()),
+    ratings: v.optional(v.any()),
+    note: v.optional(v.string()),
+    shortlisted: v.optional(v.boolean()),
+    createdAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  /** The Road: state per step, shared. */
+  crSteps: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    status: v.union(v.literal("todo"), v.literal("doing"), v.literal("done"), v.literal("skip")),
+    who: v.optional(v.id("profiles")),
+    note: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  /** Household settings for the Crossroads: the chosen path and place. */
+  crSettings: defineTable({
+    path: v.union(v.literal("abroad"), v.literal("domestic"), v.literal("undecided")),
+    chosenPlace: v.optional(v.string()),
+    updatedAt: v.number(),
+  }),
 });
