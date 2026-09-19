@@ -118,3 +118,11 @@ pastes it into Convex as `ESV_API_KEY`); NIV/NLT via a licensed service such as
 API.Bible (`BIBLE_API_KEY`), availability per translation to be confirmed. Fetched
 passages cached in Convex so each is fetched once. A translation without a key shows
 "add a key to turn this on", never hides.
+
+**Compare (built 2026-09-19):** the King James (1769) and American Standard Version
+(1901), both public domain, are built in beside the Berean. The chapter reader has a
+translation switch (remembered per browser), and every chapter has a Compare view:
+up to three translations side by side, verse by verse, with an optional verse range and
+"Ask about the differences" (coach task `well.compare`, which quotes only the pasted
+text and never crowns a translation). ESV, NIV, and NLT appear as "later" chips until
+their keys exist.

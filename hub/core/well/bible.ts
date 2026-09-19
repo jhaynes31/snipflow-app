@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_TRANSLATION, translationByCode } from "./translations";
 
 /**
  * Loads the built-in Bible (public/bible/bsb) a book at a time and keeps it
@@ -20,51 +21,89 @@ export interface BibleIndex {
 }
 
 const bookCache = new Map<string, Promise<BibleBook>>();
-let indexCache: Promise<BibleIndex> | null = null;
+const indexCache = new Map<string, Promise<BibleIndex>>();
 
-export function loadIndex(): Promise<BibleIndex> {
-  if (!indexCache) indexCache = fetch("/bible/bsb/index.json").then((r) => r.json() as Promise<BibleIndex>);
-  return indexCache;
-}
-
-export function loadBook(slug: string): Promise<BibleBook> {
-  let p = bookCache.get(slug);
+export function loadIndex(code = DEFAULT_TRANSLATION): Promise<BibleIndex> {
+  let p = indexCache.get(code);
   if (!p) {
-    p = fetch(`/bible/bsb/${slug}.json`).then((r) => {
-      if (!r.ok) throw new Error("That book isn't here.");
-      return r.json() as Promise<BibleBook>;
-    });
-    bookCache.set(slug, p);
+    p = fetch(`/bible/${code}/index.json`).then((r) => r.json() as Promise<BibleIndex>);
+    indexCache.set(code, p);
   }
   return p;
 }
 
-export function useBibleIndex(): BibleIndex | null {
-  const [index, setIndex] = useState<BibleIndex | null>(null);
+export function loadBook(slug: string, code = DEFAULT_TRANSLATION): Promise<BibleBook> {
+  const key = `${code}/${slug}`;
+  let p = bookCache.get(key);
+  if (!p) {
+    p = fetch(`/bible/${code}/${slug}.json`).then((r) => {
+      if (!r.ok) throw new Error("That book isn't here.");
+      return r.json() as Promise<BibleBook>;
+    });
+    bookCache.set(key, p);
+  }
+  return p;
+}
+
+export function useBibleIndex(code = DEFAULT_TRANSLATION): BibleIndex | null {
+  const [index, setIndex] = useState<{ code: string; index: BibleIndex } | null>(null);
   useEffect(() => {
     let alive = true;
-    void loadIndex().then((i) => alive && setIndex(i));
+    void loadIndex(code).then((i) => alive && setIndex({ code, index: i }));
     return () => {
       alive = false;
     };
-  }, []);
-  return index;
+  }, [code]);
+  return index?.code === code ? index.index : null;
 }
 
-export function useBook(slug: string | null): BibleBook | null | "missing" {
-  const [loaded, setLoaded] = useState<{ slug: string; book: BibleBook | "missing" } | null>(null);
+export function useBook(slug: string | null, code = DEFAULT_TRANSLATION): BibleBook | null | "missing" {
+  const [loaded, setLoaded] = useState<{ key: string; book: BibleBook | "missing" } | null>(null);
+  const key = `${code}/${slug}`;
   useEffect(() => {
     if (!slug) return;
     let alive = true;
-    loadBook(slug)
-      .then((b) => alive && setLoaded({ slug, book: b }))
-      .catch(() => alive && setLoaded({ slug, book: "missing" }));
+    loadBook(slug, code)
+      .then((b) => alive && setLoaded({ key, book: b }))
+      .catch(() => alive && setLoaded({ key, book: "missing" }));
     return () => {
       alive = false;
     };
-  }, [slug]);
+  }, [slug, code, key]);
   if (!slug) return "missing";
-  return loaded?.slug === slug ? loaded.book : null;
+  return loaded?.key === key ? loaded.book : null;
+}
+
+/** Several translations of one book at once, for the compare view. Null while any is loading. */
+export function useBooks(slug: string, codes: string[]): (BibleBook | "missing")[] | null {
+  const key = `${slug}|${codes.join(",")}`;
+  const [loaded, setLoaded] = useState<{ key: string; books: (BibleBook | "missing")[] } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void Promise.all(codes.map((c) => loadBook(slug, c).catch(() => "missing" as const))).then((books) => alive && setLoaded({ key, books }));
+    return () => {
+      alive = false;
+    };
+  }, [slug, key, codes]);
+  return loaded?.key === key ? loaded.books : null;
+}
+
+/** The person's chosen translation, per browser. */
+export function preferredTranslation(): string {
+  try {
+    const code = localStorage.getItem("well:translation");
+    return code && translationByCode(code)?.builtIn ? code : DEFAULT_TRANSLATION;
+  } catch {
+    return DEFAULT_TRANSLATION;
+  }
+}
+
+export function setPreferredTranslation(code: string): void {
+  try {
+    localStorage.setItem("well:translation", code);
+  } catch {
+    /* private mode, or storage blocked */
+  }
 }
 
 /** Where I left off, per person's browser. No gap is ever shown. */

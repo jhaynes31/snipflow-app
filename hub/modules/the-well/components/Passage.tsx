@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { speak, stopSpeaking, useBook } from "@/core/well/bible";
+import { preferredTranslation, speak, stopSpeaking, useBook } from "@/core/well/bible";
+import { translationByCode } from "@/core/well/translations";
 import { refHref, refLabel, sliceVerses, type Ref } from "@/core/well/refs";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, ErrorNote, Field, Note, Spinner, useAction } from "@/core/ui";
 
 /** A passage from the built-in Bible, with read-aloud and "mark for my partner". */
 export function Passage({ r, actions = true }: { r: Ref; actions?: boolean }) {
-  const book = useBook(r.book);
+  const [code] = useState(() => preferredTranslation());
+  const book = useBook(r.book, code);
   if (book === null) return <Spinner label="Opening the book" />;
   if (book === "missing") return <p className="sh-muted">That passage isn&apos;t in the built-in Bible.</p>;
   const chapter = book.chapters[r.chapter - 1];
@@ -22,7 +24,7 @@ export function Passage({ r, actions = true }: { r: Ref; actions?: boolean }) {
   return (
     <div>
       <p className="sh-eyebrow">
-        <Link href={refHref(r)} className="sh-link">{label}</Link> · BSB
+        <Link href={refHref(r)} className="sh-link">{label}</Link> · {translationByCode(code)?.short ?? code.toUpperCase()}
       </p>
       <p className="well-passage">
         {verses.map((v) => (

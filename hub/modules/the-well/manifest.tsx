@@ -4,6 +4,7 @@ import { Droplets } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
 import { WellShell } from "./WellShell";
 import { Book, Books, Chapter, Glossary } from "./screens/Bible";
+import { Compare } from "./screens/Compare";
 import { Lies } from "./screens/Lies";
 import { Permissions } from "./screens/Permissions";
 import { Remembering } from "./screens/Remembering";
@@ -37,10 +38,11 @@ export const theWell: ModuleManifest = {
   usesAICoach: true,
   status: "ready",
   Screen: function WellScreen({ path }: { path: string[] }) {
-    const [first, second, third] = path;
+    const [first, second, third, fourth] = path;
     let screen: React.ReactNode;
     if (!first) screen = <Today />;
     else if (first === "bible" && second === "glossary") screen = <Glossary />;
+    else if (first === "bible" && second && third && fourth === "compare") screen = <Compare slug={second} chapter={Number(third) || 1} />;
     else if (first === "bible" && second && third) screen = <Chapter slug={second} chapter={Number(third) || 1} />;
     else if (first === "bible" && second) screen = <Book slug={second} />;
     else if (first === "bible") screen = <Books />;

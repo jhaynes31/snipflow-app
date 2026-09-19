@@ -9,6 +9,7 @@ import { TODAY } from "../core/well/today.ts";
 import { WAYS } from "../core/well/ways.ts";
 import { findBanned } from "../core/copy/banned.mjs";
 import { contrastRatio, AA_NORMAL_TEXT } from "../core/theme/contrast.ts";
+import { alignVerses, builtInTranslations, TRANSLATIONS } from "../core/well/translations.ts";
 
 const index = JSON.parse(readFileSync(new URL("../public/bible/bsb/index.json", import.meta.url), "utf8")) as { books: { slug: string; chapters: number }[] };
 const chapters = new Map(index.books.map((b) => [b.slug, b.chapters]));
@@ -74,5 +75,24 @@ describe("The Well theme", () => {
   it("text passes AA on the accent in both modes", () => {
     assert.ok(contrastRatio("#FFFFFF", "#2F6E8A") >= AA_NORMAL_TEXT);
     assert.ok(contrastRatio("#1F261C", "#7FB6CF") >= AA_NORMAL_TEXT);
+  });
+});
+
+describe("translations", () => {
+  it("every built-in translation has all 66 books on disk with matching chapter counts", () => {
+    for (const t of builtInTranslations()) {
+      const idx = JSON.parse(readFileSync(new URL(`../public/bible/${t.code}/index.json`, import.meta.url), "utf8")) as { books: { slug: string; chapters: number }[] };
+      assert.equal(idx.books.length, 66, t.code);
+      for (const b of idx.books) assert.equal(b.chapters, chapters.get(b.slug), `${t.code} ${b.slug}`);
+    }
+  });
+  it("keyed translations name the key they need and are never hidden", () => {
+    for (const t of TRANSLATIONS.filter((x) => !x.builtIn)) assert.ok(t.needsKey, t.code);
+    assert.equal(TRANSLATIONS.length, 6);
+  });
+  it("aligns verses by number and leaves blanks where a translation lacks one", () => {
+    const rows = alignVerses([["a1", "a2", "a3"], ["b1", "b2"], null]);
+    assert.equal(rows.length, 3);
+    assert.deepEqual(rows[2].texts, ["a3", null, null]);
   });
 });

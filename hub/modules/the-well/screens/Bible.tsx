@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { rememberPlace, useBibleIndex, useBook } from "@/core/well/bible";
+import { preferredTranslation, rememberPlace, setPreferredTranslation, useBibleIndex, useBook } from "@/core/well/bible";
+import { builtInTranslations, translationByCode, TRANSLATIONS } from "@/core/well/translations";
 import { guideFor } from "@/core/well/books";
 import { GLOSSARY } from "@/core/well/glossary";
 import { refHref } from "@/core/well/refs";
@@ -81,7 +82,8 @@ export function Book({ slug }: { slug: string }) {
 
 /** One chapter, verse by verse, with read-aloud, marking, and asking. */
 export function Chapter({ slug, chapter }: { slug: string; chapter: number }) {
-  const book = useBook(slug);
+  const [code, setCode] = useState(() => preferredTranslation());
+  const book = useBook(slug, code);
   const [asking, setAsking] = useState(false);
   useEffect(() => {
     if (book && book !== "missing") rememberPlace(slug, chapter);
@@ -100,10 +102,22 @@ export function Chapter({ slug, chapter }: { slug: string; chapter: number }) {
   const verses = book.chapters[chapter - 1];
   const label = `${book.name} ${chapter}`;
   const text = verses.join(" ");
-  const opening = `Passage (Berean Standard Bible), ${label}:\n${verses.map((v, i) => `${i + 1} ${v}`).join("\n")}`;
+  const translation = translationByCode(code);
+  const opening = `Passage (${translation?.name ?? code}), ${label}:\n${verses.map((v, i) => `${i + 1} ${v}`).join("\n")}`;
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title={label} action={<LinkBtn href={`/the-well/bible/${slug}`} variant="ghost">{book.name}</LinkBtn>} />
+      <div className="well-translations" role="group" aria-label="Translation">
+        {builtInTranslations().map((t) => (
+          <button key={t.code} type="button" className="sh-chip" aria-pressed={code === t.code} title={t.note} style={code === t.code ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => { setCode(t.code); setPreferredTranslation(t.code); }}>
+            {t.short}
+          </button>
+        ))}
+        {TRANSLATIONS.filter((t) => !t.builtIn).map((t) => (
+          <span key={t.code} className="sh-chip" aria-disabled="true" style={{ opacity: 0.55 }} title={t.note}>{t.short}, later</span>
+        ))}
+        <Link href={`/the-well/bible/${slug}/${chapter}/compare`} className="sh-link">Compare translations</Link>
+      </div>
       <Card>
         <p className="well-passage">
           {verses.map((v, i) => (
@@ -114,6 +128,7 @@ export function Chapter({ slug, chapter }: { slug: string; chapter: number }) {
           ))}
         </p>
         <PassageActions r={{ book: slug, chapter }} label={label} text={text} />
+        <p className="sh-hint">{translation?.short ?? code.toUpperCase()}: {translation?.note}</p>
       </Card>
       <div className="sh-row sh-wrap">
         {chapter > 1 && <LinkBtn href={`/the-well/bible/${slug}/${chapter - 1}`} variant="secondary">Chapter {chapter - 1}</LinkBtn>}

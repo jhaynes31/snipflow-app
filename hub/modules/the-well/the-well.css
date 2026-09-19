@@ -94,3 +94,43 @@
 .well-did {
   font-size: 1.05rem;
 }
+.well-compare {
+  display: grid;
+  gap: 0.4rem 0.75rem;
+  align-items: start;
+}
+.well-compare-row {
+  display: grid;
+  gap: 0.4rem 0.75rem;
+  padding: 0.45rem 0;
+  border-top: 1px dashed var(--border);
+}
+.well-compare-n {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding-top: 0.15rem;
+}
+.well-compare-text {
+  font-family: var(--font-heading), Georgia, serif;
+  line-height: 1.55;
+}
+@media (max-width: 640px) {
+  .well-compare-row {
+    grid-template-columns: 1fr !important;
+  }
+  .well-compare > .sh-eyebrow {
+    display: none;
+  }
+  .well-compare-text::before {
+    content: attr(data-code) " ";
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+  }
+}
+.well-translations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
