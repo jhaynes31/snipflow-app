@@ -1,7 +1,9 @@
-# Metamorphose: Spec (Hub Module, John's room)
+# Metamorphosis: Spec (Hub Module, John's room)
 
-Written 2026-09-19 from Jen's brief. Name from Romans 12:2 ("be transformed", Greek
-metamorphoō) and Matthew 17:2. A room for one man, claimed by him, that neither Jen nor
+Written 2026-09-19 from Jen's brief; name settled as Metamorphosis the same day. Name from
+Romans 12:2 ("be transformed", Greek metamorphoō) and Matthew 17:2. The front page of the
+room carries that connection as its header: "Be transformed by the renewing of your mind.
+Romans 12:2. The word is metamorphoō. Same word as the mountain in Matthew 17." A room for one man, claimed by him, that neither Jen nor
 anyone else can open. Follows the Hub Contract in full: privacy gate on every row,
 shame-free copy, gentle day as a signal only, module autonomy.
 
@@ -47,7 +49,7 @@ compares him to other men. Speaks his language: the room's own words are Charact
 Sheet, Quest Log, The Map, Session Zero, The Party. No points, no levels, no streaks,
 no experience bars, because those become shame the first week he misses.
 
-The coach task prompts (`metamorphose.*`) carry this voice and his Character Sheet
+The coach task prompts (`metamorphosis.*`) carry this voice and his Character Sheet
 (only what he allowed). They also know: he is in survival more often than he knows;
 when the Mirror or a message reads as survival, drop growth and go to safety first.
 
@@ -77,10 +79,13 @@ until he is back. If no, the room opens normally. This is never counted.
 | Seen | Fear of being seen or perceived. Small, chosen acts of being seen, one at a time, with the mentor's voice after each. Never assigned; always chosen. | fear of being seen |
 | No Condemnation | Guilt, shame, condemnation. Romans 8:1 and the Father's posture; the difference between conviction (clarity, turning) and shame (crushing, hiding). Links to Lies and truth in The Well and his own Evidence Bank in Tend. | guilt, shame, condemnation |
 | Where This Came From | The survival story. The golden child, the mother who used him, the father who wasn't there. The difference between being used and being loved. "You were a child." Letters he won't send: to his dad, to his mom, to himself at fifteen. | origins, survival |
-| The Party | The real men he needs. A list of men in his life or men he could reach, with "last talked" in his own words, and prompts toward mentors, because an app can be a mentor's voice but can't be a mentor. | isolation |
+| The Party | The real men he needs, and how to find them, because he has no friends right now and his family is toxic. A list of men in his life or men he could reach, with "last talked" in his own words. Plus a friendship builder: where people like him are (a board-game shop night, a D&D table, a men's group, a climbing gym, a class), how to start a conversation, the one small ask ("want to grab coffee after?"), how to follow up without overthinking it, how to be a friend back, and what to do when it fizzles (most do; that's normal, not rejection). One step at a time, chosen by him. | isolation, friendship |
 | Letters | Once a month, the coach writes him a letter in the mentor's voice from what he logged. Not a report. A letter. Also the letters from Where This Came From. | validation, encouragement |
 | The Blessing | The thing fathers give. A blessing from Scripture (Numbers 6:24-26 and others) he can open on any day, and, only if Jen writes one that is true and has no correction in it, hers, sealed until he opens it. | worth |
 | Men in the Story | Joseph, Boaz, Nehemiah, David, Peter, Paul with Timothy, and Jesus as a man: tired, angry, grieving, steady. | example |
+| The Landing | A safe place to land. Vent to the mentor with no fixing unless he asks for it; seen, heard, supported. Opens with "I'm listening. Say it however it comes out." The coach task for this place is told: reflect first, ask at most one question, offer a tool only if he asks or if it is clearly the kindest next step. Crisis wording still opens the crisis card. | seen, heard, vent, support |
+| The Horizon | Creativity, dreams, and visions of the future, because survival robs him of them. Prompts in his language: "If this were a campaign, what's the story you'd want to be in?" "What would you build if no one was watching?" "What did you love at ten?" "Describe a Saturday five years from now." A place for sketches, ideas, and someday lists that are never turned into tasks unless he chooses. The coach can riff with him here, playfully, and never turns a dream into a to-do. | creativity, dreams, vision |
+| Small Ways | Small, practical ways to think for himself and care for himself and those around him. Short cards: how to decide something small without deferring; how to notice what you need before you're empty; how to make a meal you actually want; how to check on someone; how to plan one thing for the family; how to rest on purpose. One a day on the front page, never assigned. | self-care, caring for others, thinking for himself |
 
 ## Data
 
@@ -88,19 +93,25 @@ All private to John: `mmSessionZero`/Character Sheet fields (as `mmSheet` rows: 
 text, coachAllowed), `mmMirror` (feeling, under, body, want, survival flag, day),
 `mmScout`, `mmTired`, `mmShieldPractice`, `mmQuests`, `mmIron` (word, dueDay, kept,
 askedAt) and `mmIronKept`, `mmCompass`, `mmSeen`, `mmLetters` (his), `mmParty`,
-`mmMentorLetters` (coach-written, monthly), `mmBlessing` (Jen's, sealed: written by
+`mmMentorLetters` (coach-written, monthly), `mmLanding` (vent conversations are coach conversations under module `metamorphosis`, private, deletable), `mmHorizon` (dreams, sketches, someday lists), `mmSmallWays` (done, in his words), `mmBlessing` (Jen's, sealed: written by
 Jen, readable only by the room's owner after claim; Jen can revise until he opens it).
-Claim via `moduleOwners` with module id `metamorphose`.
+Claim via `moduleOwners` with module id `metamorphosis`.
 
-**Coach:** task prompts `metamorphose.mentor` (general), `metamorphose.shieldDown`,
-`metamorphose.map`, `metamorphose.letter` (monthly, internal action). All through the
+**Coach:** task prompts `metamorphosis.mentor` (general), `metamorphosis.landing`
+(listen first), `metamorphosis.horizon` (riff, never a to-do), `metamorphosis.shieldDown`,
+`metamorphosis.map`, `metamorphosis.letter` (monthly, internal action). All through the
 shared coach service. His Character Sheet rows with `coachAllowed` are the only extra
 context; Jen's data is never in it.
 
 ## Cooperates with
 
-Tend (Smallest Step, Focus Mode, Loop Breaker, Evidence Bank) and The Well (Lies and
-truth, For me) by link only. Kept Word: Iron is separate from it on purpose; The Scout
+Blended with the rest of The Shire as resources, always honoring his confidentiality:
+the room links out to Tend (Smallest Step, Focus Mode, Loop Breaker, Sit With It, his
+Evidence Bank, Talk It Out), The Well (Lies and truth, For me as a man and husband,
+Remembering), Kept Word (Ways to show up, his open words), and Every Box (a quest can
+become a commitment). Those apps never link in, never read his rows, and never mention
+the room to Jen. His Tend check-ins and Kept Word record can be read by the room's
+Mirror and Iron to show him his own patterns; nothing flows the other way. Kept Word: Iron is separate from it on purpose; The Scout
 links to Ways to show up. Seasons: his My season may include counts he allows
 (Mirror check-ins, quests done, Iron kept); Our season never sees any of it. Emits
 nothing to the partner. Listens to nothing.
@@ -122,8 +133,7 @@ man. No "step up." No "real men." No comparison to other men. No counts of misse
 |---|---|---|
 | 1 | Claim, Session Zero, The Father's Voice, The Mirror with survival first and The Way Back, Character Sheet, The Map | John claims it; a survival check-in drops to The Way Back; Jen's account cannot read a row |
 | 2 | The Scout, Do It Tired, Shield Down, Quest Log, Iron, The Compass, Seen | Each works end to end and saves privately; Iron asks him and only him |
-| 3 | No Condemnation, Where This Came From, The Party, Men in the Story, The Blessing, monthly Letters | The monthly letter arrives in the mentor's voice from his own logs; the Blessing opens only for him |
+| 3 | No Condemnation, Where This Came From, The Party with the friendship builder, Men in the Story, The Landing, The Horizon, Small Ways, The Blessing, monthly Letters | The monthly letter arrives in the mentor's voice from his own logs; the Blessing opens only for him |
 
-**Open decisions:** the exact name (Metamorphose, or Metamorphosis); whether Jen writes
-the Blessing; whether the coach should write the monthly letter at all (John decides
+**Open decisions:** whether Jen writes the Blessing; whether the coach should write the monthly letter at all (John decides
 after step 1, inside the room).
