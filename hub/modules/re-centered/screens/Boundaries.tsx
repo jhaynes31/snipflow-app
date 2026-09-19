@@ -35,7 +35,7 @@ export function Boundaries() {
         <Field label="What I will and won't do" hint="For example: I won't remind him about his appointments. I will go to the thing I planned even if he doesn't come.">
           <textarea className="sh-input sh-textarea" rows={5} value={boundaries} onChange={(e) => setBoundaries(e.target.value)} maxLength={2000} />
         </Field>
-        <Field label="If a word isn't kept, then I will…" hint="Your own plan, decided now, so you don't have to decide it while hurt. Re-Centered shows this back to you when a word is marked as not kept.">
+        <Field label="If a word isn't kept, then I will…" hint="Your own plan, decided now, so you don't have to decide it while hurt. This room shows it back to you when a word is marked as not kept.">
           <textarea className="sh-input sh-textarea" rows={4} value={ifThen} onChange={(e) => setIfThen(e.target.value)} maxLength={2000} />
         </Field>
         <CrisisNotice texts={[boundaries, ifThen]} />

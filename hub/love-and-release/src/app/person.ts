@@ -1,5 +1,6 @@
 /**
- * Love & Release lives inside The Shire at /love-and-release/app/. The Shire
+ * This app (once Love & Release, now the "Everyone, and me" side of
+ * Re-Centered) lives inside The Shire at /love-and-release/app/. The Shire
  * opens it with ?who=her|john so each person gets their own on-device
  * database on a shared phone or laptop. Jen's is the original database
  * ("love-and-release"), so nothing she has written moves; John's gets its own
@@ -14,7 +15,7 @@ const PLAN_KEY = 'lr:plan'
 export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 /** The Shire page this app is opened from; a full reset goes back there. */
 export const SHIRE_PAGE = '/love-and-release'
-/** Re-Centered, the "partner, and me" room, kept in The Shire. */
+/** The "partner, and me" room, kept in The Shire. */
 export const SHIRE_ROOM = '/love-and-release/john'
 
 export function getPerson(): Person {
@@ -38,7 +39,7 @@ export function takeHandoff(): void {
   const plan = url.searchParams.get('plan') === '1'
   if (who !== 'her' && who !== 'john' && !plan) return
   if (who === 'her' || who === 'john') setPerson(who)
-  // One yes-or-no for this visit: a word wasn't kept recently, so the plan in Re-Centered is ready.
+  // One yes-or-no for this visit: a word wasn't kept recently, so the plan in the room is ready.
   try { if (plan) sessionStorage.setItem(PLAN_KEY, '1') } catch { /* ignore */ }
   url.searchParams.delete('who')
   url.searchParams.delete('plan')
@@ -46,7 +47,7 @@ export function takeHandoff(): void {
   try { window.history.replaceState(null, '', url.pathname + q + url.hash) } catch { /* ignore */ }
 }
 
-/** True when The Shire said, on the way in, that the plan in Re-Centered is ready. */
+/** True when The Shire said, on the way in, that the plan in the room is ready. */
 export function planReady(): boolean {
   try { return sessionStorage.getItem(PLAN_KEY) === '1' } catch { return false }
 }

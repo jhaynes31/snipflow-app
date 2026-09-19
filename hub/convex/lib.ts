@@ -48,7 +48,15 @@ export async function currentMe(ctx: Ctx): Promise<Me | null> {
   const profile = await profileForUser(ctx, userId);
   if (!profile) return null;
   const partner = await partnerOf(ctx, profile);
-  return { userId, profile, partner };
+  return { userId, profile, partner: partner ? { ...partner, displayName: firstName(partner.displayName) } : null };
+}
+
+/**
+ * The village calls people by their first name (Jen, 2026-09-19). A profile
+ * may hold a full name; everything the partner sees uses the first word.
+ */
+export function firstName(displayName: string): string {
+  return displayName.trim().split(/\s+/)[0] || displayName;
 }
 
 export async function requireMe(ctx: Ctx): Promise<Me> {

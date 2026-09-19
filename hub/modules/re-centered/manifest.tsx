@@ -17,7 +17,7 @@ import { Whose } from "./screens/Whose";
  * switch. Built from docs/kept-word-spec.md.
  *
  * Since 2026-09-19 it has no tile of its own: it is the "{partner}, and me"
- * door inside Love & Release, served at /love-and-release/john/… by that
+ * door inside Re-Centered (module id `love-and-release`), served at /love-and-release/john/… by that
  * module's Screen. Its data, the Kept Word hook and the Seasons report are
  * untouched; only the address changed (docs/love-and-release-migration.md).
  */

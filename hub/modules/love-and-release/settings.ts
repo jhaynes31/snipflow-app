@@ -8,9 +8,9 @@ export function readLoveAndReleaseSettings(moduleSettings: Record<string, unknow
 }
 
 /**
- * The address that opens Love & Release as this person. `plan` is the one
+ * The address that opens the app as this person. `plan` is the one
  * signal that travels: a word wasn't kept recently, so the app's front door
- * can point at the plan in Re-Centered. Never what the word was.
+ * can point at the plan in the room. Never what the word was.
  */
 export function loveAndReleaseUrl(who: EmbeddedPerson, signals: { plan?: boolean } = {}): string {
   const p = new URLSearchParams({ who });

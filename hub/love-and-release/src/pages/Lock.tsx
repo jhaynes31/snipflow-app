@@ -31,7 +31,7 @@ export function Lock({ settings, onUnlock }: { settings: Settings; onUnlock: () 
   return (
     <div className="lock fade">
       <div>
-        <div className="brand" style={{ color: 'var(--text-soft)', fontWeight: 800 }}>Love &amp; Release</div>
+        <div className="brand" style={{ color: 'var(--text-soft)', fontWeight: 800 }}>Re-Centered</div>
         <h1 style={{ marginTop: 8 }}>Welcome back.</h1>
         <p className="muted">Enter your passcode whenever you're ready.</p>
       </div>

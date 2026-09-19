@@ -1,5 +1,5 @@
 /**
- * The embedded apps (Heartwood Fitness, Love & Release) keep one on-device
+ * The embedded apps (Heartwood Fitness, Re-Centered) keep one on-device
  * database per person, named "her" and "john". The Shire decides which one
  * the signed-in person opens: by their profile's first name when it is
  * plainly one of the two, otherwise by a one-time choice kept in that

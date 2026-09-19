@@ -33,7 +33,7 @@ export async function downloadBackup(): Promise<void> {
 export function parseBackup(text: string): Backup {
   const parsed = JSON.parse(text) as Partial<Backup>
   if (parsed.app !== 'love-and-release' || !parsed.data || typeof parsed.data !== 'object') {
-    throw new Error('This file doesn\'t look like a Love & Release backup.')
+    throw new Error('This file doesn\'t look like a Re-Centered backup.')
   }
   return parsed as Backup
 }

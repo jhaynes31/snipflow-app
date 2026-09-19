@@ -159,7 +159,7 @@ export function SettingsPage() {
           <button type="button" className="btn btn-danger-soft" onClick={() => setConfirmReset(true)}>Reset the app</button>
         </section>
 
-        <p className="faint center">Love &amp; Release · private, local, no accounts, no analytics.<br />A companion to healing work, not a replacement for it.</p>
+        <p className="faint center">Re-Centered · private, local, no accounts, no analytics.<br />A companion to healing work, not a replacement for it.</p>
       </div>
 
       <Confirm open={confirmRemovePin} title="Remove the passcode?" confirmLabel="Remove" onCancel={() => setConfirmRemovePin(false)} onConfirm={async () => { await updateSettings({ passcodeHash: undefined, passcodeSalt: undefined }); setConfirmRemovePin(false); setPinMsg('Passcode removed.') }} />

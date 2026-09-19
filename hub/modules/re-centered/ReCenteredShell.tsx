@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Anchor, Compass, Feather, Home, Leaf, PauseCircle, Scale } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
+import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, LinkBtn, Spinner, useAction } from "@/core/ui";
 import "./re-centered.css";
 
@@ -27,6 +28,8 @@ const NAV = [
  */
 export function ReCenteredShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { partner } = useHub();
+  const roomName = `${partner?.displayName ?? "My partner"}, and me`;
   const status = useQuery(api.reCentered.room.status);
   const claim = useMutation(api.reCentered.room.claim);
   const { busy, error, run } = useAction();
@@ -37,7 +40,7 @@ export function ReCenteredShell({ children }: { children: ReactNode }) {
       <div className="sh-container sh-narrow">
         <Card>
           <p>This room is {status.ownerName}&apos;s.</p>
-          <LinkBtn href="/" variant="ghost">Back home</LinkBtn>
+          <LinkBtn href="/love-and-release" variant="ghost">Back to Re-Centered</LinkBtn>
         </Card>
       </div>
     );
@@ -45,7 +48,7 @@ export function ReCenteredShell({ children }: { children: ReactNode }) {
   if (status.state === "unclaimed") {
     return (
       <div className="sh-container sh-narrow">
-        <h1 className="sh-h1">Re-Centered</h1>
+        <h1 className="sh-h1">{roomName}</h1>
         <Card>
           <p>
             This room is for one person. Whoever claims it keeps it, and the other account will only ever see one line: that the room is theirs. Nothing inside can be shared, on purpose.
@@ -60,7 +63,7 @@ export function ReCenteredShell({ children }: { children: ReactNode }) {
   }
   return (
     <div className="rc">
-      <nav className="rc-subnav" aria-label="Re-Centered">
+      <nav className="rc-subnav" aria-label={roomName}>
         {NAV.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (

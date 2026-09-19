@@ -18,8 +18,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Love & Release',
-        short_name: 'Love & Release',
+        name: 'Re-Centered',
+        short_name: 'Re-Centered',
         description: 'A gentle companion for loving people fully and releasing what is theirs to carry.',
         theme_color: '#F5EFE0',
         background_color: '#F5EFE0',

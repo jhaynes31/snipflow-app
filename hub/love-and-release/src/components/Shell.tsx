@@ -26,7 +26,7 @@ export function Shell({ title, subtitle, back, action, children, hideNav }: Prop
               <BackIcon />
             </button>
           ) : (
-            <span className="brand">Love &amp; Release</span>
+            <span className="brand">Re-Centered</span>
           )}
         </div>
         <div>{action}</div>

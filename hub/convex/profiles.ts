@@ -7,6 +7,7 @@ import {
   optionalText,
   profileForUser,
   randomToken,
+  firstName,
   requireMe,
   requireUserId,
 } from "./lib";
@@ -16,7 +17,7 @@ const themePref = v.union(v.literal("system"), v.literal("light"), v.literal("da
 
 /** What the partner may see of a profile: name and photo, nothing else. */
 function partnerView(p: Doc<"profiles">) {
-  return { _id: p._id, displayName: p.displayName, photoUrl: p.photoUrl, timeZone: p.timeZone };
+  return { _id: p._id, displayName: firstName(p.displayName), photoUrl: p.photoUrl, timeZone: p.timeZone };
 }
 
 /**

@@ -8,11 +8,11 @@ export const MODULE_NAMES: Record<string, string> = {
   tend: "Tend",
   "the-well": "The Well",
   "kept-word": "Kept Word",
-  "re-centered": "Re-Centered",
+  "re-centered": "Re-Centered", // the room inside (module id kept for its data and claim)
   metamorphosis: "Metamorphosis",
   storehouse: "The Storehouse",
   crossroads: "The Crossroads",
   seasons: "Seasons",
   fitness: "Heartwood Fitness",
-  "love-and-release": "Love & Release",
+  "love-and-release": "Re-Centered", // renamed by Jen 2026-09-19; id and route unchanged
 };

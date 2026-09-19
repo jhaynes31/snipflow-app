@@ -57,7 +57,7 @@ export function Home() {
   const notice = notices.find((n) => n.id !== 'empty')
   const paceDue = usePaceDue()
   const doors = DOORS.filter((d) => d.id !== 'low' || settings.cycleTracking !== false)
-  // The room for the marriage lives in The Shire (Re-Centered); it is Jen's, so only her copy shows the door.
+  // The "John, and me" room lives in The Shire; it is Jen's, so only her copy shows the door.
   const roomDoor = getPerson() === 'her'
   const plan = roomDoor && planReady()
 
@@ -71,7 +71,7 @@ export function Home() {
         </Speak>
 
         {drafts.length > 0 && <div className="notice notice-sage">You left {drafts[0].label}. <Link to={drafts[0].to}>Pick it back up</Link>, or leave it. Either is fine.</div>}
-        {plan && <div className="notice notice-sage">A word wasn't kept. The plan you wrote on a steady day is ready. <a href={SHIRE_ROOM}>Open Re-Centered</a></div>}
+        {plan && <div className="notice notice-sage">A word wasn't kept. The plan you wrote on a steady day is ready. <a href={SHIRE_ROOM}>Open it</a></div>}
         {cycle?.inLowWindow && <div className="notice">It's the harder stretch of the month. Some of what stings this week will sting less next week. Be extra gentle with yourself. <Link to="/why/pmdd">Why</Link></div>}
 
         <div className="doors">
@@ -82,7 +82,7 @@ export function Home() {
           ))}
           {roomDoor && (
             <a href={SHIRE_ROOM} className="door door-sage" style={{ color: 'inherit' }}>
-              <i aria-hidden="true">🏡</i>This is about John<span>Re-Centered: whose is this, the pause, where I stand.</span>
+              <i aria-hidden="true">🏡</i>This is about John<span>Whose is this, the pause before rescuing, where I stand.</span>
             </a>
           )}
         </div>

@@ -9,14 +9,14 @@ import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, timeAgo, useAction } fr
 import { LOVE_AND_RELEASE_MODULE_ID, loveAndReleaseUrl, readLoveAndReleaseSettings } from "../settings";
 
 /**
- * The front door of Love & Release inside The Shire. Two doors:
+ * The front door of Re-Centered inside The Shire. Two doors:
  *
- *  - "Everyone, and me": the Love & Release app (hub/love-and-release), a
+ *  - "Everyone, and me": the app (hub/love-and-release, once Love & Release), a
  *    separate app that keeps everything on this device. The Shire never
  *    reads it. It gets one yes-or-no signal on the way in: whether a word
  *    wasn't kept in the last few days, so its front door can point at the
  *    plan. Never the word itself.
- *  - "{partner}, and me": Re-Centered, one person's own room, kept in The
+ *  - "{partner}, and me": one person's own room, kept in The
  *    Shire's database so Kept Word and Seasons can still reach it. Only the
  *    person who claimed it can open it (modules/re-centered).
  */
@@ -37,7 +37,7 @@ export function Open() {
   if (!who) {
     return (
       <div className="sh-container sh-narrow sh-stack">
-        <PageTitle title="Love & Release" subtitle="Who is here? Each person has their own private copy on this device." />
+        <PageTitle title="Re-Centered" subtitle="Who is here? Each person has their own private copy on this device." />
         <Card>
           <div className="sh-row" style={{ gap: "0.6rem", flexWrap: "wrap" }}>
             <Btn big onClick={() => choose("her")} disabled={busy}>
@@ -60,7 +60,7 @@ export function Open() {
 
   return (
     <div className="sh-container sh-narrow sh-stack">
-      <PageTitle title="Love & Release" subtitle="A quiet place to set things down. Loving people fully, and releasing what is theirs to carry." />
+      <PageTitle title="Re-Centered" subtitle="Your own ground. Loving people fully, and releasing what is theirs to carry." />
 
       {wordNotKept && (
         <div className="sh-banner" role="status">
@@ -80,14 +80,14 @@ export function Open() {
         </a>
         {room.state === "theirs" ? (
           <div className="sh-tile sh-tile-plain" aria-disabled>
-            <span className="sh-tile-name">Re-Centered</span>
+            <span className="sh-tile-name">{partnerName}, and me</span>
             <span className="sh-tile-tagline">This room is {room.ownerName}&apos;s.</span>
           </div>
         ) : (
           <Link href="/love-and-release/john" className="sh-tile">
             <span className="sh-tile-name">{partnerName}, and me</span>
             <span className="sh-tile-tagline">
-              Re-Centered: whose is this, the pause before rescuing, let it land, where I stand, my own life, my word to me.
+              Whose is this, the pause before rescuing, let it land, where I stand, my own life, my word to me.
               {room.state === "unclaimed" ? " For one person; the first to open it keeps it." : ""}
             </span>
           </Link>
@@ -104,8 +104,9 @@ export function Open() {
         <summary>About this place</summary>
         <div className="sh-stack-sm" style={{ marginTop: "0.5rem" }}>
           <p>
-            Love &amp; Release was built on its own and moved into The Shire whole; Re-Centered was built inside The Shire
-            and moved under this door on 2026-09-19 so the two feel like one place. Opening &ldquo;Everyone, and me&rdquo;
+            &ldquo;Everyone, and me&rdquo; was built on its own as Love &amp; Release and moved into The Shire whole;
+            &ldquo;{partnerName}, and me&rdquo; was built inside The Shire. They became one place, Re-Centered, on 2026-09-19.
+            Opening &ldquo;Everyone, and me&rdquo;
             on a new phone or laptop starts a fresh copy there; a backup from its Settings moves your entries.
           </p>
         </div>

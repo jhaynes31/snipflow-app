@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { partnerForProfile } from "../everyBox/lib";
-import { partnerOf, requireMe } from "../lib";
+import { firstName, partnerOf, requireMe } from "../lib";
 import { readTendSettings } from "../tend/pure";
 import { dayKey } from "../tend/patterns";
 import { roomOwner } from "../reCentered/room";
@@ -129,10 +129,10 @@ async function oursFor(ctx: QueryCtx, a: Doc<"profiles">, b: Doc<"profiles">, p:
   for (const person of [a, b]) {
     if (!readTendSettings(person.moduleSettings).shareToolHelps) continue;
     const uses = (await ctx.db.query("tendToolUses").withIndex("by_owner_time", (q) => q.eq("ownerId", person._id)).collect()).filter((t) => t.helped === "little" && inPeriod(t.startedAt, p, dayOf));
-    toolsThatHelped.push({ name: person.displayName, tools: [...new Set(uses.map((u) => u.tool))] });
+    toolsThatHelped.push({ name: firstName(person.displayName), tools: [...new Set(uses.map((u) => u.tool))] });
   }
   return {
-    names: [a.displayName, b.displayName],
+    names: [firstName(a.displayName), firstName(b.displayName)],
     period: p,
     headsUpsSent: cmpCount(headsUps, (h) => h.createdAt),
     headsUpsAnswered: cmpCount(headsUps.filter((h) => h.respondedAt), (h) => h.respondedAt ?? 0),

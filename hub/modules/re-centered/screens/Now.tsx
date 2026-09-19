@@ -17,16 +17,17 @@ const TOOLS = [
 
 /** The front room: my own words first, then the four tools, then one way back into my own life. */
 export function Now() {
-  const { profile } = useHub();
+  const { profile, partner } = useHub();
+  const partnerName = partner?.displayName ?? "My partner";
   const now = useQuery(api.reCentered.entries.now);
   if (!now) return <Spinner />;
-  // The rest of Love & Release keeps its data on this device, per person.
+  // The rest of Re-Centered (the app) keeps its data on this device, per person.
   const who = readPersonSetting(profile.moduleSettings, "love-and-release") ?? personFromName(profile.displayName) ?? "her";
   const lr = (path: string) => `/love-and-release/app/${path}?who=${who}`;
   const wayBack = pickForDay(now.ownLife, now.today);
   return (
     <div className="sh-container sh-narrow">
-      <PageTitle title="Re-Centered" subtitle="Your own ground. Nothing here is about anyone else's behavior; it's about where you stand." />
+      <PageTitle title={`${partnerName}, and me`} subtitle="Your own ground. Nothing here is about anyone else's behavior; it's about where you stand." />
       {now.settings.boundaries && (
         <Card className="rc-quote">
           <p className="sh-eyebrow">What I will and won&apos;t do</p>
@@ -77,7 +78,7 @@ export function Now() {
         </Card>
       )}
       <Card tone="alt">
-        <p className="sh-eyebrow">In the rest of Love &amp; Release</p>
+        <p className="sh-eyebrow">In the rest of Re-Centered</p>
         <div className="sh-choices">
           <a href={lr("fawn")} className="sh-btn sh-btn-secondary">Fawn alarm</a>
           <a href={lr("unhooked/loop")} className="sh-btn sh-btn-secondary">I&apos;m in a loop</a>

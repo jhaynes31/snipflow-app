@@ -11,7 +11,7 @@ import { tend } from "@/modules/tend/manifest";
 import { theWell } from "@/modules/the-well/manifest";
 
 /** Registry order is the default tab order. People can rearrange it in Settings. */
-// Re-Centered has no tile: it lives inside Love & Release (modules/love-and-release/manifest.tsx).
+// The "partner, and me" room (modules/re-centered) has no tile: it lives inside Re-Centered (modules/love-and-release/manifest.tsx).
 export const MODULES: ModuleManifest[] = [everyBox, tend, theWell, keptWord, loveAndRelease, metamorphosis, storehouse, crossroads, seasons, fitness];
 
 export function moduleById(id: string): ModuleManifest | undefined {

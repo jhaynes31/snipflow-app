@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { firstName } from "./lib";
 import { wordsForCalendar } from "./keptWord/words";
 import { billsForCalendar } from "./storehouse/money";
 
@@ -27,7 +28,7 @@ export const feedByToken = query({
       if (!card.addToCalendar) continue;
       if (!senders.has(card.ownerId)) {
         const s = await ctx.db.get(card.ownerId);
-        senders.set(card.ownerId, s?.displayName ?? "Your partner");
+        senders.set(card.ownerId, s ? firstName(s.displayName) : "Your partner");
       }
     }
     const eb = (profile.moduleSettings?.["every-box"] ?? {}) as { weeklyReviewOnCalendar?: boolean };

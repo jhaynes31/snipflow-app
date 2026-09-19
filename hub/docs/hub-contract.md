@@ -67,7 +67,7 @@ Added 2026-09-18 from Jen's direction. The apps work together, but each one keep
 | Every Box | So John can visually see every box in his brain: every facet of life and the relationship, laid out where it can be remembered. Also where Jen adds to-dos and shares feedback instead of having the same conversation again. |
 | Tend | So Jen and John can support each other where each is weak. Especially so John has skills, tools, and resources to know what Jen needs and show up for her, and she for him. |
 | Heartwood Fitness | So Jen and John have an easier time caring for their bodies and managing their physical fitness. |
-| Love & Release | Made for Jen and likely used mostly by her, and open to John if it is a blessing to him too. |
+| Re-Centered (was Love & Release; module id `love-and-release`) | Made for Jen and likely used mostly by her, and open to John if it is a blessing to him too. Two doors: "Everyone, and me" and "{partner}, and me." |
 
 Places for faith and finances are planned later, once The Shire is more complete.
 

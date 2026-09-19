@@ -1,5 +1,10 @@
 # Love & Release: moving it into The Shire
 
+> Renamed 2026-09-19: the whole place, both doors, is now called **Re-Centered** (Jen's
+> choice). The module id, folder and route keep `love-and-release`; the room inside is
+> titled "{partner}, and me" and keeps module id `re-centered` for its data and claim.
+> Names in this file below are as they were when written.
+
 Done 2026-09-19, the same way as Heartwood Fitness (docs/heartwood-migration-plan.md).
 The app came from branch `claude/eloquent-meitner-ysxxf6` (folder `love-and-release/`,
 built 2026-09-17 to 18 in session "Love & Release app").

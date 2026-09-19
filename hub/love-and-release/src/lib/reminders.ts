@@ -26,7 +26,7 @@ export function checkReminders(reminders: Reminder[]): void {
     if (!r.enabled || r.time !== hhmm || fired[r.id] === today) continue
     fired[r.id] = today
     try {
-      new Notification('Love & Release', { body: r.label || 'A gentle check-in, whenever you\'re ready.', icon: `${import.meta.env.BASE_URL}icon-192.png`, silent: true })
+      new Notification('Re-Centered', { body: r.label || 'A gentle check-in, whenever you\'re ready.', icon: `${import.meta.env.BASE_URL}icon-192.png`, silent: true })
     } catch {
       /* some platforms only allow notifications from a service worker */
     }
