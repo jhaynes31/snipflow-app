@@ -1,7 +1,7 @@
-# Kept Word and Solid Ground: Spec (Hub Modules)
+# Kept Word and Re-Centered: Spec (Hub Modules)
 
-Written 2026-09-19 from Jen's brief. Two modules, built in this order: Solid Ground
-(Jen's alone), then Kept Word (both). Plus one Hub-level feature, Seasons (the pattern
+Written 2026-09-19 from Jen's brief. Two modules, built in this order: Re-Centered
+(Jen's alone; named by Jen 2026-09-19), then Kept Word (both). Plus one Hub-level feature, Seasons (the pattern
 report), specified at the end. Both modules follow the Hub Contract in full: privacy
 gate on every record, shame-free copy, gentle day as a signal only, module autonomy.
 
@@ -23,7 +23,7 @@ Neither module takes sides. The trust repair itself is counselor work; these sit
 
 ---
 
-## Solid Ground (working name; Jen to choose)
+## Re-Centered
 
 **For:** Jen only. A visible tile in the village that only Jen can open.
 
@@ -45,13 +45,15 @@ enforced in the Convex functions, not the screen.
 | Where my security is sitting today | One tap, any day, optional: in John / in others / in me and God / mixed. No score, no chart with a target line. A calm monthly view shows the taps as dots so she can notice drift over months. |
 | My own life | The things that are hers: people, rest, work, faith, play, body. Each with a small "one way back in" line she writes. On a day she marked "his to carry" or "let it land", Now offers one of these. |
 | What I will and won't do | Her boundaries in her words, written on a steady day. Shown at the top of Now when it has content. Never sent to John from here. |
+| If a word isn't kept, then I will… | Her if-then plan, written on a steady day. When Kept Word records a "didn't", Re-Centered quietly shows her this plan (information only; it never tells her what to do). |
+| Kept, by me | A log of times she did what she said she'd do for herself after a broken word. Her own follow-through, on record, because it is the only follow-through she controls. |
 
-**Data:** `sgSorts`, `sgPauses`, `sgLandings`, `sgSecurityTaps`, `sgOwnLife`, and the
-boundaries text in `moduleSettings.solidGround`. All private, all deletable, exportable
+**Data:** `rcSorts`, `rcPauses`, `rcLandings`, `rcSecurityTaps`, `rcOwnLife`, `rcKeptByMe`, and the
+boundaries text in `moduleSettings.reCentered`. All private, all deletable, exportable
 as plain text from Settings like everything else.
 
 **Cooperates with:** Tend's tools by link only. Emits nothing to the partner. Listens
-to nothing. Seasons (below) may read Jen's own Solid Ground data for Jen's own report
+to nothing. Seasons (below) may read Jen's own Re-Centered data for Jen's own report
 only, and only the counts and dates she allows.
 
 **Copy rules on top of the Hub's:** never "you rescued him again"; never "how many
@@ -98,15 +100,41 @@ in the same type, in date order. Accuracy is the point.
   help." Jen never sees pattern notices; she sees the words.
 - Reminder the day before a word is due, to John only, in his own reminder settings.
 
-**For Jen:** nothing to do here except read, and add "I heard you say" when she wants
-it on the record. What she will do if a word isn't kept is hers alone and lives in
-Solid Ground.
+**When a word is marked "didn't" (added 2026-09-19, approved by Jen):**
+
+- It cannot be closed quietly. Marking "didn't" opens "What now?" with three honest
+  options: say it again smaller with a new day; say plainly it isn't going to happen;
+  ask for help. Whichever he picks goes on the record. There is no fourth option.
+- A repeated word gets named to John, and only John: after the same kind of word is
+  marked "didn't" three times, "You've said this three times. Make it smaller, or stop
+  saying it." (Kind of word: John tags each word with an area; the notice is per area.)
+- A "didn't" offers John a one-tap way to start a Repair conversation in Tend. He
+  initiates, not Jen.
+
+**Asks (added 2026-09-19):** Jen can write an ask once, plainly ("I'd like you to plan
+one evening for us this month"). John answers with "I'll make this a word" (which
+creates the word), "Not now", or "Let's talk". His answer goes on the record either
+way. Asks are shared and visible to both. Jen never has to repeat one.
+
+**Ways to show up (for John, private to him):** a card in Kept Word, and a section of
+John's My season, drawn only from what Jen has already shared: her Love Menu, her
+shared manual sections, her open and answered asks, and love actions he has done. It
+says specific things ("Jen's Love Menu has 'plan the evening yourself'; the last time
+that was logged was three weeks ago") in plain words with no shame, so that considering
+her does not depend on her asking. Jen's private data never feeds it.
+
+**For Jen:** read, add "I heard you say", and write asks. What she will do if a word
+isn't kept is hers alone and lives in Re-Centered. Kept Word emits `word.didnt`; the
+Hub's hook turns that into a quiet notice for Jen so Re-Centered can show her own
+if-then plan.
 
 **Places inside it:**
 
 | Place | What it does |
 |---|---|
 | Open words | Every open word, soonest first, with the due day. John: add a word, close a word, renegotiate. Jen: add "I heard you say". |
+| Asks | Jen's asks and John's answers, newest first. |
+| Ways to show up | John only. Specific, shame-free pointers drawn from what Jen shared. |
 | Weeks | The app-written weeks, newest first. Same page for both. |
 | Kept | Every word John kept, in date order. Nothing else on this page. |
 | Settings | Week day; John's reminder; John's pattern notices on/off (John only). |
@@ -116,7 +144,7 @@ open/kept/notYet/didnt/renegotiated, reason, note, replacedBy, createdBy,
 confirmedAt), `kwWeeks` (shared, weekStart, body, generated at), `kwHeard` (Jen's
 drafts, shared).
 
-**Emits:** `word.kept`, `word.didnt`, `word.sendToEveryBox`. **Listens:** nothing.
+**Emits:** `word.kept`, `word.didnt`, `word.sendToEveryBox`, `ask.answered`. **Listens:** nothing.
 Seasons reads the shared record for both people's reports.
 
 **Only works if John chooses it.** If he doesn't use it, that is information too, and
@@ -135,7 +163,7 @@ progress, change, and growth (our brains minimize it), and the areas to develop.
 **Two reports, never one:**
 
 1. **My season.** About me, for me. Built from my own data in every module: check-ins,
-   tools used and which helped, Solid Ground entries (Jen), open and kept words
+   tools used and which helped, Re-Centered entries (Jen), open and kept words
    (John), Every Box tending, Love Menu actions I did, repairs I took part in. Written
    by the coach in plain, warm words from structured counts the app prepares, with
    the coach told: name growth specifically, never shame, never compare to the
@@ -144,7 +172,7 @@ progress, change, and growth (our brains minimize it), and the areas to develop.
 2. **Our season.** About us, for both, identical for both. Built only from data that
    is shared by nature or that each person switched on: heads-ups sent and responded
    to, love actions done, repairs completed, the Kept Word record, tender weeks
-   announced, Every Box weekly reviews. No private counts leak in: Jen's Solid Ground
+   announced, Every Box weekly reviews. No private counts leak in: Jen's Re-Centered
    never appears here; John's pattern notices never appear here; tool use appears
    only for a person who turned on "share which tools helped me" (already a Tend
    setting). Both see the same page at the same time.
@@ -167,9 +195,8 @@ Each report can be deleted by its reader; Our season is deleted for both by eith
 
 | Step | What | Done when |
 |---|---|---|
-| 1 | Solid Ground: claim, the six places, private tables, export | Jen claims it, uses every tool, and John's account cannot read a row |
+| 1 | Re-Centered: claim, the six places, private tables, export *(built 2026-09-19)* | Jen claims it, uses every tool, and John's account cannot read a row |
 | 2 | Kept Word: words, heard drafts, close, renegotiate, the app-written week, Kept page | John logs and closes a word; the week appears for both; Jen never has to write anything |
 | 3 | Seasons: My season and Our season with intervals | Both reports arrive on the chosen day and no private count appears in Our season |
 
-**Open decisions:** the name for Solid Ground (Jen); whether John wants the day-before
-reminder on by default (John).
+**Open decisions:** whether John wants the day-before reminder on by default (John).

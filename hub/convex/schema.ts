@@ -531,4 +531,73 @@ export default defineSchema({
   })
     .index("by_household", ["householdId", "status"])
     .index("by_assignee", ["assignedTo", "status"]),
+  // ---------------------------------------------------------------------
+  // Re-Centered (module id "re-centered"). One person's own room. The first
+  // to open it claims it; every row is private and there is no share switch.
+  // See docs/kept-word-spec.md.
+  // ---------------------------------------------------------------------
+
+  /** Which person a single-person room belongs to. One row per module id. */
+  moduleOwners: defineTable({
+    moduleId: v.string(),
+    ownerId: v.id("profiles"),
+    claimedAt: v.number(),
+  }).index("by_module", ["moduleId"]),
+
+  /** Whose is this? Something landed, sorted: mine / theirs / not mine. */
+  rcSorts: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    whose: v.union(v.literal("mine"), v.literal("theirs"), v.literal("notMine")),
+    myPart: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The pause before rescuing: four answers and how it ended. */
+  rcPauses: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    ifNothing: v.string(),
+    landsOn: v.string(),
+    afraid: v.string(),
+    need: v.string(),
+    ending: v.union(v.literal("stepIn"), v.literal("letItLand"), v.literal("notYet")),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Let it land: a time I didn't fix or manage it, in my words. */
+  rcLandings: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    after: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Where my security is sitting today. One per day; the latest tap wins. */
+  rcSecurityTaps: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    where: v.union(v.literal("partner"), v.literal("others"), v.literal("self"), v.literal("mixed")),
+    createdAt: v.number(),
+  }).index("by_owner_day", ["ownerId", "day"]),
+
+  /** My own life: an area that is mine, and one way back into it. */
+  rcOwnLife: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    area: v.string(),
+    wayBackIn: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Kept, by me: a time I did what I said I'd do for myself. */
+  rcKeptByMe: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

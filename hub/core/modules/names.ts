@@ -6,6 +6,7 @@
 export const MODULE_NAMES: Record<string, string> = {
   "every-box": "Every Box",
   tend: "Tend",
+  "re-centered": "Re-Centered",
   fitness: "Heartwood Fitness",
   "love-and-release": "Love & Release",
 };
