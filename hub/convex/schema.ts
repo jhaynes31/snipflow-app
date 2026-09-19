@@ -601,4 +601,66 @@ export default defineSchema({
     text: v.string(),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+  // ---------------------------------------------------------------------
+  // Kept Word (module id "kept-word"). Shared by nature. A word is one
+  // thing a person said they would do; only the giver closes it. See
+  // docs/kept-word-spec.md.
+  // ---------------------------------------------------------------------
+
+  kwWords: defineTable({
+    /** The giver: the person whose word it is. */
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    /** A plain area tag so repeated words can be named per area. */
+    area: v.string(),
+    forWhom: v.union(v.literal("partner"), v.literal("me"), v.literal("us")),
+    /** "YYYY-MM-DD" in the giver's time zone, or none for ongoing. */
+    dueDay: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("kept"), v.literal("notYet"), v.literal("didnt"), v.literal("renegotiated")),
+    reason: v.optional(v.union(v.literal("forgot"), v.literal("overcommitted"), v.literal("avoided"), v.literal("changedMind"), v.literal("outsideControl"))),
+    whatNow: v.optional(v.union(v.literal("smaller"), v.literal("notHappening"), v.literal("askedHelp"))),
+    note: v.optional(v.string()),
+    /** Set on a renegotiated word: the new word that replaced it. */
+    replacedBy: v.optional(v.id("kwWords")),
+    /** Set on a word that replaced an earlier one. */
+    replaces: v.optional(v.id("kwWords")),
+    /** Set when the word began as the partner's "I heard you say". */
+    heardId: v.optional(v.id("kwHeard")),
+    /** Set when the word began as an ask. */
+    askId: v.optional(v.id("kwAsks")),
+    createdAt: v.number(),
+    closedAt: v.optional(v.number()),
+    sentToEveryBoxAt: v.optional(v.number()),
+  })
+    .index("by_owner_status", ["ownerId", "status"])
+    .index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** "I heard you say": the receiver's draft, a word only once the giver confirms it. */
+  kwHeard: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    aboutProfileId: v.id("profiles"),
+    text: v.string(),
+    dueDay: v.optional(v.string()),
+    status: v.union(v.literal("waiting"), v.literal("confirmed"), v.literal("declined")),
+    wordId: v.optional(v.id("kwWords")),
+    createdAt: v.number(),
+  })
+    .index("by_about_status", ["aboutProfileId", "status"])
+    .index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** An ask, written once. The answer goes on the record either way. */
+  kwAsks: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    toProfileId: v.id("profiles"),
+    text: v.string(),
+    answer: v.optional(v.union(v.literal("word"), v.literal("notNow"), v.literal("talk"))),
+    answeredAt: v.optional(v.number()),
+    wordId: v.optional(v.id("kwWords")),
+    createdAt: v.number(),
+  })
+    .index("by_to_time", ["toProfileId", "createdAt"])
+    .index("by_owner_time", ["ownerId", "createdAt"]),
 });

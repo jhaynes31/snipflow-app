@@ -1,0 +1,52 @@
+/* Kept Word: oak and ink. The record, in one type, in date order. */
+.kw-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.kw-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.kw-subnav a[aria-current="page"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+  border-color: transparent;
+}
+.kw-word {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem 0;
+}
+.kw-word + .kw-word {
+  border-top: 1px solid var(--border);
+}
+.kw-word-text {
+  font-size: 1.08rem;
+}
+.kw-meta {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.kw-week-line {
+  padding: 0.35rem 0;
+}
+.kw-week-line + .kw-week-line {
+  border-top: 1px dashed var(--border);
+}
+.kw-status {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}

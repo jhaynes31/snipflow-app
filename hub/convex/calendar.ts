@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { wordsForCalendar } from "./keptWord/words";
 
 /**
  * Backs the per-person calendar feed at `/calendar/<token>`. The token is a
@@ -29,9 +30,11 @@ export const feedByToken = query({
       }
     }
     const eb = (profile.moduleSettings?.["every-box"] ?? {}) as { weeklyReviewOnCalendar?: boolean };
+    const words = await wordsForCalendar(ctx, profile);
     return {
       displayName: profile.displayName,
       everyBoxWeeklyReview: eb.weeklyReviewOnCalendar === true,
+      words,
       timeZone: profile.timeZone,
       dailyCheckInHour: profile.reminders.dailyCheckInHour,
       dailyCheckInMinute: profile.reminders.dailyCheckInMinute,

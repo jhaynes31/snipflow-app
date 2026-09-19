@@ -12,6 +12,8 @@ export interface FeedInput {
   headsUps: { id: string; from: string; statusLine: string; urgent: boolean; createdAt: number }[];
   /** Every Box's optional weekly review event (Sundays at the check-in time). */
   everyBoxWeeklyReview?: boolean;
+  /** Kept Word: my open words with a day, as all-day events with a morning alarm. */
+  words?: { id: string; text: string; dueDay: string }[];
   /** For tests. Defaults to now. */
   now?: Date;
 }
@@ -77,6 +79,28 @@ export function buildFeed(input: FeedInput): string {
     "END:VALARM",
     "END:VEVENT",
   ];
+
+  for (const w of input.words ?? []) {
+    const day = w.dueDay.replace(/-/g, "");
+    const next = new Date(Date.UTC(Number(w.dueDay.slice(0, 4)), Number(w.dueDay.slice(5, 7)) - 1, Number(w.dueDay.slice(8, 10)) + 1));
+    const nextDay = `${next.getUTCFullYear()}${pad(next.getUTCMonth() + 1)}${pad(next.getUTCDate())}`;
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:kept-word-${w.id}@${slug(input.appName)}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${day}`,
+      `DTEND;VALUE=DATE:${nextDay}`,
+      `SUMMARY:${escapeText(`Kept Word: ${w.text}`)}`,
+      `DESCRIPTION:${escapeText(`Your word, in your words. ${input.siteUrl}/kept-word`)}`,
+      `URL:${input.siteUrl}/kept-word`,
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${escapeText(`Kept Word: ${w.text}`)}`,
+      "TRIGGER:-PT15H",
+      "END:VALARM",
+      "END:VEVENT",
+    );
+  }
 
   if (input.everyBoxWeeklyReview) {
     // Next Sunday from tomorrow, floating local time, 10 minutes.

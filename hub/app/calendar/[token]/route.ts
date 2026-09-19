@@ -25,6 +25,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ token: 
     dailyCheckInMinute: feed.dailyCheckInMinute,
     headsUps: feed.headsUps,
     everyBoxWeeklyReview: feed.everyBoxWeeklyReview,
+    words: feed.words,
   });
   return new Response(body, {
     headers: {

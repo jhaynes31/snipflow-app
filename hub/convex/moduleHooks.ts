@@ -49,6 +49,8 @@ async function everyBoxCommitmentFromProject(ctx: MutationCtx, event: Doc<"event
 
 export const LISTENERS: Record<string, Listener[]> = {
   "project.sendToEveryBox": [everyBoxCommitmentFromProject],
+  /** A Kept Word word sent over becomes the giver's own active commitment, the same way. */
+  "word.sendToEveryBox": [everyBoxCommitmentFromProject],
 };
 
 export async function runListeners(ctx: MutationCtx, event: Doc<"events">): Promise<void> {

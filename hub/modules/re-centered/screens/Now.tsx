@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { pickForDay, WHERE_LABEL } from "@/convex/reCentered/pure";
-import { Card, PageTitle, Spinner } from "@/core/ui";
+import { Card, PageTitle, Spinner, timeAgo } from "@/core/ui";
 
 const TOOLS = [
   { href: "/re-centered/whose", name: "Whose is this?", line: "Something landed. Sort it: mine, theirs, or not mine at all." },
@@ -51,7 +51,20 @@ export function Now() {
           </p>
         </Card>
       )}
-      {now.settings.ifThen && (
+      {now.wordNotKept && (
+        <Card className="rc-quote">
+          <p className="sh-eyebrow">A word wasn&apos;t kept, {timeAgo(now.wordNotKept)}</p>
+          {now.settings.ifThen ? (
+            <>
+              <p className="sh-muted">Here is what you decided on a steady day:</p>
+              <p>{now.settings.ifThen}</p>
+            </>
+          ) : (
+            <p className="sh-muted">You haven&apos;t written your if-then plan yet. <Link href="/re-centered/boundaries" className="sh-link">Write it</Link> when you&apos;re steady, and it will be here next time.</p>
+          )}
+        </Card>
+      )}
+      {!now.wordNotKept && now.settings.ifThen && (
         <Card className="rc-quote">
           <p className="sh-eyebrow">If a word isn&apos;t kept, then I will…</p>
           <p>{now.settings.ifThen}</p>

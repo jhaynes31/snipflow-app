@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { cleanText, optionalText, requireOwned } from "../lib";
+import { access, cleanText, optionalText, requireOwned } from "../lib";
 import { dayKey } from "../tend/patterns";
 import { daysOfMonth, exportRoom, readReCenteredSettings } from "./pure";
 import { requireRoom } from "./room";
@@ -270,9 +270,20 @@ export const now = query({
       ctx.db.query("rcSecurityTaps").withIndex("by_owner_day", (q) => q.eq("ownerId", me.profile._id).eq("day", today)).first(),
     ]);
     const hardDay = recentSorts.some((s) => s.whose === "theirs" || s.whose === "notMine" || s.whose === "ours") || recentLandings.length > 0;
+    // Kept Word emits word.didnt as a shared event; the partner's recent ones are information, nothing more.
+    let wordNotKept: number | null = null;
+    if (me.partner) {
+      const theirs = await ctx.db
+        .query("events")
+        .withIndex("by_owner_time", (q) => q.eq("ownerId", me.partner!._id).gte("createdAt", Date.now() - 3 * 24 * 3600_000))
+        .collect();
+      const hit = theirs.filter((e) => e.name === "word.didnt" && access(me, e) === "full").sort((a, b) => b.createdAt - a.createdAt)[0];
+      wordNotKept = hit?.createdAt ?? null;
+    }
     return {
       today,
       hardDay,
+      wordNotKept,
       ownLife: life.map((o) => ({ area: o.area, wayBackIn: o.wayBackIn })),
       tappedToday: tap?.where ?? null,
       settings: readReCenteredSettings(me.profile.moduleSettings),

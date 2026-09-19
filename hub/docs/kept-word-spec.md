@@ -196,7 +196,7 @@ Each report can be deleted by its reader; Our season is deleted for both by eith
 | Step | What | Done when |
 |---|---|---|
 | 1 | Re-Centered: claim, the six places, private tables, export *(built 2026-09-19)* | Jen claims it, uses every tool, and John's account cannot read a row |
-| 2 | Kept Word: words, heard drafts, close, renegotiate, the app-written week, Kept page | John logs and closes a word; the week appears for both; Jen never has to write anything |
+| 2 | Kept Word: words, heard drafts, close, renegotiate, the app-written week, Kept page, Asks, Ways to show up *(built 2026-09-19)* | John logs and closes a word; the week appears for both; Jen never has to write anything |
 | 3 | Seasons: My season and Our season with intervals | Both reports arrive on the chosen day and no private count appears in Our season |
 
 **Open decisions:** whether John wants the day-before reminder on by default (John).

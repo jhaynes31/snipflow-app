@@ -2,11 +2,12 @@ import type { ModuleManifest } from "./types";
 import { everyBox } from "@/modules/every-box/manifest";
 import { fitness } from "@/modules/fitness/manifest";
 import { loveAndRelease } from "@/modules/love-and-release/manifest";
+import { keptWord } from "@/modules/kept-word/manifest";
 import { reCentered } from "@/modules/re-centered/manifest";
 import { tend } from "@/modules/tend/manifest";
 
 /** Registry order is the default tab order. People can rearrange it in Settings. */
-export const MODULES: ModuleManifest[] = [everyBox, tend, reCentered, fitness, loveAndRelease];
+export const MODULES: ModuleManifest[] = [everyBox, tend, keptWord, reCentered, fitness, loveAndRelease];
 
 export function moduleById(id: string): ModuleManifest | undefined {
   return MODULES.find((m) => m.id === id);
