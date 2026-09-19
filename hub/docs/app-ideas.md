@@ -133,3 +133,13 @@ heart for you, the men Jesus and the Father called / the women Jesus met, as a h
 as a wife, and "when this has been used against you" (Ephesians 5:21 heads the marriage
 passage in both). A daily pick shows on Today; the coach inside The Well is told the
 chosen path. First draft for John and Jen to review line by line.
+
+
+---
+
+## Metamorphose (Jen's brief, 2026-09-19): John's own room
+
+Specified in `docs/metamorphose-spec.md`. A room for one man, claimed by John, that Jen
+cannot open. The father's voice he didn't get, survival first, and his own language
+(Character Sheet, Quest Log, The Map, Session Zero, The Party) with no points or levels.
+Jen will tell him it exists in one sentence and leave it alone. Not yet built.
