@@ -965,6 +965,33 @@ export default defineSchema({
     createdAt: v.number(),
     openedAt: v.optional(v.number()),
   }).index("by_room", ["roomId", "createdAt"]),
+
+  /** The Field Guide: links he kept from the feeds or added himself. His, private. */
+  mmResources: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    url: v.string(),
+    note: v.optional(v.string()),
+    source: v.union(v.literal("feed"), v.literal("own")),
+    /** Pinned beside a quest, if he chose one. */
+    questId: v.optional(v.id("mmQuests")),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /**
+   * The Field Guide's feed cache: public headlines (title, link, teaser,
+   * date) from the sites in metamorphosis/rss.ts, refreshed daily. Not
+   * owned by anyone; readable only from inside the room.
+   */
+  mmFeedItems: defineTable({
+    feedKey: v.string(),
+    title: v.string(),
+    url: v.string(),
+    teaser: v.string(),
+    publishedAt: v.optional(v.number()),
+    fetchedAt: v.number(),
+  }).index("by_feed", ["feedKey"]),
   // ---------------------------------------------------------------------
   // The Storehouse (module id "storehouse"): household money. Shared by
   // nature; either person can edit. Only money worries are private.

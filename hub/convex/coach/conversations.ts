@@ -129,8 +129,12 @@ export const contextFor = internalQuery({
           .filter((r) => r.coachAllowed && r.text.trim())
           .map((r) => ({ key: r.key, text: r.text }))
       : [];
+    const mentorShelf = row.module === "metamorphosis"
+      ? (await ctx.db.query("mmResources").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect()).map((r) => r.title).slice(0, 30)
+      : [];
     return {
       mentorSheet,
+      mentorShelf,
       wellPath: path,
       module: row.module,
       messages: row.messages.slice(-CONTEXT_MESSAGES).map((m) => ({ role: m.role, content: m.content })),

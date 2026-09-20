@@ -50,7 +50,7 @@ export const send = action({
       taskPrompt: taskPromptFor(args.task),
       loopSuspected: loop,
       wellPath: args.task?.startsWith("well.") ? context.wellPath : null,
-      mentor: args.task?.startsWith("metamorphosis.") ? { voice: MENTOR_VOICE, sheet: context.mentorSheet } : null,
+      mentor: args.task?.startsWith("metamorphosis.") ? { voice: MENTOR_VOICE, sheet: context.mentorSheet, shelf: context.mentorShelf } : null,
     });
 
     const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });

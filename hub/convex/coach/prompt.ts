@@ -27,7 +27,7 @@ export interface PromptInput {
   /** The Well only: the path the person chose for themselves, if any. */
   wellPath?: "man" | "woman" | null;
   /** Metamorphosis only: the mentor's voice and the Character Sheet rows he allowed. */
-  mentor?: { voice: string; sheet: { key: string; text: string }[] } | null;
+  mentor?: { voice: string; sheet: { key: string; text: string }[]; shelf?: string[] } | null;
 }
 
 export const COACH_MODEL = "claude-opus-5";
@@ -87,6 +87,9 @@ export function buildSystemPrompt(input: PromptInput): string {
     parts.push(input.mentor.voice);
     if (input.mentor.sheet.length > 0) {
       parts.push(`His Character Sheet, in his words (only the parts he allowed you to read):\n${input.mentor.sheet.map((r) => `- ${r.key}: ${r.text}`).join("\n")}`);
+    }
+    if (input.mentor.shelf && input.mentor.shelf.length > 0) {
+      parts.push(`On his Field Guide shelf (resources he kept; you may point to one of these by name when it fits, and never invent a source he does not have):\n${input.mentor.shelf.map((t) => `- ${t}`).join("\n")}`);
     }
   }
   if (input.loopSuspected) {

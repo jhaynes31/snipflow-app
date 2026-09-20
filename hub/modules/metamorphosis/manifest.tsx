@@ -5,6 +5,7 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { Shell } from "./Shell";
 import { Charter } from "./screens/Charter";
 import { Export } from "./screens/Export";
+import { FieldGuide } from "./screens/FieldGuide";
 import { Home } from "./screens/Home";
 import { Knowing } from "./screens/Knowing";
 import { Landing } from "./screens/Landing";
@@ -50,6 +51,7 @@ export const metamorphosis: ModuleManifest = {
     else if (first === "tired") screen = <Tired />;
     else if (first === "shield") screen = <Shield />;
     else if (first === "quests") screen = <Quests />;
+    else if (first === "field-guide") screen = <FieldGuide />;
     else if (first === "iron") screen = <Iron />;
     else if (first === "compass") screen = <CompassScreen />;
     else if (first === "seen") screen = <Seen />;

@@ -173,3 +173,23 @@ man. No "step up." No "real men." No comparison to other men. No counts of misse
 
 **Open decisions:** whether Jen writes the Blessing; whether the coach should write the monthly letter at all (John decides
 after step 1, inside the room).
+
+## The Field Guide (added 2026-09-20)
+
+Jen asked for outside resources for men, and men with ADHD specifically, inside the room.
+`/metamorphosis/field-guide`:
+
+- **The starting shelf**, chosen by Jen, in `core/metamorphosis/fieldGuide.ts`: Art of
+  Manliness, ADDitude's men's section, Men's ADHD Support Group, Barkley's talks, "ADHD 2.0"
+  and "Driven to Distraction," How to ADHD, and ADHD reWired. Each links out with one line on
+  why it is there and what it helps with. Nothing is copied in (their writing is theirs).
+- **New this week**: a daily job (`convex/metamorphosis/feeds.ts`, 12:40 UTC) fetches the RSS
+  feeds of Art of Manliness and ADDitude, and keeps up to twelve headlines per feed (title,
+  link, teaser, date) in `mmFeedItems`. A fetch that fails or returns nothing leaves the last
+  list in place. "Keep this" moves one to his shelf.
+- **My shelf** (`mmResources`, his, private): what he kept plus what he added himself, with a
+  note and an optional pin beside an active quest. "Take it off" deletes the row.
+- **The mentor** is told the titles on his shelf so it can point to one by name and never
+  invent a source he does not have.
+- The parser is `convex/metamorphosis/rss.ts` (RSS 2.0 and Atom), tested in
+  `tests/field-guide.test.ts`.

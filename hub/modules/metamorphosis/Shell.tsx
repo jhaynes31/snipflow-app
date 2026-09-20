@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { Anchor, BookHeart, Compass, Eye, FileText, Flame, Gift, Hammer, HeartHandshake, History, Home, Landmark, Mail, Map, MessageCircle, Navigation, ScrollText, Shield, Sparkles, Sunrise, Swords, Telescope, Users, Wind } from "lucide-react";
+import { Anchor, BookHeart, Compass, Eye, FileText, Flame, Gift, Hammer, HeartHandshake, History, Home, Landmark, Library, Mail, Map, MessageCircle, Navigation, ScrollText, Shield, Sparkles, Sunrise, Swords, Telescope, Users, Wind } from "lucide-react";
 import { BlessingWriter } from "./screens/Step3";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
@@ -22,6 +22,7 @@ const NAV = [
   { href: `${ROUTE}/tired`, label: "Do It Tired", icon: Flame },
   { href: `${ROUTE}/shield`, label: "Shield Down", icon: Shield },
   { href: `${ROUTE}/quests`, label: "Quest Log", icon: Swords },
+  { href: `${ROUTE}/field-guide`, label: "Field Guide", icon: Library },
   { href: `${ROUTE}/iron`, label: "Iron", icon: Anchor },
   { href: `${ROUTE}/compass`, label: "The Compass", icon: Navigation },
   { href: `${ROUTE}/seen`, label: "Seen", icon: Eye },
