@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { splitReply } from "@/convex/toolIndex";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
+import { useTools } from "@/core/tools/useTools";
 import { Btn, Card, ErrorNote, useAction } from "@/core/ui";
 
 /**
@@ -25,6 +27,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
   const [pending, setPending] = useState<string | null>(null);
   const [crisis, setCrisis] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const tools = useTools();
   const count = row?.messages.length ?? 0;
 
   useEffect(() => {
@@ -63,7 +66,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
       <div className="tend-chat" aria-live="polite">
         {shown.map((m, i) => (
           <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
-            {m.content}
+            {m.role === "user" ? m.content : <CoachReply text={m.content} href={tools ? tools.href : null} />}
           </div>
         ))}
         {pending && (
@@ -98,5 +101,27 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
         The coach quotes only the text in front of it, and says when Christians read something differently. Private to you. Also in <Link href="/tend/tools/talkItOut" className="sh-link">Talk It Out</Link>.
       </p>
     </Card>
+  );
+}
+
+/** A coach reply, with each [[tool:key]] tag turned into an Open button. */
+function CoachReply({ text, href }: { text: string; href: ((t: ReturnType<typeof splitReply>[number] extends infer P ? (P extends { kind: "tool"; tool: infer T } ? T : never) : never) => string) | null }) {
+  const parts = splitReply(text);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.kind === "text" ? (
+          <span key={i}>{p.text} </span>
+        ) : (
+          <span key={i} className="tend-tool-open">
+            {href && p.tool.href.includes("/app/") ? (
+              <a href={href(p.tool)} className="sh-btn sh-btn-secondary">Open {p.tool.name}</a>
+            ) : (
+              <Link href={href ? href(p.tool) : p.tool.href} className="sh-btn sh-btn-secondary">Open {p.tool.name}</Link>
+            )}
+          </span>
+        ),
+      )}
+    </>
   );
 }

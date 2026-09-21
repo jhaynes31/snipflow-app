@@ -1,6 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { access, cleanText, requireMe, requireOwned } from "../lib";
+import { roomOwner as reCenteredOwner } from "../reCentered/room";
+import { roomOwnerOf } from "../rooms";
 import { readTendSettings } from "../tend/pure";
 import { MANUAL_SECTION_TITLES } from "./titles";
 import type { ManualLine } from "./prompt";
@@ -132,7 +134,11 @@ export const contextFor = internalQuery({
     const mentorShelf = row.module === "metamorphosis"
       ? (await ctx.db.query("mmResources").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect()).map((r) => r.title).slice(0, 30)
       : [];
+    const mmOwner = await roomOwnerOf(ctx, "metamorphosis");
+    const rcOwner = await reCenteredOwner(ctx);
+    const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id };
     return {
+      rooms,
       mentorSheet,
       mentorShelf,
       wellPath: path,

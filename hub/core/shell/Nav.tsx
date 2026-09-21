@@ -25,6 +25,7 @@ export function TopBar() {
       </nav>
       <div className="sh-topbar-actions">
         <GentleToggle />
+        <TalkLink className="sh-btn sh-btn-secondary sh-checkin" />
         <Link href="/check-in" className="sh-btn sh-btn-accent sh-checkin" aria-label={COPY.checkInButton}>
           {COPY.checkInButton}
         </Link>
@@ -48,12 +49,26 @@ export function BottomNav() {
   );
 }
 
-/** Floating check-in button for phones. Visible on every screen. */
+/** "Talk it through" from anywhere: the coach, told which place you're in. */
+function TalkLink({ className }: { className: string }) {
+  const pathname = usePathname();
+  const place = pathname.split("/")[1] || "hub";
+  return (
+    <Link href={`/talk?place=${encodeURIComponent(place)}`} className={className} aria-label="Talk it through">
+      Talk it through
+    </Link>
+  );
+}
+
+/** Floating buttons for phones, visible on every screen: talk it through, and the check-in. */
 export function FloatingCheckIn() {
   return (
-    <Link href="/check-in" className="sh-fab" aria-label={COPY.checkInButton}>
-      {COPY.checkInButton}
-    </Link>
+    <>
+      <TalkLink className="sh-fab sh-fab-talk" />
+      <Link href="/check-in" className="sh-fab" aria-label={COPY.checkInButton}>
+        {COPY.checkInButton}
+      </Link>
+    </>
   );
 }
 

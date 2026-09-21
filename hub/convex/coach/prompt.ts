@@ -26,6 +26,8 @@ export interface PromptInput {
   loopSuspected: boolean;
   /** The Well only: the path the person chose for themselves, if any. */
   wellPath?: "man" | "woman" | null;
+  /** Every tool this person can open, as "key: name (place). when" lines, for Open buttons. */
+  tools?: string;
   /** Metamorphosis only: the mentor's voice and the Character Sheet rows he allowed. */
   mentor?: { voice: string; sheet: { key: string; text: string }[]; shelf?: string[] } | null;
 }
@@ -92,6 +94,11 @@ export function buildSystemPrompt(input: PromptInput): string {
       parts.push(`On his Field Guide shelf (resources he kept; you may point to one of these by name when it fits, and never invent a source he does not have):\n${input.mentor.shelf.map((t) => `- ${t}`).join("\n")}`);
     }
   }
+  if (input.tools) {
+    parts.push(
+      `Tools in The Shire this person can open. When you point them to one, name it and put its tag right after, exactly once, like: Smallest Step [[tool:tend.smallestStep]]. The app turns the tag into an Open button, so they never have to go looking. Use only tags from this list, never invent one, and at most two per reply. Do not use a tag when you are not recommending the tool.\n${input.tools}`,
+    );
+  }
   if (input.loopSuspected) {
     parts.push(
       "Notice: the last few messages look like the same reassurance being asked for again. Do not supply it again. Say kindly that you have noticed the loop, and offer Sit With It or Ground Me.",
@@ -114,6 +121,10 @@ export const TASK_PROMPTS: Record<string, string> = {
     "This is Untangle, inside The Well. The person writes something they were taught in church or a religious home, and wants to find what Jesus actually did or said about it in the Gospels. Point them to specific passages by reference (book, chapter, verses) and describe plainly what happens there. Do not declare doctrine and do not tell them what is true; hand them the text and let them see. If what they were taught has no Gospel basis, say that plainly and kindly. If Jesus said something harder than they were taught, say that too. Never shame the person, and never mock the people who taught them.",
   "tend.repair":
     "They are preparing for a Repair conversation with their partner. Help them find their own words for what happened, what they felt, and what they needed. Do not judge who was right.",
+  "hub.talk":
+    "This is Talk It Through, opened from somewhere in The Shire (their first message may say where). Help them put what is happening into words, then hand them the one tool that fits, from the list, with its tag. If nothing fits, say so and just help.",
+  "reCentered.talk":
+    "This is Re-Centered, one person's own place for standing on their own ground: loving people fully and releasing what is theirs to carry. It has two sides. 'Everyone, and me' holds comfort, the fawn alarm (about to say yes when they mean no), taking it personally, loops, circles of people, boundaries, and the release journal. 'John, and me' (or their partner's name) holds Whose is this (mine, theirs, ours, not mine), the pause before rescuing (four questions before stepping in), let it land, where I stand, my own life, and the if-then plan for when a word isn't kept. Their tendency is to hold everything and overfunction. Help them see what is actually theirs to carry today and set the rest down, without shaming them for picking it up. Point to one tool from the list with its tag when it fits.",
 };
 
 export function taskPromptFor(key: string | undefined): string | undefined {

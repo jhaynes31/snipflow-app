@@ -18,3 +18,8 @@ export function readPersonSetting(moduleSettings: Record<string, unknown> | unde
   const raw = (moduleSettings?.[moduleId] ?? {}) as { who?: unknown };
   return raw.who === "her" || raw.who === "john" ? raw.who : null;
 }
+
+/** Which on-device copy of the Re-Centered app this person opens: their choice, or their first name, or Jen's. */
+export function embeddedPersonFor(profile: { displayName: string; moduleSettings?: Record<string, unknown> }): EmbeddedPerson {
+  return readPersonSetting(profile.moduleSettings, "love-and-release") ?? personFromName(profile.displayName) ?? "her";
+}

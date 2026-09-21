@@ -5,6 +5,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { buildSystemPrompt, COACH_MODEL, MENTOR_VOICE, taskPromptFor } from "./prompt";
+import { availableTools, coachToolList } from "../toolIndex";
 import { crisisReply, detectCrisis, detectReassuranceLoop } from "./safety";
 
 /**
@@ -48,6 +49,7 @@ export const send = action({
       mySections: context.mySections,
       partnerSections: context.partnerSections,
       taskPrompt: taskPromptFor(args.task),
+      tools: coachToolList(availableTools(context.rooms)),
       loopSuspected: loop,
       wellPath: args.task?.startsWith("well.") ? context.wellPath : null,
       mentor: args.task?.startsWith("metamorphosis.") ? { voice: MENTOR_VOICE, sheet: context.mentorSheet, shelf: context.mentorShelf } : null,

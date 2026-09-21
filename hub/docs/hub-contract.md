@@ -71,6 +71,20 @@ Added 2026-09-18 from Jen's direction. The apps work together, but each one keep
 
 Places for faith and finances are planned later, once The Shire is more complete.
 
+## The front desk (added 2026-09-21)
+
+The Shire is organized by place, but people arrive with a situation. So the home page has
+a front desk: one box ("What's going on?") that finds the three best tools for a few
+typed words, wherever they live, and one row of doors in feeling language, different for
+each person ("Something stung," "I'm about to overfunction," "I can't get started"). Both
+read `convex/toolIndex.ts`, the one list of every tool with the words people say for it.
+The coach reads the same list and marks a tool it recommends with `[[tool:key]]`, which the
+chat turns into an "Open …" button. "Talk it through" sits in the top bar and as a phone
+button on every screen (`/talk?place=…`), and knows which place you are in: the mentor in
+Metamorphosis, Re-Centered's tools in Re-Centered, the plain coach elsewhere. Room tools
+show only for the room's owner, in the search and in the coach alike. No recents, no
+favorites, on purpose: the home page stays quiet.
+
 ## Module system and adding future apps
 
 Every module registers itself with the Hub through one manifest file. Adding a new app means writing a manifest plus the module's own screens, with no changes to the shell.

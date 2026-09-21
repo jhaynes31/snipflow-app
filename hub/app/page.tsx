@@ -8,6 +8,7 @@ import { HeadsUpCard } from "@/core/shell/HeadsUpCard";
 import { useHub } from "@/core/shell/HubContext";
 import type { ModuleManifest } from "@/core/modules/types";
 import { BackgroundPicker } from "@/core/theme/BackgroundPicker";
+import { FrontDesk } from "@/core/tools/FrontDesk";
 import { Btn, Card, LinkBtn, timeAgo } from "@/core/ui";
 
 function tileStyle(m: ModuleManifest): React.CSSProperties {
@@ -57,6 +58,9 @@ export default function HomePage() {
           )}
         </div>
       )}
+
+      {/* The front desk: what's going on, and the doors. */}
+      <FrontDesk />
 
       {openSent.length > 0 && (
         <Card tone="alt" className="sh-sent">

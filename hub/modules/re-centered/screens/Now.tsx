@@ -84,6 +84,7 @@ export function Now() {
           <a href={lr("unhooked/loop")} className="sh-btn sh-btn-secondary">I&apos;m in a loop</a>
           <a href={lr("pause")} className="sh-btn sh-btn-secondary">A breathing pause</a>
           <a href={lr("boundaries")} className="sh-btn sh-btn-ghost">Boundaries with anyone</a>
+          <Link href="/talk?place=love-and-release" className="sh-btn sh-btn-ghost">Talk it through</Link>
         </div>
       </Card>
     </div>

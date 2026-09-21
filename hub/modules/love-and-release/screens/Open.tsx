@@ -94,6 +94,10 @@ export function Open() {
         )}
       </div>
 
+      <div className="sh-choices">
+        <Link href="/talk?place=love-and-release" className="sh-btn sh-btn-secondary">Talk it through</Link>
+      </div>
+
       <Note>
         &ldquo;Everyone, and me&rdquo; stays on this device; The Shire cannot see it. &ldquo;{partnerName}, and me&rdquo; lives in
         The Shire so Kept Word can hand it a &ldquo;didn&apos;t&rdquo; and Seasons can notice patterns, and it is private to whoever
