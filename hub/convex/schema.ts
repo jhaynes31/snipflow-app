@@ -1014,6 +1014,25 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_belief", ["beliefId"]),
+  /** Live It: a practical step planned for a line, and what happened when it was tried. */
+  rmSteps: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    beliefId: v.id("rmBeliefs"),
+    text: v.string(),
+    arena: v.optional(v.union(v.literal("marriage"), v.literal("outside"), v.literal("friends"), v.literal("work"), v.literal("faith"), v.literal("alone"))),
+    source: v.union(v.literal("library"), v.literal("coach"), v.literal("own")),
+    status: v.union(v.literal("planned"), v.literal("done"), v.literal("skipped")),
+    /** What the old line predicted would happen, written before trying. */
+    prediction: v.optional(v.string()),
+    /** What actually happened. */
+    happened: v.optional(v.string()),
+    evidenceId: v.optional(v.id("rmEvidence")),
+    createdAt: v.number(),
+    doneAt: v.optional(v.number()),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_belief", ["beliefId"]),
 
   /**
    * Devices a person turned notifications on for: the browser's push

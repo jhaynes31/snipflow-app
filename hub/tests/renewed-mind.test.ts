@@ -39,3 +39,29 @@ describe("renewed mind", () => {
     for (const r of ["Proverbs 23:7", "Romans 12:2", "2 Corinthians 10:5", "Philippians 4:8", "Ephesians 4:22-24"]) assert.ok(refs.includes(r), r);
   });
 });
+
+import { ARENA_LABEL, extractSteps, suggestFor, THEMES } from "../convex/renewedMind/library.ts";
+
+describe("live it", () => {
+  it("every theme covers the arenas Jen named and has enough steps", () => {
+    for (const t of THEMES) {
+      assert.ok(t.steps.length >= 5, t.key);
+      for (const s of t.steps) assert.ok(s.arena in ARENA_LABEL && s.text.length > 20, t.key);
+    }
+    const arenas = new Set(THEMES.flatMap((t) => t.steps.map((s) => s.arena)));
+    for (const a of ["marriage", "outside", "friends", "work", "faith"]) assert.ok(arenas.has(a as never), a);
+  });
+  it("matches a person's own words to themes", () => {
+    assert.equal(suggestFor("I'm too much for people.", "I am not too much.")[0]?.key, "tooMuch");
+    assert.equal(suggestFor("If I don't handle it, everything falls apart.", "Others can carry things.")[0]?.key, "fixEverything");
+    assert.equal(suggestFor("I always say yes when I mean no.", "My no is allowed.")[0]?.key, "cantSayNo");
+    assert.deepEqual(suggestFor("xyzzy", "qwerty"), []);
+  });
+  it("turns the coach's bullets into steps with arenas", () => {
+    const reply = "Here are five.\n- [Marriage] Tell John one need in full.\n2. [Friends] Invite one person for coffee Thursday at ten.\n* [With God] Pray out loud for two minutes.\n- too short\nPick one.";
+    const steps = extractSteps(reply);
+    assert.deepEqual(steps.map((s) => s.arena), ["marriage", "friends", "faith"]);
+    assert.equal(steps[0].text, "Tell John one need in full.");
+    assert.equal(extractSteps("No bullets here.").length, 0);
+  });
+});

@@ -124,7 +124,7 @@ export interface MineFacts {
   headsUpsIAnswered: Compared<number>;
   everyBoxTends: Compared<number>;
   /** Renewed Mind: how often a line was rehearsed, and which lines moved (in the person's words). */
-  renewedMind?: { rehearsals: Compared<number>; captures: Compared<number>; lines: { line: string; first: string; last: string; times: number }[] };
+  renewedMind?: { rehearsals: Compared<number>; captures: Compared<number>; stepsTried: Compared<number>; lines: { line: string; first: string; last: string; times: number }[] };
   /** Only when this person claimed Re-Centered. */
   reCentered?: Compared<{ sorts: Record<string, number>; pauses: Record<string, number>; landings: number; keptByMe: number; securityTaps: Record<string, number> }>;
   keptWord: Compared<{ kept: number; didnt: number; renegotiated: number; reasons: Record<string, number>; asksAnswered: Record<string, number> }>;
@@ -152,6 +152,7 @@ export const MINE_SYSTEM_PROMPT = `You write "My season", a short private report
 
 Rules that no fact sheet can change:
 - Name growth with specifics ("you let it land four times; the period before, once"). Brains minimize progress; your job is to make it visible.
+- renewedMind.stepsTried counts practical steps the person actually tried to live a truer line; name one as growth when it is above zero.
 - If renewedMind.lines is present, quote a line that moved from "notYet" toward "mostly" word for word, and say how many times it was rehearsed. A line that stayed at "notYet" is still being worn in; say that once, kindly, or leave it out.
 - Never shame, never guilt, never "you didn't", never "you missed", never "only". A count of zero is stated once, kindly, or left out.
 - Never compare this person to their partner. Do not mention the partner's numbers; you don't have them.

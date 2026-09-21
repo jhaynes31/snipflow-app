@@ -19,7 +19,7 @@ in one's own words) and the scriptures Jen named describe the same sequence:
 
 No affirmation packs, no quotas, no scores. The words are the person's own.
 
-## The four tools
+## The five tools
 
 - **Rehearse** (`/renewed-mind`): one line a day, chosen as the least recently rehearsed
   (ties broken by the day, so reloads don't shuffle). The old line shows; the truer line is
@@ -34,6 +34,15 @@ No affirmation packs, no quotas, no scores. The words are the person's own.
 - **Take It Captive** (`/renewed-mind/captive`): the thought, the feeling, three checks (true,
   kind, necessary: yes, partly, no), what you'd say to a friend, and the matching truer line
   from the list, shown large. Recent captures can be deleted.
+- **Live It** (`/renewed-mind/live`), added the same day at Jen's request: the lived-evidence
+  loop. For a chosen line, a library of practical steps matched to its theme
+  (`convex/renewedMind/library.ts`: too much, can't say no, burden, if they knew me, not
+  enough, alone, fix everything, failed, seen, scorekeeper, don't matter, plus a friendship
+  set), each tagged with an arena: the marriage, outside the house, friends, work, with God,
+  on your own. "Ask the coach for steps" opens a chat (task `renewedMind.steps`) whose bullet
+  lines become "Add this step" buttons. A planned step can carry what the old line predicts;
+  "Done" asks what actually happened, and when it proved the truer line the pair goes
+  straight into Evidence. Steps can be skipped ("not this week") without a mark against them.
 - **Evidence for the New** (`/renewed-mind/evidence`): moments filed under a line. Distinct
   from Tend's Evidence Bank (the wider record), and linked to it.
 
@@ -52,6 +61,7 @@ No affirmation packs, no quotas, no scores. The words are the person's own.
 
 `rmBeliefs` (oldLine, origin?, newLine, verse?, verseText?, retiredAt?), `rmRehearsals`
 (beliefId, feltTrue, day), `rmCaptures` (thought, feeling?, isTrue, isKind, isNecessary,
-friendSays?, beliefId?), `rmEvidence` (beliefId, text). All owned and private; `rmBeliefs`
+friendSays?, beliefId?), `rmEvidence` (beliefId, text), `rmSteps` (beliefId, text, arena?, source, status, prediction?,
+happened?, evidenceId?). All owned and private; `rmBeliefs`
 may be `shared`. Setting `moduleSettings["renewed-mind"].rehearseDaily`. Pure helpers and
 tests: `convex/renewedMind/pure.ts`, `tests/renewed-mind.test.ts`.

@@ -16,7 +16,17 @@ import { Btn, Card, ErrorNote, useAction } from "@/core/ui";
  * person alone. `opening` is sent silently as context ahead of the first
  * message (for example the passage text), never shown as their words.
  */
-export function CoachChat({ module, task, opening, placeholder = "Ask in your own words." }: { module: string; task: string; opening?: string; placeholder?: string }) {
+export interface Suggestions {
+  /** Pulls addable lines out of a coach reply. */
+  extract: (reply: string) => { text: string }[];
+  /** What the button says. */
+  label: string;
+  onAdd: (text: string) => void | Promise<void>;
+  /** Already added, so the button reads as done. */
+  added: Set<string>;
+}
+
+export function CoachChat({ module, task, opening, placeholder = "Ask in your own words.", suggestions }: { module: string; task: string; opening?: string; placeholder?: string; suggestions?: Suggestions }) {
   const start = useMutation(api.coach.conversations.start);
   const remove = useMutation(api.coach.conversations.remove);
   const send = useConvexAction(api.coach.chat.send);
@@ -67,6 +77,15 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
         {shown.map((m, i) => (
           <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
             {m.role === "user" ? m.content : <CoachReply text={m.content} href={tools ? tools.href : null} />}
+            {m.role !== "user" && suggestions && (
+              <div className="sh-choices" style={{ marginTop: "0.4rem" }}>
+                {suggestions.extract(m.content).map((s) => (
+                  <Btn key={s.text} variant="secondary" disabled={suggestions.added.has(s.text)} onClick={() => void suggestions.onAdd(s.text)}>
+                    {suggestions.added.has(s.text) ? "Added" : suggestions.label}: {s.text.length > 48 ? `${s.text.slice(0, 46)}…` : s.text}
+                  </Btn>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         {pending && (

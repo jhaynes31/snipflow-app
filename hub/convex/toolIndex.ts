@@ -54,6 +54,7 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rm.rehearse", "Rehearse today's line", "Renewed Mind", "/renewed-mind", "The old line, then the truer one you wrote. Say it before you look.", ["rehearse", "today's line", "renew", "renewed mind", "affirm", "truer line", "practice"]),
   T("rm.beliefs", "Put Off, Put On", "Renewed Mind", "/renewed-mind/beliefs", "Name a belief that runs you and write the truer line in your own words.", ["belief", "limiting belief", "lie i believe", "put off", "put on", "rewrite", "old story", "i'm too much", "not enough", "mindset"]),
   T("rm.captive", "Take It Captive", "Renewed Mind", "/renewed-mind/captive", "A thought just went through. Two minutes: is it true, kind, necessary, and the truer line.", ["take it captive", "captive", "thought", "negative thought", "self talk", "is it true", "old voice", "lie is running me", "intrusive"]),
+  T("rm.live", "Live It", "Renewed Mind", "/renewed-mind/live", "Practical steps that put a truer line into practice: in the marriage, outside the house, with friends, at work, with God.", ["live it", "practice", "put into practice", "try it", "step", "steps", "experiment", "make friends", "new friends", "friendship", "get out of the house", "do something"]),
   T("rm.evidence", "Evidence for the New", "Renewed Mind", "/renewed-mind/evidence", "Moments that proved a truer line.", ["proof", "evidence for", "it held", "proved", "nothing broke"]),
 
   // Kept Word

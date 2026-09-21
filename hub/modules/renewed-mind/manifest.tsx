@@ -6,13 +6,14 @@ import { Shell } from "./Shell";
 import { Beliefs } from "./screens/Beliefs";
 import { Captive } from "./screens/Captive";
 import { Evidence } from "./screens/Evidence";
+import { Live } from "./screens/Live";
 import { Rehearse } from "./screens/Rehearse";
 import { RenewedMindToday } from "./widgets";
 
 /**
  * Renewed Mind: rewriting the lines that run you, in your own words, and
  * wearing the new path by rehearsing them. Four tools: Rehearse, Put Off
- * Put On, Take It Captive, Evidence for the New. Asked for by Jen on
+ * Put On, Take It Captive, Live It, Evidence for the New. Asked for by Jen on
  * 2026-09-21 ("as a man thinks, so he is"). Built from docs/renewed-mind-spec.md.
  */
 export const renewedMind: ModuleManifest = {
@@ -39,6 +40,7 @@ export const renewedMind: ModuleManifest = {
     if (!first) screen = <Rehearse />;
     else if (first === "beliefs") screen = <Beliefs />;
     else if (first === "captive") screen = <Captive />;
+    else if (first === "live") screen = <Live />;
     else if (first === "evidence") screen = <Evidence />;
     else screen = <Rehearse />;
     return <Shell>{screen}</Shell>;

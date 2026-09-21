@@ -77,9 +77,15 @@ async function mineFor(ctx: QueryCtx, profile: Doc<"profiles">, p: Period): Prom
       const beliefs = (await ctx.db.query("rmBeliefs").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect()).filter((b) => !b.retiredAt);
       const rehearsals = await ctx.db.query("rmRehearsals").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect();
       const captures = await ctx.db.query("rmCaptures").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect();
+      const steps = (await ctx.db.query("rmSteps").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect()).filter((s) => s.status === "done");
       if (beliefs.length === 0 && captures.length === 0) return undefined;
       const [nowRows] = both(rehearsals, (r) => r.createdAt);
-      return { rehearsals: cmp(both(rehearsals, (r) => r.createdAt), (rows) => rows.length), captures: cmp(both(captures, (c) => c.createdAt), (rows) => rows.length), lines: trendLines(beliefs, nowRows) };
+      return {
+        rehearsals: cmp(both(rehearsals, (r) => r.createdAt), (rows) => rows.length),
+        captures: cmp(both(captures, (c) => c.createdAt), (rows) => rows.length),
+        stepsTried: cmp(both(steps, (s) => s.doneAt ?? s.createdAt), (rows) => rows.length),
+        lines: trendLines(beliefs, nowRows),
+      };
     })(),
     everyBoxTends: cmp(both(tends, (t) => t.tendedAt), (r) => r.length),
     keptWord: cmp(closedPair, (rows) => ({

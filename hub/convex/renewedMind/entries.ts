@@ -14,6 +14,7 @@ import { pickForToday } from "./pure";
 
 const feltTrue = v.union(v.literal("notYet"), v.literal("aLittle"), v.literal("mostly"));
 const check = v.union(v.literal("yes"), v.literal("partly"), v.literal("no"));
+const arena = v.union(v.literal("marriage"), v.literal("outside"), v.literal("friends"), v.literal("work"), v.literal("faith"), v.literal("alone"));
 
 // Beliefs
 
@@ -82,7 +83,7 @@ export const removeBelief = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const row = await requireOwned(ctx, me, "rmBeliefs", args.id);
-    for (const t of ["rmRehearsals", "rmEvidence"] as const) {
+    for (const t of ["rmRehearsals", "rmEvidence", "rmSteps"] as const) {
       const rows = await ctx.db.query(t).withIndex("by_belief", (q) => q.eq("beliefId", row._id)).collect();
       for (const r of rows) await ctx.db.delete(r._id);
     }
@@ -208,6 +209,68 @@ export const removeEvidence = mutation({
     const me = await requireMe(ctx);
     const row = await requireOwned(ctx, me, "rmEvidence", args.id);
     await ctx.db.delete(row._id);
+  },
+});
+
+// Live It
+
+export const steps = query({
+  args: {},
+  handler: async (ctx) => {
+    const me = await requireMe(ctx);
+    return (await ctx.db.query("rmSteps").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect()).sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+export const addStep = mutation({
+  args: { beliefId: v.id("rmBeliefs"), text: v.string(), arena: v.optional(arena), source: v.union(v.literal("library"), v.literal("coach"), v.literal("own")), prediction: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    await requireOwned(ctx, me, "rmBeliefs", args.beliefId);
+    return await ctx.db.insert("rmSteps", {
+      ownerId: me.profile._id,
+      visibility: "private",
+      beliefId: args.beliefId,
+      text: cleanText(args.text, 300, "The step"),
+      arena: args.arena,
+      source: args.source,
+      status: "planned",
+      prediction: optionalText(args.prediction, 300, "What the old line says will happen"),
+      createdAt: Date.now(),
+    });
+  },
+});
+
+/** Done: what actually happened, and, when it proved the truer line, straight into Evidence. */
+export const completeStep = mutation({
+  args: { id: v.id("rmSteps"), happened: v.string(), provedIt: v.boolean() },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const step = await requireOwned(ctx, me, "rmSteps", args.id);
+    const happened = cleanText(args.happened, 400, "What happened");
+    let evidenceId = step.evidenceId;
+    if (args.provedIt && !evidenceId) {
+      evidenceId = await ctx.db.insert("rmEvidence", { ownerId: me.profile._id, visibility: "private", beliefId: step.beliefId, text: `${step.text} → ${happened}`.slice(0, 400), createdAt: Date.now() });
+    }
+    await ctx.db.patch(step._id, { status: "done", happened, evidenceId, doneAt: Date.now() });
+  },
+});
+
+export const skipStep = mutation({
+  args: { id: v.id("rmSteps") },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const step = await requireOwned(ctx, me, "rmSteps", args.id);
+    await ctx.db.patch(step._id, { status: "skipped", doneAt: Date.now() });
+  },
+});
+
+export const removeStep = mutation({
+  args: { id: v.id("rmSteps") },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const step = await requireOwned(ctx, me, "rmSteps", args.id);
+    await ctx.db.delete(step._id);
   },
 });
 
