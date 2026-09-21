@@ -56,7 +56,8 @@ export const save = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const body = args.body.trim();
-    if (body.length > 4000) throw new ConvexError("That section is too long (max 4000 characters).");
+    // Roomy on purpose: a manual section can run long. Raised from 4000 at Jen's request (2026-09-21).
+    if (body.length > 20000) throw new ConvexError("That section is too long (max 20,000 characters). Split it into two sections if it needs more.");
     const summary = optionalText(args.summary, 300, "Summary");
     const existing = await ctx.db
       .query("userManualSections")

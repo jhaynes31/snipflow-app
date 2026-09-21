@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -63,7 +64,9 @@ export default function ProfilePage() {
       <h2 className="sh-h2 mt-8">My user manual</h2>
       <p className="sh-muted">
         Plain language, your words. Every section starts private. Sharing is a separate step that shows you exactly what{" "}
-        {partner?.displayName ?? "your partner"} will see.
+        {partner?.displayName ?? "your partner"} will see. What you share, they read under{" "}
+        <Link href="/partner" className="sh-link">My partner&apos;s manual</Link> in the menu under their name, top right; you read
+        theirs the same way.
       </p>
       <div className="sh-stack mt-4">
         {MANUAL_SECTIONS.map((meta) => (
@@ -117,10 +120,11 @@ function SectionEditor({
         className="sh-input sh-textarea"
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        rows={4}
-        maxLength={4000}
+        rows={Math.min(30, Math.max(4, body.split("\n").length + 1, Math.ceil(body.length / 70)))}
+        maxLength={20000}
         aria-label={meta.title}
       />
+      {body.length > 15000 && <p className="sh-hint">{(20000 - body.length).toLocaleString()} characters left in this section.</p>}
       <CrisisNotice texts={[body]} />
       <Toggle checked={coach} onChange={setCoach} label="The AI coach may read this section" hint="Only for Talk It Out and other coach chats you open. Off means the coach never sees this section." />
       <ErrorNote error={error} />

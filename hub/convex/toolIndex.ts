@@ -47,7 +47,8 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("tend.talkItOut", "Talk It Out", "Tend", "/tend/tools/talkItOut", "A private chat with the coach inside Tend.", ["talk it out", "coach", "vent", "process"]),
   T("tend.pauseBigMoves", "Pause Before Big Moves", "Tend", "/tend/tools/pauseBigMoves", "Revved up and about to do something big.", ["revved", "impulsive", "big decision", "quit", "buy", "send it", "rule"]),
   T("tend.repair", "Repair", "Tend", "/tend/together", "After a rupture: prepare, invite, and repair together.", ["repair", "fight", "argument", "rupture", "apologize", "make up", "conflict", "we fought"]),
-  T("tend.manual", "My manual", "Tend", "/tend/my-manual", "What helps you and what doesn't, in your own words.", ["manual", "what helps me", "about me"]),
+  T("tend.manual", "My manual", "Tend", "/tend/my-manual", "What helps you and what doesn't, in your own words.", ["manual", "what helps me", "about me", "my manual"]),
+  T("hub.partnerManual", "My partner's manual", "The Shire", "/partner", "What they chose to share about what helps them and what doesn't.", ["partner's manual", "what helps john", "what helps jen", "john's manual", "jen's manual", "read their manual", "shared sections", "what they shared"]),
 
   // Kept Word
   T("keptWord.words", "Open words", "Kept Word", "/kept-word", "Give your word, or close one: kept, not yet, didn't.", ["my word", "promise", "said i would", "follow through", "commit", "i'll do it", "didn't do"]),
