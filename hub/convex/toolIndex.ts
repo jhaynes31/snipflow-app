@@ -50,6 +50,12 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("tend.manual", "My manual", "Tend", "/tend/my-manual", "What helps you and what doesn't, in your own words.", ["manual", "what helps me", "about me", "my manual"]),
   T("hub.partnerManual", "My partner's manual", "The Shire", "/partner", "What they chose to share about what helps them and what doesn't.", ["partner's manual", "what helps john", "what helps jen", "john's manual", "jen's manual", "read their manual", "shared sections", "what they shared"]),
 
+  // Renewed Mind
+  T("rm.rehearse", "Rehearse today's line", "Renewed Mind", "/renewed-mind", "The old line, then the truer one you wrote. Say it before you look.", ["rehearse", "today's line", "renew", "renewed mind", "affirm", "truer line", "practice"]),
+  T("rm.beliefs", "Put Off, Put On", "Renewed Mind", "/renewed-mind/beliefs", "Name a belief that runs you and write the truer line in your own words.", ["belief", "limiting belief", "lie i believe", "put off", "put on", "rewrite", "old story", "i'm too much", "not enough", "mindset"]),
+  T("rm.captive", "Take It Captive", "Renewed Mind", "/renewed-mind/captive", "A thought just went through. Two minutes: is it true, kind, necessary, and the truer line.", ["take it captive", "captive", "thought", "negative thought", "self talk", "is it true", "old voice", "lie is running me", "intrusive"]),
+  T("rm.evidence", "Evidence for the New", "Renewed Mind", "/renewed-mind/evidence", "Moments that proved a truer line.", ["proof", "evidence for", "it held", "proved", "nothing broke"]),
+
   // Kept Word
   T("keptWord.words", "Open words", "Kept Word", "/kept-word", "Give your word, or close one: kept, not yet, didn't.", ["my word", "promise", "said i would", "follow through", "commit", "i'll do it", "didn't do"]),
   T("keptWord.asks", "Asks", "Kept Word", "/kept-word/asks", "Ask for something, and answer an ask.", ["ask", "request", "need something", "asked him", "asked her"]),
@@ -195,6 +201,7 @@ export const DOORS_HER: Door[] = [
   { label: "A word wasn't kept", toolKey: "rc.now" },
   { label: "I'm about to say yes when I mean no", toolKey: "lr.fawn" },
   { label: "My brain won't stop looping", toolKey: "tend.loopBreaker" },
+  { label: "An old lie is running me", toolKey: "rm.captive" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },
   { label: "I need comfort", toolKey: "lr.comfort" },
@@ -207,6 +214,7 @@ export const DOORS_JOHN: Door[] = [
   { label: "I got defensive", toolKey: "mm.shield" },
   { label: "I need to land", toolKey: "mm.landing" },
   { label: "I said I would", toolKey: "keptWord.words" },
+  { label: "An old lie is running me", toolKey: "rm.captive" },
   { label: "Something stung", toolKey: "tend.storyCheck" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },
@@ -217,6 +225,7 @@ export const DOORS_EITHER: Door[] = [
   { label: "Something stung", toolKey: "tend.storyCheck" },
   { label: "I can't get started", toolKey: "tend.smallestStep" },
   { label: "My brain won't stop looping", toolKey: "tend.loopBreaker" },
+  { label: "An old lie is running me", toolKey: "rm.captive" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },
   { label: "Just checking in", toolKey: "hub.checkIn" },

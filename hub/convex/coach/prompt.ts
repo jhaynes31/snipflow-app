@@ -28,6 +28,8 @@ export interface PromptInput {
   wellPath?: "man" | "woman" | null;
   /** Every tool this person can open, as "key: name (place). when" lines, for Open buttons. */
   tools?: string;
+  /** The truer lines this person wrote for themselves in Renewed Mind. */
+  lines?: string[];
   /** Metamorphosis only: the mentor's voice and the Character Sheet rows he allowed. */
   mentor?: { voice: string; sheet: { key: string; text: string }[]; shelf?: string[] } | null;
 }
@@ -93,6 +95,11 @@ export function buildSystemPrompt(input: PromptInput): string {
     if (input.mentor.shelf && input.mentor.shelf.length > 0) {
       parts.push(`On his Field Guide shelf (resources he kept; you may point to one of these by name when it fits, and never invent a source he does not have):\n${input.mentor.shelf.map((t) => `- ${t}`).join("\n")}`);
     }
+  }
+  if (input.lines && input.lines.length > 0) {
+    parts.push(
+      `Truer lines this person wrote for themselves in Renewed Mind, in their own words. When one answers what they are wrestling with, hand it back to them word for word (never reworded, never a new one of your own), and offer Take It Captive [[tool:rm.captive]] if a thought is running them right now:\n${input.lines.map((l) => `- ${l}`).join("\n")}`,
+    );
   }
   if (input.tools) {
     parts.push(

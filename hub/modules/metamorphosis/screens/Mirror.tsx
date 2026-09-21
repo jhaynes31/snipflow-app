@@ -49,6 +49,7 @@ function WayBack() {
       <div className="sh-choices mt-3">
         <LinkBtn href="/metamorphosis/map" variant="secondary">The Map</LinkBtn>
         <LinkBtn href="/tend/tools/groundMe" variant="secondary">Ground Me, in Tend</LinkBtn>
+        <LinkBtn href="/renewed-mind/captive" variant="secondary">Take It Captive</LinkBtn>
         <LinkBtn href="/help-now" variant="ghost">Need help now</LinkBtn>
       </div>
     </Card>

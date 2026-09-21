@@ -134,10 +134,15 @@ export const contextFor = internalQuery({
     const mentorShelf = row.module === "metamorphosis"
       ? (await ctx.db.query("mmResources").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect()).map((r) => r.title).slice(0, 30)
       : [];
+    const lines = (await ctx.db.query("rmBeliefs").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect())
+      .filter((b) => !b.retiredAt)
+      .slice(0, 20)
+      .map((b) => b.newLine);
     const mmOwner = await roomOwnerOf(ctx, "metamorphosis");
     const rcOwner = await reCenteredOwner(ctx);
     const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id };
     return {
+      lines,
       rooms,
       mentorSheet,
       mentorShelf,

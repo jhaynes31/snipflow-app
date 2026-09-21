@@ -50,6 +50,7 @@ import type * as profiles from "../profiles.js";
 import type * as push_notify from "../push/notify.js";
 import type * as push_send from "../push/send.js";
 import type * as push_subscriptions from "../push/subscriptions.js";
+import type * as renewedMind_entries from "../renewedMind/entries.js";
 import type * as reCentered_entries from "../reCentered/entries.js";
 import type * as reCentered_pure from "../reCentered/pure.js";
 import type * as reCentered_room from "../reCentered/room.js";
@@ -128,6 +129,7 @@ declare const fullApi: ApiFromModules<{
   "push/notify": typeof push_notify;
   "push/send": typeof push_send;
   "push/subscriptions": typeof push_subscriptions;
+  "renewedMind/entries": typeof renewedMind_entries;
   "reCentered/entries": typeof reCentered_entries;
   "reCentered/pure": typeof reCentered_pure;
   "reCentered/room": typeof reCentered_room;

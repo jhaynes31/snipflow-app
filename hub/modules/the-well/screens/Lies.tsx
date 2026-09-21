@@ -67,6 +67,8 @@ export function Lies() {
                     Save to my Evidence Bank
                   </button>{" "}
                   ·{" "}
+                  <Link href={`/renewed-mind/beliefs?old=${encodeURIComponent(c.lie)}${c.ref ? `&ref=${encodeURIComponent(c.ref)}` : ""}`} className="sh-link">Make this mine</Link>{" "}
+                  ·{" "}
                   <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => remove({ id: c._id }))}>Delete</button>
                 </p>
               </div>
@@ -85,13 +87,15 @@ export function Lies() {
                 <Link href={refHref(c.ref)} className="sh-link">Read it</Link> ·{" "}
                 <button type="button" className="sh-link" disabled={busy} onClick={() => void run(async () => { await toEvidence({ aboutProfileId: profile._id, text: c.truth.slice(0, 300), showed: "What's true about me" }); setSaved("Saved to your Evidence Bank."); })}>
                   Save to my Evidence Bank
-                </button>
+                </button>{" "}
+                ·{" "}
+                <Link href={`/renewed-mind/beliefs?old=${encodeURIComponent(c.lie)}&ref=${encodeURIComponent(`${c.ref.book} ${c.ref.chapter}:${c.ref.from}${c.ref.to ? `-${c.ref.to}` : ""}`)}`} className="sh-link">Make this mine</Link>
               </p>
             </div>
           ))}
         </Card>
       ))}
-      <p className="sh-hint">Tend&apos;s Shame Interrupter can bring you here. The starter cards are a first draft for the two of you to review.</p>
+      <p className="sh-hint">Tend&apos;s Shame Interrupter can bring you here. &ldquo;Make this mine&rdquo; starts a Put Off, Put On line in Renewed Mind with the lie filled in. The starter cards are a first draft for the two of you to review.</p>
     </div>
   );
 }

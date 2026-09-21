@@ -6,6 +6,7 @@ import { firstName, partnerOf, requireMe } from "../lib";
 import { readTendSettings } from "../tend/pure";
 import { dayKey } from "../tend/patterns";
 import { roomOwner } from "../reCentered/room";
+import { trendLines } from "../renewedMind/pure";
 import { duePeriod, inPeriod, nowPeriod, previousPeriod, readSeasonsSettings, type Compared, type MineFacts, type OursFacts, type Period } from "./pure";
 
 /**
@@ -72,6 +73,14 @@ async function mineFor(ctx: QueryCtx, profile: Doc<"profiles">, p: Period): Prom
     repairsITookPartIn: cmp(both(repairs, (r) => r.closedAt ?? r.createdAt), (r) => r.length),
     headsUpsISent: cmp(both(sent, (h) => h.createdAt), (r) => r.length),
     headsUpsIAnswered: cmp(both(answered, (h) => h.respondedAt ?? h.createdAt), (r) => r.length),
+    renewedMind: await (async () => {
+      const beliefs = (await ctx.db.query("rmBeliefs").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect()).filter((b) => !b.retiredAt);
+      const rehearsals = await ctx.db.query("rmRehearsals").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect();
+      const captures = await ctx.db.query("rmCaptures").withIndex("by_owner", (q) => q.eq("ownerId", id)).collect();
+      if (beliefs.length === 0 && captures.length === 0) return undefined;
+      const [nowRows] = both(rehearsals, (r) => r.createdAt);
+      return { rehearsals: cmp(both(rehearsals, (r) => r.createdAt), (rows) => rows.length), captures: cmp(both(captures, (c) => c.createdAt), (rows) => rows.length), lines: trendLines(beliefs, nowRows) };
+    })(),
     everyBoxTends: cmp(both(tends, (t) => t.tendedAt), (r) => r.length),
     keptWord: cmp(closedPair, (rows) => ({
       kept: rows.filter((w) => w.status === "kept").length,

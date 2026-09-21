@@ -967,6 +967,54 @@ export default defineSchema({
     openedAt: v.optional(v.number()),
   }).index("by_room", ["roomId", "createdAt"]),
 
+  // ---------------------------------------------------------------------
+  // Renewed Mind (module id "renewed-mind"): beliefs rewritten in the
+  // person's own words, rehearsed, and backed by lived evidence. Private;
+  // a belief can be shared on purpose. See docs/renewed-mind-spec.md.
+  // ---------------------------------------------------------------------
+  rmBeliefs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    oldLine: v.string(),
+    origin: v.optional(v.string()),
+    newLine: v.string(),
+    verse: v.optional(v.string()),
+    verseText: v.optional(v.string()),
+    createdAt: v.number(),
+    retiredAt: v.optional(v.number()),
+  }).index("by_owner", ["ownerId"]),
+  rmRehearsals: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    beliefId: v.id("rmBeliefs"),
+    feltTrue: v.union(v.literal("notYet"), v.literal("aLittle"), v.literal("mostly")),
+    day: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId", "createdAt"])
+    .index("by_belief", ["beliefId"]),
+  rmCaptures: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    thought: v.string(),
+    feeling: v.optional(v.string()),
+    isTrue: v.union(v.literal("yes"), v.literal("partly"), v.literal("no")),
+    isKind: v.union(v.literal("yes"), v.literal("partly"), v.literal("no")),
+    isNecessary: v.union(v.literal("yes"), v.literal("partly"), v.literal("no")),
+    friendSays: v.optional(v.string()),
+    beliefId: v.optional(v.id("rmBeliefs")),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+  rmEvidence: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    beliefId: v.id("rmBeliefs"),
+    text: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_belief", ["beliefId"]),
+
   /**
    * Devices a person turned notifications on for: the browser's push
    * endpoint and keys, nothing else. See convex/push/subscriptions.ts.
