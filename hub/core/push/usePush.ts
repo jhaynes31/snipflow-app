@@ -27,6 +27,30 @@ function toKey(base64: string): BufferSource {
   return out;
 }
 
+/** True in Brave, which ships with the push service switched off. */
+async function isBrave(): Promise<boolean> {
+  const nav = navigator as Navigator & { brave?: { isBrave?: () => Promise<boolean> } };
+  try {
+    return Boolean(await nav.brave?.isBrave?.());
+  } catch {
+    return false;
+  }
+}
+
+const BRAVE_STEPS =
+  "Brave keeps the notification service switched off. Turn it on once: tap the three lines at the top right, Settings, then Privacy and security, and switch on \"Use Google services for push messaging\". Then come back and tap Turn on again.";
+
+function subscribeProblem(err: unknown): string {
+  const text = err instanceof Error ? err.message : String(err);
+  const nav = navigator as Navigator & { brave?: unknown };
+  if (/push service error|registration failed/i.test(text)) {
+    if (nav.brave) return BRAVE_STEPS;
+    return "This browser couldn't register for notifications. If it's Brave: " + BRAVE_STEPS + " Otherwise, check that notifications aren't blocked for this site in the browser's settings.";
+  }
+  if (/permission/i.test(text)) return "This browser has notifications blocked for The Shire. Allow them in the site settings, then try again.";
+  return `This browser couldn't register for notifications (${text}).`;
+}
+
 export function usePush() {
   const publicKey = useQuery(api.push.subscriptions.publicKey);
   const devices = useQuery(api.push.subscriptions.mine);
@@ -66,7 +90,12 @@ export function usePush() {
       return "denied";
     }
     const reg = await navigator.serviceWorker.ready;
-    const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(publicKey) }));
+    let sub: PushSubscription;
+    try {
+      sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(publicKey) }));
+    } catch (err) {
+      throw new Error(subscribeProblem(err));
+    }
     const json = sub.toJSON();
     await save({ endpoint: sub.endpoint, p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "", label: deviceLabel(navigator.userAgent) });
     setState((s) => ({ ...s, permission: "granted", endpoint: sub.endpoint }));
@@ -84,5 +113,5 @@ export function usePush() {
     setState((s) => ({ ...s, endpoint: null }));
   }
 
-  return { ...state, ready, serverReady, onThisDevice, devices: devices ?? [], enable, disable, removeDevice: (endpoint: string) => remove({ endpoint }) };
+  return { ...state, ready, serverReady, onThisDevice, devices: devices ?? [], enable, disable, isBrave, removeDevice: (endpoint: string) => remove({ endpoint }) };
 }
