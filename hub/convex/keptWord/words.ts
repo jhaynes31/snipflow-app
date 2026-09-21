@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../events";
+import { notify, notifyPartner, who } from "../push/notify";
 import { cleanText, optionalText, requireMe, requireOwned, requirePartner, type Me } from "../lib";
 import { dayKey } from "../tend/patterns";
 import { buildWeeks, cleanArea, noticesFor, readKeptWordSettings } from "./pure";
@@ -104,12 +105,23 @@ export const give = mutation({
       askId: args.askId,
       createdAt: Date.now(),
     });
+    let fromAsk = false;
     if (args.askId) {
       const ask = await ctx.db.get(args.askId);
       if (ask && ask.toProfileId === me.profile._id) {
         await ctx.db.patch(ask._id, { answer: "word", answeredAt: Date.now(), wordId: id });
         await emitEvent(ctx, { ownerId: me.profile._id, source: "kept-word", name: "ask.answered", payload: { askId: ask._id, answer: "word" }, visibility: "shared" });
+        fromAsk = true;
       }
+    }
+    if (args.forWhom === "partner" || fromAsk) {
+      const word = await ctx.db.get(id);
+      await notifyPartner(ctx, me, {
+        title: fromAsk ? `${who(me)} made your ask a word` : `${who(me)} gave their word`,
+        body: word ? `${word.text}${word.dueDay ? ` · by ${word.dueDay}` : ""}` : "",
+        url: "/kept-word",
+        tag: `word-${id}`,
+      });
     }
     return id;
   },
@@ -139,6 +151,7 @@ export const close = mutation({
     if (args.outcome === "kept") {
       await ctx.db.patch(word._id, { status: "kept", note, closedAt: now });
       await emitEvent(ctx, { ownerId: me.profile._id, source: "kept-word", name: "word.kept", payload: { wordId: word._id, area: word.area, forWhom: word.forWhom }, visibility: "shared" });
+      await notifyPartner(ctx, me, { title: `${who(me)} kept a word`, body: word.text, url: "/kept-word/kept", tag: `word-${word._id}` });
       return null;
     }
     if (!args.reason || !args.whatNow) throw new ConvexError("Say what got in the way, and what now. Those are the two honest parts.");
@@ -165,6 +178,8 @@ export const close = mutation({
       payload: { wordId: word._id, area: word.area, forWhom: word.forWhom, whatNow: args.whatNow },
       visibility: "shared",
     });
+    const whatNowSaid = args.whatNow === "smaller" ? "Said it again, smaller." : args.whatNow === "notHappening" ? "Said it's not happening." : "Asked for help.";
+    await notifyPartner(ctx, me, { title: `${who(me)} didn't keep a word, and said so`, body: `${word.text} · ${whatNowSaid}`, url: "/kept-word", tag: `word-${word._id}` });
     return replacedBy ?? null;
   },
 });
@@ -191,6 +206,7 @@ export const renegotiate = mutation({
       createdAt: now,
     });
     await ctx.db.patch(word._id, { status: "renegotiated", replacedBy: newId, closedAt: now });
+    await notifyPartner(ctx, me, { title: `${who(me)} changed a word before the day`, body: cleanText(args.text, 300, "The new word"), url: "/kept-word", tag: `word-${word._id}` });
     return newId;
   },
 });
@@ -224,15 +240,18 @@ export const heard = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const partner = await requirePartner(ctx, me);
-    return await ctx.db.insert("kwHeard", {
+    const text = cleanText(args.text, 300, "What you heard");
+    const id = await ctx.db.insert("kwHeard", {
       ownerId: me.profile._id,
       visibility: "shared",
       aboutProfileId: partner._id,
-      text: cleanText(args.text, 300, "What you heard"),
+      text,
       dueDay: cleanDay(args.dueDay),
       status: "waiting",
       createdAt: Date.now(),
     });
+    await notify(ctx, partner._id, { title: `${who(me)} wrote what they heard you say`, body: `${text} · Is that right?`, url: "/kept-word", tag: `heard-${id}` });
+    return id;
   },
 });
 
@@ -246,6 +265,7 @@ export const answerHeard = mutation({
     if (h.status !== "waiting") throw new ConvexError("Already answered.");
     if (!args.confirm) {
       await ctx.db.patch(h._id, { status: "declined" });
+      await notify(ctx, h.ownerId, { title: `${who(me)} said that's not quite it`, body: h.text, url: "/kept-word", tag: `heard-${h._id}` });
       return null;
     }
     const wordId = await ctx.db.insert("kwWords", {
@@ -260,6 +280,7 @@ export const answerHeard = mutation({
       createdAt: Date.now(),
     });
     await ctx.db.patch(h._id, { status: "confirmed", wordId });
+    await notify(ctx, h.ownerId, { title: `${who(me)} confirmed it as their word`, body: cleanText(args.text ?? h.text, 300, "The word"), url: "/kept-word", tag: `heard-${h._id}` });
     return wordId;
   },
 });

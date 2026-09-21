@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
+import { notify, who } from "../push/notify";
 import { cleanText, requireMe, requireOwned, requirePartner } from "../lib";
 
 /**
@@ -24,13 +25,16 @@ export const write = mutation({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const partner = await requirePartner(ctx, me);
-    return await ctx.db.insert("kwAsks", {
+    const text = cleanText(args.text, 400, "The ask");
+    const id = await ctx.db.insert("kwAsks", {
       ownerId: me.profile._id,
       visibility: "shared",
       toProfileId: partner._id,
-      text: cleanText(args.text, 400, "The ask"),
+      text,
       createdAt: Date.now(),
     });
+    await notify(ctx, partner._id, { title: `An ask from ${who(me)}`, body: text, url: "/kept-word/asks", tag: `ask-${id}` });
+    return id;
   },
 });
 
@@ -43,6 +47,7 @@ export const answer = mutation({
     if (!ask || ask.toProfileId !== me.profile._id) throw new ConvexError("That ask isn't for you.");
     await ctx.db.patch(ask._id, { answer: args.answer, answeredAt: Date.now() });
     await emitEvent(ctx, { ownerId: me.profile._id, source: "kept-word", name: "ask.answered", payload: { askId: ask._id, answer: args.answer }, visibility: "shared" });
+    await notify(ctx, ask.ownerId, { title: `${who(me)} answered your ask`, body: args.answer === "notNow" ? `Not now: ${ask.text}` : `Let's talk: ${ask.text}`, url: "/kept-word/asks", tag: `ask-${ask._id}` });
   },
 });
 

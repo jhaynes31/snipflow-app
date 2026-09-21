@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { cleanText, optionalText, randomToken, requireMe, requireOwned } from "../lib";
+import { notify } from "../push/notify";
 import { dayKey } from "../tend/patterns";
 import { requireRoomOf, roomOwnerOf } from "../rooms";
 
@@ -328,7 +329,10 @@ export const writeBlessing = mutation({
     const me = await requireMe(ctx);
     const owner = await roomOwnerOf(ctx, ROOM);
     if (owner && owner.ownerId === me.profile._id) throw new ConvexError("A blessing is written by the other person, for the room's owner.");
-    return await ctx.db.insert("mmBlessings", { ownerId: me.profile._id, visibility: "private", roomId: ROOM, occasion: cleanText(args.occasion, 120, "The occasion"), body: cleanText(args.body, 6000, "The blessing"), createdAt: Date.now() });
+    const occasion = cleanText(args.occasion, 120, "The occasion");
+    const id = await ctx.db.insert("mmBlessings", { ownerId: me.profile._id, visibility: "private", roomId: ROOM, occasion, body: cleanText(args.body, 6000, "The blessing"), createdAt: Date.now() });
+    if (owner) await notify(ctx, owner.ownerId, { title: "A blessing is waiting in your room", body: occasion, url: "/metamorphosis/blessing", tag: `blessing-${id}` });
+    return id;
   },
 });
 

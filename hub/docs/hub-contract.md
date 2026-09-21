@@ -71,6 +71,18 @@ Added 2026-09-18 from Jen's direction. The apps work together, but each one keep
 
 Places for faith and finances are planned later, once The Shire is more complete.
 
+## Notifications (added 2026-09-21)
+
+A fourth delivery channel, off until a person turns it on for a device (Settings, "Reaching
+you", or the one-time line on the home screen). The browser's push subscription is kept in
+`pushSubscriptions`; the signing keys (VAPID) are generated once by the build and live only in
+the Convex environment. A notification goes out only when the other person did something that
+involves you: a heads-up (urgent ones get through quiet hours), a heads-up response, an ask or
+a word or "I heard you say" in Kept Word, a repair invite or answer, a shared tender-week
+forecast, a blessing left in Metamorphosis, and a season together. The text says only what the
+recipient would see in the app anyway. Quiet hours are per person, in their time zone.
+`convex/push/notify.ts` is the one door; `convex/push/send.ts` delivers.
+
 ## The front desk (added 2026-09-21)
 
 The Shire is organized by place, but people arrive with a situation. So the home page has

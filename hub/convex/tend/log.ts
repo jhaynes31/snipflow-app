@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
 import { access, requireMe, requireOwned } from "../lib";
+import { notifyPartner, who } from "../push/notify";
 import { dayKey, forecastFrom, WEATHER_SCORE, type DayPoint } from "./patterns";
 import { readTendSettings } from "./pure";
 
@@ -160,6 +161,7 @@ export const announceTenderWeek = mutation({
       payload: { tenderStart: f.tenderStart, tenderEnd: f.tenderEnd },
       visibility: "sharedSummary",
     });
+    await notifyPartner(ctx, me, { title: `${who(me)}'s tender week starts ${f.tenderStart}`, body: "A softer stretch ahead. Tend's Together tab has ideas.", url: "/tend/together", tag: `tender-${f.tenderStart}` });
     return f.tenderStart;
   },
 });

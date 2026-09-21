@@ -902,3 +902,10 @@ a.sh-chip {
     border: 1px solid var(--border);
   }
 }
+
+/* The one-time notifications line on the home screen (core/push/PushNudge.tsx). */
+.sh-nudge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

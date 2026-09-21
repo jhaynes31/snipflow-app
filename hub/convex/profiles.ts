@@ -98,6 +98,10 @@ export const updateReminders = mutation({
     dailyCheckInHour: v.optional(v.number()),
     dailyCheckInMinute: v.optional(v.number()),
     badgeEnabled: v.optional(v.boolean()),
+    pushEnabled: v.optional(v.boolean()),
+    /** Hours 0-23, or null to clear. */
+    quietHoursStart: v.optional(v.union(v.number(), v.null())),
+    quietHoursEnd: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
@@ -115,6 +119,14 @@ export const updateReminders = mutation({
       r.dailyCheckInMinute = args.dailyCheckInMinute;
     }
     if (args.badgeEnabled !== undefined) r.badgeEnabled = args.badgeEnabled;
+    if (args.pushEnabled !== undefined) r.pushEnabled = args.pushEnabled;
+    for (const key of ["quietHoursStart", "quietHoursEnd"] as const) {
+      const val = args[key];
+      if (val === undefined) continue;
+      if (val === null) delete r[key];
+      else if (!Number.isInteger(val) || val < 0 || val > 23) throw new ConvexError("Pick an hour from 0 to 23.");
+      else r[key] = val;
+    }
     await ctx.db.patch(me.profile._id, { reminders: r });
   },
 });

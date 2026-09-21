@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { emitEvent } from "./events";
+import { notify, who } from "./push/notify";
 import { cleanText, requireMe, requireOwned, requirePartner } from "./lib";
 import { headsUpResponse, helpKind } from "./schema";
 
@@ -60,6 +61,13 @@ export const send = mutation({
       name: "headsUp.sent",
       payload: { headsUpId: id, help: args.help, urgent: args.urgent ?? false },
       visibility: "shared",
+    });
+    await notify(ctx, partner._id, {
+      title: args.urgent ? `${who(me)} needs you now` : `A heads-up from ${who(me)}`,
+      body: args.statusLine,
+      url: `/heads-up/${id}`,
+      tag: `headsUp-${id}`,
+      urgent: args.urgent ?? false,
     });
     return id;
   },
@@ -134,6 +142,8 @@ export const respond = mutation({
       payload: { headsUpId: card._id, response: args.response },
       visibility: "shared",
     });
+    const said = { onIt: "I'm on it.", hug: "Sent you a hug.", talkLater: "Can we talk later?" }[args.response];
+    await notify(ctx, card.ownerId, { title: `${who(me)} saw your heads-up`, body: said, url: "/", tag: `headsUp-${card._id}` });
   },
 });
 

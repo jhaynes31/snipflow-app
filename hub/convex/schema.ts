@@ -80,8 +80,9 @@ export default defineSchema({
       dailyCheckInMinute: v.number(),
       /** Installed-app icon badge: open heads-ups only. */
       badgeEnabled: v.boolean(),
-      /** Reserved for a later phase; push is off by default and not yet delivered. */
+      /** Notifications to the devices this person added (push/subscriptions.ts). */
       pushEnabled: v.boolean(),
+      /** Quiet hours, 0-23 in the person's time zone; only urgent heads-ups get through. */
       quietHoursStart: v.optional(v.number()),
       quietHoursEnd: v.optional(v.number()),
     }),
@@ -965,6 +966,22 @@ export default defineSchema({
     createdAt: v.number(),
     openedAt: v.optional(v.number()),
   }).index("by_room", ["roomId", "createdAt"]),
+
+  /**
+   * Devices a person turned notifications on for: the browser's push
+   * endpoint and keys, nothing else. See convex/push/subscriptions.ts.
+   */
+  pushSubscriptions: defineTable({
+    ownerId: v.id("profiles"),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    label: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_endpoint", ["endpoint"]),
 
   /** The Field Guide: links he kept from the feeds or added himself. His, private. */
   mmResources: defineTable({

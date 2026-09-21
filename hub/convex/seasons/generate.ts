@@ -36,7 +36,7 @@ async function write(ctx: ActionCtx, profileId: Id<"profiles">, kind: "mine" | "
     .join("\n")
     .trim();
   if (response.stop_reason === "refusal" || !body) body = "This season couldn't be written just now. The facts are kept; try again in a little while.";
-  return await ctx.runMutation(internal.seasons.reports.save, {
+  const id = await ctx.runMutation(internal.seasons.reports.save, {
     ownerId: profileId,
     kind,
     interval: p.interval,
@@ -46,6 +46,10 @@ async function write(ctx: ActionCtx, profileId: Id<"profiles">, kind: "mine" | "
     body,
     facts,
   });
+  // A season together is for both of them; a private one is only for its person.
+  if (kind === "ours") await ctx.runMutation(internal.push.notify.sendBoth, { profileId, title: "Your season together is ready", body: periodTitle(kind, p), url: "/seasons/ours", tag: `season-${p.start}` });
+  else await ctx.runMutation(internal.push.notify.send, { profileId, title: "Your season is ready", body: periodTitle(kind, p), url: "/seasons", tag: `season-${p.start}` });
+  return id;
 }
 
 /** "Write my season now": the last 30 days, for the signed-in person. */

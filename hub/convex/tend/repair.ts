@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { emitEvent } from "../events";
 import { cleanText, optionalText, requireMe, requirePartner } from "../lib";
+import { notify, who } from "../push/notify";
 
 /**
  * Repair: a guided conversation after a conflict or a hurt. Either person
@@ -50,7 +51,7 @@ export const start = mutation({
     const me = await requireMe(ctx);
     const partner = await requirePartner(ctx, me);
     const now = Date.now();
-    return await ctx.db.insert("tendRepairs", {
+    const id = await ctx.db.insert("tendRepairs", {
       ownerId: me.profile._id,
       visibility: "shared",
       partnerId: partner._id,
@@ -59,6 +60,8 @@ export const start = mutation({
       createdAt: now,
       updatedAt: now,
     });
+    await notify(ctx, partner._id, { title: `${who(me)} is inviting you to repair`, body: "When you're ready: now, or pick a time.", url: "/tend/together", tag: `repair-${id}` });
+    return id;
   },
 });
 
@@ -70,6 +73,7 @@ export const respond = mutation({
     const r = await ctx.db.get(args.id);
     if (!r || r.partnerId !== me.profile._id) throw new ConvexError("That invite isn't for you.");
     await ctx.db.patch(r._id, args.now ? { status: "writing", updatedAt: Date.now() } : { status: "later", laterAt: args.laterAt, updatedAt: Date.now() });
+    await notify(ctx, r.ownerId, { title: args.now ? `${who(me)} is ready to repair now` : `${who(me)} picked a later time to repair`, body: "Tend, Together.", url: "/tend/together", tag: `repair-${r._id}` });
   },
 });
 

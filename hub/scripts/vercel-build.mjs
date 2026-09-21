@@ -8,6 +8,7 @@
 // Anything else (a preview build, or no key): just build the site, and never
 // touch the production database.
 import { execFileSync, execSync } from "node:child_process";
+import webpush from "web-push";
 import { generateAuthKeys, siteUrlFromVercel } from "./lib/authKeys.mjs";
 import { importEveryBoxIfNeeded } from "./import-every-box.mjs";
 import { buildEmbeddedApps } from "./build-embedded-apps.mjs";
@@ -52,6 +53,16 @@ async function configureAuth() {
   const siteUrl = siteUrlFromVercel(process.env);
   if (!convexEnvGet("SITE_URL") && siteUrl) {
     convexEnvSet("SITE_URL", siteUrl);
+  }
+
+  // Notification signing keys (VAPID), once. The private key never leaves Convex.
+  if (!convexEnvGet("VAPID_PUBLIC_KEY") || !convexEnvGet("VAPID_PRIVATE_KEY")) {
+    const keys = webpush.generateVAPIDKeys();
+    convexEnvSet("VAPID_PUBLIC_KEY", keys.publicKey);
+    convexEnvSet("VAPID_PRIVATE_KEY", keys.privateKey);
+    if (siteUrl) convexEnvSet("VAPID_SUBJECT", siteUrl);
+  } else {
+    console.log("Notification keys already present on the Convex deployment.");
   }
 }
 

@@ -9,6 +9,7 @@ import { APP_DISPLAY_NAME } from "@/core/config";
 import { COPY } from "@/core/copy/strings";
 import { MODULES } from "@/core/modules/registry";
 import { useHub } from "@/core/shell/HubContext";
+import { PushSettings } from "@/core/push/PushSettings";
 import { BackgroundPicker } from "@/core/theme/BackgroundPicker";
 import { Btn, Card, CopyButton, ErrorNote, Field, PageTitle, Toggle, useAction } from "@/core/ui";
 
@@ -52,8 +53,8 @@ export default function SettingsPage() {
       <Card>
         <h2 className="sh-h2">Reaching you</h2>
         <p className="sh-muted">
-          {APP_DISPLAY_NAME} reaches you three ways, none of them a push banner: the home screen, the installed app&apos;s icon
-          badge, and your calendar.
+          {APP_DISPLAY_NAME} reaches you four ways: the home screen, the installed app&apos;s icon badge, your calendar, and, only
+          if you turn it on, a notification when the other one of you does something that involves you.
         </p>
         <div className="sh-stack-sm mt-4">
           <div className="sh-card-alt">
@@ -75,7 +76,11 @@ export default function SettingsPage() {
             />
           </div>
           <div className="sh-card-alt">
-            <h3 className="sh-h3">3. Calendar</h3>
+            <h3 className="sh-h3">3. Notifications on this device</h3>
+            <PushSettings />
+          </div>
+          <div className="sh-card-alt">
+            <h3 className="sh-h3">4. Calendar</h3>
             <p className="sh-hint">
               Subscribe to this feed in any calendar app. It holds one daily &ldquo;how are you, really?&rdquo; event and a
               one-off event for any heads-up your partner asks to put there. The link is a secret; anyone with it can read the feed.
