@@ -69,6 +69,7 @@ export function ToolFrame({ toolKey, children }: { toolKey: string; children: Re
               <div className="sh-choices">
                 {(
                   [
+                    ["aLot", "A lot"],
                     ["little", "A little"],
                     ["notReally", "Not really"],
                     ["notAtAll", "Not at all"],

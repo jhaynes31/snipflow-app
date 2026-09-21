@@ -63,7 +63,9 @@ async function mineFor(ctx: QueryCtx, profile: Doc<"profiles">, p: Period): Prom
     tools: cmp(both(tools, (t) => t.startedAt), (rows) => ({
       used: rows.length,
       byTool: tally(rows, (t) => t.tool),
-      helpedALittle: [...new Set(rows.filter((t) => t.helped === "little").map((t) => t.tool))],
+      // Kept under its old name for the report prompts; "a lot" counts as helped too.
+      helpedALittle: [...new Set(rows.filter((t) => t.helped === "aLot" || t.helped === "little").map((t) => t.tool))],
+      helpedALot: [...new Set(rows.filter((t) => t.helped === "aLot").map((t) => t.tool))],
     })),
     loveActionsIDid: cmp(both(love, (l) => l.createdAt), (r) => r.length),
     notesISent: cmp(both(allNotes, (n) => n.createdAt), (r) => r.length),
@@ -128,7 +130,7 @@ async function oursFor(ctx: QueryCtx, a: Doc<"profiles">, b: Doc<"profiles">, p:
   const toolsThatHelped: OursFacts["toolsThatHelped"] = [];
   for (const person of [a, b]) {
     if (!readTendSettings(person.moduleSettings).shareToolHelps) continue;
-    const uses = (await ctx.db.query("tendToolUses").withIndex("by_owner_time", (q) => q.eq("ownerId", person._id)).collect()).filter((t) => t.helped === "little" && inPeriod(t.startedAt, p, dayOf));
+    const uses = (await ctx.db.query("tendToolUses").withIndex("by_owner_time", (q) => q.eq("ownerId", person._id)).collect()).filter((t) => (t.helped === "aLot" || t.helped === "little") && inPeriod(t.startedAt, p, dayOf));
     toolsThatHelped.push({ name: firstName(person.displayName), tools: [...new Set(uses.map((u) => u.tool))] });
   }
   return {

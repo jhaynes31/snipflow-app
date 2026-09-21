@@ -85,14 +85,20 @@ export function previousPeriod(p: Period): Period {
   return { interval: p.interval, start: addDays(p.start, -days), end: addDays(p.start, -1) };
 }
 
+/** "Sept 14 to 20", "Sept 28 to Oct 4", "September 2026", or "the last 30 days". */
+export function periodRange(p: { interval: Period["interval"]; start: string; end: string }): string {
+  if (p.interval === "now") return "the last 30 days";
+  const s = new Date(dayToMs(p.start));
+  if (p.interval === "monthly") return s.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  const e = new Date(dayToMs(p.end));
+  const month = (d: Date) => d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  const sameMonth = s.getUTCMonth() === e.getUTCMonth() && s.getUTCFullYear() === e.getUTCFullYear();
+  return sameMonth ? `${month(s)} ${s.getUTCDate()} to ${e.getUTCDate()}` : `${month(s)} ${s.getUTCDate()} to ${month(e)} ${e.getUTCDate()}`;
+}
+
 export function periodTitle(kind: "mine" | "ours", p: Period): string {
   const who = kind === "mine" ? "My season" : "Our season";
-  if (p.interval === "monthly") {
-    const d = new Date(dayToMs(p.start));
-    return `${who}: ${d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}`;
-  }
-  if (p.interval === "now") return `${who}: the last 30 days`;
-  return `${who}: ${p.start} to ${p.end}`;
+  return `${who}, ${periodRange(p)}`;
 }
 
 export function inPeriod(ms: number, p: Period, dayOf: (ms: number) => string): boolean {
@@ -110,7 +116,7 @@ export interface MineFacts {
   name: string;
   period: Period;
   checkIns: Compared<{ total: number; steady: number; aBitOff: number; low: number }>;
-  tools: Compared<{ used: number; byTool: Record<string, number>; helpedALittle: string[] }>;
+  tools: Compared<{ used: number; byTool: Record<string, number>; helpedALittle: string[]; helpedALot?: string[] }>;
   loveActionsIDid: Compared<number>;
   notesISent: Compared<number>;
   repairsITookPartIn: Compared<number>;

@@ -28,7 +28,7 @@ export const monthly = query({
       if (!share) continue;
       const uses = await ctx.db.query("tendToolUses").withIndex("by_owner_time", (q) => q.eq("ownerId", person._id).gte("startedAt", since)).collect();
       const counts: Record<string, number> = {};
-      for (const u of uses) if (u.helped === "little") counts[u.tool] = (counts[u.tool] ?? 0) + 1;
+      for (const u of uses) if (u.helped === "aLot" || u.helped === "little") counts[u.tool] = (counts[u.tool] ?? 0) + (u.helped === "aLot" ? 2 : 1);
       const tools = Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)

@@ -26,8 +26,10 @@ describe("Seasons periods", () => {
     assert.deepEqual(previousPeriod({ interval: "monthly", start: "2026-09-01", end: "2026-09-30" }), { interval: "monthly", start: "2026-08-02", end: "2026-08-31" });
   });
   it("titles read plainly", () => {
-    assert.equal(periodTitle("mine", { interval: "monthly", start: "2026-09-01", end: "2026-09-30" }), "My season: September 2026");
-    assert.equal(periodTitle("ours", nowPeriod("2026-09-19")), "Our season: the last 30 days");
+    assert.equal(periodTitle("mine", { interval: "monthly", start: "2026-09-01", end: "2026-09-30" }), "My season, September 2026");
+    assert.equal(periodTitle("ours", nowPeriod("2026-09-19")), "Our season, the last 30 days");
+    assert.equal(periodTitle("mine", { interval: "weekly", start: "2026-09-14", end: "2026-09-20" }), "My season, Sep 14 to 20");
+    assert.equal(periodTitle("ours", { interval: "biweekly", start: "2026-09-28", end: "2026-10-11" }), "Our season, Sep 28 to Oct 11");
   });
   it("settings default to monthly and ours on", () => {
     assert.deepEqual(readSeasonsSettings(undefined), { weekly: false, biweekly: false, monthly: true, ours: true });

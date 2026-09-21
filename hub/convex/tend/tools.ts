@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireMe, requireOwned } from "../lib";
 
-const helped = v.union(v.literal("little"), v.literal("notReally"), v.literal("notAtAll"));
+const helped = v.union(v.literal("aLot"), v.literal("little"), v.literal("notReally"), v.literal("notAtAll"));
 
 /** A tool was opened. Returns the use id so the close can update it. */
 export const start = mutation({
@@ -19,7 +19,7 @@ export const start = mutation({
   },
 });
 
-/** The gentle close: did that help a little, not really, or not at all? Plus anything worth keeping. */
+/** The gentle close: did that help a lot, a little, not really, or not at all? Plus anything worth keeping. */
 export const finish = mutation({
   args: { id: v.id("tendToolUses"), helped: v.optional(helped), saved: v.optional(v.any()) },
   handler: async (ctx, args) => {
@@ -46,9 +46,9 @@ export const stats = query({
       .withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id))
       .order("desc")
       .take(300);
-    const byTool: Record<string, { little: number; notReally: number; notAtAll: number; uses: number; lastUsed: number }> = {};
+    const byTool: Record<string, { aLot: number; little: number; notReally: number; notAtAll: number; uses: number; lastUsed: number }> = {};
     for (const u of uses) {
-      const t = (byTool[u.tool] ??= { little: 0, notReally: 0, notAtAll: 0, uses: 0, lastUsed: 0 });
+      const t = (byTool[u.tool] ??= { aLot: 0, little: 0, notReally: 0, notAtAll: 0, uses: 0, lastUsed: 0 });
       t.uses++;
       t.lastUsed = Math.max(t.lastUsed, u.startedAt);
       if (u.helped) t[u.helped]++;

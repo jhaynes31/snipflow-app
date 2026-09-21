@@ -238,7 +238,7 @@ export default defineSchema({
     ownerId: v.id("profiles"),
     visibility: visibilityValidator,
     tool: v.string(),
-    helped: v.optional(v.union(v.literal("little"), v.literal("notReally"), v.literal("notAtAll"))),
+    helped: v.optional(v.union(v.literal("aLot"), v.literal("little"), v.literal("notReally"), v.literal("notAtAll"))),
     saved: v.optional(v.any()),
     checkInId: v.optional(v.id("checkIns")),
     startedAt: v.number(),

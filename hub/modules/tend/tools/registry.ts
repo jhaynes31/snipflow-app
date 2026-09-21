@@ -31,15 +31,15 @@ export const TOOLS: ToolMeta[] = [
 ];
 
 export interface ToolStats {
-  [key: string]: { little: number; notReally: number; notAtAll: number; uses: number; lastUsed: number } | undefined;
+  [key: string]: { aLot?: number; little: number; notReally: number; notAtAll: number; uses: number; lastUsed: number } | undefined;
 }
 
-/** Library order: tools that have helped a little come first, then recently used, then the rest. */
+/** Library order: tools that have helped come first (a lot counts more than a little), then recently used, then the rest. */
 export function orderTools(stats: ToolStats, faith: boolean): ToolMeta[] {
   const score = (t: ToolMeta) => {
     const s = stats[t.key];
     if (!s) return 0;
-    return s.little * 3 + s.uses * 0.1 + s.lastUsed / 1e13;
+    return (s.aLot ?? 0) * 5 + s.little * 3 + s.uses * 0.1 + s.lastUsed / 1e13;
   };
   return TOOLS.filter((t) => !t.needsFaith || faith).sort((a, b) => score(b) - score(a));
 }
