@@ -292,6 +292,7 @@ Build the foundation first, then add modules one at a time. Each phase ends with
 | 3. Tend | Build from its own spec | Check-in, core tools, and partner cards work end to end |
 | 4. AI coach and safety *(built 2026-09-19)* | Shared coach service (`convex/coach/`), crisis flow, safety plan | Crisis detection tested and "Need help now" works from every screen |
 | 5. Fitness module *(moved in 2026-09-19)* | Heartwood, built on its own, moved in as an embedded app at `/fitness/app/` (docs/heartwood-migration-plan.md) | First generated plan runs inside The Shire |
+| 8. The Orchard *(built 2026-09-22)* | Its own place, from docs/orchard-spec.md | A person can be planted with a story and pearls, checked (halo, safe, compass), moved with the slow-trust rule said out loud, and shared |
 | 7. Renewed Mind *(built 2026-09-21)* | Its own place, from docs/renewed-mind-spec.md | A line can be written, rehearsed, captured against, and backed by evidence; the coach hands lines back word for word |
 | 6. Love & Release *(moved in 2026-09-19)* | Built on its own, moved in as an embedded app at `/love-and-release/app/`; Re-Centered became its second door the same day (docs/love-and-release-migration.md) | Circles work with private-by-default data |
 

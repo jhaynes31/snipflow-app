@@ -57,6 +57,14 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rm.live", "Live It", "Renewed Mind", "/renewed-mind/live", "Practical steps that put a truer line into practice: in the marriage, outside the house, with friends, at work, with God.", ["live it", "practice", "put into practice", "try it", "step", "steps", "experiment", "make friends", "new friends", "friendship", "get out of the house", "do something"]),
   T("rm.evidence", "Evidence for the New", "Renewed Mind", "/renewed-mind/evidence", "Moments that proved a truer line.", ["proof", "evidence for", "it held", "proved", "nothing broke"]),
 
+  // The Orchard
+  T("orchard.new", "I met someone", "The Orchard", "/orchard", "Plant them: the story you're already telling, the pearls you're holding, a date to re-read it.", ["met someone", "new friend", "new person", "excited about", "someone new", "vibes", "instant connection", "best friend already"]),
+  T("orchard.people", "People", "The Orchard", "/orchard", "Everyone, by layer, with what they've actually shown beside the story.", ["friends list", "my people", "layers", "circle", "who's in my life"]),
+  T("orchard.slowTrust", "Slow trust", "The Orchard", "/orchard/slow-trust", "What each layer gets, what earns it, and how long it usually takes.", ["slow trust", "trust too fast", "trusting", "too fast", "pace", "pearls", "oversharing", "share too much"]),
+  T("orchard.compass", "The Compass", "The Orchard", "/orchard/compass", "Conflict or a pattern with a friend: say it, adjust access, step back, or leave?", ["confront", "friend hurt me", "pattern with a friend", "should i say something", "cut them off", "step back", "leave the friendship", "friend conflict", "distance"]),
+  T("orchard.together", "Together", "The Orchard", "/orchard/together", "Mutual friends: what each of you chose to share.", ["mutual friend", "what do you think of", "our friends"]),
+  T("orchard.ways", "Ways", "The Orchard", "/orchard/ways", "Small moves that build a friendship.", ["how to make friends", "build friendship", "invite", "host", "follow up", "no friends", "lonely"]),
+
   // Kept Word
   T("keptWord.words", "Open words", "Kept Word", "/kept-word", "Give your word, or close one: kept, not yet, didn't.", ["my word", "promise", "said i would", "follow through", "commit", "i'll do it", "didn't do"]),
   T("keptWord.asks", "Asks", "Kept Word", "/kept-word/asks", "Ask for something, and answer an ask.", ["ask", "request", "need something", "asked him", "asked her"]),
@@ -203,6 +211,7 @@ export const DOORS_HER: Door[] = [
   { label: "I'm about to say yes when I mean no", toolKey: "lr.fawn" },
   { label: "My brain won't stop looping", toolKey: "tend.loopBreaker" },
   { label: "An old lie is running me", toolKey: "rm.captive" },
+  { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },
   { label: "I need comfort", toolKey: "lr.comfort" },
@@ -216,6 +225,7 @@ export const DOORS_JOHN: Door[] = [
   { label: "I need to land", toolKey: "mm.landing" },
   { label: "I said I would", toolKey: "keptWord.words" },
   { label: "An old lie is running me", toolKey: "rm.captive" },
+  { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "Something stung", toolKey: "tend.storyCheck" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },

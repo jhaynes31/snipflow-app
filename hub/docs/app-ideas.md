@@ -144,7 +144,7 @@ cannot open. The father's voice he didn't get, survival first, and his own langu
 (Character Sheet, Quest Log, The Map, Session Zero, The Party) with no points or levels.
 Jen will tell him it exists in one sentence and leave it alone. Not yet built.
 
-**Friendship builder (idea, 2026-09-19):** Jen is thinking of a separate app for the two
+**Friendship builder: built as The Orchard on 2026-09-22 (docs/orchard-spec.md).** Original note: Jen is thinking of a separate app for the two
 of them on how to find and build friendships (John has none right now; both families are
 toxic). Elements are in Metamorphosis's The Party for John. A shared version would hold:
 where people like us are, the one small ask, following up, hosting something small,

@@ -42,6 +42,10 @@ function Talk() {
     convoModule = "re-centered";
     task = "reCentered.talk";
     subtitle = "In Re-Centered. The coach knows whose-is-this, the pause before rescuing, the fawn alarm, and the rest, and can open one for you.";
+  } else if (place === "orchard") {
+    convoModule = "orchard";
+    task = "orchard.compass";
+    subtitle = "In The Orchard. The coach knows the slow-trust rule and can help you sort what they've shown from the story.";
   } else if (place === "metamorphosis" && mm?.state === "mine") {
     convoModule = "metamorphosis";
     task = "metamorphosis.mentor";

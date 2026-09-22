@@ -46,6 +46,7 @@ import type * as metamorphosis_resources from "../metamorphosis/resources.js";
 import type * as metamorphosis_tools from "../metamorphosis/tools.js";
 import type * as moduleHooks from "../moduleHooks.js";
 import type * as privacy from "../privacy.js";
+import type * as orchard_entries from "../orchard/entries.js";
 import type * as profiles from "../profiles.js";
 import type * as push_notify from "../push/notify.js";
 import type * as push_send from "../push/send.js";
@@ -125,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   "metamorphosis/tools": typeof metamorphosis_tools;
   moduleHooks: typeof moduleHooks;
   privacy: typeof privacy;
+  "orchard/entries": typeof orchard_entries;
   profiles: typeof profiles;
   "push/notify": typeof push_notify;
   "push/send": typeof push_send;

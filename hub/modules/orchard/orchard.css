@@ -1,0 +1,55 @@
+/* The Orchard: slow, green, unhurried. */
+.or-subnav {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.5rem 1rem 0;
+  scrollbar-width: thin;
+}
+.or-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.or-subnav a[aria-current="page"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+  border-color: transparent;
+}
+.or-layer {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--tile-tint);
+  font-size: 0.8rem;
+}
+.or-entry + .or-entry {
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}
+.or-person {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  text-decoration: none;
+  border-top: 1px solid var(--border);
+}
+.or-story {
+  font-style: italic;
+  color: var(--text-muted);
+}
+.or-truth {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.15rem;
+}

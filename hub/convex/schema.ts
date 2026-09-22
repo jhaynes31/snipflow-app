@@ -1034,6 +1034,63 @@ export default defineSchema({
     .index("by_owner", ["ownerId"])
     .index("by_belief", ["beliefId"]),
 
+  // ---------------------------------------------------------------------
+  // The Orchard (module id "orchard"): friendships that grow slowly. People,
+  // what they've shown, the story I'm telling myself, three checks, moves.
+  // Each person's rows are their own; a person can be shared with the
+  // partner (name, layer, and notes marked shared). See docs/orchard-spec.md.
+  // ---------------------------------------------------------------------
+  orPeople: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    howMet: v.optional(v.string()),
+    metDay: v.string(),
+    /** 0 just met … 4 chosen family. */
+    layer: v.number(),
+    state: v.union(v.literal("growing"), v.literal("resting"), v.literal("released")),
+    /** The story I'm telling myself, written at the start, to re-read later. */
+    story: v.optional(v.string()),
+    storyReadDay: v.optional(v.string()),
+    /** What I'm holding back until it's earned. */
+    pearls: v.array(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+  orNotes: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    personId: v.id("orPeople"),
+    kind: v.union(v.literal("fact"), v.literal("story"), v.literal("green"), v.literal("flag"), v.literal("gave"), v.literal("showedUp"), v.literal("conflict")),
+    text: v.string(),
+    day: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_person", ["personId"]),
+  orChecks: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    personId: v.id("orPeople"),
+    kind: v.union(v.literal("halo"), v.literal("safe"), v.literal("compass")),
+    answers: v.any(),
+    read: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_person", ["personId"]),
+  orMoves: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    personId: v.id("orPeople"),
+    from: v.number(),
+    to: v.number(),
+    reason: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_person", ["personId"]),
+
   /**
    * Devices a person turned notifications on for: the browser's push
    * endpoint and keys, nothing else. See convex/push/subscriptions.ts.
