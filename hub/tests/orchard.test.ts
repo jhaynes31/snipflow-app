@@ -48,9 +48,9 @@ import { initiationRead, SIGNALS, signalsFor, tally } from "../convex/orchard/si
 
 describe("my signals", () => {
   it("holds Jen's list in full, each with a tell, a test, a response and a twin", () => {
-    assert.ok(SIGNALS.length >= 17);
+    assert.ok(SIGNALS.length >= 18);
     for (const s of SIGNALS) for (const f of ["tell", "test", "response", "twin"] as const) assert.ok(s[f].length > 10, `${s.key} ${f}`);
-    for (const k of ["neverInitiates", "gossip", "confidence", "wontBeHelped", "asksDoesntShare", "bypassing", "avoidant"]) assert.ok(SIGNALS.some((s) => s.key === k), k);
+    for (const k of ["neverInitiates", "gossip", "confidence", "wontBeHelped", "asksDoesntShare", "bypassing", "godScapegoat", "avoidant"]) assert.ok(SIGNALS.some((s) => s.key === k), k);
     assert.ok(SIGNALS.find((s) => s.key === "gossip")?.hardLine);
   });
   it("lets each person switch some off and add their own", () => {
