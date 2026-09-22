@@ -39,6 +39,24 @@ version for both of them, wired to the coach and Seasons.
   hosting small, being a friend back, when it fizzles, keeping your pace. Links to Renewed
   Mind's Live It friendship steps.
 
+## My signals (added 2026-09-22, the same day)
+
+Jen's list of what she is done with in friendships, seventeen patterns, each with the
+early tell, the test that reveals it (usually something she does less of), what to do when
+it shows, and its twin, the green version. Both people start from the same list; each can
+switch any off and add their own (`moduleSettings.orchard.{off, custom}`). The twins are
+what earn the layers on the Slow trust screen. Gossip and a broken confidence are hard lines.
+
+- **Sightings:** a watch note or a conflict note can carry a signal. The person's page shows
+  "Signals seen" with counts and dates. The Compass asks "which of your signals is this?"
+  and, with two or more earlier sightings, treats it as a pattern; a hard line goes straight
+  to adjusting access.
+- **The initiation ledger:** "They reached out" / "I reached out" on the person's page, read
+  back as who initiated in the last six contacts. **Let it be quiet:** a window (fourteen days
+  by default) where she doesn't initiate; a contact from them ends it as a fact, and the
+  window passing with nothing files a "never initiates" sighting.
+- **The coach** in The Orchard carries the list by name.
+
 ## Rules
 
 - Nothing is enforced; the rule is said. The reason given is the point.

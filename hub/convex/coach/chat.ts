@@ -51,6 +51,7 @@ export const send = action({
       taskPrompt: taskPromptFor(args.task),
       tools: coachToolList(availableTools(context.rooms)),
       lines: context.lines,
+      orchardSignals: context.orchardSignals,
       loopSuspected: loop,
       wellPath: args.task?.startsWith("well.") ? context.wellPath : null,
       mentor: args.task?.startsWith("metamorphosis.") ? { voice: MENTOR_VOICE, sheet: context.mentorSheet, shelf: context.mentorShelf } : null,

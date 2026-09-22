@@ -5,6 +5,7 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { Shell } from "./Shell";
 import { CompassScreen } from "./screens/CompassScreen";
 import { People } from "./screens/People";
+import { Signals } from "./screens/Signals";
 import { Person } from "./screens/Person";
 import { SlowTrust } from "./screens/SlowTrust";
 import { Together } from "./screens/Together";
@@ -41,6 +42,7 @@ export const orchard: ModuleManifest = {
     if (!first) screen = <People />;
     else if (first === "person" && second) screen = <Person id={second} />;
     else if (first === "slow-trust") screen = <SlowTrust />;
+    else if (first === "signals") screen = <Signals />;
     else if (first === "compass") screen = <CompassScreen />;
     else if (first === "together") screen = <Together />;
     else if (first === "ways") screen = <Ways />;

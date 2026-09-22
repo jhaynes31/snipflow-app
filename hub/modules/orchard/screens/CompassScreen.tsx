@@ -28,6 +28,7 @@ export function CompassScreen() {
 function Inner() {
   const params = useSearchParams();
   const data = useQuery(api.orchard.entries.people);
+  const sig = useQuery(api.orchard.entries.signals);
   const check = useMutation(api.orchard.entries.compassCheck);
   const move = useMutation(api.orchard.entries.move);
   const { busy, error, run } = useAction();
@@ -39,9 +40,10 @@ function Inner() {
   const [expect, setExpect] = useState<Expect | null>(null);
   const [repaired, setRepaired] = useState<Repaired | null>(null);
   const [feel, setFeel] = useState<Feel | null>(null);
-  const [result, setResult] = useState<{ call: CompassCall; why: string[]; script: string | null; suggestedLayer: number; currentLayer: number } | null>(null);
+  const [signal, setSignal] = useState("");
+  const [result, setResult] = useState<{ call: CompassCall; why: string[]; script: string | null; suggestedLayer: number; currentLayer: number; signalName: string | null; priorSightings: number } | null>(null);
   const [talk, setTalk] = useState(false);
-  if (!data) return <Spinner />;
+  if (!data || !sig) return <Spinner />;
   const people = data.people.filter((p) => p.state !== "released");
   const person = people.find((p) => p._id === personId) ?? null;
   const ready = person && what.trim() && times && said && safety !== null && expect && repaired && feel;
@@ -58,6 +60,7 @@ function Inner() {
       <div className="sh-container sh-narrow">
         <PageTitle title={CALL_LABEL[result.call]} subtitle={`About ${person.name}. A direction for you, not a verdict on them.`} />
         <Card>
+          {result.signalName && <p className="sh-eyebrow">{result.signalName}{result.priorSightings > 0 ? ` · seen ${result.priorSightings} ${result.priorSightings === 1 ? "time" : "times"} before` : " · first sighting"}</p>}
           {result.why.map((w) => <p key={w}>{w}</p>)}
           {result.script && (
             <>
@@ -81,7 +84,7 @@ function Inner() {
           <LinkBtn href={`/orchard/person/${person._id}`} variant="ghost">Back to {person.name}</LinkBtn>
           <Btn variant="ghost" onClick={() => setResult(null)}>Start over</Btn>
         </div>
-        {talk && <CoachChat module="orchard" task="orchard.compass" opening={`About a friend, ${person.name} (${LAYERS[person.layer].name}, known ${person.daysKnown} days). What happened: ${what}. The compass said: ${CALL_LABEL[result.call]}.`} placeholder="What's the part you're unsure about?" />}
+        {talk && <CoachChat module="orchard" task="orchard.compass" opening={`About a friend, ${person.name} (${LAYERS[person.layer].name}, known ${person.daysKnown} days). What happened: ${what}.${result.signalName ? ` My signal: ${result.signalName}, seen ${result.priorSightings} times before.` : ""} The compass said: ${CALL_LABEL[result.call]}.`} placeholder="What's the part you're unsure about?" />}
       </div>
     );
   }
@@ -102,6 +105,12 @@ function Inner() {
           <Field label="What happened" hint="Just the facts a camera would record.">
             <textarea className="sh-input sh-textarea" rows={2} value={what} onChange={(e) => setWhat(e.target.value)} maxLength={600} />
           </Field>
+          <Field label="Which of my signals is this, if any?">
+            <select className="sh-input" value={signal} onChange={(e) => setSignal(e.target.value)}>
+              <option value="">None of them, or not sure</option>
+              {sig.list.map((s) => <option key={s.key} value={s.key}>{s.name}{s.hardLine ? " (hard line)" : ""}</option>)}
+            </select>
+          </Field>
           {choice("Is this the first time, or a pattern?", [["first", "First time"], ["second", "Second time"], ["pattern", "A pattern"]], times, setTimes)}
           {choice("Have you told them, out loud, that this matters to you?", [["yes", "Yes"], ["no", "No, or not clearly"]], said, setSaid)}
           {choice("Does it touch your safety: body, money, home, marriage, confidences?", [["yes", "Yes"], ["no", "No"]], safety === null ? null : safety ? "yes" : "no", (v) => setSafety(v === "yes"))}
@@ -110,7 +119,7 @@ function Inner() {
           {choice("After time with them lately, you feel…", [["filled", "Filled"], ["mixed", "Mixed"], ["drained", "Drained"]], feel, setFeel)}
           <CrisisNotice texts={[what]} />
           <ErrorNote error={error} />
-          <Btn className="mt-2" disabled={busy || !ready} onClick={() => void run(async () => { const r = await check({ personId: person!._id, what, times: times!, said: said!, safety: safety!, expect: expect!, repaired: repaired!, feel: feel! }); setResult(r); })}>Which way?</Btn>
+          <Btn className="mt-2" disabled={busy || !ready} onClick={() => void run(async () => { const r = await check({ personId: person!._id, what, times: times!, said: said!, safety: safety!, expect: expect!, repaired: repaired!, feel: feel!, signal: signal || undefined }); setResult(r); })}>Which way?</Btn>
         </Card>
       )}
       <Note>

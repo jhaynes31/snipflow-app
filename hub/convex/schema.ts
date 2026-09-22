@@ -1054,6 +1054,10 @@ export default defineSchema({
     storyReadDay: v.optional(v.string()),
     /** What I'm holding back until it's earned. */
     pearls: v.array(v.string()),
+    /** The initiation ledger: who reached out, when (last thirty kept). */
+    contacts: v.optional(v.array(v.object({ by: v.union(v.literal("me"), v.literal("them")), day: v.string() }))),
+    /** The quiet test: a window where I don't initiate, to see if they do. */
+    quietUntil: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
@@ -1063,6 +1067,8 @@ export default defineSchema({
     personId: v.id("orPeople"),
     kind: v.union(v.literal("fact"), v.literal("story"), v.literal("green"), v.literal("flag"), v.literal("gave"), v.literal("showedUp"), v.literal("conflict")),
     text: v.string(),
+    /** Which of my signals this sighting is (orchard/signals.ts key), for flags and conflicts. */
+    signal: v.optional(v.string()),
     day: v.string(),
     createdAt: v.number(),
   })

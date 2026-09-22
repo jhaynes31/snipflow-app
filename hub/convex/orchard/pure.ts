@@ -37,8 +37,8 @@ export const LAYERS: Layer[] = [
     minDays: 14,
     access: ["Occasional one-on-one time", "Everyday details of my life", "Small favors both ways"],
     expect: ["Reliable in small things", "Asks and remembers", "Initiates sometimes"],
-    earnedBy: ["Showed up when they said they would", "Asked about my life and remembered", "Treated the waiter well"],
-    exitSignals: ["Asks for a lot early", "Talks badly about everyone they used to know", "Only reaches out when they need something"],
+    earnedBy: ["Showed up when they said they would", "Asked about my life and remembered", "Initiated at least once", "Treated the waiter well"],
+    exitSignals: ["Asks for a lot early", "Gossips about others to me", "Only reaches out when they need something", "Asks deep, shares shallow"],
   },
   {
     index: 2,
@@ -47,8 +47,8 @@ export const LAYERS: Layer[] = [
     minDays: 60,
     access: ["Regular time", "One-on-one time", "Some of my story", "My faith and prayer requests"],
     expect: ["Kind", "Reliable", "Mutual interest", "Respects a no"],
-    earnedBy: ["Handled a no or a disagreement without punishing me", "Consistent across settings", "Kept a small confidence"],
-    exitSignals: ["Words and actions not matching", "One-sided effort for a season", "Contempt or mockery"],
+    earnedBy: ["Initiates both ways", "Handled a no or a small pushback and stayed warm", "Kept a small confidence", "Talks to me as a peer", "Let me help them once"],
+    exitSignals: ["Never initiates", "Words and actions not matching", "One-sided effort for a season", "Correction as the main channel", "Contempt or mockery"],
   },
   {
     index: 3,
@@ -57,8 +57,8 @@ export const LAYERS: Layer[] = [
     minDays: 180,
     access: ["My home", "My struggles", "My marriage and family details", "Feedback and hard truths from them", "Help and favors"],
     expect: ["Honest", "Initiates both ways", "Repairs after ruptures", "Safe with my heart"],
-    earnedBy: ["Kept confidences over time", "Repaired after a rupture", "Showed up in ordinary moments, more than once"],
-    exitSignals: ["Broken confidence", "Boundary crossing after I said no", "Manipulation signs"],
+    earnedBy: ["Kept confidences over time", "Told me plainly when something I did landed wrong", "Owned their impact and repaired", "Shares as deeply as they ask", "Stays present through closeness"],
+    exitSignals: ["Broken confidence", "Can't be honest when upset with me", "Won't take ownership", "Close, then gone"],
   },
   {
     index: 4,
@@ -67,8 +67,8 @@ export const LAYERS: Layer[] = [
     minDays: 365,
     access: ["Priority time", "Calls any time", "Being a support person in their crisis, and them in mine", "Being around John and my home life", "My business and money details"],
     expect: ["Reciprocity", "Consistency in the mundane", "Follows up", "Repairs after ruptures"],
-    earnedBy: ["Known for a long time", "Consistent across settings", "Repaired after a rupture", "Respected a no, more than once"],
-    exitSignals: ["Broken confidence", "Boundary crossing after I said no", "Manipulation signs", "Contempt or mockery"],
+    earnedBy: ["Known for a long time", "Carries their half", "Wants my truth, not just my ear", "Lets me care for them too", "Sits in the hard thing with me, faith intact", "Loves themselves well enough to love me well"],
+    exitSignals: ["Broken confidence", "Boundary crossing after I said no", "Spiritual bypassing when it's hard", "Contempt or mockery"],
   },
 ];
 
@@ -178,6 +178,12 @@ export interface CompassAnswers {
   expect: Expect;
   repaired: Repaired;
   feel: Feel;
+  /** Which of my signals this is, if one fits. */
+  signal?: string;
+  /** Earlier sightings of that signal on this person. */
+  priorSightings?: number;
+  /** The signal is a hard line (gossip, broken confidence). */
+  hardLine?: boolean;
 }
 
 export type CompassCall = "raise" | "raiseThenAdjust" | "adjust" | "stepBack" | "leave";
@@ -192,6 +198,14 @@ export const CALL_LABEL: Record<CompassCall, string> = {
 
 export function compass(a: CompassAnswers): { call: CompassCall; why: string[]; moveOut: number; script: string | null } {
   const why: string[] = [];
+  if (a.hardLine) {
+    why.push("This is one of your hard lines. One clear sighting is enough: access moves, and no conversation is owed first.");
+    return { call: a.feel === "drained" ? "stepBack" : "adjust", why, moveOut: a.feel === "drained" ? 2 : 1, script: null };
+  }
+  if ((a.priorSightings ?? 0) >= 2 && a.times !== "pattern") {
+    why.push(`You've already noted this signal on them ${a.priorSightings} times. Three sightings is a pattern, whatever it feels like today.`);
+    a = { ...a, times: "pattern" };
+  }
   if (a.safety && a.times !== "first") {
     why.push("It touches your safety and it has happened more than once. Safety isn't a conversation to have again; it's access to change.");
     return { call: "leave", why, moveOut: 2, script: null };

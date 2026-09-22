@@ -5,6 +5,7 @@ import { access, cleanText, optionalText, requireMe, requireOwned } from "../lib
 import { visibilityValidator } from "../privacy";
 import { dayKey } from "../tend/patterns";
 import { addDays, compass, daysBetween, haloRead, LAYERS, moveCheck, safeRead, type CompassAnswers, type SafeAnswer } from "./pure";
+import { initiationRead, signalByKey, signalsFor, tally, type Signal } from "./signals";
 
 /**
  * The Orchard: people, what they've actually shown, the story I'm telling
@@ -49,7 +50,18 @@ export const person = query({
     const notes = (await ctx.db.query("orNotes").withIndex("by_person", (q) => q.eq("personId", p._id)).collect()).filter((n) => mine || n.visibility === "shared").sort((a, b) => b.createdAt - a.createdAt);
     const checks = mine ? (await ctx.db.query("orChecks").withIndex("by_person", (q) => q.eq("personId", p._id)).collect()).sort((a, b) => b.createdAt - a.createdAt) : [];
     const moves = mine ? (await ctx.db.query("orMoves").withIndex("by_person", (q) => q.eq("personId", p._id)).collect()).sort((a, b) => b.createdAt - a.createdAt) : [];
-    return { ...p, mine, today, daysKnown: daysBetween(p.metDay, today), notes, checks, moves, nextLayer: p.layer < 4 ? moveCheck(p.metDay, today, p.layer + 1) : null };
+    return {
+      ...p,
+      mine,
+      today,
+      daysKnown: daysBetween(p.metDay, today),
+      notes,
+      checks,
+      moves,
+      nextLayer: p.layer < 4 ? moveCheck(p.metDay, today, p.layer + 1) : null,
+      signalsSeen: mine ? tally(notes) : [],
+      initiation: mine ? initiationRead(p.contacts ?? []) : null,
+    };
   },
 });
 
@@ -131,19 +143,128 @@ export const move = mutation({
 // Notes: facts, stories, green, flags, gave, showed up, conflict
 
 export const addNote = mutation({
-  args: { personId: v.id("orPeople"), kind: noteKind, text: v.string(), shared: v.optional(v.boolean()) },
+  args: { personId: v.id("orPeople"), kind: noteKind, text: v.string(), shared: v.optional(v.boolean()), signal: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const p = await requireOwned(ctx, me, "orPeople", args.personId);
+    const signal = args.signal && (args.kind === "flag" || args.kind === "conflict") && signalByKey(args.signal, mySignals(me.profile.moduleSettings)) ? args.signal : undefined;
     return await ctx.db.insert("orNotes", {
       ownerId: me.profile._id,
       visibility: args.shared && p.visibility === "shared" ? "shared" : "private",
       personId: p._id,
       kind: args.kind,
       text: cleanText(args.text, 500, "The note"),
+      signal,
       day: dayKey(Date.now(), me.profile.timeZone),
       createdAt: Date.now(),
     });
+  },
+});
+
+// My signals: the built-in list, minus what I switched off, plus my own
+
+function orchardSettings(moduleSettings: Record<string, unknown> | undefined): { off?: unknown; custom?: unknown } {
+  return (moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown };
+}
+
+function mySignals(moduleSettings: Record<string, unknown> | undefined): Signal[] {
+  const s = orchardSettings(moduleSettings);
+  return Array.isArray(s.custom) ? (s.custom as Signal[]) : [];
+}
+
+export const signals = query({
+  args: {},
+  handler: async (ctx) => {
+    const me = await requireMe(ctx);
+    const s = orchardSettings(me.profile.moduleSettings);
+    return { list: signalsFor(s), off: Array.isArray(s.off) ? (s.off as string[]) : [] };
+  },
+});
+
+export const toggleSignal = mutation({
+  args: { key: v.string(), on: v.boolean() },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const s = orchardSettings(me.profile.moduleSettings);
+    const off = new Set(Array.isArray(s.off) ? (s.off as string[]) : []);
+    if (args.on) off.delete(args.key);
+    else off.add(args.key);
+    await ctx.db.patch(me.profile._id, { moduleSettings: { ...me.profile.moduleSettings, orchard: { ...s, off: [...off] } } });
+  },
+});
+
+export const addSignal = mutation({
+  args: { name: v.string(), tell: v.string(), test: v.string(), response: v.string(), twin: v.string(), hardLine: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const s = orchardSettings(me.profile.moduleSettings);
+    const custom = mySignals(me.profile.moduleSettings);
+    if (custom.length >= 20) throw new ConvexError("Twenty of your own is plenty. Switch one off first.");
+    const key = `own-${Date.now().toString(36)}`;
+    const next: Signal = {
+      key,
+      name: cleanText(args.name, 80, "The name"),
+      tell: cleanText(args.tell, 300, "The tell"),
+      test: cleanText(args.test, 300, "The test"),
+      response: cleanText(args.response, 300, "The response"),
+      twin: cleanText(args.twin, 120, "The twin"),
+      hardLine: args.hardLine ?? false,
+    };
+    await ctx.db.patch(me.profile._id, { moduleSettings: { ...me.profile.moduleSettings, orchard: { ...s, custom: [...custom, next] } } });
+    return key;
+  },
+});
+
+export const removeSignal = mutation({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const s = orchardSettings(me.profile.moduleSettings);
+    const custom = mySignals(me.profile.moduleSettings).filter((c) => c.key !== args.key);
+    await ctx.db.patch(me.profile._id, { moduleSettings: { ...me.profile.moduleSettings, orchard: { ...s, custom } } });
+  },
+});
+
+// The initiation ledger, and the quiet test
+
+export const contact = mutation({
+  args: { id: v.id("orPeople"), by: v.union(v.literal("me"), v.literal("them")) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const p = await requireOwned(ctx, me, "orPeople", args.id);
+    const day = dayKey(Date.now(), me.profile.timeZone);
+    const contacts = [...(p.contacts ?? []), { by: args.by, day }].slice(-30);
+    // Them reaching out ends a quiet window with the answer you were waiting for.
+    const patch: { contacts: typeof contacts; updatedAt: number; quietUntil?: undefined } = { contacts, updatedAt: Date.now() };
+    if (args.by === "them" && p.quietUntil) {
+      patch.quietUntil = undefined;
+      await ctx.db.insert("orNotes", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "fact", text: "Reached out during a quiet window. Initiated.", day, createdAt: Date.now() });
+    }
+    await ctx.db.patch(p._id, patch);
+  },
+});
+
+export const quiet = mutation({
+  args: { id: v.id("orPeople"), days: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const p = await requireOwned(ctx, me, "orPeople", args.id);
+    const today = dayKey(Date.now(), me.profile.timeZone);
+    await ctx.db.patch(p._id, { quietUntil: addDays(today, Math.min(60, Math.max(7, Math.round(args.days ?? 14)))), updatedAt: Date.now() });
+  },
+});
+
+/** The quiet window ended with nothing: that is a sighting of "never initiates". */
+export const quietEnded = mutation({
+  args: { id: v.id("orPeople"), nothing: v.boolean() },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const p = await requireOwned(ctx, me, "orPeople", args.id);
+    const day = dayKey(Date.now(), me.profile.timeZone);
+    if (args.nothing) {
+      await ctx.db.insert("orNotes", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "flag", text: "A quiet window passed with nothing from them.", signal: "neverInitiates", day, createdAt: Date.now() });
+    }
+    await ctx.db.patch(p._id, { quietUntil: undefined, updatedAt: Date.now() });
   },
 });
 
@@ -195,19 +316,22 @@ export const compassCheck = mutation({
     expect: v.union(v.literal("repair"), v.literal("defensive"), v.literal("punish"), v.literal("unknown")),
     repaired: v.union(v.literal("yes"), v.literal("no"), v.literal("untested")),
     feel: v.union(v.literal("filled"), v.literal("drained"), v.literal("mixed")),
+    signal: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const p = await requireOwned(ctx, me, "orPeople", args.personId);
-    const { personId: _p, what, ...rest } = args;
+    const { personId: _p, what, signal: signalKey, ...rest } = args;
     void _p;
-    const a: CompassAnswers = rest;
+    const sig = signalKey ? signalByKey(signalKey, mySignals(me.profile.moduleSettings)) : undefined;
+    const prior = sig ? (await ctx.db.query("orNotes").withIndex("by_person", (q) => q.eq("personId", p._id)).collect()).filter((n) => n.signal === sig.key).length : 0;
+    const a: CompassAnswers = { ...rest, signal: sig?.key, priorSightings: prior, hardLine: sig?.hardLine };
     const result = compass(a);
     const suggestedLayer = Math.max(0, p.layer - result.moveOut);
     const cleaned = cleanText(what, 600, "What happened");
     await ctx.db.insert("orChecks", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "compass", answers: { what: cleaned, ...a }, read: result.call, createdAt: Date.now() });
-    await ctx.db.insert("orNotes", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "conflict", text: cleaned, day: dayKey(Date.now(), me.profile.timeZone), createdAt: Date.now() });
-    return { ...result, suggestedLayer, currentLayer: p.layer };
+    await ctx.db.insert("orNotes", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "conflict", text: cleaned, signal: sig?.key, day: dayKey(Date.now(), me.profile.timeZone), createdAt: Date.now() });
+    return { ...result, suggestedLayer, currentLayer: p.layer, signalName: sig?.name ?? null, priorSightings: prior };
   },
 });
 

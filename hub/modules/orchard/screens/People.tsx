@@ -56,7 +56,7 @@ export function People() {
             <Field label="When you met" hint="Today if you leave it blank. Days and weeks, not how it feels.">
               <input className="sh-input" type="date" value={metDay} onChange={(e) => setMetDay(e.target.value)} />
             </Field>
-            <Field label="The story I'm already telling myself" hint="Write it down so it stops running in the dark. &ldquo;We're going to be best friends. She gets me.&rdquo; You'll re-read it in a month beside the facts.">
+            <Field label="The story I'm already telling myself" hint="Write it down so it stops running in the dark. &ldquo;We&apos;re going to be best friends. She gets me.&rdquo; You&apos;ll re-read it in a month beside the facts.">
               <textarea className="sh-input sh-textarea" rows={3} value={story} onChange={(e) => setStory(e.target.value)} maxLength={1500} />
             </Field>
             <p className="sh-eyebrow">Pearls I'm holding until it's earned</p>

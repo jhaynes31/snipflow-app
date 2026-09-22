@@ -30,6 +30,8 @@ export interface PromptInput {
   tools?: string;
   /** The truer lines this person wrote for themselves in Renewed Mind. */
   lines?: string[];
+  /** The Orchard only: this person's own signals list, for friendships. */
+  orchardSignals?: string[];
   /** Metamorphosis only: the mentor's voice and the Character Sheet rows he allowed. */
   mentor?: { voice: string; sheet: { key: string; text: string }[]; shelf?: string[] } | null;
 }
@@ -99,6 +101,11 @@ export function buildSystemPrompt(input: PromptInput): string {
   if (input.lines && input.lines.length > 0) {
     parts.push(
       `Truer lines this person wrote for themselves in Renewed Mind, in their own words. When one answers what they are wrestling with, hand it back to them word for word (never reworded, never a new one of your own), and offer Take It Captive [[tool:rm.captive]] if a thought is running them right now:\n${input.lines.map((l) => `- ${l}`).join("\n")}`,
+    );
+  }
+  if (input.orchardSignals && input.orchardSignals.length > 0) {
+    parts.push(
+      `This person's own list of friendship signals they are done with, each with the early tell, the test that reveals it, and their chosen response. Use their names for these. Ask which signal, if any, this is; a single sighting is data, not a verdict; two or three is a pattern; a hard line (gossip, a broken confidence) changes access without another conversation:\n${input.orchardSignals.map((s) => `- ${s}`).join("\n")}`,
     );
   }
   if (input.tools) {

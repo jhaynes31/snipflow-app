@@ -43,3 +43,33 @@ describe("the orchard", () => {
     assert.equal(compass({ ...base, times: "pattern", said: "yes", expect: "repair", repaired: "yes" }).call, "raiseThenAdjust");
   });
 });
+
+import { initiationRead, SIGNALS, signalsFor, tally } from "../convex/orchard/signals.ts";
+
+describe("my signals", () => {
+  it("holds Jen's list in full, each with a tell, a test, a response and a twin", () => {
+    assert.ok(SIGNALS.length >= 17);
+    for (const s of SIGNALS) for (const f of ["tell", "test", "response", "twin"] as const) assert.ok(s[f].length > 10, `${s.key} ${f}`);
+    for (const k of ["neverInitiates", "gossip", "confidence", "wontBeHelped", "asksDoesntShare", "bypassing", "avoidant"]) assert.ok(SIGNALS.some((s) => s.key === k), k);
+    assert.ok(SIGNALS.find((s) => s.key === "gossip")?.hardLine);
+  });
+  it("lets each person switch some off and add their own", () => {
+    const list = signalsFor({ off: ["gossip"], custom: [{ key: "own-1", name: "Mine", tell: "t", test: "t", response: "r", twin: "w" }] });
+    assert.ok(!list.some((s) => s.key === "gossip"));
+    assert.ok(list.some((s) => s.key === "own-1"));
+    assert.equal(signalsFor(undefined).length, SIGNALS.length);
+  });
+  it("tallies sightings and reads the ledger", () => {
+    const t = tally([{ signal: "taker", day: "2026-09-02" }, { day: "2026-09-03" }, { signal: "taker", day: "2026-09-01" }, { signal: "gossip", day: "2026-09-04" }]);
+    assert.deepEqual(t[0], { key: "taker", count: 2, days: ["2026-09-01", "2026-09-02"] });
+    const r = initiationRead([{ by: "me", day: "2026-09-01" }, { by: "me", day: "2026-09-05" }, { by: "them", day: "2026-09-03" }]);
+    assert.deepEqual(r, { me: 2, them: 1, lastBy: "me", lastDay: "2026-09-05" });
+  });
+  it("the compass treats repeat sightings as a pattern and hard lines as access changes", () => {
+    const base = { times: "first" as const, said: "no" as const, safety: false, expect: "unknown" as const, repaired: "untested" as const, feel: "mixed" as const };
+    assert.equal(compass({ ...base, signal: "taker", priorSightings: 2 }).call, "raise", "pattern but never said: still one honest sentence");
+    assert.equal(compass({ ...base, said: "yes", expect: "punish", signal: "taker", priorSightings: 2 }).call, "adjust");
+    assert.equal(compass({ ...base, signal: "gossip", hardLine: true }).call, "adjust");
+    assert.equal(compass({ ...base, signal: "gossip", hardLine: true, feel: "drained" }).call, "stepBack");
+  });
+});

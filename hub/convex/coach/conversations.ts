@@ -3,6 +3,7 @@ import { internalMutation, internalQuery, mutation, query } from "../_generated/
 import { access, cleanText, requireMe, requireOwned } from "../lib";
 import { roomOwner as reCenteredOwner } from "../reCentered/room";
 import { roomOwnerOf } from "../rooms";
+import { signalsFor } from "../orchard/signals";
 import { readTendSettings } from "../tend/pure";
 import { MANUAL_SECTION_TITLES } from "./titles";
 import type { ManualLine } from "./prompt";
@@ -141,7 +142,9 @@ export const contextFor = internalQuery({
     const mmOwner = await roomOwnerOf(ctx, "metamorphosis");
     const rcOwner = await reCenteredOwner(ctx);
     const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id };
+    const orchardSignals = row.module === "orchard" ? signalsFor((me.profile.moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown }).map((s) => `${s.name}: tell, ${s.tell} Test, ${s.test} Response, ${s.response}`) : [];
     return {
+      orchardSignals,
       lines,
       rooms,
       mentorSheet,

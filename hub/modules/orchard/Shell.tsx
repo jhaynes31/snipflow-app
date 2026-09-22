@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Footprints, Hourglass, Users, UsersRound } from "lucide-react";
+import { Compass, Footprints, Hourglass, ListChecks, Users, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
 import "./orchard.css";
 
@@ -10,6 +10,7 @@ const ROUTE = "/orchard";
 const NAV = [
   { href: ROUTE, label: "People", icon: Users, exact: true },
   { href: `${ROUTE}/slow-trust`, label: "Slow trust", icon: Hourglass },
+  { href: `${ROUTE}/signals`, label: "My signals", icon: ListChecks },
   { href: `${ROUTE}/compass`, label: "The Compass", icon: Compass },
   { href: `${ROUTE}/together`, label: "Together", icon: UsersRound },
   { href: `${ROUTE}/ways`, label: "Ways", icon: Footprints },

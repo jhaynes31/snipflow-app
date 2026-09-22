@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { HALO_QUESTIONS, LAYERS, SAFE_QUESTIONS, WATCH_FOR, type SafeAnswer } from "@/convex/orchard/pure";
+import { signalByKey } from "@/convex/orchard/signals";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
@@ -24,6 +25,10 @@ type NoteKind = (typeof NOTE_KINDS)[number][0];
 export function Person({ id }: { id: string }) {
   const { partner } = useHub();
   const p = useQuery(api.orchard.entries.person, { id: id as Id<"orPeople"> });
+  const sig = useQuery(api.orchard.entries.signals);
+  const contact = useMutation(api.orchard.entries.contact);
+  const quiet = useMutation(api.orchard.entries.quiet);
+  const quietEnded = useMutation(api.orchard.entries.quietEnded);
   const addNote = useMutation(api.orchard.entries.addNote);
   const removeNote = useMutation(api.orchard.entries.removeNote);
   const update = useMutation(api.orchard.entries.updatePerson);
@@ -35,6 +40,7 @@ export function Person({ id }: { id: string }) {
   const [kind, setKind] = useState<NoteKind>("fact");
   const [text, setText] = useState("");
   const [shareNote, setShareNote] = useState(false);
+  const [signal, setSignal] = useState("");
   const [panel, setPanel] = useState<"none" | "move" | "halo" | "safe" | "story">("none");
   const [to, setTo] = useState<number | null>(null);
   const [reason, setReason] = useState("");
@@ -45,7 +51,8 @@ export function Person({ id }: { id: string }) {
   const [safeResult, setSafeResult] = useState<{ text: string; untested: string[] } | null>(null);
   const [story, setStory] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  if (p === undefined) return <Spinner />;
+  if (p === undefined || !sig) return <Spinner />;
+  const nameOf = (key: string) => signalByKey(key, sig.list)?.name ?? key;
   const layer = LAYERS[p.layer];
   const facts = p.notes.filter((n) => n.kind === "fact" || n.kind === "showedUp" || n.kind === "green");
   const stories = p.notes.filter((n) => n.kind === "story");
@@ -92,8 +99,51 @@ export function Person({ id }: { id: string }) {
       {(stories.length > 0 || flags.length > 0 || gave.length > 0) && (
         <Card tone="alt">
           {stories.length > 0 && <><h2 className="sh-h2">Stories I&apos;ve caught myself telling</h2>{stories.map((n) => <p key={n._id} className="or-entry or-story">{n.text} <span className="sh-muted">· {n.day}</span></p>)}</>}
-          {flags.length > 0 && <><h2 className="sh-h2 mt-3">Watch notes</h2>{flags.map((n) => <p key={n._id} className="or-entry">{n.kind === "conflict" ? "Conflict: " : ""}{n.text} <span className="sh-muted">· {n.day}</span></p>)}</>}
+          {flags.length > 0 && <><h2 className="sh-h2 mt-3">Watch notes</h2>{flags.map((n) => <p key={n._id} className="or-entry">{n.kind === "conflict" ? "Conflict: " : ""}{n.text} <span className="sh-muted">· {n.day}{n.signal ? ` · ${nameOf(n.signal)}` : ""}</span></p>)}</>}
           {gave.length > 0 && <><h2 className="sh-h2 mt-3">What I&apos;ve given</h2>{gave.map((n) => <p key={n._id} className="or-entry">{n.text} <span className="sh-muted">· {n.day}</span></p>)}</>}
+        </Card>
+      )}
+
+      {p.signalsSeen.length > 0 && (
+        <Card>
+          <h2 className="sh-h2">Signals seen</h2>
+          {p.signalsSeen.map((s) => (
+            <p key={s.key} className="or-entry">
+              <strong>{nameOf(s.key)}</strong> ×{s.count} <span className="sh-muted">· {s.days.join(", ")}</span>
+              {s.count >= 2 ? <span className="sh-muted"> · a pattern</span> : null}
+              {signalByKey(s.key, sig.list)?.hardLine ? <span className="sh-muted"> · hard line</span> : null}
+            </p>
+          ))}
+          <p className="sh-muted">Their response when told, and the count over time, matter more than any one sighting.</p>
+        </Card>
+      )}
+
+      {p.initiation && (
+        <Card>
+          <h2 className="sh-h2">Who reaches out</h2>
+          <p className="sh-muted">
+            {p.initiation.lastBy ? `Last: ${p.initiation.lastBy === "me" ? "you" : "them"}, ${p.initiation.lastDay}. Of the last ${p.initiation.me + p.initiation.them}: you ${p.initiation.me}, them ${p.initiation.them}.` : "Nothing logged yet. Tap one each time either of you reaches out."}
+          </p>
+          <div className="sh-choices">
+            <Btn variant="secondary" disabled={busy} onClick={() => void run(() => contact({ id: p._id, by: "them" }))}>They reached out</Btn>
+            <Btn variant="secondary" disabled={busy} onClick={() => void run(() => contact({ id: p._id, by: "me" }))}>I reached out</Btn>
+          </div>
+          {p.quietUntil ? (
+            <div className="mt-2">
+              <p><strong>Quiet until {p.quietUntil}.</strong> You don&apos;t initiate. If they reach out, tap &ldquo;They reached out&rdquo; above and the window ends with its answer.</p>
+              {p.quietUntil <= p.today && (
+                <div className="sh-choices">
+                  <Btn disabled={busy} onClick={() => void run(() => quietEnded({ id: p._id, nothing: true }))}>The window passed with nothing</Btn>
+                  <Btn variant="ghost" disabled={busy} onClick={() => void run(() => quietEnded({ id: p._id, nothing: false }))}>End it, no note</Btn>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="mt-2">
+              <p className="sh-muted">The test for never-initiates, takers, and one-sided: do less, and let the app hold the date.</p>
+              <Btn variant="ghost" disabled={busy} onClick={() => void run(() => quiet({ id: p._id, days: 14 }))}>Let it be quiet for two weeks</Btn>
+            </div>
+          )}
         </Card>
       )}
 
@@ -105,10 +155,18 @@ export function Person({ id }: { id: string }) {
         <Field label={NOTE_KINDS.find(([k]) => k === kind)?.[1] ?? ""} hint={NOTE_KINDS.find(([k]) => k === kind)?.[2]}>
           <textarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} />
         </Field>
+        {(kind === "flag") && (
+          <Field label="Which of my signals is this, if any?">
+            <select className="sh-input" value={signal} onChange={(e) => setSignal(e.target.value)}>
+              <option value="">None of them</option>
+              {sig.list.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
+            </select>
+          </Field>
+        )}
         {p.visibility === "shared" && <Toggle checked={shareNote} onChange={setShareNote} label={`Let ${partner?.displayName ?? "your partner"} see this note`} />}
         <CrisisNotice texts={[text]} />
         <ErrorNote error={error} />
-        <Btn disabled={busy || !text.trim()} onClick={() => void run(async () => { await addNote({ personId: p._id, kind, text, shared: shareNote }); setText(""); })}>Add</Btn>
+        <Btn disabled={busy || !text.trim()} onClick={() => void run(async () => { await addNote({ personId: p._id, kind, text, shared: shareNote, signal: kind === "flag" && signal ? signal : undefined }); setText(""); setSignal(""); })}>Add</Btn>
       </Card>
 
       <Card>
