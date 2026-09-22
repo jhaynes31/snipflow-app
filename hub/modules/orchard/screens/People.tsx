@@ -59,7 +59,7 @@ export function People() {
             <Field label="The story I'm already telling myself" hint="Write it down so it stops running in the dark. &ldquo;We&apos;re going to be best friends. She gets me.&rdquo; You&apos;ll re-read it in a month beside the facts.">
               <textarea className="sh-input sh-textarea" rows={3} value={story} onChange={(e) => setStory(e.target.value)} maxLength={1500} />
             </Field>
-            <p className="sh-eyebrow">Pearls I'm holding until it's earned</p>
+            <p className="sh-eyebrow">Pearls I&apos;m holding until it&apos;s earned</p>
             <div className="sh-chips">
               {PEARLS_DEFAULT.map((p) => (
                 <button key={p} type="button" className="sh-chip" aria-pressed={pearls.includes(p)} onClick={() => setPearls((cur) => (cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]))}>{p}</button>
