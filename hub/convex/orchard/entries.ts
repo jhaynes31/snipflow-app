@@ -4,7 +4,7 @@ import type { Doc } from "../_generated/dataModel";
 import { access, cleanText, optionalText, requireMe, requireOwned } from "../lib";
 import { visibilityValidator } from "../privacy";
 import { dayKey } from "../tend/patterns";
-import { addDays, compass, daysBetween, haloRead, LAYERS, moveCheck, safeRead, type CompassAnswers, type SafeAnswer } from "./pure";
+import { addDays, compass, daysBetween, haloRead, LAYERS, moveCheck, safeRead, stayCheckDue, stayRead, type CompassAnswers, type SafeAnswer } from "./pure";
 import { initiationRead, signalByKey, signalsFor, tally, type Signal } from "./signals";
 
 /**
@@ -344,5 +344,113 @@ export const partnersShared = query({
     if (!me.partner) return [];
     const rows = await ctx.db.query("orPeople").withIndex("by_owner", (q) => q.eq("ownerId", me.partner!._id)).collect();
     return rows.filter((p) => p.visibility === "shared").map((p) => ({ _id: p._id, name: p.name, layer: p.layer, layerName: LAYERS[p.layer]?.name ?? "", state: p.state }));
+  },
+});
+
+
+// The lonely hour
+
+export const lonely = query({
+  args: {},
+  handler: async (ctx) => {
+    const me = await requireMe(ctx);
+    const rows = await ctx.db.query("orLonely").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(60);
+    const people = await ctx.db.query("orPeople").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect();
+    const moves = await ctx.db.query("orMoves").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect();
+    const reasonFor = (id: string) => moves.filter((m) => m.personId === id && m.to < m.from).sort((a, b) => b.createdAt - a.createdAt)[0]?.reason ?? null;
+    return {
+      rows,
+      reachable: people.filter((p) => p.state === "growing" && p.layer >= 1 && p.layer <= 3).map((p) => ({ _id: p._id, name: p.name, layer: LAYERS[p.layer].name })),
+      released: people.filter((p) => p.state !== "growing").map((p) => ({ _id: p._id, name: p.name, state: p.state, why: reasonFor(p._id) })),
+    };
+  },
+});
+
+export const logLonely = mutation({
+  args: { choice: v.union(v.literal("smallAsk"), v.literal("place"), v.literal("partner"), v.literal("god"), v.literal("alone"), v.literal("waited"), v.literal("reachedBack")), wanted: v.optional(v.string()), note: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    return await ctx.db.insert("orLonely", { ownerId: me.profile._id, visibility: "private", day: dayKey(Date.now(), me.profile.timeZone), choice: args.choice, wanted: optionalText(args.wanted, 200, "Who I wanted to reach for"), note: optionalText(args.note, 400, "Note"), createdAt: Date.now() });
+  },
+});
+
+// Too long
+
+export const stays = query({
+  args: {},
+  handler: async (ctx) => {
+    const me = await requireMe(ctx);
+    const today = dayKey(Date.now(), me.profile.timeZone);
+    const rows = await ctx.db.query("orStays").withIndex("by_owner", (q) => q.eq("ownerId", me.profile._id)).collect();
+    return {
+      today,
+      stays: rows
+        .map((r) => {
+          const lastCheck = r.checks[r.checks.length - 1]?.day ?? dayKey(r.createdAt, me.profile.timeZone);
+          return { ...r, daysSinceKnew: daysBetween(r.firstKnewDay, today), read: stayRead(daysBetween(r.firstKnewDay, today), r.keepers, r.changeSince), checkDue: r.status === "staying" && stayCheckDue(lastCheck, today) };
+        })
+        .sort((a, b) => Number(a.status !== "staying") - Number(b.status !== "staying") || b.daysSinceKnew - a.daysSinceKnew),
+    };
+  },
+});
+
+export const addStay = mutation({
+  args: { kind: v.union(v.literal("person"), v.literal("place"), v.literal("situation")), label: v.string(), personId: v.optional(v.id("orPeople")), firstKnewDay: v.string(), keepers: v.array(v.string()), changeSince: v.union(v.literal("none"), v.literal("some"), v.literal("real")), cost: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    if (args.personId) await requireOwned(ctx, me, "orPeople", args.personId);
+    const today = dayKey(Date.now(), me.profile.timeZone);
+    return await ctx.db.insert("orStays", {
+      ownerId: me.profile._id,
+      visibility: "private",
+      kind: args.kind,
+      label: cleanText(args.label, 120, "What it is"),
+      personId: args.personId,
+      firstKnewDay: cleanDay(args.firstKnewDay, today),
+      keepers: args.keepers.map((k) => cleanText(k, 80, "A reason")).slice(0, 10),
+      changeSince: args.changeSince,
+      cost: optionalText(args.cost, 400, "What it costs"),
+      status: "staying",
+      checks: [{ day: today, changeSince: args.changeSince }],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const checkStay = mutation({
+  args: { id: v.id("orStays"), changeSince: v.union(v.literal("none"), v.literal("some"), v.literal("real")), note: v.optional(v.string()), keepers: v.optional(v.array(v.string())) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const r = await requireOwned(ctx, me, "orStays", args.id);
+    const today = dayKey(Date.now(), me.profile.timeZone);
+    await ctx.db.patch(r._id, {
+      changeSince: args.changeSince,
+      keepers: args.keepers ? args.keepers.map((k) => cleanText(k, 80, "A reason")).slice(0, 10) : r.keepers,
+      checks: [...r.checks, { day: today, changeSince: args.changeSince, note: optionalText(args.note, 300, "Note") }].slice(-24),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const setStayStatus = mutation({
+  args: { id: v.id("orStays"), status: v.union(v.literal("staying"), v.literal("leaving"), v.literal("left")) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const r = await requireOwned(ctx, me, "orStays", args.id);
+    await ctx.db.patch(r._id, { status: args.status, updatedAt: Date.now() });
+    if (args.status === "left" && r.personId) {
+      const p = await ctx.db.get(r.personId);
+      if (p && p.ownerId === me.profile._id && p.state !== "released") await ctx.db.patch(p._id, { state: "released", updatedAt: Date.now() });
+    }
+  },
+});
+
+export const removeStay = mutation({
+  args: { id: v.id("orStays") },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const r = await requireOwned(ctx, me, "orStays", args.id);
+    await ctx.db.delete(r._id);
   },
 });

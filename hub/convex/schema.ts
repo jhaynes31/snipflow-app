@@ -1085,6 +1085,32 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_person", ["personId"]),
+  /** The lonely hour: what I reached for instead of the old pattern. */
+  orLonely: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    wanted: v.optional(v.string()),
+    choice: v.union(v.literal("smallAsk"), v.literal("place"), v.literal("partner"), v.literal("god"), v.literal("alone"), v.literal("waited"), v.literal("reachedBack")),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+  /** Too long: a person, place or situation I knew was wrong, and how long I've stayed since knowing. */
+  orStays: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    kind: v.union(v.literal("person"), v.literal("place"), v.literal("situation")),
+    label: v.string(),
+    personId: v.optional(v.id("orPeople")),
+    firstKnewDay: v.string(),
+    keepers: v.array(v.string()),
+    changeSince: v.union(v.literal("none"), v.literal("some"), v.literal("real")),
+    cost: v.optional(v.string()),
+    status: v.union(v.literal("staying"), v.literal("leaving"), v.literal("left")),
+    checks: v.array(v.object({ day: v.string(), changeSince: v.union(v.literal("none"), v.literal("some"), v.literal("real")), note: v.optional(v.string()) })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
   orMoves: defineTable({
     ownerId: v.id("profiles"),
     visibility: visibilityValidator,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Footprints, Hourglass, ListChecks, Users, UsersRound } from "lucide-react";
+import { Compass, DoorOpen, Footprints, Hourglass, ListChecks, Moon, Users, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
 import "./orchard.css";
 
@@ -12,6 +12,8 @@ const NAV = [
   { href: `${ROUTE}/slow-trust`, label: "Slow trust", icon: Hourglass },
   { href: `${ROUTE}/signals`, label: "My signals", icon: ListChecks },
   { href: `${ROUTE}/compass`, label: "The Compass", icon: Compass },
+  { href: `${ROUTE}/lonely`, label: "Lonely", icon: Moon },
+  { href: `${ROUTE}/too-long`, label: "Too long", icon: DoorOpen },
   { href: `${ROUTE}/together`, label: "Together", icon: UsersRound },
   { href: `${ROUTE}/ways`, label: "Ways", icon: Footprints },
 ];

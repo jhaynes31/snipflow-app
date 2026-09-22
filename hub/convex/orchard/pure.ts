@@ -250,3 +250,74 @@ export const WAYS = [
   { title: "When it fizzles", lines: ["Most friendships are seasonal. A fizzle is not a verdict on you.", "One more invitation, then let it rest. Resting is a layer, not a failure."] },
   { title: "Keeping your pace", lines: [TRUTH, "Excitement is allowed. Access is earned. Both can be true on the same day."] },
 ];
+
+
+// The lonely hour
+
+export type LonelyChoice = "smallAsk" | "place" | "partner" | "god" | "alone" | "waited" | "reachedBack";
+
+export const LONELY_CHOICE_LABEL: Record<LonelyChoice, string> = {
+  smallAsk: "Made one small ask",
+  place: "Went to a recurring place",
+  partner: "Turned toward my partner",
+  god: "Sat with God",
+  alone: "Did something that fills me, alone",
+  waited: "Waited it out, 24 hours",
+  reachedBack: "Reached for someone I'd released",
+};
+
+export const LONELY_TRUTHS = [
+  "Loneliness is the cost of the inner work and of clearing out what didn't fit. It's a season, not a verdict, and not an emergency.",
+  "The old pattern reaches for whoever is nearest. That's how the same friendships get rebuilt. The lonely hour is exactly when the signals matter most.",
+  "A quiet orchard is still an orchard. Fewer, truer people take years to grow, and the years are already passing either way.",
+  "Being alone with yourself well is the first friendship. It's also the one that makes the others safe.",
+];
+
+export const LONELY_MOVES = [
+  { key: "smallAsk", text: "One small ask to someone in Getting to know or Friend: a day and a time. Not to someone you released." },
+  { key: "place", text: "Go to the recurring place, even if no one talks to you tonight. The third time is when it starts." },
+  { key: "partner", text: "Tell your partner you're lonely, as a fact, not a complaint. Sit on the same couch." },
+  { key: "god", text: "Ten minutes with him, out loud. Lonely is allowed to be the whole prayer." },
+  { key: "alone", text: "The thing that fills you when no one is watching: the walk, the song, the book, the bath." },
+  { key: "waited", text: "Twenty-four hours before reaching for anyone you released. Re-read why you released them first." },
+];
+
+// Too long
+
+export type StayKind = "person" | "place" | "situation";
+export type ChangeSince = "none" | "some" | "real";
+
+export const KEEPERS = [
+  "Hope they'll change",
+  "Guilt, or not wanting to hurt them",
+  "The years already invested",
+  "Fear of being lonely",
+  "Money",
+  "No alternative yet",
+  "\"God wants me to stay\"",
+  "It's familiar",
+  "Waiting for a clean moment to leave",
+  "They need me",
+];
+
+export const KEEPERS_HONEST = new Set(["Hope they'll change", "Guilt, or not wanting to hurt them", "The years already invested", "Fear of being lonely", "It's familiar", "Waiting for a clean moment to leave", "They need me", "\"God wants me to stay\""]);
+
+export type StayCall = "time" | "watch" | "clear";
+
+export function stayRead(daysSinceKnew: number, keepers: string[], change: ChangeSince): { call: StayCall; text: string } {
+  const honest = keepers.filter((k) => KEEPERS_HONEST.has(k)).length;
+  const practical = keepers.length - honest;
+  const months = Math.round(daysSinceKnew / 30);
+  if (change === "real") return { call: "clear", text: `You first knew ${months} ${months === 1 ? "month" : "months"} ago, and real change has come since. That's the case where staying was right. Keep checking; change that holds is the test.` };
+  if (change === "none" && daysSinceKnew >= 90 && honest >= 1) {
+    return { call: "time", text: `You first knew ${months} months ago. Nothing has changed since, and what keeps you is ${keepers.filter((k) => KEEPERS_HONEST.has(k)).map((k) => k.toLowerCase()).join(", ")}. That is the pattern you named: knowing, and staying anyway. The knowing was the answer. It's time.` };
+  }
+  if (change === "none" && practical > 0 && honest === 0) return { call: "watch", text: `Nothing has changed, and what keeps you is practical: ${keepers.map((k) => k.toLowerCase()).join(", ")}. That's a plan problem, not a courage problem. The smallest first step out is the work now.` };
+  if (change === "some") return { call: "watch", text: `Some change since you first knew, ${months} ${months === 1 ? "month" : "months"} ago. Give it a date, not a feeling: check again in thirty days and see if "some" became "real" or slid back to "none."` };
+  return { call: "watch", text: `You first knew ${months} ${months === 1 ? "month" : "months"} ago. Early yet. Name what would need to be different by the next check, and let the date do the deciding.` };
+}
+
+/** Thirty days since the last look is when the Today row asks "still there?" */
+export function stayCheckDue(lastCheckDay: string, today: string): boolean {
+  return daysBetween(lastCheckDay, today) >= 30;
+}

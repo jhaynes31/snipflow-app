@@ -57,6 +57,24 @@ what earn the layers on the Slow trust screen. Gossip and a broken confidence ar
   window passing with nothing files a "never initiates" sighting.
 - **The coach** in The Orchard carries the list by name.
 
+## The lonely hour and Too long (added 2026-09-22)
+
+- **The lonely hour** (`/orchard/lonely`): for the moment loneliness reaches for the nearest
+  person. Shows the people released or resting with the reason from their last move out
+  ("Not these"), the moves that fill instead (a small ask to someone in the right layers,
+  the recurring place, the partner, God, alone, a twenty-four hour wait), a log of what the
+  hour became (`orLonely`), a coach with the situation loaded (`orchard.lonely`), and a
+  season count. Door on home: "I'm lonely."
+- **Too long** (`/orchard/too-long`): a person (from the orchard or not), a place, or a
+  situation the person already knows is wrong; the date they first knew; what keeps them
+  (hope, guilt, the years invested, fear of being lonely, money, no alternative, "God wants
+  me to stay", familiar, waiting for a clean moment, they need me); what has changed since
+  (nothing, some, real); the cost. A plain reading (`stayRead`): "time" when nothing has
+  changed after ninety days and what keeps them is hope, guilt, sunk cost or fear; "watch"
+  otherwise; "clear" when real change came. Every thirty days the Today row asks "still
+  there?" and a check is logged (`orStays.checks`). Leaving or left is a status; "left" on
+  an orchard person releases them. Coach task `orchard.stay`.
+
 ## Rules
 
 - Nothing is enforced; the rule is said. The reason given is the point.

@@ -73,3 +73,23 @@ describe("my signals", () => {
     assert.equal(compass({ ...base, signal: "gossip", hardLine: true, feel: "drained" }).call, "stepBack");
   });
 });
+
+import { stayCheckDue, stayRead } from "../convex/orchard/pure.ts";
+
+describe("too long", () => {
+  it("says it's time when nothing changed and what keeps you is hope, guilt, sunk cost or fear", () => {
+    assert.equal(stayRead(400, ["Hope they'll change", "Fear of being lonely"], "none").call, "time");
+    assert.equal(stayRead(400, ["Money"], "none").call, "watch");
+    assert.equal(stayRead(20, ["Hope they'll change"], "none").call, "watch");
+    assert.equal(stayRead(400, ["Hope they'll change"], "some").call, "watch");
+    assert.equal(stayRead(400, ["Hope they'll change"], "real").call, "clear");
+    assert.match(stayRead(400, ["Guilt, or not wanting to hurt them"], "none").text, /knowing was the answer/);
+  });
+  it("asks again every thirty days", () => {
+    assert.equal(stayCheckDue("2026-08-01", "2026-09-22"), true);
+    assert.equal(stayCheckDue("2026-09-10", "2026-09-22"), false);
+  });
+  it("has the three newest signals", () => {
+    for (const k of ["silentTreatment", "passiveAggressive", "contrarian"]) assert.ok(SIGNALS.some((s) => s.key === k), k);
+  });
+});
