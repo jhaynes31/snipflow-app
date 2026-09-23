@@ -3,6 +3,7 @@ import { internalMutation, internalQuery, mutation, query } from "../_generated/
 import { access, cleanText, requireMe, requireOwned } from "../lib";
 import { roomOwner as reCenteredOwner } from "../reCentered/room";
 import { roomOwnerOf } from "../rooms";
+import { LITTLE_VOICE_NOTES, styleSummary } from "../hearth/pure";
 import { signalsFor } from "../orchard/signals";
 import { readTendSettings } from "../tend/pure";
 import { MANUAL_SECTION_TITLES } from "./titles";
@@ -139,11 +140,21 @@ export const contextFor = internalQuery({
       .filter((b) => !b.retiredAt)
       .slice(0, 20)
       .map((b) => b.newLine);
+    const hhOwner = await roomOwnerOf(ctx, "hearth");
+    const atHearth = hhOwner?.ownerId === me.profile._id;
+    const known = atHearth
+      ? (await ctx.db.query("hhKnow").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(30)).map((k) => `${k.topic}: ${k.title}. ${k.text}`)
+      : [];
+    const hearthStyle = atHearth && row.module === "hearth" ? styleSummary(me.profile.moduleSettings?.hearth) : null;
+    const littleNotes = LITTLE_VOICE_NOTES;
     const mmOwner = await roomOwnerOf(ctx, "metamorphosis");
     const rcOwner = await reCenteredOwner(ctx);
-    const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id };
+    const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id, hearth: atHearth };
     const orchardSignals = row.module === "orchard" ? signalsFor((me.profile.moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown }).map((s) => `${s.name}: tell, ${s.tell} Test, ${s.test} Response, ${s.response}`) : [];
     return {
+      known,
+      hearthStyle,
+      littleNotes,
       orchardSignals,
       lines,
       rooms,

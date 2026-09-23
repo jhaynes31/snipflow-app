@@ -1353,4 +1353,26 @@ export default defineSchema({
     chosenPlace: v.optional(v.string()),
     updatedAt: v.number(),
   }),
+
+  /** What I know (The Hearth): lived wisdom by topic. Private unless she shares one. */
+  hhKnow: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    topic: v.string(),
+    title: v.string(),
+    text: v.string(),
+    ready: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The girl and the teenager (The Hearth): letters and small notes. Always private. */
+  hhLetters: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    who: v.union(v.literal("girl"), v.literal("teen")),
+    kind: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

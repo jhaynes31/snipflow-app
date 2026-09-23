@@ -18,7 +18,7 @@ export interface ToolEntry {
   when: string;
   /** Words people say when this is what they need. */
   words: string[];
-  room?: "metamorphosis" | "re-centered";
+  room?: "metamorphosis" | "re-centered" | "hearth";
 }
 
 const T = (key: string, name: string, place: string, href: string, when: string, words: string[], room?: ToolEntry["room"]): ToolEntry => ({ key, name, place, href, when, words, room });
@@ -133,6 +133,16 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("fitness.open", "Heartwood Fitness", "Heartwood Fitness", "/fitness", "Open the app, press Start, follow along.", ["workout", "exercise", "fitness", "move my body", "walk", "stretch", "pt", "physical therapy"]),
 
   // Metamorphosis (John's room)
+  // The Hearth (the third door in Re-Centered; only for the person who claimed it)
+  T("hh.sit", "Come sit", "The Hearth", "/love-and-release/hearth/mother/sit", "You need mothering, not advice. Nothing to fix.", ["mother", "mom", "mothering", "tucked in", "nurture", "hold me", "held", "sick day", "come sit", "tender"], "hearth"),
+  T("hh.eyes", "In his eyes", "The Hearth", "/love-and-release/hearth/father/eyes", "The mirror got loud, or an old voice about your body did.", ["mirror", "ugly", "my body", "weight", "fat", "appearance", "looks", "too much", "in his eyes"], "hearth"),
+  T("hh.told", "Tell him what happened", "The Hearth", "/love-and-release/hearth/father/told", "Something happened and you need a father on your side.", ["dad", "father", "tell him", "on my side", "protect", "someone hurt me", "they said"], "hearth"),
+  T("hh.askHer", "Ask her", "The Hearth", "/love-and-release/hearth/mother/ask", "A mother's advice: home, marriage, doctors, friends, grief, rest, no.", ["ask mom", "mother's advice", "what would a mother", "life skills", "how do i", "wife", "marriage advice"], "hearth"),
+  T("hh.care", "Her care shelf", "The Hearth", "/love-and-release/hearth/care", "Hair, skin, hygiene, face and style, seated and simple.", ["hair", "curly", "wavy", "frizz", "skin", "pores", "oily", "makeup", "style", "clothes", "shower", "hygiene", "routine"], "hearth"),
+  T("hh.know", "What I know", "The Hearth", "/love-and-release/hearth/know", "Write down the wisdom nobody asked for yet.", ["what i know", "my advice", "wisdom", "lived experience", "nobody listens", "no one asks"], "hearth"),
+  T("hh.girl", "The girl", "The Hearth", "/love-and-release/hearth/girl", "Your five-to-seven-year-old self. Letters, and a parent who speaks to her.", ["inner child", "little girl", "when i was little", "as a kid", "the girl"], "hearth"),
+  T("hh.teen", "The teenager", "The Hearth", "/love-and-release/hearth/teen", "Your twelve-to-sixteen-year-old self. What she was right about.", ["inner teenager", "teenager", "when i was a teen", "as a teenager", "the teen"], "hearth"),
+
   T("mm.mirror", "The Mirror", "Metamorphosis", "/metamorphosis/mirror", "Survival check, and the way back: water first.", ["survival", "survival mode", "braced", "zoomed in", "checked out", "mirror", "water"], "metamorphosis"),
   T("mm.landing", "The Landing", "Metamorphosis", "/metamorphosis/landing", "A safe place to land. Vent first; nothing gets fixed unless you ask.", ["land", "landing", "vent", "safe place", "just listen", "bad day"], "metamorphosis"),
   T("mm.tired", "Do It Tired", "Metamorphosis", "/metamorphosis/tired", "It still needs doing and you're tired. The version that fits tonight.", ["tired", "exhausted", "no motivation", "don't feel like it", "still needs doing", "do it tired"], "metamorphosis"),
@@ -215,6 +225,7 @@ export interface Door {
 
 export const DOORS_HER: Door[] = [
   { label: "Something stung", toolKey: "tend.storyCheck" },
+  { label: "I need mothering", toolKey: "hh.sit" },
   { label: "I'm about to overfunction", toolKey: "rc.pause" },
   { label: "A word wasn't kept", toolKey: "rc.now" },
   { label: "I'm about to say yes when I mean no", toolKey: "lr.fawn" },
@@ -316,6 +327,6 @@ export function coachToolList(entries: ToolEntry[]): string {
 }
 
 /** Tools this person can open: room tools only for the room's owner. */
-export function availableTools(rooms: { metamorphosis: boolean; reCentered: boolean }, entries: ToolEntry[] = TOOL_INDEX): ToolEntry[] {
-  return entries.filter((t) => !t.room || (t.room === "metamorphosis" ? rooms.metamorphosis : rooms.reCentered));
+export function availableTools(rooms: { metamorphosis: boolean; reCentered: boolean; hearth?: boolean }, entries: ToolEntry[] = TOOL_INDEX): ToolEntry[] {
+  return entries.filter((t) => !t.room || (t.room === "metamorphosis" ? rooms.metamorphosis : t.room === "hearth" ? Boolean(rooms.hearth) : rooms.reCentered));
 }

@@ -24,6 +24,7 @@ export function Open() {
   const { profile, partner } = useHub();
   const setModuleSettings = useMutation(api.profiles.setModuleSettings);
   const room = useQuery(api.reCentered.room.status);
+  const hearthRoom = useQuery(api.rooms.status, { moduleId: "hearth" });
   const now = useQuery(api.reCentered.entries.now, room?.state === "mine" ? {} : "skip");
   const { run, error, busy } = useAction();
   const partnerName = partner?.displayName ?? "your partner";
@@ -54,7 +55,7 @@ export function Open() {
     );
   }
 
-  if (!room) return <Spinner />;
+  if (!room || !hearthRoom) return <Spinner />;
   const wordNotKept = now?.wordNotKept ?? null;
   const appHref = loveAndReleaseUrl(who, { plan: Boolean(wordNotKept) });
 
@@ -89,6 +90,20 @@ export function Open() {
             <span className="sh-tile-tagline">
               Whose is this, the pause before rescuing, let it land, where I stand, my own life, my word to me.
               {room.state === "unclaimed" ? " For one person; the first to open it keeps it." : ""}
+            </span>
+          </Link>
+        )}
+        {hearthRoom.state === "theirs" ? (
+          <div className="sh-tile sh-tile-plain" aria-disabled>
+            <span className="sh-tile-name">The Hearth</span>
+            <span className="sh-tile-tagline">This room is {hearthRoom.ownerName}&apos;s.</span>
+          </div>
+        ) : (
+          <Link href="/love-and-release/hearth" className="sh-tile">
+            <span className="sh-tile-name">The Hearth</span>
+            <span className="sh-tile-tagline">
+              A father&apos;s chair and a mother&apos;s table, for the daughter who didn&apos;t get them. Her care shelf, what I know, the girl, the teenager.
+              {hearthRoom.state === "unclaimed" ? " For one person; the first to open it keeps it." : ""}
             </span>
           </Link>
         )}

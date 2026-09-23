@@ -29,7 +29,9 @@ function Talk() {
   const place = params.get("place") ?? "hub";
   const { profile } = useHub();
   const mm = useQuery(api.rooms.status, { moduleId: "metamorphosis" });
+  const hh = useQuery(api.rooms.status, { moduleId: "hearth" });
   if (place === "metamorphosis" && !mm) return <Spinner />;
+  if (place === "hearth" && !hh) return <Spinner />;
 
   let convoModule = "hub";
   let task = "hub.talk";
@@ -50,6 +52,11 @@ function Talk() {
     convoModule = "orchard";
     task = "orchard.compass";
     subtitle = "In The Orchard. The coach knows the slow-trust rule and can help you sort what they've shown from the story.";
+  } else if (place === "hearth" && hh?.state === "mine") {
+    convoModule = "hearth";
+    task = "hearth.mother";
+    title = "At the table";
+    subtitle = "The Hearth. The mother's voice, with the whole Shire's tools in reach.";
   } else if (place === "metamorphosis" && mm?.state === "mine") {
     convoModule = "metamorphosis";
     task = "metamorphosis.mentor";

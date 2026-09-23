@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
-import { buildSystemPrompt, COACH_MODEL, MENTOR_VOICE, taskPromptFor } from "./prompt";
+import { buildSystemPrompt, COACH_MODEL, hearthVoiceFor, MENTOR_VOICE, taskPromptFor } from "./prompt";
 import { availableTools, coachToolList } from "../toolIndex";
 import { crisisReply, detectCrisis, detectReassuranceLoop } from "./safety";
 
@@ -55,6 +55,8 @@ export const send = action({
       loopSuspected: loop,
       wellPath: args.task?.startsWith("well.") ? context.wellPath : null,
       mentor: args.task?.startsWith("metamorphosis.") ? { voice: MENTOR_VOICE, sheet: context.mentorSheet, shelf: context.mentorShelf } : null,
+      hearth: args.task?.startsWith("hearth.") ? { voice: hearthVoiceFor(args.task), known: context.known, style: context.hearthStyle, little: args.task === "hearth.girl" ? context.littleNotes.girl : args.task === "hearth.teen" ? context.littleNotes.teen : null } : null,
+      known: args.task?.startsWith("hearth.") ? [] : context.known,
     });
 
     const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });

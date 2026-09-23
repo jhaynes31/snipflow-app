@@ -10,6 +10,7 @@ import { Card, PageTitle, Spinner } from "@/core/ui";
 export default function PartnerPage() {
   const { partner } = useHub();
   const sections = useQuery(api.manual.partners);
+  const fromTable = useQuery(api.hearth.entries.sharedWithMe);
   if (!partner) {
     return (
       <div className="sh-container sh-narrow">
@@ -18,7 +19,7 @@ export default function PartnerPage() {
       </div>
     );
   }
-  if (!sections) return <Spinner />;
+  if (!sections || !fromTable) return <Spinner />;
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title={`${partner.displayName}'s manual`} subtitle="Only the sections they chose to share. Their private sections don't exist here." />
@@ -38,6 +39,19 @@ export default function PartnerPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+      {fromTable.length > 0 && (
+        <div className="sh-stack" style={{ marginTop: "1.5rem" }}>
+          <h2 className="sh-h2">From {partner.displayName}&apos;s table</h2>
+          <p className="sh-muted">Things {partner.displayName} knows from living them, and chose to hand you.</p>
+          {fromTable.map((k) => (
+            <Card key={k._id}>
+              <p className="sh-eyebrow">{k.topic}</p>
+              <h3 className="sh-h3">{k.title}</h3>
+              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}>{k.text}</p>
+            </Card>
+          ))}
         </div>
       )}
     </div>

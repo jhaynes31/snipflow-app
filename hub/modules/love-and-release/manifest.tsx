@@ -2,6 +2,7 @@
 
 import { Leaf } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
+import { hearth } from "@/modules/hearth/manifest";
 import { reCentered } from "@/modules/re-centered/manifest";
 import { Open } from "./screens/Open";
 
@@ -12,6 +13,8 @@ import { Open } from "./screens/Open";
  * Vite app with its data on the device, served at /love-and-release/app/)
  * and the "{partner}, and me" room kept in The Shire's database
  * (modules/re-centered, module id "re-centered") at /love-and-release/john.
+ * A third door since 2026-09-23: The Hearth (modules/hearth, module id
+ * "hearth") at /love-and-release/hearth.
  */
 export const loveAndRelease: ModuleManifest = {
   id: "love-and-release",
@@ -37,6 +40,10 @@ export const loveAndRelease: ModuleManifest = {
     const [first, ...rest] = path;
     if (first === "john") {
       const Room = reCentered.Screen;
+      return <Room path={rest} />;
+    }
+    if (first === "hearth") {
+      const Room = hearth.Screen;
       return <Room path={rest} />;
     }
     return <Open />;
