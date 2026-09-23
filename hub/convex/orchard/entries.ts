@@ -143,11 +143,14 @@ export const move = mutation({
 // Notes: facts, stories, green, flags, gave, showed up, conflict
 
 export const addNote = mutation({
-  args: { personId: v.id("orPeople"), kind: noteKind, text: v.string(), shared: v.optional(v.boolean()), signal: v.optional(v.string()) },
+  args: { personId: v.id("orPeople"), kind: noteKind, text: v.string(), shared: v.optional(v.boolean()), signal: v.optional(v.string()), signals: v.optional(v.array(v.string())) },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const p = await requireOwned(ctx, me, "orPeople", args.personId);
-    const signal = args.signal && (args.kind === "flag" || args.kind === "conflict") && signalByKey(args.signal, mySignals(me.profile.moduleSettings)) ? args.signal : undefined;
+    const taggable = args.kind === "flag" || args.kind === "conflict";
+    const wanted = [...(args.signal ? [args.signal] : []), ...(args.signals ?? [])];
+    const signals = taggable ? [...new Set(wanted.filter((k) => signalByKey(k, mySignals(me.profile.moduleSettings))))] : [];
+    const signal = signals[0];
     return await ctx.db.insert("orNotes", {
       ownerId: me.profile._id,
       visibility: args.shared && p.visibility === "shared" ? "shared" : "private",
@@ -155,6 +158,7 @@ export const addNote = mutation({
       kind: args.kind,
       text: cleanText(args.text, 500, "The note"),
       signal,
+      signals: signals.length ? signals : undefined,
       day: dayKey(Date.now(), me.profile.timeZone),
       createdAt: Date.now(),
     });
@@ -317,21 +321,26 @@ export const compassCheck = mutation({
     repaired: v.union(v.literal("yes"), v.literal("no"), v.literal("untested")),
     feel: v.union(v.literal("filled"), v.literal("drained"), v.literal("mixed")),
     signal: v.optional(v.string()),
+    signals: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const p = await requireOwned(ctx, me, "orPeople", args.personId);
-    const { personId: _p, what, signal: signalKey, ...rest } = args;
+    const { personId: _p, what, signal: signalKey, signals: signalKeys, ...rest } = args;
     void _p;
-    const sig = signalKey ? signalByKey(signalKey, mySignals(me.profile.moduleSettings)) : undefined;
-    const prior = sig ? (await ctx.db.query("orNotes").withIndex("by_person", (q) => q.eq("personId", p._id)).collect()).filter((n) => n.signal === sig.key).length : 0;
-    const a: CompassAnswers = { ...rest, signal: sig?.key, priorSightings: prior, hardLine: sig?.hardLine };
+    const custom = mySignals(me.profile.moduleSettings);
+    const sigs = [...new Set([...(signalKey ? [signalKey] : []), ...(signalKeys ?? [])])].map((k) => signalByKey(k, custom)).filter((x): x is NonNullable<typeof x> => Boolean(x));
+    const sig = sigs[0];
+    const notes = sigs.length ? await ctx.db.query("orNotes").withIndex("by_person", (q) => q.eq("personId", p._id)).collect() : [];
+    // The most-seen of the signals named sets the count; any hard line among them is a hard line.
+    const prior = sigs.length ? Math.max(...sigs.map((s) => notes.filter((n) => n.signal === s.key || n.signals?.includes(s.key)).length)) : 0;
+    const a: CompassAnswers = { ...rest, signal: sig?.key, priorSightings: prior, hardLine: sigs.some((s) => s.hardLine) };
     const result = compass(a);
     const suggestedLayer = Math.max(0, p.layer - result.moveOut);
     const cleaned = cleanText(what, 600, "What happened");
     await ctx.db.insert("orChecks", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "compass", answers: { what: cleaned, ...a }, read: result.call, createdAt: Date.now() });
-    await ctx.db.insert("orNotes", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "conflict", text: cleaned, signal: sig?.key, day: dayKey(Date.now(), me.profile.timeZone), createdAt: Date.now() });
-    return { ...result, suggestedLayer, currentLayer: p.layer, signalName: sig?.name ?? null, priorSightings: prior };
+    await ctx.db.insert("orNotes", { ownerId: me.profile._id, visibility: "private", personId: p._id, kind: "conflict", text: cleaned, signal: sig?.key, signals: sigs.length ? sigs.map((s) => s.key) : undefined, day: dayKey(Date.now(), me.profile.timeZone), createdAt: Date.now() });
+    return { ...result, suggestedLayer, currentLayer: p.layer, signalName: sigs.length ? sigs.map((s) => s.name).join(", ") : null, priorSightings: prior };
   },
 });
 

@@ -620,6 +620,8 @@ export default defineSchema({
     dueDay: v.optional(v.string()),
     status: v.union(v.literal("open"), v.literal("kept"), v.literal("notYet"), v.literal("didnt"), v.literal("renegotiated")),
     reason: v.optional(v.union(v.literal("forgot"), v.literal("overcommitted"), v.literal("avoided"), v.literal("changedMind"), v.literal("outsideControl"))),
+    /** Several things can get in the way at once; `reason` keeps the first for older readers. */
+    reasons: v.optional(v.array(v.union(v.literal("forgot"), v.literal("overcommitted"), v.literal("avoided"), v.literal("changedMind"), v.literal("outsideControl")))),
     whatNow: v.optional(v.union(v.literal("smaller"), v.literal("notHappening"), v.literal("askedHelp"))),
     note: v.optional(v.string()),
     /** Set on a renegotiated word: the new word that replaced it. */
@@ -1003,6 +1005,8 @@ export default defineSchema({
     isNecessary: v.union(v.literal("yes"), v.literal("partly"), v.literal("no")),
     friendSays: v.optional(v.string()),
     beliefId: v.optional(v.id("rmBeliefs")),
+    /** Several truer lines can answer one thought. */
+    beliefIds: v.optional(v.array(v.id("rmBeliefs"))),
     createdAt: v.number(),
   }).index("by_owner", ["ownerId", "createdAt"]),
   rmEvidence: defineTable({
@@ -1069,6 +1073,8 @@ export default defineSchema({
     text: v.string(),
     /** Which of my signals this sighting is (orchard/signals.ts key), for flags and conflicts. */
     signal: v.optional(v.string()),
+    /** Several signals can show in one moment. */
+    signals: v.optional(v.array(v.string())),
     day: v.string(),
     createdAt: v.number(),
   })

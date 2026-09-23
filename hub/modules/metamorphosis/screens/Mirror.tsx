@@ -59,9 +59,12 @@ function WayBack() {
 function MirrorForm() {
   const mirror = useMutation(api.metamorphosis.entries.mirror);
   const { busy, error, run } = useAction();
-  const [feeling, setFeeling] = useState<string | null>(null);
-  const [under, setUnder] = useState<string | null>(null);
-  const [body, setBody] = useState<string | null>(null);
+  // Several can be true at once; each list is saved as one line.
+  const [feelings, setFeelings] = useState<string[]>([]);
+  const [unders, setUnders] = useState<string[]>([]);
+  const [bodies, setBodies] = useState<string[]>([]);
+  const flip = (set: React.Dispatch<React.SetStateAction<string[]>>) => (w: string) => set((cur) => (cur.includes(w) ? cur.filter((x) => x !== w) : [...cur, w]));
+  const feeling = feelings.length ? feelings.join(", ") : null;
   const [want, setWant] = useState("");
   const [saved, setSaved] = useState(false);
   if (saved) {
@@ -80,7 +83,7 @@ function MirrorForm() {
           <span className="sh-eyebrow">{g.group}</span>
           <div className="mm-feelings">
             {g.words.map((w) => (
-              <button key={w} type="button" className="sh-chip" aria-pressed={feeling === w} style={feeling === w ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => setFeeling(w)}>{w}</button>
+              <button key={w} type="button" className="sh-chip" aria-pressed={feelings.includes(w)} style={feelings.includes(w) ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => flip(setFeelings)(w)}>{w}</button>
             ))}
           </div>
         </div>
@@ -90,13 +93,13 @@ function MirrorForm() {
           <p className="sh-label mt-3">What&apos;s under it?</p>
           <div className="mm-feelings">
             {UNDER.map((u) => (
-              <button key={u} type="button" className="sh-chip" aria-pressed={under === u} style={under === u ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => setUnder(u)}>{u}</button>
+              <button key={u} type="button" className="sh-chip" aria-pressed={unders.includes(u)} style={unders.includes(u) ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => flip(setUnders)(u)}>{u}</button>
             ))}
           </div>
           <p className="sh-label mt-3">Body</p>
           <div className="mm-feelings">
             {BODY.map((b) => (
-              <button key={b} type="button" className="sh-chip" aria-pressed={body === b} style={body === b ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => setBody(b)}>{b}</button>
+              <button key={b} type="button" className="sh-chip" aria-pressed={bodies.includes(b)} style={bodies.includes(b) ? { background: "var(--tile-accent)", color: "var(--tile-on-accent)" } : undefined} onClick={() => flip(setBodies)(b)}>{b}</button>
             ))}
           </div>
           <Field label="What do I want right now?" hint="Anything. Small counts. 'Nothing' is an answer too, and worth noticing.">
@@ -106,7 +109,7 @@ function MirrorForm() {
         </>
       )}
       <ErrorNote error={error} />
-      <Btn big disabled={busy || !feeling} onClick={() => void run(async () => { await mirror({ survival: false, feeling: feeling!, under: under ?? undefined, body: body ?? undefined, want: want || undefined }); setSaved(true); })}>
+      <Btn big disabled={busy || !feeling} onClick={() => void run(async () => { await mirror({ survival: false, feeling: feeling!, under: unders.length ? unders.join(", ") : undefined, body: bodies.length ? bodies.join(", ") : undefined, want: want || undefined }); setSaved(true); })}>
         That&apos;s where I am
       </Btn>
     </Card>

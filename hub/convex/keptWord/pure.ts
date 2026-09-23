@@ -64,6 +64,7 @@ export interface WordLike {
   dueDay?: string;
   status: WordStatus;
   reason?: Reason;
+  reasons?: Reason[];
   whatNow?: WhatNow;
   note?: string;
   createdAt: number;
@@ -91,6 +92,7 @@ export interface WeekLine {
   status: WordStatus;
   dueDay?: string;
   reason?: Reason;
+  reasons?: Reason[];
   whatNow?: WhatNow;
   note?: string;
 }
@@ -111,7 +113,7 @@ export function buildWeeks(words: WordLike[], dayOf: (ms: number) => string): We
   for (const w of words) {
     const key = weekOf(w, dayOf);
     const list = byWeek.get(key) ?? [];
-    list.push({ giverId: w.ownerId, text: w.text, status: w.status, dueDay: w.dueDay, reason: w.reason, whatNow: w.whatNow, note: w.note });
+    list.push({ giverId: w.ownerId, text: w.text, status: w.status, dueDay: w.dueDay, reason: w.reason, reasons: w.reasons, whatNow: w.whatNow, note: w.note });
     byWeek.set(key, list);
   }
   const sortKey = (l: WeekLine) => l.dueDay ?? "9999";
@@ -129,7 +131,8 @@ export function describeLine(l: WeekLine, giverName: string): string {
   let out = `${giverName}: ${l.text}`;
   if (l.dueDay) out += ` (by ${l.dueDay})`;
   out += `. ${STATUS_LABEL[l.status]}`;
-  if (l.status === "didnt" && l.reason) out += `: ${REASON_LABEL[l.reason].toLowerCase()}`;
+  const reasons = l.reasons?.length ? l.reasons : l.reason ? [l.reason] : [];
+  if (l.status === "didnt" && reasons.length) out += `: ${reasons.map((r) => REASON_LABEL[r].toLowerCase()).join(", ")}`;
   if (l.whatNow) out += `. Then: ${WHAT_NOW_LABEL[l.whatNow].toLowerCase()}`;
   if (l.note) out += `. ${l.note}`;
   return out + ".";

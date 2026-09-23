@@ -156,10 +156,11 @@ export const captures = query({
 });
 
 export const capture = mutation({
-  args: { thought: v.string(), feeling: v.optional(v.string()), isTrue: check, isKind: check, isNecessary: check, friendSays: v.optional(v.string()), beliefId: v.optional(v.id("rmBeliefs")) },
+  args: { thought: v.string(), feeling: v.optional(v.string()), isTrue: check, isKind: check, isNecessary: check, friendSays: v.optional(v.string()), beliefId: v.optional(v.id("rmBeliefs")), beliefIds: v.optional(v.array(v.id("rmBeliefs"))) },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
-    if (args.beliefId) await requireOwned(ctx, me, "rmBeliefs", args.beliefId);
+    const ids = [...new Set([...(args.beliefId ? [args.beliefId] : []), ...(args.beliefIds ?? [])])];
+    for (const id of ids) await requireOwned(ctx, me, "rmBeliefs", id);
     return await ctx.db.insert("rmCaptures", {
       ownerId: me.profile._id,
       visibility: "private",
@@ -169,7 +170,8 @@ export const capture = mutation({
       isKind: args.isKind,
       isNecessary: args.isNecessary,
       friendSays: optionalText(args.friendSays, 400, "What a friend would say"),
-      beliefId: args.beliefId,
+      beliefId: ids[0],
+      beliefIds: ids.length ? ids : undefined,
       createdAt: Date.now(),
     });
   },

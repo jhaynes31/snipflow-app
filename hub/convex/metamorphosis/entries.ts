@@ -65,9 +65,9 @@ export const mirror = mutation({
       visibility: "private",
       day: dayKey(Date.now(), me.profile.timeZone),
       survival: args.survival,
-      feeling: optionalText(args.feeling, 60, "Feeling"),
+      feeling: optionalText(args.feeling, 300, "Feeling"),
       under: optionalText(args.under, 200, "What's under it"),
-      body: optionalText(args.body, 60, "Body"),
+      body: optionalText(args.body, 300, "Body"),
       want: optionalText(args.want, 300, "What I want"),
       createdAt: Date.now(),
     });

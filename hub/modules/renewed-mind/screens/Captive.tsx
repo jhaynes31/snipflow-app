@@ -25,11 +25,12 @@ export function Captive() {
   const [feeling, setFeeling] = useState("");
   const [checks, setChecks] = useState<{ isTrue: Check | null; isKind: Check | null; isNecessary: Check | null }>({ isTrue: null, isKind: null, isNecessary: null });
   const [friendSays, setFriendSays] = useState("");
-  const [beliefId, setBeliefId] = useState<Id<"rmBeliefs"> | "">("");
+  const [beliefIds, setBeliefIds] = useState<Id<"rmBeliefs">[]>([]);
   const [done, setDone] = useState<string | null>(null);
   if (!beliefs || !recent) return <Spinner />;
   const active = beliefs.filter((b) => !b.retiredAt);
-  const chosen = active.find((b) => b._id === beliefId) ?? null;
+  const chosenAll = active.filter((b) => beliefIds.includes(b._id));
+  const chosen = chosenAll[0] ?? null;
   const ready = thought.trim() && checks.isTrue && checks.isKind && checks.isNecessary;
 
   if (done) {
@@ -38,7 +39,7 @@ export function Captive() {
         <PageTitle title="Captured" />
         <Card>
           <p className="rm-old">{done}</p>
-          {chosen ? <p className="rm-new">{chosen.newLine}</p> : <p className="sh-muted">No truer line matched yet. <Link href={`/renewed-mind/beliefs?old=${encodeURIComponent(done)}`} className="sh-link">Write one</Link> when you&apos;re steady.</p>}
+          {chosenAll.length ? chosenAll.map((b) => <p key={b._id} className="rm-new">{b.newLine}</p>) : <p className="sh-muted">No truer line matched yet. <Link href={`/renewed-mind/beliefs?old=${encodeURIComponent(done)}`} className="sh-link">Write one</Link> when you&apos;re steady.</p>}
           <div className="sh-choices mt-3">
             <Btn onClick={() => { setDone(null); setThought(""); setFeeling(""); setChecks({ isTrue: null, isKind: null, isNecessary: null }); setFriendSays(""); }}>Another</Btn>
             <LinkBtn href="/renewed-mind" variant="secondary">Rehearse</LinkBtn>
@@ -78,21 +79,22 @@ export function Captive() {
           <textarea className="sh-input sh-textarea" rows={2} value={friendSays} onChange={(e) => setFriendSays(e.target.value)} maxLength={400} />
         </Field>
         {active.length > 0 && (
-          <Field label="The truer line that answers it" hint="From your Put Off, Put On list. Say it out loud.">
-            <select className="sh-input" value={beliefId} onChange={(e) => setBeliefId(e.target.value as Id<"rmBeliefs"> | "")}>
-              <option value="">None of these</option>
-              {active.map((b) => <option key={b._id} value={b._id}>{b.newLine}</option>)}
-            </select>
-          </Field>
+          <>
+            <p className="sh-eyebrow mt-2">The truer lines that answer it</p>
+            <p className="sh-muted">From your Put Off, Put On list. More than one can be true. Say them out loud.</p>
+            <div className="sh-chips">
+              {active.map((b) => <button key={b._id} type="button" className="sh-chip" aria-pressed={beliefIds.includes(b._id)} onClick={() => setBeliefIds((cur) => (cur.includes(b._id) ? cur.filter((x) => x !== b._id) : [...cur, b._id]))}>{b.newLine}</button>)}
+            </div>
+          </>
         )}
-        {chosen && <p className="rm-new">{chosen.newLine}</p>}
+        {chosenAll.map((b) => <p key={b._id} className="rm-new">{b.newLine}</p>)}
         <CrisisNotice texts={[thought, feeling, friendSays]} />
         <ErrorNote error={error} />
         <Btn
           disabled={busy || !ready}
           onClick={() =>
             void run(async () => {
-              await capture({ thought, feeling: feeling || undefined, isTrue: checks.isTrue!, isKind: checks.isKind!, isNecessary: checks.isNecessary!, friendSays: friendSays || undefined, beliefId: beliefId || undefined });
+              await capture({ thought, feeling: feeling || undefined, isTrue: checks.isTrue!, isKind: checks.isKind!, isNecessary: checks.isNecessary!, friendSays: friendSays || undefined, beliefIds: beliefIds.length ? beliefIds : undefined });
               setDone(thought);
             })
           }

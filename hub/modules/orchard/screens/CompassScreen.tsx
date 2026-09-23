@@ -40,7 +40,7 @@ function Inner() {
   const [expect, setExpect] = useState<Expect | null>(null);
   const [repaired, setRepaired] = useState<Repaired | null>(null);
   const [feel, setFeel] = useState<Feel | null>(null);
-  const [signal, setSignal] = useState("");
+  const [signals, setSignals] = useState<string[]>([]);
   const [result, setResult] = useState<{ call: CompassCall; why: string[]; script: string | null; suggestedLayer: number; currentLayer: number; signalName: string | null; priorSightings: number } | null>(null);
   const [talk, setTalk] = useState(false);
   if (!data || !sig) return <Spinner />;
@@ -105,12 +105,12 @@ function Inner() {
           <Field label="What happened" hint="Just the facts a camera would record.">
             <textarea className="sh-input sh-textarea" rows={2} value={what} onChange={(e) => setWhat(e.target.value)} maxLength={600} />
           </Field>
-          <Field label="Which of my signals is this, if any?">
-            <select className="sh-input" value={signal} onChange={(e) => setSignal(e.target.value)}>
-              <option value="">None of them, or not sure</option>
-              {sig.list.map((s) => <option key={s.key} value={s.key}>{s.name}{s.hardLine ? " (hard line)" : ""}</option>)}
-            </select>
-          </Field>
+          <div className="or-entry">
+            <p>Which of my signals is this? Pick every one that fits, or none.</p>
+            <div className="sh-chips">
+              {sig.list.map((s) => <button key={s.key} type="button" className="sh-chip" aria-pressed={signals.includes(s.key)} onClick={() => setSignals((cur) => (cur.includes(s.key) ? cur.filter((x) => x !== s.key) : [...cur, s.key]))}>{s.name}{s.hardLine ? " (hard line)" : ""}</button>)}
+            </div>
+          </div>
           {choice("Is this the first time, or a pattern?", [["first", "First time"], ["second", "Second time"], ["pattern", "A pattern"]], times, setTimes)}
           {choice("Have you told them, out loud, that this matters to you?", [["yes", "Yes"], ["no", "No, or not clearly"]], said, setSaid)}
           {choice("Does it touch your safety: body, money, home, marriage, confidences?", [["yes", "Yes"], ["no", "No"]], safety === null ? null : safety ? "yes" : "no", (v) => setSafety(v === "yes"))}
@@ -119,7 +119,7 @@ function Inner() {
           {choice("After time with them lately, you feel…", [["filled", "Filled"], ["mixed", "Mixed"], ["drained", "Drained"]], feel, setFeel)}
           <CrisisNotice texts={[what]} />
           <ErrorNote error={error} />
-          <Btn className="mt-2" disabled={busy || !ready} onClick={() => void run(async () => { const r = await check({ personId: person!._id, what, times: times!, said: said!, safety: safety!, expect: expect!, repaired: repaired!, feel: feel!, signal: signal || undefined }); setResult(r); })}>Which way?</Btn>
+          <Btn className="mt-2" disabled={busy || !ready} onClick={() => void run(async () => { const r = await check({ personId: person!._id, what, times: times!, said: said!, safety: safety!, expect: expect!, repaired: repaired!, feel: feel!, signals: signals.length ? signals : undefined }); setResult(r); })}>Which way?</Btn>
         </Card>
       )}
       <Note>

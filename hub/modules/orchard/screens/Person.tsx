@@ -40,7 +40,7 @@ export function Person({ id }: { id: string }) {
   const [kind, setKind] = useState<NoteKind>("fact");
   const [text, setText] = useState("");
   const [shareNote, setShareNote] = useState(false);
-  const [signal, setSignal] = useState("");
+  const [signals, setSignals] = useState<string[]>([]);
   const [panel, setPanel] = useState<"none" | "move" | "halo" | "safe" | "story">("none");
   const [to, setTo] = useState<number | null>(null);
   const [reason, setReason] = useState("");
@@ -99,7 +99,7 @@ export function Person({ id }: { id: string }) {
       {(stories.length > 0 || flags.length > 0 || gave.length > 0) && (
         <Card tone="alt">
           {stories.length > 0 && <><h2 className="sh-h2">Stories I&apos;ve caught myself telling</h2>{stories.map((n) => <p key={n._id} className="or-entry or-story">{n.text} <span className="sh-muted">· {n.day}</span></p>)}</>}
-          {flags.length > 0 && <><h2 className="sh-h2 mt-3">Watch notes</h2>{flags.map((n) => <p key={n._id} className="or-entry">{n.kind === "conflict" ? "Conflict: " : ""}{n.text} <span className="sh-muted">· {n.day}{n.signal ? ` · ${nameOf(n.signal)}` : ""}</span></p>)}</>}
+          {flags.length > 0 && <><h2 className="sh-h2 mt-3">Watch notes</h2>{flags.map((n) => <p key={n._id} className="or-entry">{n.kind === "conflict" ? "Conflict: " : ""}{n.text} <span className="sh-muted">· {n.day}{(n.signals?.length ? n.signals : n.signal ? [n.signal] : []).map((k) => ` · ${nameOf(k)}`).join("")}</span></p>)}</>}
           {gave.length > 0 && <><h2 className="sh-h2 mt-3">What I&apos;ve given</h2>{gave.map((n) => <p key={n._id} className="or-entry">{n.text} <span className="sh-muted">· {n.day}</span></p>)}</>}
         </Card>
       )}
@@ -156,17 +156,17 @@ export function Person({ id }: { id: string }) {
           <textarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} />
         </Field>
         {(kind === "flag") && (
-          <Field label="Which of my signals is this, if any?">
-            <select className="sh-input" value={signal} onChange={(e) => setSignal(e.target.value)}>
-              <option value="">None of them</option>
-              {sig.list.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
-            </select>
-          </Field>
+          <>
+            <p className="sh-eyebrow">Which of my signals is this? Pick every one that fits.</p>
+            <div className="sh-chips">
+              {sig.list.map((s) => <button key={s.key} type="button" className="sh-chip" aria-pressed={signals.includes(s.key)} onClick={() => setSignals((cur) => (cur.includes(s.key) ? cur.filter((x) => x !== s.key) : [...cur, s.key]))}>{s.name}</button>)}
+            </div>
+          </>
         )}
         {p.visibility === "shared" && <Toggle checked={shareNote} onChange={setShareNote} label={`Let ${partner?.displayName ?? "your partner"} see this note`} />}
         <CrisisNotice texts={[text]} />
         <ErrorNote error={error} />
-        <Btn disabled={busy || !text.trim()} onClick={() => void run(async () => { await addNote({ personId: p._id, kind, text, shared: shareNote, signal: kind === "flag" && signal ? signal : undefined }); setText(""); setSignal(""); })}>Add</Btn>
+        <Btn disabled={busy || !text.trim()} onClick={() => void run(async () => { await addNote({ personId: p._id, kind, text, shared: shareNote, signals: kind === "flag" && signals.length ? signals : undefined }); setText(""); setSignals([]); })}>Add</Btn>
       </Card>
 
       <Card>

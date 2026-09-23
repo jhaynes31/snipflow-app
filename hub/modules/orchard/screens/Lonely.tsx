@@ -24,7 +24,7 @@ export function Lonely() {
   const log = useMutation(api.orchard.entries.logLonely);
   const { busy, error, run } = useAction();
   const [wanted, setWanted] = useState("");
-  const [chosen, setChosen] = useState<LonelyChoice | null>(null);
+  const [chosen, setChosen] = useState<LonelyChoice[]>([]);
   const [talk, setTalk] = useState(false);
   const [day] = useState(() => new Date().toISOString().slice(0, 10));
   const [now] = useState(() => Date.now());
@@ -71,16 +71,16 @@ export function Lonely() {
         </Field>
         <div className="sh-chips">
           {(Object.keys(LONELY_CHOICE_LABEL) as LonelyChoice[]).map((c) => (
-            <button key={c} type="button" className="sh-chip" aria-pressed={chosen === c} onClick={() => setChosen(c)}>{LONELY_CHOICE_LABEL[c]}</button>
+            <button key={c} type="button" className="sh-chip" aria-pressed={chosen.includes(c)} onClick={() => setChosen((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]))}>{LONELY_CHOICE_LABEL[c]}</button>
           ))}
         </div>
         <CrisisNotice texts={[wanted]} />
         <ErrorNote error={error} />
         <div className="sh-choices mt-2">
-          <Btn disabled={busy || !chosen} onClick={() => void run(async () => { await log({ choice: chosen!, wanted: wanted || undefined }); setChosen(null); setWanted(""); })}>Log it</Btn>
+          <Btn disabled={busy || chosen.length === 0} onClick={() => void run(async () => { for (const c of chosen) await log({ choice: c, wanted: wanted || undefined }); setChosen([]); setWanted(""); })}>Log it</Btn>
           <Btn variant="secondary" onClick={() => setTalk((v) => !v)}>{talk ? "Close the coach" : "Talk it through"}</Btn>
         </div>
-        {chosen === "reachedBack" && <p className="sh-muted mt-2">Logged honestly is still a win. Tomorrow, re-read why you released them.</p>}
+        {chosen.includes("reachedBack") && <p className="sh-muted mt-2">Logged honestly is still a win. Tomorrow, re-read why you released them.</p>}
       </Card>
 
       {talk && <CoachChat module="orchard" task="orchard.lonely" opening={`It's a lonely hour. ${wanted ? `I want to reach for: ${wanted}.` : ""} People I've released, with why: ${data.released.map((p) => `${p.name}${p.why ? ` (${p.why})` : ""}`).join("; ") || "none"}. People in the right layers to make a small ask: ${data.reachable.map((p) => p.name).join(", ") || "none yet"}.`} placeholder="Say what tonight feels like." />}

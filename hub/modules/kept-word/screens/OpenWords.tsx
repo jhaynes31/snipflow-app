@@ -150,7 +150,7 @@ function MyWord({ w, today }: { w: Doc<"kwWords">; today: string }) {
   const sendToEveryBox = useMutation(api.keptWord.words.sendToEveryBox);
   const { busy, error, run } = useAction();
   const [mode, setMode] = useState<"idle" | "didnt" | "renegotiate">("idle");
-  const [reason, setReason] = useState<Reason | null>(null);
+  const [reasons, setReasons] = useState<Reason[]>([]);
   const [whatNow, setWhatNow] = useState<WhatNow | null>(null);
   const [note, setNote] = useState("");
   const [smallerText, setSmallerText] = useState("");
@@ -208,7 +208,7 @@ function MyWord({ w, today }: { w: Doc<"kwWords">; today: string }) {
           <p className="sh-label">What got in the way?</p>
           <div className="sh-choices">
             {(Object.keys(REASON_LABEL) as Reason[]).map((r) => (
-              <Btn key={r} variant={reason === r ? "primary" : "secondary"} onClick={() => setReason(r)}>{REASON_LABEL[r]}</Btn>
+              <Btn key={r} variant={reasons.includes(r) ? "primary" : "secondary"} onClick={() => setReasons((cur) => (cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r]))}>{REASON_LABEL[r]}</Btn>
             ))}
           </div>
           <p className="sh-label">What now? There isn&apos;t a fourth option.</p>
@@ -233,10 +233,10 @@ function MyWord({ w, today }: { w: Doc<"kwWords">; today: string }) {
           </Field>
           <div className="sh-row sh-wrap">
             <Btn
-              disabled={busy || !reason || !whatNow || (whatNow === "smaller" && !smallerText.trim())}
+              disabled={busy || !reasons.length || !whatNow || (whatNow === "smaller" && !smallerText.trim())}
               onClick={() =>
                 void run(async () => {
-                  await close({ id: w._id, outcome: "didnt", reason: reason!, whatNow: whatNow!, note: note || undefined, smaller: whatNow === "smaller" ? { text: smallerText, dueDay: smallerDay || undefined } : undefined });
+                  await close({ id: w._id, outcome: "didnt", reasons, whatNow: whatNow!, note: note || undefined, smaller: whatNow === "smaller" ? { text: smallerText, dueDay: smallerDay || undefined } : undefined });
                   setDone(whatNow === "smaller" ? "On the record, and the smaller word is open." : "On the record.");
                 })
               }

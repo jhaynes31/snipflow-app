@@ -59,11 +59,11 @@ export function signalsFor(settings: { off?: unknown; custom?: unknown } | undef
 }
 
 /** Sightings per signal on one person, newest day last. */
-export function tally(notes: { signal?: string; day: string }[]): { key: string; count: number; days: string[] }[] {
+export function tally(notes: { signal?: string; signals?: string[]; day: string }[]): { key: string; count: number; days: string[] }[] {
   const by = new Map<string, string[]>();
   for (const n of notes) {
-    if (!n.signal) continue;
-    by.set(n.signal, [...(by.get(n.signal) ?? []), n.day]);
+    const keys = new Set([...(n.signal ? [n.signal] : []), ...(n.signals ?? [])]);
+    for (const k of keys) by.set(k, [...(by.get(k) ?? []), n.day]);
   }
   return [...by.entries()].map(([key, days]) => ({ key, count: days.length, days: days.sort() })).sort((a, b) => b.count - a.count);
 }

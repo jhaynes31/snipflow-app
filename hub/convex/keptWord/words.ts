@@ -133,6 +133,7 @@ export const close = mutation({
     id: v.id("kwWords"),
     outcome: v.union(v.literal("kept"), v.literal("notYet"), v.literal("didnt")),
     reason: v.optional(reason),
+    reasons: v.optional(v.array(reason)),
     whatNow: v.optional(whatNow),
     note: v.optional(v.string()),
     /** For "say it again, smaller": the new word. */
@@ -154,7 +155,8 @@ export const close = mutation({
       await notifyPartner(ctx, me, { title: `${who(me)} kept a word`, body: word.text, url: "/kept-word/kept", tag: `word-${word._id}` });
       return null;
     }
-    if (!args.reason || !args.whatNow) throw new ConvexError("Say what got in the way, and what now. Those are the two honest parts.");
+    const reasons = args.reasons?.length ? args.reasons : args.reason ? [args.reason] : [];
+    if (reasons.length === 0 || !args.whatNow) throw new ConvexError("Say what got in the way, and what now. Those are the two honest parts.");
     let replacedBy: Id<"kwWords"> | undefined;
     if (args.whatNow === "smaller") {
       if (!args.smaller?.text.trim()) throw new ConvexError("Write the smaller word.");
@@ -170,7 +172,7 @@ export const close = mutation({
         createdAt: now,
       });
     }
-    await ctx.db.patch(word._id, { status: "didnt", reason: args.reason, whatNow: args.whatNow, note, closedAt: now, replacedBy });
+    await ctx.db.patch(word._id, { status: "didnt", reason: reasons[0], reasons, whatNow: args.whatNow, note, closedAt: now, replacedBy });
     await emitEvent(ctx, {
       ownerId: me.profile._id,
       source: "kept-word",
