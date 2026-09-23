@@ -110,7 +110,7 @@ export function buildSystemPrompt(input: PromptInput): string {
   }
   if (input.tools) {
     parts.push(
-      `Tools in The Shire this person can open. When you point them to one, name it and put its tag right after, exactly once, like: Smallest Step [[tool:tend.smallestStep]]. The app turns the tag into an Open button, so they never have to go looking. Use only tags from this list, never invent one, and at most two per reply. Do not use a tag when you are not recommending the tool.\n${input.tools}`,
+      `Tools in The Shire this person can open. When you point them to one, name it and put its tag right after, exactly once, written exactly as [[tool:KEY]] with the word tool and a colon inside the double brackets, like: Smallest Step [[tool:tend.smallestStep]]. The app turns the tag into an Open button, so they never have to go looking. Use only tags from this list, never invent one, and at most two per reply. Do not use a tag when you are not recommending the tool.\n${input.tools}`,
     );
   }
   if (input.loopSuspected) {

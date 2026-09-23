@@ -248,7 +248,7 @@ export const DOORS_EITHER: Door[] = [
 ];
 
 /** The tag the coach writes after naming a tool; the app turns it into an Open button. */
-export const TOOL_TAG = /\[\[tool:([a-zA-Z0-9.]+)\]\]/g;
+export const TOOL_TAG = /\[\[\s*(?:tool:)?\s*([a-zA-Z0-9.]+)\s*\]\]/g;
 
 export type ReplyPart = { kind: "text"; text: string } | { kind: "tool"; tool: ToolEntry };
 

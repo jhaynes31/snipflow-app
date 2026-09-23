@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { CoachReply } from "@/core/coach/CoachChat";
 import { useHub } from "@/core/shell/HubContext";
+import { useTools } from "@/core/tools/useTools";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, LinkBtn, Spinner, timeAgo, useAction } from "@/core/ui";
 import { ToolFrame } from "./ToolFrame";
@@ -83,6 +85,7 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
   const { partner } = useHub();
   const row = useQuery(api.coach.conversations.get, { id });
   const send = useConvexAction(api.coach.chat.send);
+  const tools = useTools();
   const remove = useMutation(api.coach.conversations.remove);
   const { busy, error, run } = useAction();
   const [draft, setDraft] = useState("");
@@ -136,7 +139,7 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
           )}
           {row.messages.map((m, i) => (
             <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
-              {m.content}
+              {m.role === "user" ? m.content : <CoachReply text={m.content} href={tools ? tools.href : null} />}
             </div>
           ))}
           {pending && (

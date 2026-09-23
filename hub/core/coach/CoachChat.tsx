@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { splitReply } from "@/convex/toolIndex";
+import { splitReply, type ToolEntry } from "@/convex/toolIndex";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useTools } from "@/core/tools/useTools";
 import { Btn, Card, ErrorNote, useAction } from "@/core/ui";
@@ -124,7 +124,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
 }
 
 /** A coach reply, with each [[tool:key]] tag turned into an Open button. */
-function CoachReply({ text, href }: { text: string; href: ((t: ReturnType<typeof splitReply>[number] extends infer P ? (P extends { kind: "tool"; tool: infer T } ? T : never) : never) => string) | null }) {
+export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry) => string) | null }) {
   const parts = splitReply(text);
   return (
     <>

@@ -45,6 +45,9 @@ describe("the tool index", () => {
     assert.equal(parts[1].kind === "tool" && parts[1].tool.name, "Smallest Step");
     assert.ok(!parts.some((p) => p.kind === "text" && p.text.includes("[[")));
     assert.deepEqual(splitReply("Plain words only."), [{ kind: "text", text: "Plain words only." }]);
+    const loose = splitReply("Remembering [[well.remembering]] for the whisper, or Evidence Bank [[ tool: tend.evidenceBank ]] for the rest, and [[nothing.here]] too.");
+    assert.deepEqual(loose.filter((p) => p.kind === "tool").map((p) => p.kind === "tool" && p.tool.key), ["well.remembering", "tend.evidenceBank"]);
+    assert.ok(!loose.some((p) => p.kind === "text" && p.text.includes("[[")));
   });
   it("gives the coach a compact list", () => {
     const list = coachToolList(availableTools({ metamorphosis: false, reCentered: false }));
