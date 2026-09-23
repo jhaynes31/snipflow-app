@@ -17,4 +17,5 @@ export const MODULE_NAMES: Record<string, string> = {
   "love-and-release": "Re-Centered", // renamed by Jen 2026-09-19; id and route unchanged
   "renewed-mind": "Renewed Mind",
   orchard: "The Orchard",
+  apothecary: "The Apothecary",
 };

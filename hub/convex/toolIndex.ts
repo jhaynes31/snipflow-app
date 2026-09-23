@@ -68,6 +68,12 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("orchard.together", "Together", "The Orchard", "/orchard/together", "Mutual friends: what each of you chose to share.", ["mutual friend", "what do you think of", "our friends"]),
   T("orchard.ways", "Ways", "The Orchard", "/orchard/ways", "Small moves that build a friendship.", ["how to make friends", "build friendship", "invite", "host", "follow up", "no friends", "lonely"]),
 
+  // The Apothecary
+  T("apothecary.ask", "Ask about my body", "The Apothecary", "/apothecary", "Swelling, pain, dizziness, a rash: a straight answer, what to try, and what that place tends to hold.", ["body", "symptom", "symptoms", "swelling", "pain", "hurts", "dizzy", "rash", "calf", "leg", "headache", "stomach", "flare", "pots", "mcas", "eds", "hypermobile", "herb", "tincture", "supplement", "what's wrong with me"]),
+  T("apothecary.now", "Is this a now thing?", "The Apothecary", "/apothecary/now", "The signs that mean 911 or today. If it's not on the page, it isn't a now thing.", ["am i dying", "emergency", "er", "911", "urgent", "chest pain", "can't breathe", "red flag", "should i go to the hospital"]),
+  T("apothecary.log", "The daily line", "The Apothecary", "/apothecary/log", "Thirty seconds: what was true today, so the patterns can show.", ["log symptoms", "track", "tracking", "daily line", "what i ate", "slept badly"]),
+  T("apothecary.where", "Where to go", "The Apothecary", "/apothecary/where", "Low-cost and free care: clinics, urgent care self-pay, medications, counseling, bill help.", ["free clinic", "low cost doctor", "can't afford", "no insurance", "sliding scale", "cheap medication", "hospital bill", "where to go", "healthcare"]),
+
   // Kept Word
   T("keptWord.words", "Open words", "Kept Word", "/kept-word", "Give your word, or close one: kept, not yet, didn't.", ["my word", "promise", "said i would", "follow through", "commit", "i'll do it", "didn't do"]),
   T("keptWord.asks", "Asks", "Kept Word", "/kept-word/asks", "Ask for something, and answer an ask.", ["ask", "request", "need something", "asked him", "asked her"]),
@@ -214,6 +220,7 @@ export const DOORS_HER: Door[] = [
   { label: "I'm about to say yes when I mean no", toolKey: "lr.fawn" },
   { label: "My brain won't stop looping", toolKey: "tend.loopBreaker" },
   { label: "An old lie is running me", toolKey: "rm.captive" },
+  { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "I'm lonely", toolKey: "orchard.lonely" },
   { label: "We need to repair", toolKey: "tend.repair" },
@@ -230,6 +237,7 @@ export const DOORS_JOHN: Door[] = [
   { label: "I said I would", toolKey: "keptWord.words" },
   { label: "An old lie is running me", toolKey: "rm.captive" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
+  { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I'm lonely", toolKey: "orchard.lonely" },
   { label: "Something stung", toolKey: "tend.storyCheck" },
   { label: "We need to repair", toolKey: "tend.repair" },

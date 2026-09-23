@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as apothecary_entries from "../apothecary/entries.js";
 import type * as auth from "../auth.js";
 import type * as calendar from "../calendar.js";
 import type * as checkIns from "../checkIns.js";
@@ -88,6 +89,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "apothecary/entries": typeof apothecary_entries;
   auth: typeof auth;
   calendar: typeof calendar;
   checkIns: typeof checkIns;

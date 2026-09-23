@@ -42,6 +42,10 @@ function Talk() {
     convoModule = "re-centered";
     task = "reCentered.talk";
     subtitle = "In Re-Centered. The coach knows whose-is-this, the pause before rescuing, the fawn alarm, and the rest, and can open one for you.";
+  } else if (place === "apothecary") {
+    convoModule = "apothecary";
+    task = "apothecary.ask";
+    subtitle = "In The Apothecary. Describe what's going on in your body; the answer comes in six parts, and says 'a person, today' only when it's true.";
   } else if (place === "orchard") {
     convoModule = "orchard";
     task = "orchard.compass";

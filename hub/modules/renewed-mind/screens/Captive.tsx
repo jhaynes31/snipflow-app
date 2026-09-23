@@ -30,7 +30,6 @@ export function Captive() {
   if (!beliefs || !recent) return <Spinner />;
   const active = beliefs.filter((b) => !b.retiredAt);
   const chosenAll = active.filter((b) => beliefIds.includes(b._id));
-  const chosen = chosenAll[0] ?? null;
   const ready = thought.trim() && checks.isTrue && checks.isKind && checks.isNecessary;
 
   if (done) {

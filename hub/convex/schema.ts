@@ -1129,6 +1129,44 @@ export default defineSchema({
     .index("by_owner", ["ownerId"])
     .index("by_person", ["personId"]),
 
+  // ---------------------------------------------------------------------
+  // The Apothecary (module id "apothecary"): body questions, the daily
+  // line, patterns, the cabinet. Private to each person; nothing here is
+  // ever shared. See docs/apothecary-spec.md.
+  // ---------------------------------------------------------------------
+  apEntries: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    area: v.string(),
+    side: v.union(v.literal("left"), v.literal("right"), v.literal("both"), v.literal("n/a")),
+    qualities: v.array(v.string()),
+    severity: v.number(),
+    onset: v.optional(v.string()),
+    duration: v.optional(v.string()),
+    text: v.string(),
+    tried: v.optional(v.string()),
+    helped: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+  apDays: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    factors: v.array(v.string()),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_day", ["ownerId", "day"]),
+  apCabinet: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    kind: v.union(v.literal("herb"), v.literal("tincture"), v.literal("supplement"), v.literal("topical"), v.literal("tool"), v.literal("medication")),
+    forWhat: v.optional(v.string()),
+    amount: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
   /**
    * Devices a person turned notifications on for: the browser's push
    * endpoint and keys, nothing else. See convex/push/subscriptions.ts.
