@@ -261,22 +261,44 @@ export const TOOL_TAG = /\[\[\s*(?:tool:)?\s*([a-zA-Z0-9.]+)\s*\]\]/g;
 export type ReplyPart = { kind: "text"; text: string } | { kind: "tool"; tool: ToolEntry };
 
 /** Splits a coach reply into text and tool buttons. Unknown tags are dropped. */
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The coach tends to write the tool's name right before its tag ("Release journal
+ * [[tool:lr.release]]"), and the button already shows the name, so the words would
+ * appear twice. Drop the name (and an opening bracket or "the") from the text before
+ * the tag, and a dangling dash, comma or closing bracket from the text after it.
+ */
+function trimAroundTag(before: string, after: string, tool: ToolEntry | undefined): [string, string] {
+  let b = before;
+  let a = after;
+  if (tool) {
+    const dup = new RegExp(`(?:\\b(?:the|your|to)\\s+)?${escapeRe(tool.name)}\\s*[(:,]?\\s*$`, "i");
+    b = b.replace(dup, (m) => (m.trimEnd().endsWith("(") ? "" : m.match(/[:,]\s*$/) ? m.match(/[:,]\s*$/)![0] : ""));
+  }
+  a = a.replace(/^\s*[)\]]?\s*[\u2014\u2013-]?\s*[,;:]?\s*/, " ");
+  return [b, a];
+}
+
 export function splitReply(text: string, entries: ToolEntry[] = TOOL_INDEX): ReplyPart[] {
   const parts: ReplyPart[] = [];
   let last = 0;
   const seen = new Set<string>();
-  for (const m of text.matchAll(TOOL_TAG)) {
-    const before = text.slice(last, m.index);
-    if (before.trim()) parts.push({ kind: "text", text: before.replace(/\s+$/, "") });
+  const matches = [...text.matchAll(TOOL_TAG)];
+  matches.forEach((m, i) => {
     const tool = entries.find((t) => t.key === m[1]);
+    const end = (m.index ?? 0) + m[0].length;
+    const nextStart = matches[i + 1]?.index ?? text.length;
+    const [before, after] = trimAroundTag(text.slice(last, m.index), text.slice(end, nextStart), tool && !seen.has(tool.key) ? tool : undefined);
+    if (before.trim()) parts.push({ kind: "text", text: before.replace(/\s+$/, "") });
     if (tool && !seen.has(tool.key)) {
       parts.push({ kind: "tool", tool });
       seen.add(tool.key);
     }
-    last = (m.index ?? 0) + m[0].length;
-  }
-  const tail = text.slice(last);
-  if (tail.trim()) parts.push({ kind: "text", text: tail.replace(/^\s+/, "") });
+    if (after.trim()) parts.push({ kind: "text", text: after.replace(/^\s+/, "") });
+    last = nextStart;
+  });
+  if (!matches.length && text.trim()) parts.push({ kind: "text", text: text.trim() });
   // Dropped or repeated tags leave text on both sides; join it back into one piece.
   const merged: ReplyPart[] = [];
   for (const p of parts) {

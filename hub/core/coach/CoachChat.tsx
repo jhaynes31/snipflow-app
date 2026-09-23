@@ -134,9 +134,9 @@ export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry)
         ) : (
           <span key={i} className="tend-tool-open">
             {href && p.tool.href.includes("/app/") ? (
-              <a href={href(p.tool)} className="sh-btn sh-btn-secondary">Open {p.tool.name}</a>
+              <a href={href(p.tool)} className="sh-btn sh-btn-secondary sh-btn-inline">{p.tool.name} →</a>
             ) : (
-              <Link href={href ? href(p.tool) : p.tool.href} className="sh-btn sh-btn-secondary">Open {p.tool.name}</Link>
+              <Link href={href ? href(p.tool) : p.tool.href} className="sh-btn sh-btn-secondary sh-btn-inline">{p.tool.name} →</Link>
             )}
           </span>
         ),
