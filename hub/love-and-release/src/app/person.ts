@@ -17,6 +17,8 @@ export const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 export const SHIRE_PAGE = '/love-and-release'
 /** The "partner, and me" room, kept in The Shire. */
 export const SHIRE_ROOM = '/love-and-release/john'
+/** The Shire's coach, told it is being opened from Re-Centered. */
+export const SHIRE_COACH = '/talk?place=love-and-release'
 
 export function getPerson(): Person {
   try { return localStorage.getItem(KEY) === 'john' ? 'john' : 'her' } catch { return 'her' }

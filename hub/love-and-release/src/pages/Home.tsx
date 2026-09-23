@@ -14,7 +14,7 @@ import { useDailyValue } from '@/pages/UnhookedMe'
 import { useTodayDaily } from '@/pages/Daily'
 import { DOORS, GREETINGS } from '@/data/companion'
 import { usePaceDue } from '@/lib/pacing'
-import { SHIRE_ROOM, getPerson, planReady } from '@/app/person'
+import { SHIRE_COACH, SHIRE_ROOM, getPerson, planReady } from '@/app/person'
 
 const LAST_KEY = 'lr:last-opened'
 
@@ -85,6 +85,9 @@ export function Home() {
               <i aria-hidden="true">🏡</i>This is about John<span>Whose is this, the pause before rescuing, where I stand.</span>
             </a>
           )}
+          <a href={SHIRE_COACH} className="door door-gold" style={{ color: 'inherit' }}>
+            <i aria-hidden="true">💬</i>Talk it through<span>The Shire's coach, knowing you came from here.</span>
+          </a>
         </div>
 
         {paceDue && <Speak tone="gold">It's been {paceDue.days} days with {paceDue.name}. Want a quick look at what they've shown so far? <Link to={`/pace/${paceDue.id}`}>Let's look</Link></Speak>}
