@@ -36,7 +36,7 @@ export const addSort = mutation({
     return await ctx.db.insert("rcSorts", {
       ownerId: me.profile._id,
       visibility: "private",
-      text: cleanText(args.text, 500, "What landed"),
+      text: cleanText(args.text, 500, "What got handed to you"),
       whose: args.whose,
       myPart: optionalText(args.myPart, 500, "My part"),
       theirPart: optionalText(args.theirPart, 500, "Their part"),

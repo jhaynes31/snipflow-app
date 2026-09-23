@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { SORTING_QUESTIONS, WHOSE_LABEL, type Whose as WhoseKind } from "@/convex/reCentered/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
+import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
 
 const ORDER: WhoseKind[] = ["mine", "theirs", "ours", "notMine", "unsure"];
@@ -57,13 +58,15 @@ export function Whose() {
   const [myPart, setMyPart] = useState("");
   const [theirPart, setTheirPart] = useState("");
   const [saved, setSaved] = useState(false);
+  const { partner } = useHub();
+  const partnerName = partner?.displayName ?? "My partner";
 
   return (
     <div className="sh-container sh-narrow">
-      <PageTitle title="Whose is this?" subtitle="Something landed on you. Before you carry it, check whose it is. A piece each is a real answer, and so is not knowing yet." />
+      <PageTitle title="Whose is this?" subtitle="Someone handed you a problem, a feeling or a job, and you can feel yourself picking it up. Before you carry it, check whose it actually is. A piece each is a real answer, and so is not knowing yet." />
       <Card>
-        <Field label="What landed, in one line">
-          <input className="sh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} />
+        <Field label="What got handed to you?" hint="The thing you are about to pick up: a request, a mood, a mess, a worry. A few words is enough.">
+          <input className="sh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={`${partnerName} is upset and I feel like I have to fix it`} />
         </Field>
         <CrisisNotice texts={[text, myPart, theirPart]} />
         <p className="sh-label">Whose is it?</p>
