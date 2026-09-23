@@ -1,5 +1,5 @@
 import { EXERCISE_MAP } from '@/data/exercises';
-import { FIVE_MINUTE_MAIN_COUNT, SESSION_ORDER_WEEK_EVEN, SESSION_ORDER_WEEK_ODD, TEMPLATES } from '@/data/templates';
+import { FIVE_MINUTE_MAIN_COUNT, MAINTAIN_DROP_INDEX, SESSION_ORDER_WEEK_EVEN, SESSION_ORDER_WEEK_ODD, TEMPLATES } from '@/data/templates';
 import { daysBetween } from './dates';
 import { findSafeAlternative, isAllowed, type SafetyContext } from './safety';
 import type {
@@ -37,7 +37,7 @@ export function buildProgramSequence(weeks: number, maintain = false, startIndex
   let idx = startIndex;
   for (let w = startWeek; w < startWeek + weeks; w++) {
     const order = w % 2 === 1 ? SESSION_ORDER_WEEK_ODD : SESSION_ORDER_WEEK_EVEN;
-    const list = maintain ? order.filter((_, i) => i !== 4) : order; // maintain: drop the third strength day
+    const list = maintain ? order.filter((_, i) => i !== MAINTAIN_DROP_INDEX) : order; // maintain: drop the second strength day
     for (const templateId of list) {
       out.push({ sequenceIndex: idx++, templateId, weekNumber: w, phase: phaseForWeek(w, maintain), isRecoveryWeek: isRecoveryWeek(w, maintain) });
     }
@@ -73,6 +73,8 @@ export function doseFor(phase: Phase, opts: { recovery?: boolean; comeback?: boo
     case 'maintain': d = { sets: 2, repsLow: 8, repsHigh: 12, holdMultiplier: 1, restSeconds: 60 }; break;
   }
   if (opts.category === 'pt') d = { ...d, sets: Math.min(d.sets, 2), restSeconds: 30 };
+  // Therapy sessions are one slow pass, never volume: one set, short rests, holds as written.
+  if (opts.category === 'somatic' || opts.category === 'fascia' || opts.category === 'pelvic' || opts.category === 'mobility') d = { ...d, sets: 1, restSeconds: 15, holdMultiplier: 1 };
   if (opts.category === 'warmup' || opts.category === 'cooldown') d = { ...d, sets: 1, restSeconds: 10 };
   // Recovery week: volume down ~40%.
   if (opts.recovery) d = { ...d, sets: Math.max(1, Math.round(d.sets * 0.6)), repsHigh: d.repsLow, holdMultiplier: d.holdMultiplier * 0.7 };

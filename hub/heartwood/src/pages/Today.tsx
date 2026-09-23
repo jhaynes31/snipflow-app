@@ -4,6 +4,7 @@ import { TEMPLATES } from '@/data/templates';
 import { CoachBubble } from '@/components/CoachBubble';
 import { Button, Card, Callout } from '@/components/ui';
 import { dailyWord, messageText, pickMessage } from '@/coach/messages';
+import { guideForTemplate } from '@/data/guides';
 import { USER_MAP, setActiveUserId } from '@/db/users';
 import { SHIRE_FITNESS, readSignals } from '@/app/handoff';
 import { db } from '@/db/db';
@@ -57,9 +58,10 @@ export function TodayPage() {
     nav(`/session/${s.id}`);
   };
 
+  const lead = next ? guideForTemplate(next.templateId).id : 'coach';
   const preMsg = state.gap !== 'none'
     ? pickMessage({ moment: 'comeback', tone: cs.tone, faithTrack: cs.faithTrack, vars })
-    : pickMessage({ moment: 'pre-session', tone: cs.tone, faithTrack: cs.faithTrack, vars });
+    : (pickMessage({ moment: 'pre-session', tone: cs.tone, faithTrack: cs.faithTrack, speaker: lead, vars }) ?? pickMessage({ moment: 'pre-session', tone: cs.tone, faithTrack: cs.faithTrack, vars }));
 
   return (
     <div className="page stack fade-in">
@@ -96,7 +98,7 @@ export function TodayPage() {
           <div className="py-2">
             <Button variant="start" onClick={() => start(false)} disabled={starting}>{state.inProgress ? 'Continue' : 'Start'}</Button>
           </div>
-          {preMsg && <CoachBubble speaker={preMsg.speaker === 'pt' ? 'pt' : 'coach'} text={preMsg.text} settings={cs} />}
+          {preMsg && <CoachBubble speaker={preMsg.speaker === 'any' ? lead : preMsg.speaker} text={preMsg.text} settings={cs} />}
         </Card>
       ) : (
         <Card><p>Your program is complete. Head to Settings to start a new block.</p></Card>

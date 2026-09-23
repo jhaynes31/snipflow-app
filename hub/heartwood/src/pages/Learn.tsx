@@ -8,13 +8,15 @@ import { db } from '@/db/db';
 import type { MuscleRegion } from '@/domain/types';
 import { REGION_MAP } from '@/learn/bodymap';
 import { LESSONS } from '@/learn/lessons';
+import { GUIDES, SHARED_TRAINING } from '@/data/guides';
+import { TEMPLATES } from '@/data/templates';
 
 /** Learning layer (Section 12): body map + micro-lessons. Self-paced, optional. */
 export function LearnPage() {
   const unlocked = useLiveQuery(() => db.lessons.toArray(), []) ?? [];
   const logs = useLiveQuery(() => db.setLogs.toArray(), []) ?? [];
   const [region, setRegion] = useState<MuscleRegion | null>(null);
-  const [tab, setTab] = useState<'body' | 'lessons'>('body');
+  const [tab, setTab] = useState<'body' | 'lessons' | 'guides'>('body');
   const [open, setOpen] = useState<string | null>(null);
 
   const intensity = useMemo(() => {
@@ -36,7 +38,7 @@ export function LearnPage() {
   return (
     <div className="page stack fade-in">
       <h1>Learn</h1>
-      <div className="flex gap-2"><Chip active={tab === 'body'} onClick={() => setTab('body')}>Body map</Chip><Chip active={tab === 'lessons'} onClick={() => setTab('lessons')}>Lessons ({unlockedIds.size}/{LESSONS.length})</Chip></div>
+      <div className="flex gap-2"><Chip active={tab === 'body'} onClick={() => setTab('body')}>Body map</Chip><Chip active={tab === 'lessons'} onClick={() => setTab('lessons')}>Lessons ({unlockedIds.size}/{LESSONS.length})</Chip><Chip active={tab === 'guides'} onClick={() => setTab('guides')}>Your guides</Chip></div>
       {tab === 'body' && (
         <div className="stack">
           <p className="muted">Tap a region. Areas glow as you train them.</p>
@@ -50,6 +52,23 @@ export function LearnPage() {
               {trainedBy.length > 0 && <p className="text-sm"><strong>Your exercises:</strong> {trainedBy.map((e, i) => <span key={e.id}>{i > 0 && ', '}<Link to={`/exercise/${e.id}`} className="underline">{e.name}</Link></span>)}</p>}
             </Card>
           )}
+        </div>
+      )}
+      {tab === 'guides' && (
+        <div className="stack">
+          <p className="muted">Six people speak in Heartwood. Each one leads a day of the week, and every one of them has been trained on how trauma, AuDHD, hypermobility, POTS and MCAS shape the body, the mind and the joints.</p>
+          {GUIDES.map((g) => (
+            <Card key={g.id} className="stack-sm">
+              <h2>{g.name} <span className="muted text-sm font-normal">· {g.role}</span></h2>
+              <p className="text-sm muted">Leads: {g.leads.map((t) => TEMPLATES[t].name).join(', ')}</p>
+              <p>{g.approach}</p>
+              <ul className="text-sm list-disc pl-5 stack-sm">{g.knows.map((k, i) => <li key={i}>{k}</li>)}</ul>
+            </Card>
+          ))}
+          <Card className="stack-sm">
+            <h2>What all of them know</h2>
+            <ul className="text-sm list-disc pl-5 stack-sm">{SHARED_TRAINING.map((k, i) => <li key={i}>{k}</li>)}</ul>
+          </Card>
         </div>
       )}
       {tab === 'lessons' && (

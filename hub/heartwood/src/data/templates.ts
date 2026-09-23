@@ -39,11 +39,41 @@ export const TEMPLATES: Record<SessionType, SessionTemplate> = {
     ],
   },
   ptMobility: {
-    id: 'ptMobility', name: 'PT: Full-Body Mobility', shortName: 'Mobility', estimatedMinutes: 15,
+    // The Mobility Therapist's session (renamed 2026-09-23; the id stays for saved plans).
+    // Joint by joint, neck to ankle, with the ankle and knee PT folded in, so the whole body
+    // gets controlled range every week. For hypermobile joints: control, not stretch.
+    id: 'ptMobility', name: 'Mobility Therapist', shortName: 'Mobility', estimatedMinutes: 20,
     blocks: [
-      { kind: 'warmup', exerciseIds: ['mob-pelvic-tilts'] },
-      { kind: 'main', exerciseIds: ['wu-cat-cow', 'cd-open-book', 'cd-hip-flexor-block', 'mob-shoulder-band-circles', 'pt-knee-to-wall'] },
+      { kind: 'warmup', exerciseIds: ['mob-pelvic-tilts', 'wu-cat-cow'] },
+      { kind: 'main', exerciseIds: ['mob-neck-cars', 'mob-shoulder-cars', 'mob-thoracic-rotation', 'mob-hip-cars', 'mob-90-90', 'pt-knee-to-wall', 'pt-ankle-4way', 'mob-ankle-cars', 'pt-tke'] },
+      { kind: 'cooldown', exerciseIds: ['cd-open-book', 'cd-breathing'] },
+    ],
+  },
+  somatic: {
+    // Somatic Movement: the nervous system first. Slow, felt from the inside, every step optional.
+    id: 'somatic', name: 'Somatic Movement', shortName: 'Somatic', estimatedMinutes: 20,
+    blocks: [
+      { kind: 'warmup', exerciseIds: ['som-orient', 'som-ground-feet'] },
+      { kind: 'main', exerciseIds: ['som-360-breath', 'som-pandiculate', 'som-arch-flatten', 'som-spinal-wave', 'som-side-reach', 'som-hip-rock', 'som-shake', 'som-eye-neck'] },
+      { kind: 'cooldown', exerciseIds: ['som-self-hold'] },
+    ],
+  },
+  fascia: {
+    // Fascia Release: feet to jaw, light pressure, slow. Hands or a ball; never grinding.
+    id: 'fascia', name: 'Fascia Release', shortName: 'Fascia', estimatedMinutes: 18,
+    blocks: [
+      { kind: 'warmup', exerciseIds: ['som-360-breath'] },
+      { kind: 'main', exerciseIds: ['fas-foot-roll', 'fas-calf-strip', 'fas-shin-glide', 'fas-thigh-glide', 'fas-hamstring-glide', 'fas-glute-ball', 'fas-hip-flexor-pin', 'fas-thoracic-roll', 'fas-pec-doorway', 'fas-forearm-glide', 'fas-suboccipital', 'fas-jaw-release'] },
       { kind: 'cooldown', exerciseIds: ['cd-breathing'] },
+    ],
+  },
+  pelvicFloor: {
+    // Pelvic Floor: relax first, coordinate second, strengthen last. Consent to every step.
+    id: 'pelvicFloor', name: 'Pelvic Floor', shortName: 'Pelvic floor', estimatedMinutes: 14,
+    blocks: [
+      { kind: 'warmup', exerciseIds: ['pel-360-breath'] },
+      { kind: 'main', exerciseIds: ['pel-drop', 'pel-happy-baby', 'pel-adductor-rock', 'pel-childs-pose-breath', 'pel-hip-circles', 'pel-deep-squat-breath', 'pel-elevator', 'pel-bridge-exhale'] },
+      { kind: 'cooldown', exerciseIds: ['pel-sidelying-breath'] },
     ],
   },
   freestyle: {
@@ -53,8 +83,16 @@ export const TEMPLATES: Record<SessionType, SessionTemplate> = {
   },
 };
 
-export const SESSION_ORDER_WEEK_ODD: SessionType[] = ['strengthA', 'ptAnkles', 'strengthB', 'ptKneesHips', 'strengthA', 'ptMobility'];
-export const SESSION_ORDER_WEEK_EVEN: SessionType[] = ['strengthB', 'ptAnkles', 'strengthA', 'ptKneesHips', 'strengthB', 'ptMobility'];
+/**
+ * The week, six training days (2026-09-23, at Jen's direction): two strength days,
+ * and the four therapy days every week: Somatic Movement, Fascia Release, the Mobility
+ * Therapist (with the ankle and knee PT folded in), and Pelvic Floor. Strength A and B
+ * lead alternate weeks. The whole body is addressed across the six.
+ */
+export const SESSION_ORDER_WEEK_ODD: SessionType[] = ['strengthA', 'somatic', 'strengthB', 'fascia', 'ptMobility', 'pelvicFloor'];
+export const SESSION_ORDER_WEEK_EVEN: SessionType[] = ['strengthB', 'somatic', 'strengthA', 'fascia', 'ptMobility', 'pelvicFloor'];
+/** Index in the week's order that maintain mode drops (the second strength day). */
+export const MAINTAIN_DROP_INDEX = 2;
 
 /** Which exercises to keep for the 5-minute version (one from warm-up, 3 main, one cool-down). */
 export const FIVE_MINUTE_MAIN_COUNT = 3;

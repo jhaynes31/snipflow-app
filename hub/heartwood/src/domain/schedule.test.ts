@@ -81,11 +81,12 @@ describe('sequencing and missed sessions (Section 8.5)', () => {
     expect(remaining).toEqual(['2026-09-18', '2026-09-19', '2026-09-21', '2026-09-22']);
     expect(new Set(remaining).size).toBe(4);
   });
-  it('A/B alternation: A/B/A one week, B/A/B the next', () => {
+  it('A/B alternation: A then B one week, B then A the next, four therapy days every week', () => {
     const seq = buildProgramSequence(2);
     const strength = seq.filter((s) => s.templateId.startsWith('strength')).map((s) => s.templateId);
-    expect(strength).toEqual(['strengthA', 'strengthB', 'strengthA', 'strengthB', 'strengthA', 'strengthB']);
-    expect(seq.map((s) => s.templateId).slice(0, 6)).toEqual(['strengthA', 'ptAnkles', 'strengthB', 'ptKneesHips', 'strengthA', 'ptMobility']);
+    expect(strength).toEqual(['strengthA', 'strengthB', 'strengthB', 'strengthA']);
+    expect(seq.map((s) => s.templateId).slice(0, 6)).toEqual(['strengthA', 'somatic', 'strengthB', 'fascia', 'ptMobility', 'pelvicFloor']);
+    expect(seq.map((s) => s.templateId).slice(6, 12)).toEqual(['strengthB', 'somatic', 'strengthA', 'fascia', 'ptMobility', 'pelvicFloor']);
   });
   it('phases: foundation weeks 1-4, build after, recovery every 5th build week', () => {
     expect(phaseForWeek(1, false)).toBe('foundation');

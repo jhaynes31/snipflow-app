@@ -51,7 +51,7 @@ describe('program service', () => {
     expect(done.newLessons).toContain('welcome-body');
     expect(done.decisions.some((d) => d.decision.kind === 'progress' || d.decision.kind === 'building')).toBe(true);
     const t2 = await getTodayState(database, MON);
-    expect(t2.next?.templateId).toBe('ptAnkles');
+    expect(t2.next?.templateId).toBe('somatic');
     expect(t2.next?.scheduledDate).toBe('2026-09-15');
   });
 
@@ -86,7 +86,7 @@ describe('program service', () => {
     // Missed Tue, Wed, Thu. Today is Friday.
     const fri = '2026-09-18';
     const tf = await getTodayState(database, fri);
-    expect(tf.next?.templateId).toBe('ptAnkles');
+    expect(tf.next?.templateId).toBe('somatic');
     expect(tf.next?.sequenceIndex).toBe(1);
     expect(tf.next?.scheduledDate).toBe(fri);
     const pending = (await database.sessions.where('status').equals('planned').toArray()).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
@@ -101,7 +101,7 @@ describe('program service', () => {
     await setSabbathForWeek(MON, 'sat', database, MON);
     const pending = (await database.sessions.where('status').equals('planned').toArray()).sort((a, b) => a.sequenceIndex - b.sequenceIndex);
     expect(pending.slice(0, 6).map((p) => p.scheduledDate)).toEqual(['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-20']);
-    expect(pending[5].templateId).toBe('ptMobility');
+    expect(pending[5].templateId).toBe('pelvicFloor');
     const t = await getTodayState(database, '2026-09-19');
     expect(t.isSabbath).toBe(true);
     expect(t.sabbathThisWeek).toBe('sat');

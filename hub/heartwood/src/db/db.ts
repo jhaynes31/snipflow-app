@@ -69,7 +69,7 @@ export function defaultProfile(now = new Date().toISOString(), userId: UserId | 
       neckIssues: false, balanceIssues: false, ankleHistory: false, leftKneeInjury: false, rightKneeInjury: false,
       painAreas: [], tightnessAreas: [], pastInjuryAreas: [], notes: '',
     },
-    ptPlan: { restrictions: [], customExerciseIds: [], notes: '', scheduleInto: ['ptKneesHips'] },
+    ptPlan: { restrictions: [], customExerciseIds: [], notes: '', scheduleInto: ['ptMobility'] },
     why: {},
     coachSettings: { tone: 'gentle', critique: 'light', voice: 'cues', faithTrack: true, coachDesign: her ? 'willow' : 'oak', ptDesign: her ? 'fern' : 'river' },
     themeMode: 'system',

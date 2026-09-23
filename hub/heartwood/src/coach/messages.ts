@@ -8,7 +8,7 @@ import type { CoachTone } from '@/domain/types';
 
 export type Moment = 'pre-session' | 'mid-set' | 'post-session' | 'milestone' | 'comeback' | 'quit' | 'rest' | 'sabbath' | 'form' | 'gap-why' | 'word' | 'small' | 'freestyle';
 export type Theme = 'perfectionism' | 'overthinking' | 'shame' | 'small-steps' | 'scripture' | 'rest' | 'identity';
-export type Speaker = 'coach' | 'pt';
+export type Speaker = 'coach' | 'pt' | 'somatic' | 'fascia' | 'pelvic' | 'mobility';
 
 export interface Message {
   id: string;
@@ -52,6 +52,34 @@ export const MESSAGES: Message[] = [
   m('pre-session', 'any', 'coach', 'You are stewarding a body you were given. Showing up is a way of saying thank you.', true),
   m('pre-session', 'any', 'coach', '"Do not be anxious about anything." Let us just take the next step, together.', true),
   m('pre-session', 'any', 'coach', 'This is partnership: you bring the willingness, He brings the strength.', true),
+
+  // ---------------- The therapy guides (2026-09-23) ----------------
+  m('pre-session', 'any', 'somatic', 'Nothing today is a performance. We move slowly and feel it from the inside, and every step is optional.'),
+  m('pre-session', 'any', 'somatic', 'Your nervous system has been bracing for a long time. Today we let it find out the room is safe, one small movement at a time.'),
+  m('pre-session', 'any', 'somatic', 'If a movement brings up more than you want to feel, you stop and orient: look around the room, name three things you see. That is part of the practice, not a failure of it.'),
+  m('pre-session', 'any', 'fascia', 'Light pressure and slow. The tissue lets go when it feels safe, never when it is forced. Hands or a ball, whichever you have.'),
+  m('pre-session', 'any', 'fascia', 'With hypermobile tissue we go gentle on purpose: a warm ache is the ceiling, never a grind. Sip water after.'),
+  m('pre-session', 'any', 'pelvic', 'Relax first, coordinate second, strengthen last. Most pelvic floors are holding, not weak. Yours gets to let go today.'),
+  m('pre-session', 'any', 'pelvic', 'Everything here is on your terms. If your mind drifts away from your body, that is information, not a problem; come back when you are ready or stop there.'),
+  m('pre-session', 'any', 'mobility', 'Joint by joint, neck to ankles. We move each one through the range you can control, slowly, and we stop short of the floppy end.'),
+  m('pre-session', 'any', 'mobility', 'For a hypermobile body, mobility means control, not more range. Every circle today is teaching the joint where it is.'),
+  m('mid-set', 'any', 'somatic', 'Slower than that.'),
+  m('mid-set', 'any', 'somatic', 'Feel it from the inside.'),
+  m('mid-set', 'any', 'somatic', 'Let the breath lead.'),
+  m('mid-set', 'any', 'somatic', 'You can stop here. That counts.'),
+  m('mid-set', 'any', 'fascia', 'Lighter. Let it sink, not press.'),
+  m('mid-set', 'any', 'fascia', 'Breathe into the spot.'),
+  m('mid-set', 'any', 'fascia', 'A warm ache is the ceiling.'),
+  m('mid-set', 'any', 'pelvic', 'Exhale, and let the floor drop.'),
+  m('mid-set', 'any', 'pelvic', 'No bearing down. Soft.'),
+  m('mid-set', 'any', 'pelvic', 'Jaw loose, floor loose.'),
+  m('mid-set', 'any', 'mobility', 'Only the range you can control.'),
+  m('mid-set', 'any', 'mobility', 'Slow at the edges.'),
+  m('mid-set', 'any', 'mobility', 'Stop short of the floppy end.'),
+  m('post-session', 'any', 'somatic', 'You let your body finish something it had been holding. That is the work.'),
+  m('post-session', 'any', 'fascia', 'Water, and a slow hour if you can. The tissue keeps letting go after you stop.'),
+  m('post-session', 'any', 'pelvic', 'A floor that can relax is a floor that can hold. You did the first half today.'),
+  m('post-session', 'any', 'mobility', 'Every joint knows a little more about where it is. That is what keeps them safe.'),
 
   // ---------------- Mid-set cues ----------------
   m('mid-set', 'any', 'coach', 'Breathe.'),

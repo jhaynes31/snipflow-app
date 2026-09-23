@@ -109,3 +109,7 @@ haven't used it yet, there is nothing to move. The old address can be deleted af
   `screens/Open.tsx` (the `/fitness` page), `widgets.tsx` (home Today line).
 - Heartwood's data never leaves the device. Seasons and the coach cannot see it.
 - `hub/tsconfig.json` and `eslint.config.mjs` leave `heartwood/` to its own toolchain.
+
+## 2026-09-23: four therapists in the week
+
+Heartwood now has six guides: the Coach (strength), the PT (ankles, knees, balance), a Somatic guide, a Fascia guide, a Pelvic floor therapist and a Mobility therapist. The week runs six days: Strength, Somatic Movement, Strength, Fascia Release, Mobility Therapist, Pelvic Floor, with Strength A and B alternating weeks. The Mobility session folds in the ankle and knee PT work so the whole body is covered every week (a test in `src/data/templates.test.ts` proves every muscle region is reached). Every guide's lines and exercise notes are written for trauma, AuDHD, hypermobility (EDS/HSD), POTS, MCAS and CPTSD; the "Your guides" tab in Learn spells out what each one knows. Therapy exercises are one set, short rests, light pressure, no caution locks, and every step is optional.

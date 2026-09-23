@@ -92,7 +92,10 @@ export function sessionName(templateId: string): string {
     strengthB: "Strength B",
     ptAnkles: "PT: Ankles & Balance",
     ptKneesHips: "PT: Knees & Hips",
-    ptMobility: "PT: Full-Body Mobility",
+    ptMobility: "Mobility Therapist",
+    somatic: "Somatic Movement",
+    fascia: "Fascia Release",
+    pelvicFloor: "Pelvic Floor",
     freestyle: "Freestyle",
   };
   return names[templateId] ?? templateId.replace(/-/g, " ");

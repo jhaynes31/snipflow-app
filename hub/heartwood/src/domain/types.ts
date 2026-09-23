@@ -3,7 +3,8 @@
 export type MovementPattern =
   | 'squat' | 'hinge' | 'push' | 'pull' | 'carry'
   | 'core-antiextension' | 'core-antirotation' | 'core-lateral'
-  | 'balance' | 'mobility' | 'ankle' | 'knee' | 'hip' | 'breathing';
+  | 'balance' | 'mobility' | 'ankle' | 'knee' | 'hip' | 'breathing'
+  | 'nervous-system' | 'fascia' | 'pelvic-floor';
 
 export type Joint = 'neck' | 'shoulder' | 'elbow' | 'wrist' | 'spine' | 'hip' | 'knee' | 'ankle';
 export type Impact = 'none' | 'low' | 'high';
@@ -58,15 +59,15 @@ export interface Exercise {
   musclesPrimary: MuscleRegion[];
   musclesSecondary: MuscleRegion[];
   unilateral: boolean;
-  /** Category used by templates and the "swap" engine. */
-  category: 'strength' | 'pt' | 'warmup' | 'cooldown';
+  /** Category used by templates and the "swap" engine. The four therapy categories were added 2026-09-23. */
+  category: 'strength' | 'pt' | 'warmup' | 'cooldown' | 'somatic' | 'fascia' | 'pelvic' | 'mobility';
   /** For user-added "My PT's exercises". */
   custom?: boolean;
 }
 
 // ---------- Program ----------
 
-export type SessionType = 'strengthA' | 'strengthB' | 'ptAnkles' | 'ptKneesHips' | 'ptMobility' | 'freestyle';
+export type SessionType = 'strengthA' | 'strengthB' | 'ptAnkles' | 'ptKneesHips' | 'ptMobility' | 'somatic' | 'fascia' | 'pelvicFloor' | 'freestyle';
 
 export interface TemplateBlock {
   kind: 'warmup' | 'main' | 'cooldown';

@@ -64,6 +64,26 @@ export const LESSONS: Lesson[] = [
     'You move to the next level only after two clean sessions at the current one. The last step, no hands, unlocks only after a reassessment shows both sides are ready.',
     'Wobbling is the training. Grabbing the counter is what the counter is for.',
   ] },
+  { id: 'somatic-why', title: 'Why we move slowly and feel it', unlockedBy: 'template:somatic', content: [
+    'A nervous system that has lived through hard things keeps a low hum of alarm going. It braces the jaw, the shoulders, the belly and the pelvic floor without asking you.',
+    'Somatic movement is slow on purpose. Moving slowly enough to feel it from the inside is how the brain finds out the body is safe right now, and safety is what lets muscles stop guarding.',
+    'For an AuDHD brain, feeling the body can be faint, or suddenly too much. Both are normal. Drifting away and coming back is the practice; stopping early is allowed and counts.',
+  ] },
+  { id: 'fascia-why', title: 'Fascia: the web under the skin', unlockedBy: 'template:fascia', content: [
+    'Fascia is the web of connective tissue that wraps every muscle and links the feet to the head. When it gets stuck, one tight spot pulls on places far away.',
+    'Release works by giving the tissue slow, light pressure and time. Force does the opposite: the body guards harder. With hypermobility the tissue is already lax and bruises easily, so lighter than feels effective is the rule, and joints are never leaned on.',
+    'If the skin flushes or feels hot, that is a signal to stop for today. Water afterward helps the body clear what moved.',
+  ] },
+  { id: 'pelvic-why', title: 'The pelvic floor is usually holding, not weak', unlockedBy: 'template:pelvicFloor', content: [
+    'The pelvic floor is a hammock of muscle between the sit bones. It moves with every breath: down as you breathe in, up as you breathe out. It is not only about squeezing.',
+    'In bodies that have been through trauma, and in hypermobile bodies, it is usually too tight, not too weak. That is why this session starts with letting go and only later adds a gentle, one-third-effort lift.',
+    'The jaw and the pelvic floor mirror each other. A soft jaw, a soft belly and a slow out-breath are the tools. Nothing here is internal and every position is an invitation.',
+  ] },
+  { id: 'mobility-why', title: 'Control, not range', unlockedBy: 'template:ptMobility', content: [
+    'A hypermobile joint already goes further than it should. Stretching it adds range it cannot control, which is how joints slip and ache.',
+    'Controlled rotations do the opposite: they teach the muscles around the joint to steer it through every degree. Circles are slow, and they shrink if a joint clicks.',
+    'The mobility session covers the whole body once a week, neck to ankle, with the ankle and knee PT folded in, so nothing gets left out.',
+  ] },
 ];
 
 export const LESSON_MAP = Object.fromEntries(LESSONS.map((l) => [l.id, l]));

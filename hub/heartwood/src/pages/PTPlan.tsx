@@ -85,7 +85,7 @@ export function PTPlanPage() {
           </div>
         ))}
         <Field label="Schedule them into">
-          <div className="flex flex-wrap gap-1">{(['ptAnkles', 'ptKneesHips', 'ptMobility'] as SessionType[]).map((t) => <Chip key={t} active={plan.scheduleInto.includes(t)} onClick={() => setPlan({ scheduleInto: plan.scheduleInto.includes(t) ? plan.scheduleInto.filter((x) => x !== t) : [...plan.scheduleInto, t] })}>{TEMPLATES[t].shortName}</Chip>)}</div>
+          <div className="flex flex-wrap gap-1">{(['ptMobility', 'somatic', 'fascia', 'pelvicFloor', 'ptAnkles', 'ptKneesHips'] as SessionType[]).map((t) => <Chip key={t} active={plan.scheduleInto.includes(t)} onClick={() => setPlan({ scheduleInto: plan.scheduleInto.includes(t) ? plan.scheduleInto.filter((x) => x !== t) : [...plan.scheduleInto, t] })}>{TEMPLATES[t].shortName}</Chip>)}</div>
         </Field>
         <Field label="Exercise name"><input className="input" value={ex.name} onChange={(e) => setEx({ ...ex, name: e.target.value })} /></Field>
         <Field label="One-line summary"><input className="input" value={ex.summary} onChange={(e) => setEx({ ...ex, summary: e.target.value })} /></Field>

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Pause, Play, Square } from 'lucide-react';
-import { messageText, pickMessage } from '@/coach/messages';
+import { messageText, pickMessage, type Speaker } from '@/coach/messages';
+import { guideForCategory, guideForTemplate } from '@/data/guides';
 import { getSpeaker } from '@/coach/tts';
 import { CoachBubble } from '@/components/CoachBubble';
 import { CountdownRing } from '@/components/CountdownRing';
@@ -69,7 +70,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const [setNo, setSetNo] = useState(1);
   const [sideIdx, setSideIdx] = useState(0);
   const [slow, setSlow] = useState(false);
-  const [bubble, setBubble] = useState<{ speaker: 'coach' | 'pt'; text: string } | null>(null);
+  const [bubble, setBubble] = useState<{ speaker: Speaker; text: string } | null>(null);
   const [quitOpen, setQuitOpen] = useState(false);
   const [summary, setSummary] = useState<CompletionSummary | null>(null);
   const [tree, setTree] = useState({ growth: 0, roots: 0, milestones: [] as string[] });
@@ -90,13 +91,13 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
 
   useEffect(() => { getTree().then((t) => setTree({ growth: t.growthPoints, roots: t.rootPoints, milestones: t.milestones })); stickerStats().then(setStatsBefore); }, []);
 
-  const say = useCallback((text: string, who: 'coach' | 'pt', kind: 'cue' | 'talk') => {
+  const say = useCallback((text: string, who: Speaker, kind: 'cue' | 'talk') => {
     if (cs.voice === 'off') return;
     if (cs.voice === 'cues' && kind === 'talk') return;
-    speaker.speak(text, { voice: who });
+    speaker.speak(text, { voice: who === 'coach' ? 'coach' : 'pt' });
   }, [cs.voice, speaker]);
 
-  const showBubble = useCallback((speakerKind: 'coach' | 'pt', text: string, kind: 'cue' | 'talk' = 'talk') => {
+  const showBubble = useCallback((speakerKind: Speaker, text: string, kind: 'cue' | 'talk' = 'talk') => {
     setBubble({ speaker: speakerKind, text });
     say(text, speakerKind, kind);
   }, [say]);
@@ -129,15 +130,15 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
     if (stage !== 'exercise' || !ex) return;
     setSlow(false);
     if (cs.critique === 'off') { setBubble(null); return; }
-    const who = ex.category === 'strength' ? 'coach' : 'pt';
+    const who = guideForCategory(ex.category).id;
     const cue = cs.critique === 'detailed' ? ex.cues.join('. ') : ex.cues[0];
     if (cue) showBubble(who, cue, 'cue');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exIdx, sideIdx, setNo, stage, ex?.id]);
 
   const midSetCue = () => {
-    const m = pickMessage({ moment: 'mid-set', tone: cs.tone, faithTrack: cs.faithTrack, vars });
-    if (m) showBubble(m.speaker === 'pt' ? 'pt' : 'coach', messageText(m), 'cue');
+    const m = pickMessage({ moment: 'mid-set', tone: cs.tone, faithTrack: cs.faithTrack, speaker: ex ? guideForCategory(ex.category).id : undefined, vars });
+    if (m) showBubble(m.speaker === 'any' ? 'coach' : m.speaker, messageText(m), 'cue');
   };
 
   // ----- navigation between sets/sides/exercises -----
@@ -226,7 +227,9 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
 
   if (stage === 'equipment') {
     const eq = equipmentForSession(session.prescriptions);
-    const pre = pickMessage({ moment: session.isComeback ? 'comeback' : 'pre-session', tone: cs.tone, faithTrack: cs.faithTrack, vars });
+    const lead = guideForTemplate(session.templateId).id;
+    const pre = pickMessage({ moment: session.isComeback ? 'comeback' : 'pre-session', tone: cs.tone, faithTrack: cs.faithTrack, speaker: lead, vars })
+      ?? pickMessage({ moment: session.isComeback ? 'comeback' : 'pre-session', tone: cs.tone, faithTrack: cs.faithTrack, vars });
     return (
       <div className="page stack fade-in">
         {header}
@@ -236,9 +239,9 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
           {eq.length ? eq.map((e) => <p key={e} className="text-lg">✓ {e.replace('-', ' ')}</p>) : <p>Just you today.</p>}
           {session.prescriptions.some((p) => EXERCISE_MAP[p.exerciseId]?.movementPatterns.includes('balance')) && <p className="muted text-sm mt-2">Balance work: flat, even ground, with a counter or wall within reach.</p>}
         </Card>
-        {pre && <CoachBubble speaker={pre.speaker === 'pt' ? 'pt' : 'coach'} text={messageText(pre)} settings={cs} />}
+        {pre && <CoachBubble speaker={pre.speaker === 'any' ? lead : pre.speaker} text={messageText(pre)} settings={cs} />}
         <p className="muted">What's next: {session.prescriptions.slice(0, 3).map((p) => EXERCISE_MAP[p.exerciseId]?.name ?? 'PT exercise').join(' → ')}…</p>
-        <Button variant="start" onClick={() => { setStage('exercise'); if (pre) say(pre.text, 'coach', 'talk'); }}>Start</Button>
+        <Button variant="start" onClick={() => { setStage('exercise'); if (pre) say(pre.text, pre.speaker === 'any' ? lead : pre.speaker, 'talk'); }}>Start</Button>
       </div>
     );
   }

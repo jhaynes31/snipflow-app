@@ -96,7 +96,7 @@ export function buildFreestyle(input: FreestyleInput): FreestylePlan {
   }
 
   // Main: round-robin across areas so every chosen area gets attention, until the budget is spent.
-  const mainPool = library.filter((e) => e.category === 'strength' || e.category === 'pt');
+  const mainPool = library.filter((e) => e.category === 'strength' || e.category === 'pt' || e.category === 'mobility' || e.category === 'somatic' || e.category === 'fascia' || e.category === 'pelvic');
   const perArea = areas.map((a) => rotate(mainPool.filter((e) => AREA_MAP[a].match(e) > 0).sort((x, y) => AREA_MAP[a].match(y) - AREA_MAP[a].match(x) + (score(y) - score(x)) * 0.1)));
   let progress = true;
   while (progress) {

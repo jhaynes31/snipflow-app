@@ -11,7 +11,7 @@ import type { Exercise } from '@/domain/types';
 import { useProfile } from '@/hooks/useProfile';
 
 const CATS: { id: Exercise['category'] | 'all' | 'locked'; label: string }[] = [
-  { id: 'all', label: 'All' }, { id: 'strength', label: 'Strength' }, { id: 'pt', label: 'PT' }, { id: 'warmup', label: 'Warm-up' }, { id: 'cooldown', label: 'Cool-down' }, { id: 'locked', label: 'Locked' },
+  { id: 'all', label: 'All' }, { id: 'strength', label: 'Strength' }, { id: 'pt', label: 'PT' }, { id: 'somatic', label: 'Somatic' }, { id: 'fascia', label: 'Fascia' }, { id: 'pelvic', label: 'Pelvic floor' }, { id: 'mobility', label: 'Mobility' }, { id: 'warmup', label: 'Warm-up' }, { id: 'cooldown', label: 'Cool-down' }, { id: 'locked', label: 'Locked' },
 ];
 
 /** Browsable curated library. Hard-excluded exercises are never listed. */
