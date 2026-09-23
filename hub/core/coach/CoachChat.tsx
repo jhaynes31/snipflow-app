@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { splitReply, type ToolEntry } from "@/convex/toolIndex";
+import { PATHS } from "@/convex/paths";
+import { splitReply, toolByKey, type PathLike, type ToolEntry } from "@/convex/toolIndex";
+import { usePath } from "@/core/paths/usePath";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useTools } from "@/core/tools/useTools";
 import { Btn, Card, ErrorNote, timeAgo, useAction } from "@/core/ui";
@@ -146,12 +148,14 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
 
 /** A coach reply, with each [[tool:key]] tag turned into an Open button. */
 export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry) => string) | null }) {
-  const parts = splitReply(text);
+  const parts = splitReply(text, undefined, PATHS);
   return (
     <>
       {parts.map((p, i) =>
         p.kind === "text" ? (
           <span key={i}>{p.text} </span>
+        ) : p.kind === "path" ? (
+          <PathStart key={i} path={p.path} />
         ) : (
           <span key={i} className="tend-tool-open">
             {href && p.tool.href.includes("/app/") ? (
@@ -163,5 +167,19 @@ export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry)
         ),
       )}
     </>
+  );
+}
+
+/** A path the coach proposed: one button that starts it, with the steps named. */
+function PathStart({ path }: { path: PathLike }) {
+  const p = usePath();
+  const known = p.paths.find((x) => x.key === path.key);
+  if (!known) return <span className="sh-muted">({path.name})</span>;
+  return (
+    <span className="tend-tool-open">
+      <button type="button" className="sh-btn sh-btn-primary sh-btn-inline" onClick={() => void p.start(path.key)}>
+        Walk me through {path.name} → {path.steps.map((k) => toolByKey(k)?.name ?? k).join(", ")}
+      </button>
+    </span>
   );
 }

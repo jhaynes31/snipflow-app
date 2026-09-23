@@ -5,6 +5,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { buildSystemPrompt, COACH_MODEL, hearthVoiceFor, MENTOR_VOICE, taskPromptFor } from "./prompt";
+import { availablePaths, coachPathList } from "../paths";
 import { availableTools, coachToolList } from "../toolIndex";
 import { crisisReply, detectCrisis, detectReassuranceLoop } from "./safety";
 
@@ -50,6 +51,7 @@ export const send = action({
       partnerSections: context.partnerSections,
       taskPrompt: taskPromptFor(args.task),
       tools: coachToolList(availableTools(context.rooms)),
+      paths: coachPathList(availablePaths(availableTools(context.rooms))),
       lines: context.lines,
       orchardSignals: context.orchardSignals,
       loopSuspected: loop,

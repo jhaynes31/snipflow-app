@@ -6,9 +6,9 @@ import { Button, Card, Callout } from '@/components/ui';
 import { dailyWord, messageText, pickMessage } from '@/coach/messages';
 import { guideForTemplate } from '@/data/guides';
 import { USER_MAP, setActiveUserId } from '@/db/users';
-import { SHIRE_FITNESS, readSignals } from '@/app/handoff';
+import { SHIRE_FITNESS, readSignals, takeRequest, type Request } from '@/app/handoff';
 import { db } from '@/db/db';
-import { applyLongGapReset, getTodayState, makeTodaySabbath, notToday, recordRestDay, setSabbathForWeek, startSession, type TodayState } from '@/db/program-service';
+import { applyLongGapReset, getTodayState, makeTodaySabbath, notToday, recordRestDay, setSabbathForWeek, startSession, startTemplateNow, type TodayState } from '@/db/program-service';
 import { formatLongDate, isWeekend, weekStartOf } from '@/domain/dates';
 import { useProfile } from '@/hooks/useProfile';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -20,6 +20,8 @@ export function TodayPage() {
   // A gentle day or a tender week in The Shire starts the day on the 5-minute version; she can change it.
   const [readiness, setReadiness] = useState<'low' | 'okay' | 'good' | null>(() => (readSignals().easy ? 'low' : null));
   const [starting, setStarting] = useState(false);
+  // The Shire may ask for one session by name (a path step), or the five-minute version.
+  const [request, setRequest] = useState<Request | null>(() => takeRequest());
   const [restMsg, setRestMsg] = useState<string | null>(null);
   const sessionCount = useLiveQuery(() => db.sessions.where('status').anyOf('completed', 'partial').count(), []);
 
@@ -86,6 +88,19 @@ export function TodayPage() {
         <Callout><p>It has been a few weeks. <Link to="/reassess" className="underline font-bold">Repeat the movement screen</Link> when you have 10 minutes; it may unlock new progressions.</p></Callout>
       )}
 
+      {request && (request.templateId && TEMPLATES[request.templateId as keyof typeof TEMPLATES] ? (
+        <Card className="stack text-center">
+          <p className="muted">The Shire sent you here for</p>
+          <h2 className="text-3xl">{TEMPLATES[request.templateId as keyof typeof TEMPLATES].name}</h2>
+          <p className="muted">About {TEMPLATES[request.templateId as keyof typeof TEMPLATES].estimatedMinutes} min. Every step optional. Your planned week is untouched.</p>
+          <div className="py-2 flex flex-wrap gap-2 justify-center">
+            <Button variant="start" disabled={starting} onClick={async () => { setStarting(true); const s = await startTemplateNow(request.templateId as keyof typeof TEMPLATES, { fiveMinute: request.five }); nav(`/session/${s.id}`); }}>Start</Button>
+            <Button variant="ghost" onClick={() => setRequest(null)}>Not this one</Button>
+          </div>
+        </Card>
+      ) : request.five && next ? (
+        <Callout><p>The Shire sent you for five minutes. <button type="button" className="underline font-bold" onClick={() => start(true)}>Start the five-minute version</button> of today&apos;s session, or pick below.</p></Callout>
+      ) : null)}
       {restMsg && <CoachBubble speaker="coach" text={restMsg} settings={cs} onDismiss={() => setRestMsg(null)} />}
 
       {next && template ? (

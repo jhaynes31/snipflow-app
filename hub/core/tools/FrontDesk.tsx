@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { searchTools, type ToolEntry } from "@/convex/toolIndex";
+import { searchPaths } from "@/convex/paths";
+import { searchTools, toolByKey, type ToolEntry } from "@/convex/toolIndex";
+import { usePath } from "@/core/paths/usePath";
 import { useTools } from "./useTools";
 
 /**
@@ -13,10 +15,12 @@ import { useTools } from "./useTools";
  */
 export function FrontDesk() {
   const t = useTools();
+  const p = usePath();
   const [q, setQ] = useState("");
   const [more, setMore] = useState(false);
   if (!t) return null;
   const hits = q.trim().length >= 2 ? searchTools(q, t.tools) : [];
+  const pathHits = q.trim().length >= 2 ? searchPaths(q, p.paths) : [];
   const doors = more ? t.doors : t.doors.slice(0, 6);
   const isExternal = (tool: ToolEntry) => tool.href.includes("/app/");
   return (
@@ -32,7 +36,14 @@ export function FrontDesk() {
       />
       {q.trim().length >= 2 && (
         <ul className="sh-desk-hits" aria-live="polite">
-          {hits.length === 0 && <li className="sh-muted">Nothing matched those words. Try one word, or a door below.</li>}
+          {pathHits.map((path) => (
+            <li key={path.key}>
+              <button type="button" className="sh-desk-hit sh-desk-path" onClick={() => void p.start(path.key)}>
+                <strong>Walk me through it: {path.name}</strong> <span className="sh-muted">· {path.steps.map((k) => toolByKey(k)?.name ?? k).join(", then ")}. One Next button.</span>
+              </button>
+            </li>
+          ))}
+          {hits.length === 0 && pathHits.length === 0 && <li className="sh-muted">Nothing matched those words. Try one word, or a door below.</li>}
           {hits.map((tool) => (
             <li key={tool.key}>
               {isExternal(tool) ? (

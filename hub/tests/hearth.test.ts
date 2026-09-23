@@ -34,7 +34,7 @@ describe("The Hearth", () => {
   });
   it("the mother's voice is honest about Proverbs 31 and carries the whole table", () => {
     assert.match(MOTHER_VOICE, /woman of valor/);
-    for (const word of ["hair", "skin", "hygiene", "married", "submission", "wisdom"]) assert.match(MOTHER_VOICE, new RegExp(word, "i"));
+    for (const word of ["hair", "skin", "hygiene", "marriage", "submission", "wisdom"]) assert.match(MOTHER_VOICE, new RegExp(word, "i"));
     assert.ok(MOTHER_WORDS.length >= 20 && FATHER_WORDS.length >= 20);
     assert.ok(MOTHER_BLESSING.length >= 5 && FATHER_BLESSING.length >= 5);
   });

@@ -49,11 +49,11 @@ describe("the tool index", () => {
   it("drops the tool name the coach wrote next to the tag, and a dangling dash after it", () => {
     const name = toolByKey("tend.smallestStep")!.name;
     const parts = splitReply(`If you want somewhere to put it down: ${name} [[tool:tend.smallestStep]] — it has prompts for this.`);
-    assert.deepEqual(parts.map((p) => (p.kind === "text" ? p.text : `<${p.tool.key}>`)), ["If you want somewhere to put it down:", "<tend.smallestStep>", "it has prompts for this."]);
+    assert.deepEqual(parts.map((p) => (p.kind === "text" ? p.text : p.kind === "tool" ? `<${p.tool.key}>` : `<path:${p.path.key}>`)), ["If you want somewhere to put it down:", "<tend.smallestStep>", "it has prompts for this."]);
     const paren = splitReply(`Try the ${name} ([[tool:tend.smallestStep]]) tonight.`);
-    assert.deepEqual(paren.map((p) => (p.kind === "text" ? p.text : `<${p.tool.key}>`)), ["Try", "<tend.smallestStep>", "tonight."]);
+    assert.deepEqual(paren.map((p) => (p.kind === "text" ? p.text : p.kind === "tool" ? `<${p.tool.key}>` : `<path:${p.path.key}>`)), ["Try", "<tend.smallestStep>", "tonight."]);
     const bare = splitReply("Open [[tool:tend.smallestStep]] when you are ready.");
-    assert.deepEqual(bare.map((p) => (p.kind === "text" ? p.text : `<${p.tool.key}>`)), ["Open", "<tend.smallestStep>", "when you are ready."]);
+    assert.deepEqual(bare.map((p) => (p.kind === "text" ? p.text : p.kind === "tool" ? `<${p.tool.key}>` : `<path:${p.path.key}>`)), ["Open", "<tend.smallestStep>", "when you are ready."]);
     const loose = splitReply("Remembering [[well.remembering]] for the whisper, or Evidence Bank [[ tool: tend.evidenceBank ]] for the rest, and [[nothing.here]] too.");
     assert.deepEqual(loose.filter((p) => p.kind === "tool").map((p) => p.kind === "tool" && p.tool.key), ["well.remembering", "tend.evidenceBank"]);
     assert.ok(!loose.some((p) => p.kind === "text" && p.text.includes("[[")));

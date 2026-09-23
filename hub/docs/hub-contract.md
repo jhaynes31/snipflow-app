@@ -304,3 +304,18 @@ Deferred from phase 1 on purpose: optional push notifications and quiet hours (n
 **Moving Every Box in:** before changing any code, Claude Code should read the current Every Box project and write a short migration plan. The plan covers what it will keep, what it will switch to the foundation (login, reminders, notifications), and how existing data will move over. Jen approves the plan before migration starts. No existing data should be lost.
 
 **Adding a future module:** write its spec with a reference to this contract, create its manifest, and build it in `/modules/<id>`. The shell should need no changes.
+
+## Paths (2026-09-23)
+
+A path is two to five tools in a row for one situation, walked one step at a time
+with a single Next button (`convex/paths.ts`, `core/paths/`). The front desk offers
+one when the words fit ("Walk me through it"), the coach can propose one with a
+`[[path:KEY]]` tag that becomes a Start button, and `/paths` lists every path this
+person can start plus a builder for their own (kept in `moduleSettings.hub.paths`).
+Where someone is on a path lives in `moduleSettings.hub.path`, so the bar under the
+top bar follows them across devices and survives a step inside Heartwood or the
+Re-Centered app. Heartwood accepts `?session=<templateId>` and `?five=1` on the way
+in and offers that session on Today without touching the planned week. A path is
+offered only when every step is open to this person (room gates). Nothing is
+counted; stopping is just stopping; the last step asks "Did it help?" and keeps
+nothing.

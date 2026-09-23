@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { modulesFor, pinnedFor } from "@/core/modules/registry";
+import { PathBar } from "@/core/paths/PathBar";
 import { readBackground } from "@/core/theme/backgrounds";
 import { Spinner } from "@/core/ui";
 import { BadgeSync } from "./BadgeSync";
@@ -89,6 +90,7 @@ export function HubShell({ children }: { children: ReactNode }) {
     <HubContext.Provider value={value}>
       <BadgeSync />
       <TopBar />
+      <PathBar />
       <main className="sh-main">{children}</main>
       <BottomNav />
       <FloatingCheckIn />

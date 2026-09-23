@@ -5,7 +5,7 @@ import { buildProgramSequence, doseFor, equipmentForSession, estimateMinutes, fi
 import { evaluateProgression, progressionKey, type ProgressionDecision } from '@/domain/progression';
 import { contextFromProfile } from '@/domain/safety';
 import { assignDates, isSabbathDate, makeSabbathResolver, type SabbathResolver } from '@/domain/schedule';
-import type { Exercise, PlannedSession, ProgressionState, SabbathDay, SetLog, UserProfile } from '@/domain/types';
+import type { Exercise, PlannedSession, ProgressionState, SabbathDay, SetLog, UserProfile, SessionType } from '@/domain/types';
 import { LESSONS } from '@/learn/lessons';
 import { db, getProfile, getTree, type HeartwoodDB } from './db';
 
@@ -129,6 +129,32 @@ export async function startSession(sessionId: string, opts: { fiveMinute?: boole
   const updated: PlannedSession = { ...s, prescriptions: ps, status: 'in-progress', startedAt: now.toISOString(), fiveMinute: !!opts.fiveMinute, isComeback: gap !== 'none' };
   await database.sessions.put(updated);
   return updated;
+}
+
+/**
+ * Start a particular session today, outside the plan (The Shire asks for one
+ * by name, for a path). Extra sessions have a negative sequence index so the
+ * scheduler ignores them; they count like any other when completed.
+ */
+export async function startTemplateNow(templateId: SessionType, opts: { fiveMinute?: boolean } = {}, database: HeartwoodDB = db, now = new Date()): Promise<PlannedSession> {
+  const profile = await getProfile(database);
+  const state = await getTodayState(database, todayISO(now));
+  const like = state.next;
+  const id = `x-${now.getTime()}`;
+  const planned: PlannedSession = {
+    id,
+    templateId,
+    sequenceIndex: -1,
+    scheduledDate: todayISO(now),
+    status: 'planned',
+    prescriptions: [],
+    phase: like?.phase ?? (profile.maintainMode ? 'build' : 'foundation'),
+    weekNumber: like?.weekNumber ?? 1,
+    isRecoveryWeek: like?.isRecoveryWeek ?? false,
+    isComeback: false,
+  };
+  await database.sessions.put(planned);
+  return await startSession(id, opts, database, now);
 }
 
 export async function swapExerciseInSession(sessionId: string, exerciseId: string, replacement: Exercise, database: HeartwoodDB = db): Promise<PlannedSession> {

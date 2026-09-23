@@ -28,6 +28,7 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("hub.checkIn", "How are you, really?", "The Shire", "/check-in", "A quick check-in: weather, energy, what would help.", ["check in", "checking in", "how am i", "just here", "okay"]),
   T("hub.talk", "Talk it through", "The Shire", "/talk", "A private chat with the coach, from anywhere.", ["talk", "coach", "chat", "vent", "don't know", "unsure", "confused"]),
   T("hub.headsUp", "Send a heads-up", "The Shire", "/heads-up/new", "Tell your partner how today is and what would help, in one card.", ["heads up", "tell john", "tell jen", "let them know", "need space", "need help"]),
+  T("hub.paths", "Walk me through it", "The Shire", "/paths", "A few tools in a row for one situation, one Next button. Start one, or build your own.", ["path", "walk me through", "step by step", "what order", "funnel", "a few tools"]),
   T("hub.helpNow", "Need help now", "The Shire", "/help-now", "Crisis lines, your safety plan, and one tap to reach your partner.", ["not safe", "crisis", "emergency", "safety plan", "help now"]),
 
   // Tend
@@ -130,6 +131,11 @@ export const TOOL_INDEX: ToolEntry[] = [
 
   // Seasons, Heartwood
   T("seasons.mine", "Seasons", "Seasons", "/seasons", "What changed, in plain words, over a week, two, or a month.", ["season", "seasons", "report", "pattern", "what changed", "progress", "looking back"]),
+  T("fitness.somatic", "Somatic Movement", "Heartwood Fitness", "/fitness/app?who={who}&session=somatic", "Nervous system first: slow movement felt from the inside. Twenty minutes, every step optional.", ["somatic", "nervous system", "shake it out", "dysregulated", "body", "settle my body", "regulate"]),
+  T("fitness.fascia", "Fascia Release", "Heartwood Fitness", "/fitness/app?who={who}&session=fascia", "Feet to jaw, light pressure, slow.", ["fascia", "tight", "tension", "release", "sore", "knots"]),
+  T("fitness.pelvic", "Pelvic Floor", "Heartwood Fitness", "/fitness/app?who={who}&session=pelvicFloor", "Relax first, coordinate second. Breath-led, all external.", ["pelvic floor", "pelvic", "core breath"]),
+  T("fitness.mobility", "Mobility Therapist", "Heartwood Fitness", "/fitness/app?who={who}&session=ptMobility", "Controlled joint rotations, neck to ankle.", ["mobility", "joints", "stiff", "range of motion", "clicky"]),
+  T("fitness.five", "Five minutes of movement", "Heartwood Fitness", "/fitness/app?who={who}&five=1", "The five-minute version of today's session. Enough.", ["five minutes", "quick workout", "move a little", "short session", "just move"]),
   T("fitness.open", "Heartwood Fitness", "Heartwood Fitness", "/fitness", "Open the app, press Start, follow along.", ["workout", "exercise", "fitness", "move my body", "walk", "stretch", "pt", "physical therapy"]),
 
   // Metamorphosis (John's room)
@@ -226,6 +232,7 @@ export interface Door {
 export const DOORS_HER: Door[] = [
   { label: "Something stung", toolKey: "tend.storyCheck" },
   { label: "I need mothering", toolKey: "hh.sit" },
+  { label: "Walk me through it", toolKey: "hub.paths" },
   { label: "I'm about to overfunction", toolKey: "rc.pause" },
   { label: "A word wasn't kept", toolKey: "rc.now" },
   { label: "I'm about to say yes when I mean no", toolKey: "lr.fawn" },
@@ -241,6 +248,7 @@ export const DOORS_HER: Door[] = [
 ];
 
 export const DOORS_JOHN: Door[] = [
+  { label: "Walk me through it", toolKey: "hub.paths" },
   { label: "I can't get started", toolKey: "tend.smallestStep" },
   { label: "I'm tired and it still needs doing", toolKey: "mm.tired" },
   { label: "I got defensive", toolKey: "mm.shield" },
@@ -268,8 +276,14 @@ export const DOORS_EITHER: Door[] = [
 
 /** The tag the coach writes after naming a tool; the app turns it into an Open button. */
 export const TOOL_TAG = /\[\[\s*(?:tool:)?\s*([a-zA-Z0-9.]+)\s*\]\]/g;
+/** The coach may also propose a whole path: [[path:her.stung]]. */
+export const PATH_TAG = /\[\[\s*path:\s*([a-zA-Z0-9.-]+)\s*\]\]/g;
 
-export type ReplyPart = { kind: "text"; text: string } | { kind: "tool"; tool: ToolEntry };
+/** The little a reply needs to know about a path, so this file never imports paths.ts. */
+export interface PathLike { key: string; name: string; steps: string[] }
+export type ReplyPart = { kind: "text"; text: string } | { kind: "tool"; tool: ToolEntry } | { kind: "path"; path: PathLike };
+/** Both tag forms in one pass: [[tool:key]] / [[key]] and [[path:key]]. */
+const ANY_TAG = /\[\[\s*(path:)?(?:tool:)?\s*([a-zA-Z0-9.-]+)\s*\]\]/g;
 
 /** Splits a coach reply into text and tool buttons. Unknown tags are dropped. */
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -280,7 +294,7 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * appear twice. Drop the name (and an opening bracket or "the") from the text before
  * the tag, and a dangling dash, comma or closing bracket from the text after it.
  */
-function trimAroundTag(before: string, after: string, tool: ToolEntry | undefined): [string, string] {
+function trimAroundTag(before: string, after: string, tool: { name: string } | undefined): [string, string] {
   let b = before;
   let a = after;
   if (tool) {
@@ -291,20 +305,26 @@ function trimAroundTag(before: string, after: string, tool: ToolEntry | undefine
   return [b, a];
 }
 
-export function splitReply(text: string, entries: ToolEntry[] = TOOL_INDEX): ReplyPart[] {
+export function splitReply(text: string, entries: ToolEntry[] = TOOL_INDEX, paths: PathLike[] = []): ReplyPart[] {
   const parts: ReplyPart[] = [];
   let last = 0;
   const seen = new Set<string>();
-  const matches = [...text.matchAll(TOOL_TAG)];
+  const matches = [...text.matchAll(ANY_TAG)];
   matches.forEach((m, i) => {
-    const tool = entries.find((t) => t.key === m[1]);
+    const isPath = m[1] === "path:";
+    const tool = isPath ? undefined : entries.find((t) => t.key === m[2]);
+    const path = isPath ? paths.find((p) => p.key === m[2]) : undefined;
+    const hit = tool ?? path;
+    const id = hit ? `${isPath ? "path" : "tool"}:${hit.key}` : null;
+    const fresh = !!id && !seen.has(id);
     const end = (m.index ?? 0) + m[0].length;
     const nextStart = matches[i + 1]?.index ?? text.length;
-    const [before, after] = trimAroundTag(text.slice(last, m.index), text.slice(end, nextStart), tool && !seen.has(tool.key) ? tool : undefined);
+    const [before, after] = trimAroundTag(text.slice(last, m.index), text.slice(end, nextStart), fresh ? hit : undefined);
     if (before.trim()) parts.push({ kind: "text", text: before.replace(/\s+$/, "") });
-    if (tool && !seen.has(tool.key)) {
-      parts.push({ kind: "tool", tool });
-      seen.add(tool.key);
+    if (fresh && id) {
+      if (tool) parts.push({ kind: "tool", tool });
+      else if (path) parts.push({ kind: "path", path });
+      seen.add(id);
     }
     if (after.trim()) parts.push({ kind: "text", text: after.replace(/^\s+/, "") });
     last = nextStart;

@@ -915,3 +915,23 @@ a.sh-chip {
   flex-direction: column;
   gap: 0.5rem;
 }
+
+/* Paths: the bar under the top bar while a path is running. */
+.sh-pathbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.55rem 1rem;
+  background: var(--surface-alt, var(--surface));
+  border-bottom: 2px solid var(--accent, var(--border));
+  font-size: 0.95rem;
+}
+.sh-pathbar-name { font-weight: 700; }
+.sh-pathbar-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.sh-pathbar .sh-btn { padding: 0.35rem 0.8rem; font-size: 0.9rem; }
+.sh-desk-path { width: 100%; text-align: left; cursor: pointer; border-left: 4px solid var(--accent, var(--border)); }

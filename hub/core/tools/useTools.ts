@@ -15,8 +15,9 @@ export function useTools(): { tools: ToolEntry[]; doors: Door[]; href: (t: ToolE
   const { profile } = useHub();
   const mm = useQuery(api.rooms.status, { moduleId: "metamorphosis" });
   const rc = useQuery(api.reCentered.room.status);
-  if (!mm || !rc) return null;
-  const rooms = { metamorphosis: mm.state === "mine", reCentered: rc.state === "mine" };
+  const hh = useQuery(api.rooms.status, { moduleId: "hearth" });
+  if (!mm || !rc || !hh) return null;
+  const rooms = { metamorphosis: mm.state === "mine", reCentered: rc.state === "mine", hearth: hh.state === "mine" };
   const who = embeddedPersonFor(profile);
   const tools = availableTools(rooms);
   const doors = (rooms.metamorphosis ? DOORS_JOHN : rooms.reCentered ? DOORS_HER : who === "john" ? DOORS_JOHN : DOORS_EITHER).filter((d) => tools.some((t) => t.key === d.toolKey));
