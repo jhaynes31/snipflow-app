@@ -404,6 +404,8 @@ export default defineSchema({
     ownerId: v.id("profiles"),
     visibility: visibilityValidator,
     module: v.string(),
+    /** The task key it was opened with, so it can be reopened in the same voice (added 2026-09-23). */
+    task: v.optional(v.string()),
     messages: v.array(
       v.object({
         role: v.union(v.literal("user"), v.literal("assistant")),

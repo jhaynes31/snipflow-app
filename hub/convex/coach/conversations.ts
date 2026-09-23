@@ -34,6 +34,7 @@ export const mine = query({
       .map((r) => ({
         _id: r._id,
         module: r.module,
+        task: r.task ?? null,
         updatedAt: r.updatedAt,
         createdAt: r.createdAt,
         count: r.messages.length,
@@ -53,7 +54,7 @@ export const get = query({
 });
 
 export const start = mutation({
-  args: { module: v.string() },
+  args: { module: v.string(), task: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const now = Date.now();
@@ -61,6 +62,7 @@ export const start = mutation({
       ownerId: me.profile._id,
       visibility: "private",
       module: cleanText(args.module, 60, "Module"),
+      task: args.task ? cleanText(args.task, 60, "Task") : undefined,
       messages: [],
       createdAt: now,
       updatedAt: now,

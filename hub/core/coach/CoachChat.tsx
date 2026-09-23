@@ -8,7 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { splitReply, type ToolEntry } from "@/convex/toolIndex";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useTools } from "@/core/tools/useTools";
-import { Btn, Card, ErrorNote, useAction } from "@/core/ui";
+import { Btn, Card, ErrorNote, timeAgo, useAction } from "@/core/ui";
 
 /**
  * A small chat with the shared coach, for any module. The conversation is
@@ -26,11 +26,12 @@ export interface Suggestions {
   added: Set<string>;
 }
 
-export function CoachChat({ module, task, opening, placeholder = "Ask in your own words.", suggestions }: { module: string; task: string; opening?: string; placeholder?: string; suggestions?: Suggestions }) {
+export function CoachChat({ module, task, opening, placeholder = "Ask in your own words.", suggestions, initialId = null }: { module: string; task: string; opening?: string; placeholder?: string; suggestions?: Suggestions; initialId?: Id<"coachConversations"> | null }) {
   const start = useMutation(api.coach.conversations.start);
   const remove = useMutation(api.coach.conversations.remove);
   const send = useConvexAction(api.coach.chat.send);
-  const [id, setId] = useState<Id<"coachConversations"> | null>(null);
+  const [id, setId] = useState<Id<"coachConversations"> | null>(initialId);
+  const earlier = useQuery(api.coach.conversations.mine, { module });
   const row = useQuery(api.coach.conversations.get, id ? { id } : "skip");
   const { busy, error, run } = useAction();
   const [draft, setDraft] = useState("");
@@ -52,7 +53,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
     void run(async () => {
       let convo = id;
       if (!convo) {
-        convo = await start({ module });
+        convo = await start({ module, task });
         setId(convo);
       }
       const message = opening && count === 0 && !id ? `${opening}\n\nMy question: ${question}` : question;
@@ -110,14 +111,34 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
         <div className="sh-row sh-wrap">
           <Btn type="submit" disabled={busy || !draft.trim()}>{busy ? "Sending…" : "Ask"}</Btn>
           {id && (
-            <Btn type="button" variant="ghost" disabled={busy} onClick={() => void run(async () => { await remove({ id }); setId(null); })}>
-              Delete this conversation
-            </Btn>
+            <>
+              <Btn type="button" variant="ghost" disabled={busy} onClick={() => { setId(null); setCrisis(false); }}>
+                New conversation
+              </Btn>
+              <Btn type="button" variant="ghost" disabled={busy} onClick={() => void run(async () => { await remove({ id }); setId(null); })}>
+                Delete this conversation
+              </Btn>
+            </>
           )}
         </div>
       </form>
+      {earlier && earlier.filter((c) => c._id !== id && c.count > 0).length > 0 && (
+        <details className="sh-menu mt-3">
+          <summary>Earlier conversations here ({earlier.filter((c) => c._id !== id && c.count > 0).length})</summary>
+          <ul className="sh-list" style={{ marginTop: "0.5rem" }}>
+            {earlier.filter((c) => c._id !== id && c.count > 0).map((c) => (
+              <li key={c._id} className="sh-row sh-wrap">
+                <button type="button" className="sh-link" style={{ background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer" }} onClick={() => { setId(c._id); setCrisis(false); }}>
+                  {c.firstLine || "Empty conversation"}
+                </button>
+                <span className="sh-muted">{timeAgo(c.updatedAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <p className="sh-hint">
-        The coach quotes only the text in front of it, and says when Christians read something differently. Private to you. Also in <Link href="/tend/tools/talkItOut" className="sh-link">Talk It Out</Link>.
+        Saved in The Shire, private to you, and deletable. Every conversation from every place is listed under <Link href="/talk/all" className="sh-link">All my conversations</Link>.
       </p>
     </Card>
   );

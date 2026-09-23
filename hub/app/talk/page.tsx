@@ -71,7 +71,7 @@ function Talk() {
       <PageTitle title={title} subtitle={subtitle} />
       <CoachChat module={convoModule} task={task} opening={opening} placeholder={`Ask in your own words, ${profile.displayName.split(" ")[0]}.`} />
       <p className="sh-muted" style={{ marginTop: "0.8rem" }}>
-        Private to you. Earlier conversations are in <Link href="/tend/tools/talkItOut" className="sh-link">Talk It Out</Link> and can be deleted there.
+        Private to you. Every conversation you&apos;ve had with the coach, from every place, is under <Link href="/talk/all" className="sh-link">All my conversations</Link>.
       </p>
     </div>
   );
