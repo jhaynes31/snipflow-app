@@ -1,0 +1,36 @@
+{
+  "name": "body-doubling-community",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Member portal and session booking for Jen & John's neurodivergent body doubling community.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p convex/tsconfig.json",
+    "test": "node --test tests/rules.test.ts && vitest run"
+  },
+  "dependencies": {
+    "@auth/core": "^0.37.0",
+    "@convex-dev/auth": "^0.0.92",
+    "convex": "^1.39.1",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "stripe": "^22.1.1"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "convex-test": "^0.0.59",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^5.0.1"
+  }
+}
