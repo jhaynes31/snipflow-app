@@ -10,6 +10,7 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { BackgroundPicker } from "@/core/theme/BackgroundPicker";
 import { PushNudge } from "@/core/push/PushNudge";
 import { FrontDesk } from "@/core/tools/FrontDesk";
+import { MantelToday } from "@/core/mantel/MantelToday";
 import { Btn, Card, LinkBtn, timeAgo } from "@/core/ui";
 
 function tileStyle(m: ModuleManifest): React.CSSProperties {
@@ -62,6 +63,8 @@ export default function HomePage() {
 
       {/* The front desk: what's going on, and the doors. */}
       <FrontDesk />
+
+      <MantelToday />
 
       <PushNudge />
 

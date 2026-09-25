@@ -38,6 +38,7 @@ import type * as keptWord_pure from "../keptWord/pure.js";
 import type * as keptWord_ways from "../keptWord/ways.js";
 import type * as keptWord_words from "../keptWord/words.js";
 import type * as lib from "../lib.js";
+import type * as mantel from "../mantel.js";
 import type * as manual from "../manual.js";
 import type * as metamorphosis_entries from "../metamorphosis/entries.js";
 import type * as metamorphosis_feeds from "../metamorphosis/feeds.js";
@@ -120,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   "keptWord/ways": typeof keptWord_ways;
   "keptWord/words": typeof keptWord_words;
   lib: typeof lib;
+  mantel: typeof mantel;
   manual: typeof manual;
   "metamorphosis/entries": typeof metamorphosis_entries;
   "metamorphosis/feeds": typeof metamorphosis_feeds;

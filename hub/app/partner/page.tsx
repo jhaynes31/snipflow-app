@@ -11,6 +11,7 @@ export default function PartnerPage() {
   const { partner } = useHub();
   const sections = useQuery(api.manual.partners);
   const fromTable = useQuery(api.hearth.entries.sharedWithMe);
+  const fromMantel = useQuery(api.mantel.sharedWithMe);
   if (!partner) {
     return (
       <div className="sh-container sh-narrow">
@@ -19,7 +20,7 @@ export default function PartnerPage() {
       </div>
     );
   }
-  if (!sections || !fromTable) return <Spinner />;
+  if (!sections || !fromTable || !fromMantel) return <Spinner />;
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title={`${partner.displayName}'s manual`} subtitle="Only the sections they chose to share. Their private sections don't exist here." />
@@ -39,6 +40,18 @@ export default function PartnerPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+      {fromMantel.length > 0 && (
+        <div className="sh-stack" style={{ marginTop: "1.5rem" }}>
+          <h2 className="sh-h2">From {partner.displayName}&apos;s mantel</h2>
+          <p className="sh-muted">Lines {partner.displayName} kept and chose to show you.</p>
+          {fromMantel.map((m) => (
+            <Card key={m._id}>
+              <p className="sh-eyebrow">{m.speaker === "me" ? partner.displayName : m.speaker === "dad" ? "Dad" : m.speaker === "mom" ? "Mom" : "The coach"}{m.source ? `, ${m.source}` : ""}</p>
+              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}>{m.text}</p>
+            </Card>
+          ))}
         </div>
       )}
       {fromTable.length > 0 && (

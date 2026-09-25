@@ -142,6 +142,7 @@ export const contextFor = internalQuery({
       .filter((b) => !b.retiredAt)
       .slice(0, 20)
       .map((b) => b.newLine);
+    const kept = (await ctx.db.query("mantel").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(30)).map((k) => k.text);
     const hhOwner = await roomOwnerOf(ctx, "hearth");
     const atHearth = hhOwner?.ownerId === me.profile._id;
     const known = atHearth
@@ -154,6 +155,7 @@ export const contextFor = internalQuery({
     const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id, hearth: atHearth };
     const orchardSignals = row.module === "orchard" ? signalsFor((me.profile.moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown }).map((s) => `${s.name}: tell, ${s.tell} Test, ${s.test} Response, ${s.response}`) : [];
     return {
+      kept,
       known,
       hearthStyle,
       littleNotes,

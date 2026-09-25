@@ -1377,4 +1377,17 @@ export default defineSchema({
     text: v.string(),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The Mantel: lines kept to come back to (from the coach, Dad, Mom, or in their own words). Private unless one is shared. */
+  mantel: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    kind: v.union(v.literal("takeaway"), v.literal("quote"), v.literal("prayer"), v.literal("forPartner")),
+    /** Who said it: the coach, Dad, Mom, or me. */
+    speaker: v.union(v.literal("coach"), v.literal("dad"), v.literal("mom"), v.literal("me")),
+    /** Where it was kept from, as people see it ("Ask her", "Talk it through"). */
+    source: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

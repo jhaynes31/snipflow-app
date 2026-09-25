@@ -6,6 +6,7 @@ import { useAction as useConvexAction, useMutation, useQuery } from "convex/reac
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { CoachReply } from "@/core/coach/CoachChat";
+import { KeepLine } from "@/core/mantel/KeepLine";
 import { useHub } from "@/core/shell/HubContext";
 import { useTools } from "@/core/tools/useTools";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
@@ -140,6 +141,7 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
           {row.messages.map((m, i) => (
             <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
               {m.role === "user" ? m.content : <CoachReply text={m.content} href={tools ? tools.href : null} />}
+              {m.role !== "user" && <KeepLine reply={m.content} task="tend.talkItOut" />}
             </div>
           ))}
           {pending && (

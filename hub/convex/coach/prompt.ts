@@ -40,6 +40,8 @@ export interface PromptInput {
   hearth?: { voice: string; known: string[]; style?: string | null; little?: string | null } | null;
   /** What this person wrote in What I know (The Hearth), for the coach anywhere; handed back, never reworded. */
   known?: string[];
+  /** Lines this person kept on The Mantel, from any voice or their own words. */
+  kept?: string[];
 }
 
 export const COACH_MODEL = "claude-opus-5";
@@ -113,6 +115,11 @@ export function buildSystemPrompt(input: PromptInput): string {
   if (known.length > 0) {
     parts.push(
       `What this person knows: advice and lived experience they wrote down themselves in What I know (The Hearth), each as "topic: title. text". It is their wisdom, not yours. When one answers what they are wrestling with, hand it back to them in their own words, name that it is theirs, and never improve it:\n${known.map((k) => `- ${k}`).join("\n")}`,
+    );
+  }
+  if (input.kept && input.kept.length > 0) {
+    parts.push(
+      `Lines this person kept on their mantel to come back to (from the coach, Dad, Mom, or their own words). When one already says what they need to hear, hand it back word for word and say it is from their mantel, instead of writing a new one:\n${input.kept.map((k) => `- ${k}`).join("\n")}`,
     );
   }
   if (input.lines && input.lines.length > 0) {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMutation } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Home, LifeBuoy, Settings, UserRound, Users, Sun, Moon } from "lucide-react";
+import { Home, LifeBuoy, Settings, UserRound, Users, Sun, Moon, BookMarked } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { COPY } from "@/core/copy/strings";
 import { useHub } from "./HubContext";
@@ -131,6 +131,9 @@ function ProfileMenu({ name }: { name: string }) {
         </Link>
         <Link role="menuitem" href="/partner">
           <Users size={16} aria-hidden /> My partner&apos;s manual
+        </Link>
+        <Link role="menuitem" href="/mantel">
+          <BookMarked size={16} aria-hidden /> The Mantel
         </Link>
         <Link role="menuitem" href="/settings">
           <Settings size={16} aria-hidden /> Settings

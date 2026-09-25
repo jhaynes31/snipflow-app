@@ -935,3 +935,20 @@ a.sh-chip {
 .sh-pathbar-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .sh-pathbar .sh-btn { padding: 0.35rem 0.8rem; font-size: 0.9rem; }
 .sh-desk-path { width: 100%; text-align: left; cursor: pointer; border-left: 4px solid var(--accent, var(--border)); }
+
+/* The Mantel */
+.sh-keep { padding: 0.1rem 0.5rem; font-size: 0.85rem; margin-top: 0.3rem; }
+.sh-keep-panel { margin-top: 0.4rem; padding: 0.6rem; border: 1px dashed var(--border); border-radius: 10px; }
+.sh-mantel-line {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 1rem;
+  border-left: 4px solid var(--accent, var(--border));
+  background: var(--surface-alt, var(--surface));
+  border-radius: 0 12px 12px 0;
+  text-decoration: none;
+  color: var(--text);
+  margin: 0.75rem 0;
+}
+.sh-mantel-text { font-family: var(--font-heading), Georgia, serif; font-size: 1.1rem; line-height: 1.45; }
