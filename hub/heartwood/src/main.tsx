@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './app/App';
 import { takeHandoff } from './app/handoff';
+import '@fontsource-variable/nunito';
+import '@fontsource-variable/fraunces';
 import './styles/theme.css';
 
 // Offline-first: service worker caches the shell, exercise data and media.

@@ -17,8 +17,8 @@
   --color-clay-600: #B5563A;
   --color-amber-500: #D98E2B;
 
-  --font-sans: "Nunito", "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Nunito Variable", "Nunito", "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
 
   --radius-card: 18px;
   --radius-pill: 999px;

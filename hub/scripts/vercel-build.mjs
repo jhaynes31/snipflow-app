@@ -55,6 +55,15 @@ async function configureAuth() {
     convexEnvSet("SITE_URL", siteUrl);
   }
 
+  // The two allowed sign-in addresses (2026-09-25). Set HUB_ALLOWED_EMAILS on the
+  // Vercel project (Settings > Environment Variables) and each production build
+  // copies it to the Convex deployment, where the sign-up check actually runs.
+  // Left unset, sign-up is still capped at two accounts but not pinned to emails.
+  const allowed = (process.env.HUB_ALLOWED_EMAILS ?? "").trim();
+  if (allowed && convexEnvGet("HUB_ALLOWED_EMAILS") !== allowed) {
+    convexEnvSet("HUB_ALLOWED_EMAILS", allowed);
+  }
+
   // Notification signing keys (VAPID), once. The private key never leaves Convex.
   if (!convexEnvGet("VAPID_PUBLIC_KEY") || !convexEnvGet("VAPID_PRIVATE_KEY")) {
     const keys = webpush.generateVAPIDKeys();

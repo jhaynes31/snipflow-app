@@ -23,7 +23,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Password({
       validatePasswordRequirements(password) {
-        if (password.length < 8) throw new ConvexError("Use a password of at least 8 characters.");
+        // Raised from 8 on 2026-09-25: there is no lockout on failed sign-ins, so length is the defense.
+        if (password.length < 12) throw new ConvexError("Use a password of at least 12 characters. A short sentence works well.");
       },
     }),
   ],

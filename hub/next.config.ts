@@ -1,5 +1,40 @@
 import type { NextConfig } from "next";
 
+/**
+ * Browser-side locks for every response. The content policy allows only this
+ * site, the Convex backend (database, live updates, sign-in), and data/blob
+ * URLs for images the app makes itself. Inline scripts and styles stay allowed
+ * because Next and the two embedded Vite apps rely on them; no other origin can
+ * run code here, frame the site, or receive a referrer with a path in it.
+ */
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.convex.cloud",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site",
+  "media-src 'self' blob:",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=(), interest-cohort=()" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+];
+
 const nextConfig: NextConfig = {
   async rewrites() {
     return {
@@ -28,6 +63,11 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        // Every page and file: the browser-side locks (2026-09-25, docs/security.md).
+        source: "/:path*",
+        headers: SECURITY_HEADERS,
+      },
       {
         source: "/love-and-release/app/sw.js",
         headers: [
