@@ -72,7 +72,7 @@ versions that fix the published advisories. Re-run `npm audit` after any upgrade
 
 1. **Turn on two-factor sign-in** for the GitHub, Vercel and Convex accounts. Those
    accounts can read or change everything; they are the real front door.
-2. **Set `HUB_ALLOWED_EMAILS`** on the Vercel project to the two sign-in addresses
+2. **Set `HUB_ALLOWED_EMAILS`** on the Vercel project to the two sign-in addresses (done 2026-09-27; two-factor sign-in turned on for GitHub, Vercel and Convex the same day)
    (Vercel: Project → Settings → Environment Variables → add, Production). The next
    deploy copies it to Convex.
 3. **Use long passwords** (a short sentence) for The Shire, GitHub, Vercel and Convex,
