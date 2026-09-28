@@ -111,7 +111,8 @@ const parseJson = <T,>(v: unknown, fallback: T): T => {
     return fallback;
   }
 };
-const genId = (v: unknown): GeneratorId => (generatorById(String(v)) ? (String(v) as GeneratorId) : "script");
+// "insight_card" was a planned format that the Social Card forge now covers; old rows and any AI reply that still says it land there.
+const genId = (v: unknown): GeneratorId => (String(v) === "insight_card" ? "social_card" : generatorById(String(v)) ? (String(v) as GeneratorId) : "script");
 
 // ── Tables ──────────────────────────────────────────────────────────
 
@@ -191,6 +192,7 @@ function ensureTables(): Promise<void> {
       await sql()`ALTER TABLE quests ADD COLUMN IF NOT EXISTS recruit_offer TEXT DEFAULT 'guild_hall'`;
       await sql()`ALTER TABLE content_slots ADD COLUMN IF NOT EXISTS flags_acknowledged BOOLEAN DEFAULT FALSE`;
       await seedShowsOnce();
+      await retireInsightCard();
     })().catch((e) => {
       ready = null;
       throw e;
@@ -205,10 +207,16 @@ async function seedShowsOnce() {
   if (flag.length) return;
   await sql()`
     INSERT INTO quest_series (name, kind, default_weekday, default_generator, description, example)
-    VALUES ('Trap or Treasure Tuesday', 'recurring', 'Tuesday', 'insight_card', 'A myth vs. fact post. John reads a common belief and calls it a trap or a treasure.', TRUE),
+    VALUES ('Trap or Treasure Tuesday', 'recurring', 'Tuesday', 'social_card', 'A myth vs. fact post. John reads a common belief and calls it a trap or a treasure.', TRUE),
            ('Last Call', 'recurring', 'Friday', 'social_card', 'One quick, useful tip to end the week. Short, warm, and worth saving.', TRUE)
   `;
   await sql()`INSERT INTO quest_settings (key, value) VALUES ('shows_seeded', '1') ON CONFLICT (key) DO NOTHING`;
+}
+
+/** Rows written before the insight card was retired point at the Social Card forge instead (idempotent). */
+async function retireInsightCard() {
+  await sql()`UPDATE quest_series SET default_generator = 'social_card' WHERE default_generator = 'insight_card'`;
+  await sql()`UPDATE content_slots SET generator = 'social_card' WHERE generator = 'insight_card'`;
 }
 
 // ── Row mappers ─────────────────────────────────────────────────────
@@ -600,7 +608,7 @@ export const draftPlan = createServerFn({ method: "POST" })
     if (!dates.length) return { ok: false, slots: [], changes: [], error: "The quest's dates leave no posting days.", source: "fallback" };
     const mix = targetMix(dates.length);
     const quiz = QUEST_CONFIG.quizzes[quest.offerQuiz];
-    const generators = QUEST_CONFIG.generators.map((g) => `- ${g.id}: ${g.bestFor}${g.available ? "" : " (NOT BUILT YET, use sparingly)"}`).join("\n");
+    const generators = QUEST_CONFIG.generators.filter((g) => g.available).map((g) => `- ${g.id}: ${g.bestFor}`).join("\n");
     const showLines = shows.length ? shows.map((s) => `- "${s.name}" on ${s.defaultWeekday}s, generator ${s.defaultGenerator}: ${s.description}`).join("\n") : "(none switched on)";
     const dateLines = dates.map((d) => `${d} (${weekdayOf(d)})`).join(", ");
 
@@ -612,7 +620,7 @@ Return JSON only:
 
 Rules:
 - Use exactly the dates given, one slot each, in order.
-- Generators: script (most posts), carousel, and social_card (which means Trap or Treasure recruiting cards). Never meme or insight_card for recruiting.
+- Generators: script (most posts), carousel, and social_card (which means Trap or Treasure recruiting cards). Never meme for recruiting.
 - Topics come only from this list, reworded freely: ${GUILD_SCRIPT_TOPICS.map((t) => t.label).join("; ")}; ${GUILD_CAROUSEL_TOPICS.map((t) => t.label).join("; ")}.
 - Every slot speaks to one thing the profile says they want or worry about (quote or closely paraphrase it) and points toward a free, no-pressure conversation with John.
 - Hiring-safe: describe situations and interests only, never age, family status, or any protected trait. No earnings figures, income ranges, or lifestyle promises. Never call the role financial advisor or similar.
@@ -621,7 +629,7 @@ Rules:
     const system = `You plan short-form content campaigns for John "The Financial DM", a licensed term life agent who posts friendly, genuinely useful, lesser-known financial education on TikTok in a tavern-bartender voice. Success is booked calls, not views.
 
 Return JSON only:
-{"slots":[{"date":"YYYY-MM-DD","generator":"script|carousel|insight_card|social_card|meme","generatorReason":"one line","topic":"...","painPoint":"...","hookAngle":"...","seriesName":"optional","seriesKind":"multi_part|recurring","partNumber":1,"totalParts":3}]}
+{"slots":[{"date":"YYYY-MM-DD","generator":"script|carousel|social_card|meme","generatorReason":"one line","topic":"...","painPoint":"...","hookAngle":"...","seriesName":"optional","seriesKind":"multi_part|recurring","partNumber":1,"totalParts":3}]}
 
 Rules:
 - Use exactly the dates given, one slot each, in order.

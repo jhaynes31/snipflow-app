@@ -35,12 +35,13 @@ export const QUEST_CONFIG = {
   generators: [
     { id: "script", label: "Script", bestFor: "Stories, explanations, and every multi-part series", notes: "Favored on TikTok. Optional B Roll step.", available: true, forgeTab: "script" },
     { id: "carousel", label: "Carousel", bestFor: "Step-by-step how-tos and checklists", notes: "Posts as a TikTok photo post.", available: true, forgeTab: "carousel" },
-    { id: "insight_card", label: "Insight card", bestFor: "Myth vs. fact (Trap or Treasure) and stat cards", notes: "Planned; not built yet.", available: false },
+    // Retired: the Social Card forge makes exactly these (Trap or Treasure and stat cards). Kept so old rows still read; plans never pick it.
+    { id: "insight_card", label: "Insight card", bestFor: "Myth vs. fact (Trap or Treasure) and stat cards", notes: "Made in the Social Card forge now.", available: false },
     { id: "social_card", label: "Social card", bestFor: "One punchy stat or tip", available: true, forgeTab: "card" },
     { id: "meme", label: "Meme", bestFor: "Humor and relatable moments", notes: "Kept to a small share by default.", available: true, forgeTab: "meme" },
   ] as GeneratorEntry[],
   /** Approximate targets for TikTok plans. */
-  formatMix: { script: 0.55, insight_card: 0.15, carousel: 0.1, social_card: 0.1, meme: 0.1 } as Record<GeneratorId, number>,
+  formatMix: { script: 0.55, insight_card: 0, carousel: 0.1, social_card: 0.25, meme: 0.1 } as Record<GeneratorId, number>,
   memeMaxShare: 0.15,
   maxMultiPartSeriesPerQuest: 1,
   seriesTeaseLine: "Part {next} is coming. Follow so you don't miss it.",

@@ -148,7 +148,8 @@ export function groupByWeek<T extends { date: string }>(items: T[], start: strin
 
 /** How many slots of each generator a plan of `total` posts should have, from the format mix, with memes capped. */
 export function targetMix(total: number): Record<GeneratorId, number> {
-  const ids = Object.keys(QUEST_CONFIG.formatMix) as GeneratorId[];
+  // Only formats with a share (and a forge behind them) take part; a zero-share format never gets a leftover slot.
+  const ids = (Object.keys(QUEST_CONFIG.formatMix) as GeneratorId[]).filter((id) => QUEST_CONFIG.formatMix[id] > 0);
   const raw = ids.map((id) => ({ id, exact: QUEST_CONFIG.formatMix[id] * total }));
   const counts = Object.fromEntries(raw.map((r) => [r.id, Math.floor(r.exact)])) as Record<GeneratorId, number>;
   let left = total - Object.values(counts).reduce((a, b) => a + b, 0);
