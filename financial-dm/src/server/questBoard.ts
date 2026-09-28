@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { callClaude, parseJsonReply } from "~/server/contentVoice";
 import type { QuizId } from "~/lib/questConfig";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * Quest Board, Phase 1: client profiles.
@@ -454,7 +455,7 @@ export const setProfileArchived = createServerFn({ method: "POST" })
       await sql()`UPDATE client_profiles SET archived = ${data.archived}, updated_at = NOW() WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("questBoard", e) };
     }
   });
 
@@ -467,7 +468,7 @@ export const deleteProfile = createServerFn({ method: "POST" })
       await sql()`DELETE FROM client_profiles WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("questBoard", e) };
     }
   });
 

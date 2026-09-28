@@ -29,6 +29,7 @@ import { fitResultEmail, newRecruitEmail } from "~/lib/mailTemplates";
 import { MEETING_COVERS_DRAFT } from "~/lib/guildConfig";
 import type { FitLevel } from "~/lib/fitQuiz";
 import { GUILD_STARTER_ANSWERS } from "~/lib/guildStarterAnswers";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * The Guild, Phase 1 (recruiting spec, Section 5, trust-first amendment):
@@ -143,7 +144,7 @@ export const saveGuildFacts = createServerFn({ method: "POST" })
       const facts = await loadFacts();
       return { ok: true, missing: missingFacts(facts), live: guildIsLive(facts) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("guild", e) };
     }
   });
 
@@ -353,7 +354,7 @@ export const quickAddRecruit = createServerFn({ method: "POST" })
         RETURNING id`) as Array<{ id: number }>;
       return { ok: true, id: Number(rows[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("guild", e) };
     }
   });
 
@@ -376,7 +377,7 @@ export const setRecruitStage = createServerFn({ method: "POST" })
       await sql()`UPDATE recruits SET stage = ${data.stage}, stage_history = ${JSON.stringify(history.slice(-40))}, not_moving_reason = ${reason} WHERE id = ${data.id}`;
       return { ok: true, history };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("guild", e) };
     }
   });
 
@@ -396,7 +397,7 @@ export const updateRecruit = createServerFn({ method: "POST" })
       if (data.questId !== undefined) await sql()`UPDATE recruits SET quest_id = ${data.questId} WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("guild", e) };
     }
   });
 
@@ -409,6 +410,6 @@ export const deleteRecruit = createServerFn({ method: "POST" })
       await sql()`DELETE FROM recruits WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("guild", e) };
     }
   });

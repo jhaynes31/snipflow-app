@@ -9,6 +9,7 @@ import { loadScript, loadScriptsByAudience } from "~/server/dmScreen";
 import { scriptToPresentation } from "~/lib/dmScreen";
 import { JOHN_RECRUITING_PRESENTATION, interruptionChance, normalizeSections, pickJumpTarget, presentationSummary, type Presentation, type PresentationSection, type SectionProgress } from "~/lib/practicePresentation";
 import { disengageCue, interruptionCue, presentationBlock, presentationOpeningCue, sectionReactionCue } from "~/lib/practicePrompts";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * The Sparring Dummy, server side (AI practice spec, Phase 1). Practice
@@ -369,7 +370,7 @@ export async function createSession(data: StartInput, who: Practitioner): Promis
     await storeTranscript(s);
     return { ok: true, session: s };
   } catch (e) {
-    return { ok: false, error: String(e) };
+    return { ok: false, error: friendlyError("practice.server", e) };
   }
 }
 
@@ -568,6 +569,6 @@ export async function applySectionEvent(s: PracticeSession, data: SectionInput):
     await storeTranscript(s);
     return { ok: true, session: { ...s, pendingInterrupt: false } };
   } catch (e) {
-    return { ok: false, error: String(e), session: s };
+    return { ok: false, error: friendlyError("practice.server", e), session: s };
   }
 }

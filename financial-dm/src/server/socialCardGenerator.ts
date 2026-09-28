@@ -18,6 +18,7 @@ import {
 import { statFactFor, topicPromptLines, type TopicSelection } from "./topics";
 import { campaignPromptBlock } from "~/server/campaign";
 import { ensureCtaLine, type CampaignContext } from "~/lib/campaign";
+import { friendlyError } from "~/server/publicError";
 
 
 // Topic rolling lives in ./topics; keep the old names importable.
@@ -320,7 +321,7 @@ export const saveSocialCards = createServerFn({ method: "POST" })
       `;
       return { ok: true, id: Number(result[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("socialCardGenerator", e) };
     }
   });
 
@@ -370,7 +371,7 @@ export const updateSocialCards = createServerFn({ method: "POST" })
       )} WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("socialCardGenerator", e) };
     }
   });
 
@@ -382,6 +383,6 @@ export const deleteSocialCards = createServerFn({ method: "POST" })
       await sql()`DELETE FROM social_cards WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("socialCardGenerator", e) };
     }
   });

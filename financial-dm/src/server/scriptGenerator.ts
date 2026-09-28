@@ -20,6 +20,7 @@ import { campaignPromptBlock } from "~/server/campaign";
 import { ensureCtaLine, ensureSpokenEnding, type CampaignContext } from "~/lib/campaign";
 
 import { composeScript, normalizeHookType } from "~/lib/scriptUtils";
+import { friendlyError } from "~/server/publicError";
 
 // Topic rolling now lives in ./topics (one pool for every generator). These
 // re exports keep older imports working.
@@ -547,7 +548,7 @@ export const saveScript = createServerFn({ method: "POST" })
       `;
       return { ok: true, id: Number(result[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("scriptGenerator", e) };
     }
   });
 
@@ -589,6 +590,6 @@ export const deleteScript = createServerFn({ method: "POST" })
       await sql()`DELETE FROM saved_scripts WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("scriptGenerator", e) };
     }
   });

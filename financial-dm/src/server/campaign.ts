@@ -6,6 +6,7 @@ import { QUEST_CONFIG, generatorById, type GeneratorId } from "~/lib/questConfig
 import { isFinalPart, seriesOpener, teaseFor, type CampaignBrief, type CampaignContext } from "~/lib/campaign";
 import { scanCompliance } from "~/lib/compliance";
 import { buildTopicGroups, statFactFor } from "~/server/topics";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * Campaign brief and save-back (campaign manager spec, Sections 7.1 to 7.4):
@@ -221,7 +222,7 @@ export const acknowledgeFlags = createServerFn({ method: "POST" })
       await sql()`UPDATE content_slots SET flags_acknowledged = TRUE, updated_at = NOW() WHERE id = ${data.slotId}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("campaign", e) };
     }
   });
 

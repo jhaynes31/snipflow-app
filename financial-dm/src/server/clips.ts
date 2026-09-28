@@ -5,6 +5,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import { cleanText } from "./contentVoice";
 import type { ClipSummary, StockClip } from "~/lib/brollUtils";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * John's b roll clip library. Video files live in Vercel Blob (uploaded
@@ -144,7 +145,7 @@ export const saveClip = createServerFn({ method: "POST" })
       `;
       return { ok: true, clip: rowToClip(rows[0] as Record<string, unknown>) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("clips", e) };
     }
   });
 
@@ -163,7 +164,7 @@ export const updateClip = createServerFn({ method: "POST" })
       }
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("clips", e) };
     }
   });
 
@@ -184,7 +185,7 @@ export const deleteClip = createServerFn({ method: "POST" })
       }
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("clips", e) };
     }
   });
 

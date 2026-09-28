@@ -16,6 +16,7 @@ import {
   type RecruitFlag,
 } from "~/lib/guildCompliance";
 import { QUEST_CONFIG } from "~/lib/questConfig";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * Recruiting mode for the generators (recruiting spec, Section 6, and the
@@ -335,7 +336,7 @@ export const saveGuildOutput = createServerFn({ method: "POST" })
       const rows = (await sql()`INSERT INTO guild_outputs (kind, title, body, flags) VALUES (${data.kind}, ${data.title}, ${JSON.stringify(data.body).slice(0, 60000)}, ${JSON.stringify(flags)}) RETURNING id`) as Array<{ id: number }>;
       return { ok: true, id: Number(rows[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("guildForge", e) };
     }
   });
 

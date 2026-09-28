@@ -8,6 +8,7 @@ import { temperamentsFor, type Conversation } from "~/lib/practiceConfig";
 import type { Persona } from "~/lib/practicePrompts";
 import type { Debrief } from "~/lib/practiceDebrief";
 import { AS_JOHN, MODEL, applySectionEvent, buildDebrief, createSession, ensurePracticeTables, finishSession, forJohn, giveHint, inventPersona, listPresentationChoices, loadProfiles, loadRubrics, loadSession, rowToPresentation, rowToSession, sayTurn, summarize, type PracticeOverview, type PracticeSession, type PracticeSetup, type Rubrics, type SessionResult } from "~/server/practice.server";
+import { friendlyError } from "~/server/publicError";
 
 export type { PracticeSession, PracticeSetup, Rubrics, SessionResult, SessionSummary, PracticeOverview, TranscriptEntry, SavedPersona } from "~/server/practice.server";
 export type { StartRaw, SectionRaw } from "~/lib/practiceInput";
@@ -57,7 +58,7 @@ export const savePersona = createServerFn({ method: "POST" })
       const rows = (await sql()`INSERT INTO practice_personas (conversation, profile_id, profile_snapshot, persona) VALUES (${data.conversation}, ${data.profileId}, ${data.profileSnapshot}, ${JSON.stringify(data.persona)}) RETURNING id`) as Array<{ id: number }>;
       return { ok: true, id: Number(rows[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("practice", e) };
     }
   });
 

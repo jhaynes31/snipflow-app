@@ -20,6 +20,7 @@ import { campaignPromptBlock } from "~/server/campaign";
 import { ensureCtaLine, type CampaignContext } from "~/lib/campaign";
 
 import { parseSavedDeck, serializeDeck, type EditableSlide } from "~/lib/slideEditor";
+import { friendlyError } from "~/server/publicError";
 
 export type { EditableSlide, SlideElement, SlideKind, ElementRole } from "~/lib/slideEditor";
 // Topic rolling lives in ./topics; keep the old names importable.
@@ -224,7 +225,7 @@ export const saveCarousel = createServerFn({ method: "POST" })
       `;
       return { ok: true, id: Number(result[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("carouselGenerator", e) };
     }
   });
 
@@ -266,7 +267,7 @@ export const updateCarouselSlides = createServerFn({ method: "POST" })
       await sql()`UPDATE saved_carousels SET slides = ${serializeDeck(data.slides)} WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("carouselGenerator", e) };
     }
   });
 
@@ -279,6 +280,6 @@ export const deleteCarousel = createServerFn({ method: "POST" })
       await sql()`DELETE FROM saved_carousels WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("carouselGenerator", e) };
     }
   });

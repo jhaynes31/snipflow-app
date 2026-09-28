@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * Home's only writes (Tavern Keeper's Morning spec, Rules 2.3 and 2.4):
@@ -60,7 +61,7 @@ export const dismissHomeItem = createServerFn({ method: "POST" })
       await sql()`DELETE FROM home_dismissals WHERE until_at < NOW() - interval '30 days'`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("homeState", e) };
     }
   });
 
@@ -93,6 +94,6 @@ export const setSignoff = createServerFn({ method: "POST" })
       const rows = (await sql()`INSERT INTO admin_signoffs (key, signed_at) VALUES (${data.key}, NOW()) ON CONFLICT (key) DO UPDATE SET signed_at = NOW() RETURNING signed_at`) as Array<Record<string, unknown>>;
       return { ok: true, signedAt: String(rows[0]?.signed_at ?? new Date().toISOString()) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("homeState", e) };
     }
   });

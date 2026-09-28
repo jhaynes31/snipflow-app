@@ -10,6 +10,7 @@ import { difficultyById, suggestedDifficulty, type Conversation, type Difficulty
 import { stageLabel } from "~/lib/guildConfig";
 import { firstName } from "~/lib/questLog";
 import type { Debrief } from "~/lib/practiceDebrief";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * Recruit access to the Sparring Dummy (AI practice spec, Section 9). John
@@ -62,7 +63,7 @@ export const grantPracticeAccess = createServerFn({ method: "POST" })
       if (!rows.length) return { ok: false, error: "That recruit is gone." };
       return { ok: true, token: String(rows[0].practice_token ?? ""), grantedAt: String(rows[0].practice_granted_at ?? "") };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("practiceRecruit", e) };
     }
   });
 
@@ -76,7 +77,7 @@ export const revokePracticeAccess = createServerFn({ method: "POST" })
       await sql()`UPDATE recruits SET practice_token = NULL, practice_granted_at = NULL WHERE id = ${data.id}`;
       return { ok: true, token: "", grantedAt: "" };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("practiceRecruit", e) };
     }
   });
 
@@ -220,7 +221,7 @@ export const recruitGeneratePersona = createServerFn({ method: "POST" })
       if (!holder) return { ok: false, error: GONE.error };
       return await inventPersona({ profileId: data.profileId, conversation: data.conversation, avoidNames: data.avoidNames });
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("practiceRecruit", e) };
     }
   });
 
@@ -234,7 +235,7 @@ export const recruitStartSession = createServerFn({ method: "POST" })
       const { token: _t, ...input } = data;
       return await createSession(input, { practitioner: "recruit", recruitId: holder.id });
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("practiceRecruit", e) };
     }
   });
 
@@ -264,7 +265,7 @@ async function withOwn(token: string, id: number, ai: boolean, fn: (s: PracticeS
     if (!s) return { ok: false, error: "That session is gone." };
     return await fn(s);
   } catch (e) {
-    return { ok: false, error: String(e) };
+    return { ok: false, error: friendlyError("practiceRecruit", e) };
   }
 }
 
@@ -301,7 +302,7 @@ export const recruitGetDebrief = createServerFn({ method: "POST" })
       if (s && s.practitioner === "john" && s.sharedAsExample) return s.debrief ? { ok: true, debrief: s.debrief } : { ok: false, error: "John has not run the debrief on this example yet." };
       return { ok: false, error: "That session is gone." };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("practiceRecruit", e) };
     }
   });
 

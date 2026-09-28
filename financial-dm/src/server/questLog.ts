@@ -7,6 +7,7 @@ import { ensureGuildTables } from "~/server/guild";
 import { GUILD_CONFIG, isRecruitStage, type RecruitStage } from "~/lib/guildConfig";
 import { parseStatusHistory, type StatusChange } from "~/lib/attribution";
 import { firstName, makeStepId, newQuestLog, parseQuestLog, questLogProgress, stageFromLog, stageIndex, type QuestLog, type QuestLogStep } from "~/lib/questLog";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * The Quest Log (recruiting spec, Phase 5). Every recruit who has joined can
@@ -83,7 +84,7 @@ export const startQuestLog = createServerFn({ method: "POST" })
       await sql()`UPDATE recruits SET quest_log = ${JSON.stringify(log)}, quest_log_token = ${token} WHERE id = ${data.id}`;
       return { ok: true, log, token };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("questLog", e) };
     }
   });
 
@@ -107,7 +108,7 @@ export const setQuestLogStep = createServerFn({ method: "POST" })
       const stage = data.done ? await advanceStage(data.id, cur.stage, cur.history, cur.log) : null;
       return { ok: true, log: cur.log, ...(stage ? { stage } : {}) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("questLog", e) };
     }
   });
 
@@ -150,7 +151,7 @@ export const saveQuestLog = createServerFn({ method: "POST" })
       await storeLog(data.id, log);
       return { ok: true, log };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("questLog", e) };
     }
   });
 
@@ -165,7 +166,7 @@ export const rotateQuestLogLink = createServerFn({ method: "POST" })
       await sql()`UPDATE recruits SET quest_log_token = ${token} WHERE id = ${data.id}`;
       return { ok: true, token };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("questLog", e) };
     }
   });
 

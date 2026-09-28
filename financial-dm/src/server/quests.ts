@@ -5,6 +5,7 @@ import { callClaude, parseJsonReply } from "~/server/contentVoice";
 import { QUEST_CONFIG, generatorById, type GeneratorId, type QuizId } from "~/lib/questConfig";
 import { GUILD_CAROUSEL_TOPICS, GUILD_SCRIPT_TOPICS } from "~/lib/guildCompliance";
 import { SLOT_STATUSES, enforcePlan, normalizeSlug, scheduleDates, slugProblem, targetMix, weekdayOf, type PlannedSlot, type SlotStatus } from "~/lib/questPlan";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * Quest Board, Phase 2: quests, series (multi-part and recurring shows),
@@ -369,7 +370,7 @@ export const deleteQuest = createServerFn({ method: "POST" })
       await sql()`DELETE FROM quests WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("quests", e) };
     }
   });
 
@@ -441,7 +442,7 @@ export const deleteSeries = createServerFn({ method: "POST" })
       await sql()`DELETE FROM quest_series WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("quests", e) };
     }
   });
 
@@ -554,7 +555,7 @@ export const deleteSlot = createServerFn({ method: "POST" })
       await sql()`DELETE FROM content_slots WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("quests", e) };
     }
   });
 

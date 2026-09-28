@@ -20,6 +20,7 @@ import {
   type ClipSummary,
   estimateTiming,
 } from "~/lib/brollUtils";
+import { friendlyError } from "~/server/publicError";
 
 export type { BrollShot, BrollSource, BrollStyle } from "~/lib/brollUtils";
 
@@ -236,7 +237,7 @@ export const saveBroll = createServerFn({ method: "POST" })
       `;
       return { ok: true, id: Number(result[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("brollGenerator", e) };
     }
   });
 
@@ -294,7 +295,7 @@ export const updateBrollShots = createServerFn({ method: "POST" })
       await sql()`UPDATE saved_broll SET shots = ${JSON.stringify(data.shots)} WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("brollGenerator", e) };
     }
   });
 
@@ -306,6 +307,6 @@ export const deleteBroll = createServerFn({ method: "POST" })
       await sql()`DELETE FROM saved_broll WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("brollGenerator", e) };
     }
   });

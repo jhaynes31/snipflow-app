@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { requireAdmin } from "~/server/auth";
 import type { BrollShot } from "~/lib/brollUtils";
 import { defaultTitle, isStudioSource, isStudioStatus, isStudioStep, normalizeBackground, normalizeScript, type StudioHandoff, type StudioStatus, type StudioStep, type VideoProject } from "~/lib/studio";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * The Recording Studio, server side (Recording Studio spec). One row per
@@ -161,7 +162,7 @@ export const startStudioVideo = createServerFn({ method: "POST" })
         RETURNING id`) as Array<{ id: number }>;
       return { ok: true, id: Number(rows[0].id), existing: false };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("studio", e) };
     }
   });
 
@@ -249,7 +250,7 @@ export const updateStudioVideo = createServerFn({ method: "POST" })
       }
       return { ok: true, video: rowToVideo(rows[0]) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("studio", e) };
     }
   });
 
@@ -270,7 +271,7 @@ export const duplicateStudioVideo = createServerFn({ method: "POST" })
         RETURNING id`) as Array<{ id: number }>;
       return { ok: true, id: Number(rows[0].id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("studio", e) };
     }
   });
 
@@ -285,6 +286,6 @@ export const deleteStudioVideo = createServerFn({ method: "POST" })
       await sql()`DELETE FROM studio_videos WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("studio", e) };
     }
   });

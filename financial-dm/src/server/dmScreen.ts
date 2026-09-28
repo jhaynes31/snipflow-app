@@ -4,6 +4,7 @@ import { requireAdmin } from "~/server/auth";
 import { DM_SCREEN_CONFIG, normalizeSections, outlineToSections, sameSections, type DmScript, type ScriptAudience, type ScriptSection, type ScriptVersion } from "~/lib/dmScreen";
 import { text } from "~/lib/practiceInput";
 import { JOHN_RECRUITING_PRESENTATION, normalizeSections as normalizeOutline } from "~/lib/practicePresentation";
+import { friendlyError } from "~/server/publicError";
 
 /**
  * The DM Screen, server side (presentation script spec, Phase 1). Scripts
@@ -148,7 +149,7 @@ export const createScript = createServerFn({ method: "POST" })
       await recordVersion(s);
       return { ok: true, id: s.id };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });
 
@@ -183,7 +184,7 @@ export const saveScript = createServerFn({ method: "POST" })
       await recordVersion(s);
       return { ok: true, script: s };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });
 
@@ -197,7 +198,7 @@ export const renameScript = createServerFn({ method: "POST" })
       await sql()`UPDATE dm_scripts SET name = ${data.name}, updated_at = NOW() WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });
 
@@ -214,7 +215,7 @@ export const duplicateScript = createServerFn({ method: "POST" })
       await recordVersion(s);
       return { ok: true, id: s.id };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });
 
@@ -230,7 +231,7 @@ export const setDefaultScript = createServerFn({ method: "POST" })
       await sql()`UPDATE dm_scripts SET is_default = TRUE, updated_at = NOW() WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });
 
@@ -245,7 +246,7 @@ export const archiveScript = createServerFn({ method: "POST" })
       else await sql()`UPDATE dm_scripts SET archived = FALSE, updated_at = NOW() WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });
 
@@ -274,6 +275,6 @@ export const restoreVersion = createServerFn({ method: "POST" })
       await recordVersion(s);
       return { ok: true, script: s };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("dmScreen", e) };
     }
   });

@@ -20,6 +20,7 @@ import { campaignPromptBlock } from "~/server/campaign";
 import { ensureCtaLine, type CampaignContext } from "~/lib/campaign";
 
 import { layoutGuideLines, slotsFor } from "~/lib/memeLayouts";
+import { friendlyError } from "~/server/publicError";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -309,7 +310,7 @@ export const saveConcept = createServerFn({ method: "POST" })
       `;
       return { ok: true, id: Number(result[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("memeGenerator", e) };
     }
   });
 
@@ -393,7 +394,7 @@ export const updateConcept = createServerFn({ method: "POST" })
       );
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("memeGenerator", e) };
     }
   });
 
@@ -405,6 +406,6 @@ export const deleteConcept = createServerFn({ method: "POST" })
       await sql()`DELETE FROM meme_concepts WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("memeGenerator", e) };
     }
   });
