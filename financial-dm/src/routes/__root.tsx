@@ -5,6 +5,7 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import ErrorScreen, { NotFoundScreen } from "~/components/ErrorScreen";
 
 import appCss from "~/styles/app.css?url";
 
@@ -27,23 +28,16 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", href: "/favicon.png" },
     ],
   }),
-  notFoundComponent: () => (
-    <div
-      className="min-h-dvh flex items-center justify-center"
-      style={{ background: "#0d1520" }}
-    >
-      <p className="text-[#c08020] font-fantasy text-xl">Page not found</p>
-    </div>
-  ),
+  // The document shell wraps every page, including the error and not-found
+  // screens, so a crash never renders without <html> and the stylesheet.
+  shellComponent: RootDocument,
+  notFoundComponent: NotFoundScreen,
+  errorComponent: (props) => <ErrorScreen {...props} />,
   component: RootComponent,
 });
 
 function RootComponent() {
-  return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
-  );
+  return <Outlet />;
 }
 
 function RootDocument({ children }: { children: ReactNode }) {

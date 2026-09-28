@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import AdminNav from "~/components/AdminNav";
+import ErrorScreen from "~/components/ErrorScreen";
 import { getAuthStatus } from "~/server/auth";
 
 /**
@@ -23,6 +24,15 @@ export const Route = createFileRoute("/_admin")({
     }
   },
   component: AdminLayout,
+  // A crash inside a private page keeps the nav bar and offers a retry.
+  errorComponent: (props) => (
+    <>
+      <AdminNav />
+      <div className="pb-20 md:pb-0">
+        <ErrorScreen {...props} admin />
+      </div>
+    </>
+  ),
 });
 
 /**

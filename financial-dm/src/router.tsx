@@ -1,6 +1,7 @@
 import { createRouter } from "@tanstack/react-router";
 
 import { routeTree } from "./routeTree.gen";
+import ErrorScreen, { NotFoundScreen } from "~/components/ErrorScreen";
 
 /**
  * After a deploy, a tab that still has the old build tries to load page
@@ -20,6 +21,7 @@ export function getRouter() {
     routeTree,
     defaultPreload: "intent",
     scrollRestoration: true,
-    defaultNotFoundComponent: () => <p>Not found</p>,
+    defaultNotFoundComponent: NotFoundScreen,
+    defaultErrorComponent: (props) => <ErrorScreen {...props} />,
   });
 }
