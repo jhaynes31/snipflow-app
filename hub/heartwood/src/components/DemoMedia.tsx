@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { mediaOverride } from '@/data/media';
 import { assetUrl } from '@/app/base';
 import { db } from '@/db/db';
@@ -6,9 +7,13 @@ import type { Exercise } from '@/domain/types';
 import { poseSvg } from '@/media/pose';
 import { POSES } from '@/media/poses';
 
-/** Looping demo with pause and slow-motion where supported (Section 6.3). */
+/** The key under which a person's own demo for an exercise is kept (2026-09-28). */
+export const ownDemoKey = (exerciseId: string) => `demo-${exerciseId}`;
+
+/** Looping demo with pause and slow-motion where supported (Section 6.3). A video or photo the person added themselves wins over everything else. */
 export function DemoMedia({ exercise, slow = false, height = 220 }: { exercise: Exercise; slow?: boolean; height?: number }) {
-  const media = mediaOverride(exercise.id) ?? exercise.media[0];
+  const own = useLiveQuery(() => db.customMedia.get(ownDemoKey(exercise.id)), [exercise.id]);
+  const media = own ? { type: 'custom' as const, src: own.key } : mediaOverride(exercise.id) ?? exercise.media[0];
   const [paused, setPaused] = useState(false);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -29,6 +34,9 @@ export function DemoMedia({ exercise, slow = false, height = 220 }: { exercise: 
   }, [slow, paused]);
 
   if (!media) return null;
+  if (media.type === 'custom' && own && own.mime.startsWith('image/') && blobUrl) {
+    return <img src={blobUrl} alt={`${exercise.name}, your own photo`} style={{ height, width: '100%', objectFit: 'contain', borderRadius: 18, background: 'var(--bg-card-soft)' }} />;
+  }
   if (media.type === 'pose' && POSES[media.src]) {
     return <div style={{ height, width: '100%', borderRadius: 18, overflow: 'hidden', background: 'var(--bg-card-soft)', display: 'grid', placeItems: 'center' }} className="pose-demo" dangerouslySetInnerHTML={{ __html: poseSvg(POSES[media.src], `${exercise.name} demonstration`) }} />;
   }

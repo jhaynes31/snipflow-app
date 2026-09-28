@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { BodyMap } from '@/components/BodyMap';
-import { DemoMedia } from '@/components/DemoMedia';
+import { DemoMedia, ownDemoKey } from '@/components/DemoMedia';
 import { Button, Card, Callout } from '@/components/ui';
 import { EXERCISE_MAP } from '@/data/exercises';
 import { db } from '@/db/db';
@@ -33,7 +33,7 @@ export function ExerciseDetailPage() {
     <div className="page stack fade-in">
       <Button variant="ghost" size="sm" onClick={() => nav(-1)}>← Back</Button>
       <DemoMedia exercise={ex} slow={slow} />
-      <div className="flex gap-2"><Button variant="ghost" size="sm" onClick={() => setSlow((s) => !s)}>{slow ? 'Normal speed' : 'Slow motion'}</Button></div>
+      <div className="flex gap-2 flex-wrap items-center"><Button variant="ghost" size="sm" onClick={() => setSlow((s) => !s)}>{slow ? 'Normal speed' : 'Slow motion'}</Button><OwnDemo exerciseId={ex.id} /></div>
       <h1>{ex.name}</h1>
       <p className="text-lg">{ex.summary}</p>
 
@@ -72,5 +72,32 @@ export function ExerciseDetailPage() {
       </div>
       {ex.lessonIds.length > 0 && <p className="muted text-sm">Related lessons: {ex.lessonIds.map((l) => LESSON_MAP[l]?.title).filter(Boolean).join(', ')}</p>}
     </div>
+  );
+}
+
+/**
+ * Add my own video or photo (2026-09-28, Jen's ask): the most accurate demo
+ * of an exercise is the person doing it in their own kitchen. Kept on this
+ * device with the app's other data, included in backups, replaceable and
+ * removable. Large videos are allowed but a warning shows over 60 MB.
+ */
+function OwnDemo({ exerciseId }: { exerciseId: string }) {
+  const own = useLiveQuery(() => db.customMedia.get(ownDemoKey(exerciseId)), [exerciseId]);
+  const [note, setNote] = useState<string | null>(null);
+  const inputId = `own-demo-${exerciseId}`;
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('video/') && !file.type.startsWith('image/')) { setNote('That file is not a video or a photo.'); return; }
+    if (file.size > 60 * 1024 * 1024) setNote('That is a big file. It will work, but a shorter clip loads faster.');
+    else setNote(null);
+    await db.customMedia.put({ key: ownDemoKey(exerciseId), blob: file, mime: file.type, createdAt: new Date().toISOString() });
+  };
+  return (
+    <span className="flex gap-2 flex-wrap items-center">
+      <input id={inputId} type="file" accept="video/*,image/*" capture="environment" className="sr-only" onChange={(e) => void onFile(e.target.files?.[0])} />
+      <label htmlFor={inputId} className="btn btn-ghost btn-sm" role="button" tabIndex={0}>{own ? 'Replace my video or photo' : 'Add my own video or photo'}</label>
+      {own && <Button variant="ghost" size="sm" onClick={() => void db.customMedia.delete(ownDemoKey(exerciseId))}>Use the drawing instead</Button>}
+      {note && <span className="muted text-sm">{note}</span>}
+    </span>
   );
 }
