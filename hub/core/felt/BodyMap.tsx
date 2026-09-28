@@ -18,6 +18,10 @@ export function BodyMap({ picked, onToggle }: { picked: Set<string>; onToggle: (
         <button type="button" className={`sh-chip ${picked.has(WHOLE_BODY) ? "" : "sh-chip-quiet"}`} aria-pressed={picked.has(WHOLE_BODY)} onClick={() => onToggle(WHOLE_BODY)}>All over</button>
       </div>
       <svg viewBox="0 0 200 440" role="group" aria-label={`Body, ${view}`}>
+        <text className="sh-body-side" x="6" y="16" textAnchor="start">{view === "front" ? "Your right" : "Your left"}</text>
+        <text className="sh-body-side" x="194" y="16" textAnchor="end">{view === "front" ? "Your left" : "Your right"}</text>
+        <text className="sh-body-side" x="6" y="436" textAnchor="start">{view === "front" ? "Your right" : "Your left"}</text>
+        <text className="sh-body-side" x="194" y="436" textAnchor="end">{view === "front" ? "Your left" : "Your right"}</text>
         <path className="sh-body-outline" d="M100 12 a28 30 0 1 1 -0.1 0 M88 74 h24 v20 M50 104 q50 -22 100 0 l18 16 v120 l-22 0 v-90 l6 130 l-6 34 v0 l-4 126 h-38 l-2 -126 h-12 l-2 126 h-38 l-4 -126 l-6 -34 l6 -130 v90 l-22 0 v-120 z" />
         {areas.map((a) => {
           const on = picked.has(a.key);
@@ -29,7 +33,7 @@ export function BodyMap({ picked, onToggle }: { picked: Set<string>; onToggle: (
         })}
       </svg>
       <p className="sh-body-name" aria-live="polite">{hovered ?? (chosen.length ? `Tapped: ${chosen.join(", ")}` : "Hover or tap a part to see its name")}</p>
-      <p className="sh-hint">{view === "front" ? "Tap where you notice it. Flip to Back for the neck, back and hips." : "Tap where you notice it. Flip to Front for the chest, belly and face."}</p>
+      <p className="sh-hint">{view === "front" ? "Facing you, so your right side is on the left. Flip to Back for the neck, back and hips." : "Tap where you notice it. Flip to Front for the chest, belly and face."}</p>
     </div>
   );
 }

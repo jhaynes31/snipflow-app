@@ -86,6 +86,10 @@ export interface BodyArea {
   shape: { kind: "ellipse"; cx: number; cy: number; rx: number; ry: number } | { kind: "rect"; x: number; y: number; w: number; h: number; r?: number } | { kind: "path"; d: string };
 }
 
+/**
+ * Left and right are the person's own. The front view faces you, so their
+ * right side is on your left; the back view matches your own sides.
+ */
 export const BODY_AREAS: BodyArea[] = [
   { key: "head", label: "Head", view: "front", shape: { kind: "ellipse", cx: 100, cy: 42, rx: 28, ry: 30 } },
   { key: "jaw", label: "Jaw and face", view: "front", shape: { kind: "ellipse", cx: 100, cy: 62, rx: 18, ry: 10 } },
@@ -96,12 +100,12 @@ export const BODY_AREAS: BodyArea[] = [
   { key: "belly", label: "Stomach", view: "front", shape: { kind: "rect", x: 68, y: 166, w: 64, h: 36, r: 10 } },
   { key: "gut", label: "Gut and low belly", view: "front", shape: { kind: "rect", x: 70, y: 206, w: 60, h: 30, r: 10 } },
   { key: "pelvis", label: "Pelvis and hips", view: "front", shape: { kind: "path", d: "M66 240 h68 l6 34 h-80 z" } },
-  { key: "armL", label: "Left arm", view: "front", shape: { kind: "rect", x: 32, y: 120, w: 22, h: 120, r: 11 } },
-  { key: "armR", label: "Right arm", view: "front", shape: { kind: "rect", x: 146, y: 120, w: 22, h: 120, r: 11 } },
-  { key: "handL", label: "Left hand", view: "front", shape: { kind: "ellipse", cx: 43, cy: 256, rx: 13, ry: 16 } },
-  { key: "handR", label: "Right hand", view: "front", shape: { kind: "ellipse", cx: 157, cy: 256, rx: 13, ry: 16 } },
-  { key: "legL", label: "Left leg", view: "front", shape: { kind: "rect", x: 68, y: 278, w: 28, h: 120, r: 12 } },
-  { key: "legR", label: "Right leg", view: "front", shape: { kind: "rect", x: 104, y: 278, w: 28, h: 120, r: 12 } },
+  { key: "armL", label: "Right arm", view: "front", shape: { kind: "rect", x: 32, y: 120, w: 22, h: 120, r: 11 } },
+  { key: "armR", label: "Left arm", view: "front", shape: { kind: "rect", x: 146, y: 120, w: 22, h: 120, r: 11 } },
+  { key: "handL", label: "Right hand", view: "front", shape: { kind: "ellipse", cx: 43, cy: 256, rx: 13, ry: 16 } },
+  { key: "handR", label: "Left hand", view: "front", shape: { kind: "ellipse", cx: 157, cy: 256, rx: 13, ry: 16 } },
+  { key: "legL", label: "Right leg", view: "front", shape: { kind: "rect", x: 68, y: 278, w: 28, h: 120, r: 12 } },
+  { key: "legR", label: "Left leg", view: "front", shape: { kind: "rect", x: 104, y: 278, w: 28, h: 120, r: 12 } },
   { key: "feet", label: "Feet", view: "front", shape: { kind: "path", d: "M64 402 h34 v22 h-40 z M102 402 h34 l6 22 h-40 z" } },
   { key: "headBack", label: "Back of the head", view: "back", shape: { kind: "ellipse", cx: 100, cy: 42, rx: 28, ry: 30 } },
   { key: "neck", label: "Neck", view: "back", shape: { kind: "rect", x: 88, y: 74, w: 24, h: 24, r: 8 } },
