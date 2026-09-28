@@ -171,16 +171,23 @@ function notFoundResponse(): Response {
  * gets the not-found page.
  */
 export async function handleCampaignLink(rawSlug: string, request: Request): Promise<Response> {
+  const url = new URL(request.url);
   let resolved: ResolvedLink | null = null;
   try {
     resolved = await resolveCampaignSlug(rawSlug);
-  } catch (e) {
-    console.warn("[campaign] link lookup failed:", e);
-    return notFoundResponse();
+  } catch (first) {
+    // A database blip must never turn a TikTok link into a dead end. Try once
+    // more, then fail open: send the visitor to the quiz without attribution.
+    console.warn("[campaign] link lookup failed, retrying:", first);
+    try {
+      resolved = await resolveCampaignSlug(rawSlug);
+    } catch (e) {
+      console.error("[campaign] link lookup failed twice; sending the visitor to the quiz unattributed:", e);
+      return new Response(null, { status: 302, headers: { Location: `/quiz?via=${encodeURIComponent(normalizeSlug(rawSlug))}`, "Cache-Control": "no-store" } });
+    }
   }
   if (!resolved) return notFoundResponse();
 
-  const url = new URL(request.url);
   // Optional platform override for the same link on another network: /baby?p=youtube
   const p = normalizeSlug(url.searchParams.get("p") ?? "");
   const platform = QUEST_CONFIG.platforms.some((x) => x.id === p) ? p : resolved.tag.platform;

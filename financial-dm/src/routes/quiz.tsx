@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import D20Dice from "~/components/D20Dice";
 import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
+import { saveLeadWithRetry } from "~/lib/leadSubmit";
+import { useElementWidth } from "~/lib/useElementWidth";
 import PartyRoster from "~/components/life/PartyRoster";
 import PartyTable from "~/components/life/PartyTable";
 import TrapOrTreasure from "~/components/life/TrapOrTreasure";
@@ -159,6 +161,8 @@ function QuizPage() {
   const [contact, setContact] = useState<{ name: string; email: string } | null>(null);
   const [shareStatus, setShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
   const shareRef = useRef<HTMLDivElement>(null);
+  // The preview box is narrower than 360 px on small phones; the card scales to whatever the box is.
+  const [shareBox, shareBoxWidth] = useElementWidth<HTMLDivElement>(360);
   const sheetRef = useRef<HTMLDivElement>(null);
   const [sheet, setSheet] = useState<CharacterSheetRecord>({});
   const [sheetShareStatus, setSheetShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
@@ -353,7 +357,7 @@ function QuizPage() {
     const tierName = TIER_NAME[armor.acTier];
 
     try {
-      const saved = await saveLead({
+      const saved = await saveLeadWithRetry(() => saveLead({
         data: {
           name,
           email,
@@ -387,8 +391,11 @@ function QuizPage() {
           myth_score: state.myths ? mythScore(state.myths) : null,
           loot_id: armor.loot,
         },
-      });
-      if (!saved.ok) {
+      }));
+      if (!saved.ok && saved.serverError) {
+        // The site failed twice, not the details. The visitor still gets their results; the miss is in the server log.
+        console.error("[lead] save failed on the server; sending the visitor on");
+      } else if (!saved.ok) {
         // Rejected details (fake email, movie phone number) keep the dialog
         // open with the reason instead of sending the visitor on.
         console.warn("[lead] save rejected:", saved.error);
@@ -683,8 +690,8 @@ function QuizPage() {
       {state.phase === "share" && state.myths && (
         <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
           <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">📣 Your share card</p>
-          <div className="w-full max-w-[360px] aspect-square overflow-hidden rounded-xl shadow-2xl shadow-black/50" aria-hidden="true">
-            <div style={{ width: 1080, height: 1080, transform: "scale(0.3333)", transformOrigin: "top left" }}>
+          <div ref={shareBox} className="w-full max-w-[360px] aspect-square overflow-hidden rounded-xl shadow-2xl shadow-black/50" aria-hidden="true">
+            <div style={{ width: 1080, height: 1080, transform: `scale(${shareBoxWidth / 1080})`, transformOrigin: "top left" }}>
               <LifeShareCard ref={shareRef} score={mythScore(state.myths)} />
             </div>
           </div>

@@ -9,6 +9,7 @@ import { verifyMailDomain } from "~/server/mailDomain.server";
 import { currentAttribution } from "~/server/attribution.server";
 import { ensureQuestTables } from "~/server/quests";
 import { isFoundVia, isLeadStatus, parseStatusHistory, type StatusChange } from "~/lib/attribution";
+import { friendlyError } from "~/server/publicError";
 
 export interface LeadData {
   name: string;
@@ -84,6 +85,8 @@ export interface SaveLeadResult {
   lootId?: string;
   /** True when this email or phone already claimed loot; no new lead row was made. */
   repeat?: boolean;
+  /** True when the site itself failed (database, network), not the visitor's details. The quiz retries once, then sends the visitor on. */
+  serverError?: boolean;
 }
 
 export interface Lead extends LeadData {
@@ -264,12 +267,13 @@ export const saveLead = createServerFn({ method: "POST" })
     const phone = checkPhone(data.phone);
     if (!phone.ok) return { ok: false, error: phone.message, field: "phone" };
     data = { ...data, name: name.value!, email: email.value!, phone: phone.value! };
-    const domainOk = await verifyMailDomain(data.email.split("@")[1]);
-    if (!domainOk) return { ok: false, error: "That email's domain doesn't receive mail. Check the spelling after the @.", field: "email" };
+    // Throttle before the (slower) mail-domain lookup so a flood cannot use it as a lever.
     if (!allowRequest(`lead:${clientAddress()}`, MAX_LEAD_SUBMISSIONS, LEAD_WINDOW_MS)) {
       console.warn("[leads] throttled submission from", clientAddress());
       return { ok: false, error: "Too many submissions. Please try again in a few minutes." };
     }
+    const domainOk = await verifyMailDomain(data.email.split("@")[1]);
+    if (!domainOk) return { ok: false, error: "That email's domain doesn't receive mail. Check the spelling after the @.", field: "email" };
     try {
       await ensureLeadsTable();
       // Which campaign link, if any, brought this person here (Section 8.2).
@@ -321,8 +325,8 @@ export const saveLead = createServerFn({ method: "POST" })
       });
       return { ok: true, lootId: data.loot_id || undefined, repeat: false };
     } catch (e) {
-      console.error("[leads] insert failed:", e);
-      return { ok: false, error: String(e) };
+      // The visitor never sees database text. The quiz retries once, then goes on to the results.
+      return { ok: false, error: friendlyError("leads.saveLead", e, "We could not save your details just now."), serverError: true };
     }
   });
 
@@ -390,7 +394,7 @@ export const addLeadManually = createServerFn({ method: "POST" })
         RETURNING id`) as Array<{ id: number }>;
       return { ok: true, id: Number(rows[0]?.id) };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("leads", e) };
     }
   });
 
@@ -489,7 +493,7 @@ export const updateLeadStatus = createServerFn({ method: "POST" })
         WHERE id = ${data.id}`;
       return { ok: true, history };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("leads", e) };
     }
   });
 
@@ -501,6 +505,6 @@ export const deleteLead = createServerFn({ method: "POST" })
       await sql()`DELETE FROM leads WHERE id = ${data.id}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("leads", e) };
     }
   });

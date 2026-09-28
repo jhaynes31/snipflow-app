@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import D20Dice from "~/components/D20Dice";
 import LeadModal, { type LeadSubmitOutcome } from "~/components/LeadModal";
+import { saveLeadWithRetry } from "~/lib/leadSubmit";
+import { useElementWidth } from "~/lib/useElementWidth";
 import { WEALTH_QUESTIONS, computeScore, scoresFromAnswers } from "~/components/WealthReport";
 import StatSheet, { FloatingMods, centerOf, type FloatingMod } from "~/components/wealth/StatSheet";
 import WealthResults from "~/components/wealth/WealthResults";
@@ -170,6 +172,8 @@ function WealthCheckPage() {
   const [contact, setContact] = useState<{ name: string; email: string } | null>(null);
   const [shareStatus, setShareStatus] = useState<"idle" | "working" | "shared" | "downloaded" | "error">("idle");
   const shareRef = useRef<HTMLDivElement>(null);
+  // The preview box is narrower than 360 px on small phones; the card scales to whatever the box is.
+  const [shareBox, shareBoxWidth] = useElementWidth<HTMLDivElement>(360);
 
   /** A die for one named roll: the QA override when enabled, otherwise the real thing. */
   const rngFor = useCallback((key: keyof DebugRolls, second?: keyof DebugRolls): Rng => {
@@ -347,7 +351,7 @@ function WealthCheckPage() {
     let lootRepeat = false;
 
     try {
-      const saved = await saveLead({
+      const saved = await saveLeadWithRetry(() => saveLead({
         data: {
           name,
           email,
@@ -373,8 +377,11 @@ function WealthCheckPage() {
           save_outcome: saveResult ? (saveResult.success ? "success" : "fail") : "",
           loot_id: lootId ?? "",
         },
-      });
-      if (!saved.ok) {
+      }));
+      if (!saved.ok && saved.serverError) {
+        // The site failed twice, not the details. The visitor still gets their results; the miss is in the server log.
+        console.error("[lead] save failed on the server; sending the visitor on");
+      } else if (!saved.ok) {
         // The details were rejected (fake email, movie phone number, and so
         // on) or the site is overloaded. The dialog stays open with the reason.
         console.warn("[lead] save rejected:", saved.error);
@@ -826,8 +833,8 @@ function WealthCheckPage() {
         <div className="flex flex-col items-center gap-6 w-full max-w-md animate-slide-in">
           <p className="text-sm text-[#e0b45a] font-fantasy tracking-wider uppercase">📣 Your share card</p>
           {/* Preview: the real 1080 card scaled to fit. The export uses the same node at full size. */}
-          <div className="w-full max-w-[360px] aspect-square overflow-hidden rounded-xl shadow-2xl shadow-black/50" aria-hidden="true">
-            <div style={{ width: 1080, height: 1080, transform: "scale(0.3333)", transformOrigin: "top left" }}>
+          <div ref={shareBox} className="w-full max-w-[360px] aspect-square overflow-hidden rounded-xl shadow-2xl shadow-black/50" aria-hidden="true">
+            <div style={{ width: 1080, height: 1080, transform: `scale(${shareBoxWidth / 1080})`, transformOrigin: "top left" }}>
               <ShareCard ref={shareRef} facts={shareFacts} />
             </div>
           </div>
