@@ -157,6 +157,10 @@ export default function ClipLibrary({
       if (added.length) onChange([...added.reverse(), ...clips]);
       setBulkReport(`Added ${added.length} clip${added.length === 1 ? "" : "s"}.${problems.length ? "\n" + problems.join("\n") : ""}`);
       if (!problems.length) setBulk("");
+    } catch (e) {
+      // The list so far is kept on screen; the lines not yet added stay in the box.
+      if (added.length) onChange([...added.reverse(), ...clips]);
+      setError(errorText(e, `The connection dropped after ${added.length} clip${added.length === 1 ? "" : "s"}. The rest are still in the box; press Add again.`));
     } finally {
       setBusy(false);
     }
@@ -164,9 +168,13 @@ export default function ClipLibrary({
 
   const handleSaveTags = async (clip: ClipSummary) => {
     const next = parseTags(editTags);
-    const res = await updateClip({ data: { id: clip.id, tags: next } });
-    if (res.ok) onChange(clips.map((c) => (c.id === clip.id ? { ...c, tags: next } : c)));
-    else setError(res.error || "Could not save the tags.");
+    try {
+      const res = await updateClip({ data: { id: clip.id, tags: next } });
+      if (res.ok) onChange(clips.map((c) => (c.id === clip.id ? { ...c, tags: next } : c)));
+      else setError(res.error || "Could not save the tags.");
+    } catch (e) {
+      setError(errorText(e, "Could not save the tags."));
+    }
     setEditingId(null);
   };
 
