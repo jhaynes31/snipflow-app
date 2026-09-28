@@ -11,6 +11,7 @@ import {
 import MemePreview from "~/components/MemePreview";
 import type { TextBox } from "~/components/MemePreview";
 import { downloadElementPng } from "~/lib/exportPng";
+import { fmtDay } from "~/lib/dates";
 
 const PLATFORMS = ["", "TikTok", "Instagram", "Facebook", "LinkedIn"];
 
@@ -229,7 +230,7 @@ export default function SavedConcepts() {
     navigator.clipboard.writeText(caption).then(() => {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
-    });
+    }).catch(() => setError("Could not copy to clipboard."));
   };
 
   const handleDownload = useCallback(
@@ -249,18 +250,7 @@ export default function SavedConcepts() {
     [],
   );
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => fmtDay(dateStr) || dateStr;
 
   // Memoized template lookup by name
   const getTemplateImage = useCallback(

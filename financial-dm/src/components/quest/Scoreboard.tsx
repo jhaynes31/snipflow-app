@@ -3,6 +3,7 @@ import { getScoreboard, saveQuestRetro } from "~/server/scoreboard";
 import type { GroupScore, QuestScore, Scoreboard as ScoreboardData, WrapUpPrompt } from "~/lib/scoreboard";
 import { RETRO_STARTERS } from "~/lib/questSuggestions";
 import SuggestField from "~/components/quest/SuggestField";
+import { fmtYmd } from "~/lib/dates";
 
 /**
  * The Scoreboard tab (Quest Board spec, Section 9). Quests ranked by
@@ -467,7 +468,7 @@ function WrapUpCard({ prompt, onSaved }: { prompt: WrapUpPrompt; onSaved: () => 
     <section className="rounded-xl border border-[#c08020]/40 bg-[#c08020]/5 p-4 space-y-3" data-wrapup={prompt.questId}>
       <div>
         <h2 className="font-fantasy text-[#c08020] text-lg">📜 {prompt.name} has ended. What did we learn?</h2>
-        <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">It ended {prompt.endDate}. Two or three honest sentences are enough. The retro is stored on the quest and feeds the coach later.</p>
+        <p className="text-[#a0a0a0] text-xs font-fantasy mt-1">It ended {fmtYmd(prompt.endDate)}. Two or three honest sentences are enough. The retro is stored on the quest and feeds the coach later.</p>
       </div>
       <SuggestField name="retro" label="Retro" value={retro} onChange={setRetro} suggestions={RETRO_STARTERS} placeholder="The hooks about work coverage booked calls; the meme days brought views but no leads." textarea rows={3} append maxLength={2000} />
       <div className="flex flex-wrap items-center gap-3">

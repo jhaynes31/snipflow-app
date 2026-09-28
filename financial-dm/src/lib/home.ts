@@ -34,13 +34,22 @@ export function weekStartIso(now: Date = new Date(), cfg: { weekday: number; hou
   const parts = Object.fromEntries(dtf.formatToParts(now).map((p) => [p.type, p.value]));
   const y = Number(parts.year), mo = Number(parts.month), d = Number(parts.day), h = Number(parts.hour), mi = Number(parts.minute), s = Number(parts.second);
   const weekdayIdx = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(parts.weekday);
-  const asUtc = Date.UTC(y, mo - 1, d, h, mi, s);
-  const offsetMs = asUtc - Math.floor(now.getTime() / 1000) * 1000;
+  void s;
+  void mi;
   // Days back to the configured weekday; if it is that weekday but before the start hour, go back a full week.
   let back = (weekdayIdx - cfg.weekday + 7) % 7;
   if (back === 0 && h < cfg.hour) back = 7;
   const localStart = Date.UTC(y, mo - 1, d - back, cfg.hour, 0, 0);
-  return new Date(localStart - offsetMs).toISOString();
+  // The zone offset at the week's start, not at "now": across a clock change the two differ by an hour.
+  return new Date(localStart - zoneOffsetMs(new Date(localStart), cfg.timeZone)).toISOString();
+}
+
+/** Milliseconds the zone is ahead of UTC at a given instant (negative for the Americas). */
+export function zoneOffsetMs(at: Date, timeZone: string = SHELL_CONFIG.weekStart.timeZone): number {
+  const dtf = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+  const p = Object.fromEntries(dtf.formatToParts(at).map((x) => [x.type, x.value]));
+  const asUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second));
+  return asUtc - Math.floor(at.getTime() / 1000) * 1000;
 }
 
 export function daysBetween(fromIso: string, to: Date = new Date()): number {

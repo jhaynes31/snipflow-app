@@ -24,6 +24,7 @@ import EditableSlideCard from "~/components/EditableSlideCard";
 import SlideShapePicker from "~/components/SlideShapePicker";
 import { readSlideAspect, writeSlideAspect, type SlideAspect } from "~/lib/slideEditor";
 import SlideEditorPanel, { type SlideLook } from "~/components/SlideEditorPanel";
+import { fmtDay } from "~/lib/dates";
 
 export default function SavedCarousels() {
   const [carousels, setCarousels] = useState<SavedCarousel[]>([]);
@@ -244,7 +245,7 @@ export default function SavedCarousels() {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(c.id);
       setTimeout(() => setCopiedId(null), 2000);
-    });
+    }).catch(() => setError("Could not copy to clipboard."));
   };
 
   const handleDownloadSlide = async (c: SavedCarousel, idx: number) => {
@@ -322,18 +323,7 @@ export default function SavedCarousels() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => fmtDay(dateStr) || dateStr;
 
   const filtered = search
     ? carousels.filter(

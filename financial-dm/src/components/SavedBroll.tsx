@@ -12,6 +12,7 @@ import { BROLL_STYLE_META, type BrollShot, type ClipSummary, buildBrollText, dow
 import { getClips } from "~/server/clips";
 import { slugify } from "~/lib/scriptUtils";
 import BrollShotList from "~/components/generator/BrollShotList";
+import { fmtDay } from "~/lib/dates";
 
 /** Library of saved shot lists. Expand one to edit, copy, download, or delete. */
 export default function SavedBroll() {
@@ -79,7 +80,7 @@ export default function SavedBroll() {
     navigator.clipboard.writeText(buildBrollText({ ...p, shots: shotsFor(p) })).then(() => {
       setCopiedId(p.id);
       setTimeout(() => setCopiedId(null), 2000);
-    });
+    }).catch(() => setError("Could not copy to clipboard."));
   };
 
   const handleDownload = (p: SavedBrollPlan) => {
@@ -102,13 +103,7 @@ export default function SavedBroll() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => fmtDay(dateStr) || dateStr;
 
   const q = search.toLowerCase();
   const filtered = q

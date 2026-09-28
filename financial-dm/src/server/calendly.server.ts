@@ -1,4 +1,5 @@
 import { SHELL_CONFIG } from "~/lib/adminShell";
+import { zoneOffsetMs } from "~/lib/home";
 
 /**
  * Reads John's upcoming Calendly appointments (Tavern Keeper's Morning
@@ -62,10 +63,11 @@ function window(now: Date): { min: string; max: string } {
   const dtf = new Intl.DateTimeFormat("en-CA", { timeZone: SHELL_CONFIG.weekStart.timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const parts = Object.fromEntries(dtf.formatToParts(now).map((p) => [p.type, p.value]));
   const localMidnightAsUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
-  const nowLocalAsUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
-  const offsetMs = nowLocalAsUtc - Math.floor(now.getTime() / 60_000) * 60_000;
-  const start = localMidnightAsUtc - offsetMs;
-  return { min: new Date(start).toISOString(), max: new Date(start + 2 * 86_400_000 - 1000).toISOString() };
+  // Offsets taken at each boundary, so the window is right on the day the clocks change.
+  const start = localMidnightAsUtc - zoneOffsetMs(new Date(localMidnightAsUtc));
+  const endLocal = localMidnightAsUtc + 2 * 86_400_000;
+  const end = endLocal - zoneOffsetMs(new Date(endLocal));
+  return { min: new Date(start).toISOString(), max: new Date(end - 1000).toISOString() };
 }
 
 /** Today's and tomorrow's active appointments, cached for a minute so Home stays instant. */

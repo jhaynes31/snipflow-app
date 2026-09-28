@@ -10,6 +10,7 @@ import { HOOK_TYPE_LABELS, buildScriptText, downloadScript, slugify } from "~/li
 import Prompter from "~/components/prompter/Prompter";
 import RecordThisButton from "~/components/studio/RecordThisButton";
 import { stripLeadingHook } from "~/server/scriptGenerator";
+import { fmtDay } from "~/lib/dates";
 
 export default function SavedScripts() {
   const [performing, setPerforming] = useState<number | null>(null);
@@ -58,7 +59,7 @@ export default function SavedScripts() {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(s.id);
       setTimeout(() => setCopiedId(null), 2000);
-    });
+    }).catch(() => setError("Could not copy to clipboard."));
   };
 
   const handleDownload = (s: SavedScript) => {
@@ -98,18 +99,7 @@ export default function SavedScripts() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => fmtDay(dateStr) || dateStr;
 
   const filtered = search
     ? scripts.filter(

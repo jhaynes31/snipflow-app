@@ -7,6 +7,8 @@ import { ensureGuildTables } from "~/server/guild";
 import { ensureQuestTables } from "~/server/quests";
 import { buildScoreboard, type EventRow, type LeadRow, type QuestRow, type RecruitRow, type Scoreboard, type SeriesRow, type SlotRow } from "~/lib/scoreboard";
 import { generatorById, type GeneratorId } from "~/lib/questConfig";
+import { friendlyError } from "~/server/publicError";
+import { todayYmd } from "~/lib/home";
 
 /**
  * The Scoreboard (Quest Board spec, Section 9): raw counts per quest, per
@@ -88,7 +90,7 @@ export const getScoreboard = createServerFn()
       foundVia: String(r.found_via ?? ""),
     }));
     const winStage = wRows[0]?.value === "first_sale" ? "first_sale" : "contracted";
-    return buildScoreboard({ quests, slots, series, leads, events, recruits, winStage, today: new Date().toISOString().slice(0, 10) });
+    return buildScoreboard({ quests, slots, series, leads, events, recruits, winStage, today: todayYmd() });
   });
 
 /** Quest wrap-up (Section 9.4): store John's retro and, if asked, close the quest. */
@@ -106,6 +108,6 @@ export const saveQuestRetro = createServerFn({ method: "POST" })
       else await sql()`UPDATE quests SET retro = ${data.retro}, updated_at = NOW() WHERE id = ${data.questId}`;
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: String(e) };
+      return { ok: false, error: friendlyError("scoreboard", e) };
     }
   });

@@ -37,6 +37,7 @@ import {
   type GuildScriptBody,
   type GuildTextPostsBody,
 } from "~/server/guildForge";
+import { fmtShortDateTime } from "~/lib/dates";
 
 /**
  * Recruiting mode in the forge (recruiting spec, Section 6). Scripts, Trap
@@ -478,7 +479,7 @@ export function SavedGuildOutputs() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-[#e0e0e0] font-fantasy">{kindLabel(r.kind)} · {r.title}</p>
-              <p className="text-[11px] text-[#606080] font-fantasy">{new Date(r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {r.approved ? "✅ Approved by John" : "Not yet approved"}</p>
+              <p className="text-[11px] text-[#606080] font-fantasy">{fmtShortDateTime(r.createdAt)} · {r.approved ? "✅ Approved by John" : "Not yet approved"}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} className={btnGhost}>{open === r.id ? "Hide" : "Show"}</button>
