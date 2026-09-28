@@ -143,6 +143,13 @@ function ensureSettingsTable(): Promise<void> {
 const CACHE_MS = 30_000;
 let cache: { at: number; value: StoredPassword | null } | null = null;
 
+/** Thrown when the database cannot be read and nothing is cached: the answer is "unknown", never "no site password". */
+export class StoredPasswordUnavailable extends Error {
+  constructor() {
+    super("The site's database is not answering right now. Wait a moment and try again.");
+  }
+}
+
 async function loadStoredPassword(): Promise<StoredPassword | null> {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache.value;
   let value: StoredPassword | null = null;
@@ -155,10 +162,14 @@ async function loadStoredPassword(): Promise<StoredPassword | null> {
       value = { hash, envSnapshot: map.get("env_snapshot") ?? "", version: map.get("password_version") ?? "custom" };
     }
   } catch (e) {
-    // Without the database the site falls back to ADMIN_PASSWORD only.
     console.error("[auth] could not read the stored password", e);
+    // No database configured at all: ADMIN_PASSWORD is the only password. That is a real answer.
     if (!process.env.DATABASE_URL) value = null;
-    else return cache?.value ?? null;
+    // A configured database that did not answer: use the last known answer if there is one.
+    // With nothing cached (a cold server), the answer is unknown. Treating it as "no site
+    // password" used to reject every session cookie and sign John out during a blip.
+    else if (cache) return cache.value;
+    else throw new StoredPasswordUnavailable();
   }
   cache = { at: Date.now(), value };
   return value;
@@ -166,7 +177,11 @@ async function loadStoredPassword(): Promise<StoredPassword | null> {
 
 /** True when John has set his own password from the site (not the Vercel one). */
 export async function hasCustomPassword(): Promise<boolean> {
-  return (await loadStoredPassword()) !== null;
+  try {
+    return (await loadStoredPassword()) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /** Save a new password chosen on the site. It takes over from ADMIN_PASSWORD at once. */
@@ -190,18 +205,25 @@ async function clearStoredPassword(): Promise<void> {
   cache = null;
 }
 
-/** The password version stamped into session tokens. */
-async function passwordVersion(): Promise<string> {
-  return (await loadStoredPassword())?.version ?? "env";
+/** The password version stamped into session tokens, or null when the database cannot say right now. */
+async function passwordVersion(): Promise<string | null> {
+  try {
+    return (await loadStoredPassword())?.version ?? "env";
+  } catch (e) {
+    if (e instanceof StoredPasswordUnavailable) return null;
+    throw e;
+  }
 }
 
 // ── Session token ──────────────────────────────────────────────────
 // Token shape: `<expiresAtMs>.<nonce>.<passwordVersion>.<hmac(expiresAtMs.nonce.passwordVersion)>`
 
 async function issueToken(): Promise<string> {
+  const version = await passwordVersion();
+  if (version === null) throw new StoredPasswordUnavailable();
   const expiresAt = Date.now() + SESSION_MS;
   const nonce = toHex(crypto.getRandomValues(new Uint8Array(16)));
-  const payload = `${expiresAt}.${nonce}.${await passwordVersion()}`;
+  const payload = `${expiresAt}.${nonce}.${version}`;
   const sig = await hmacHex(payload);
   return `${payload}.${sig}`;
 }
@@ -214,10 +236,13 @@ async function verifyToken(token: string | undefined): Promise<boolean> {
   const expiresAt = Number(expiresRaw);
   if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return false;
   if (!/^[0-9a-f]{32}$/.test(nonce) || !/^[0-9a-f]{64}$/.test(sig) || !/^[0-9a-z]{1,32}$/.test(version)) return false;
-  // A token from before a password change carries the old version and dies here.
-  if (version !== (await passwordVersion())) return false;
+  // The signature covers the version, so a forged version cannot pass. Check it first.
   const expected = await hmacHex(`${expiresRaw}.${nonce}.${version}`);
-  return safeEqual(expected, sig);
+  if (!safeEqual(expected, sig)) return false;
+  // A token from before a password change carries the old version and dies here. When the
+  // database cannot say what the current version is, a validly signed token stays valid.
+  const current = await passwordVersion();
+  return current === null || version === current;
 }
 
 /** True when the current request carries a valid admin session cookie. */

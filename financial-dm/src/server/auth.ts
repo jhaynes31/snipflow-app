@@ -92,7 +92,17 @@ export const loginWithPassword = createServerFn({ method: "POST" })
         retryInSeconds: Math.ceil(wait / 1000),
       };
     }
-    if (!(await passwordMatches(data.password))) {
+    let matches = false;
+    try {
+      matches = await passwordMatches(data.password);
+    } catch (e) {
+      // The database did not answer, so the site password cannot be checked. Say so
+      // plainly instead of quietly accepting only the Vercel password.
+      console.error("[auth] login could not read the stored password", e);
+      setResponseStatus(503);
+      return { ok: false, error: "The site's database is not answering right now. Wait a moment and try again." };
+    }
+    if (!matches) {
       loginThrottle.recordFailure(key);
       // A short fixed delay on failure slows down scripted guessing.
       await new Promise((r) => setTimeout(r, 400));
