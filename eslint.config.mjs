@@ -14,8 +14,6 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // The Shire lives in hub/ as its own app with its own config.
     "hub/**",
-    // Hearthstead lives in hearthstead/ as its own app with its own config.
-    "hearthstead/**",
   ]),
 ]);
 
