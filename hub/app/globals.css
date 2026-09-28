@@ -971,3 +971,4 @@ a.sh-chip {
 .sh-felt-open { margin-top: 0.3rem; }
 .sh-wheel text { font-family: var(--font-body), system-ui, sans-serif; }
 .sh-wedge:hover path { filter: brightness(1.06); }
+.sh-body-name { text-align: center; font-weight: 700; min-height: 1.4em; margin: 0.2rem 0 0; }
