@@ -33,6 +33,9 @@ function announceSave(scriptId: number, version: number) {
   }
 }
 
+/** Where unsaved words wait in this browser when John leaves while a presenter is on stage. */
+const draftKey = (scriptId: number) => `dmscreen:draft:${scriptId}`;
+
 /** A presenter view writes a timestamp every few seconds; a fresh one means John is on stage. */
 function presenterOpen(scriptId: number): boolean {
   try {
@@ -147,6 +150,50 @@ function Editor({ initial }: { initial: DmScript }) {
     return () => window.removeEventListener("beforeunload", onLeave);
   }, [dirty]);
 
+  // Leaving by an in-app link (Done, a breadcrumb, a tab) used to cancel the pending
+  // autosave and drop the last words typed; while a presenter was open, every held-back
+  // edit was lost. Now: unsaved words are saved on the way out, or, when a presenter is on
+  // stage, kept in this browser and restored the next time the editor opens.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey(script.id));
+      if (raw) {
+        const d = JSON.parse(raw) as { name?: string; sections?: ScriptSection[] };
+        localStorage.removeItem(draftKey(script.id));
+        if (typeof d.name === "string") setName(d.name);
+        if (Array.isArray(d.sections) && d.sections.length) setSections(normalizeSections(d.sections));
+        setRestored(true);
+      }
+    } catch {
+      /* a broken draft is not worth crashing the editor */
+    }
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      if (!dirtyRef.current) return;
+      const cur = latest.current;
+      const stash = () => {
+        try {
+          localStorage.setItem(draftKey(script.id), JSON.stringify({ name: cur.name, sections: cur.sections, at: Date.now() }));
+        } catch {
+          /* ignore */
+        }
+      };
+      if (presenterOpen(script.id)) {
+        stash();
+        return;
+      }
+      saveScript({ data: { id: script.id, name: cur.name.trim() || script.name, sections: cur.sections, baseVersion: cur.version } })
+        .then((res) => {
+          if (!res.ok) stash();
+        })
+        .catch(stash);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [script.id]);
+
   const update = (id: string, patch: Partial<ScriptSection>) => setSections((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const move = (idx: number, dir: -1 | 1) =>
     setSections((list) => {
@@ -223,6 +270,7 @@ function Editor({ initial }: { initial: DmScript }) {
         {state === "paused" && <p className="text-[11px] text-[#e0c080] font-fantasy" data-paused-note>A presenter view of this script is open, so nothing saves on its own right now (a live presentation never changes under John). Use Save now if you mean it.</p>}
         {state === "conflict" && <p className="text-[11px] text-red-300 font-fantasy" data-conflict-note>This script was saved from somewhere else since this page loaded. Load the newer copy to keep editing; your words here are not saved.</p>}
         {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy" data-editor-error>{error}</div>}
+        {restored && <p className="text-[11px] text-[#e0c080] font-fantasy" data-restored-note>Words you typed last time, before leaving while a presenter was open, are back and will save as usual.</p>}
 
         {historyOpen && (
           <section className={`${card} p-4`} data-history>
