@@ -97,6 +97,16 @@ async function mineFor(ctx: QueryCtx, profile: Doc<"profiles">, p: Period): Prom
     })),
   };
 
+  const feltRows = await ctx.db.query("felt").withIndex("by_owner_time", (q) => q.eq("ownerId", id)).collect();
+  if (feltRows.length > 0) {
+    const [nowFelt] = both(feltRows, (f) => f.createdAt);
+    const top = (items: string[]) => [...tallyMap(items).entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k);
+    facts.felt = {
+      entries: cmp(both(feltRows, (f) => f.createdAt), (rows) => rows.length),
+      feelings: top(nowFelt.flatMap((f) => f.feelings)),
+      areas: top(nowFelt.flatMap((f) => f.body.map((b) => b.area))),
+    };
+  }
   const room = await roomOwner(ctx);
   if (room && room.ownerId === id) {
     const sorts = await ctx.db.query("rcSorts").withIndex("by_owner_time", (q) => q.eq("ownerId", id)).collect();
@@ -164,6 +174,12 @@ async function oursFor(ctx: QueryCtx, a: Doc<"profiles">, b: Doc<"profiles">, p:
 }
 
 /** Facts for one person's own report. */
+function tallyMap(items: string[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const i of items) m.set(i, (m.get(i) ?? 0) + 1);
+  return m;
+}
+
 export const mine = internalQuery({
   args: { profileId: v.id("profiles"), period },
   handler: async (ctx, args) => {

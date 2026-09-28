@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PATHS } from "@/convex/paths";
 import { splitReply, toolByKey, type PathLike, type ToolEntry } from "@/convex/toolIndex";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { KeepLine } from "@/core/mantel/KeepLine";
 import { usePath } from "@/core/paths/usePath";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
@@ -112,6 +113,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
       >
         <textarea className="sh-input sh-textarea" rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={3000} placeholder={placeholder} aria-label="Your question" />
         <CrisisNotice texts={[draft]} />
+        <FeltButton context={module === "hub" ? "coach" : module} label="Start from a feeling" onInsert={(t) => setDraft((d) => (d.trim() ? `${d.trim()} ${t}` : `I feel ${t}`))} />
         <div className="sh-row sh-wrap">
           <Btn type="submit" disabled={busy || !draft.trim()}>{busy ? "Sending…" : "Ask"}</Btn>
           {id && (

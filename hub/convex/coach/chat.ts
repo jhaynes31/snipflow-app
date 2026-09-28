@@ -60,6 +60,7 @@ export const send = action({
       hearth: args.task?.startsWith("hearth.") ? { voice: hearthVoiceFor(args.task), known: context.known, style: context.hearthStyle, little: args.task === "hearth.girl" ? context.littleNotes.girl : args.task === "hearth.teen" ? context.littleNotes.teen : null } : null,
       known: args.task?.startsWith("hearth.") ? [] : context.known,
       kept: context.kept,
+      felt: context.felt,
     });
 
     const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });

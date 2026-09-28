@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ENERGY_LABELS, readTendSettings, statusLineFor, tilesFor, WEATHER, type Weather } from "@/convex/tend/pure";
 import { COPY, type HelpKind } from "@/core/copy/strings";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, ErrorNote, LinkBtn, useAction } from "@/core/ui";
 import { suggestTools } from "../tools/registry";
@@ -68,6 +69,7 @@ export function CheckIn() {
             </button>
           ))}
         </div>
+        <FeltButton context="check-in" label="Name it on the wheel" />
         <label className="tend-energy">
           <span className="sh-label">Energy: {ENERGY_LABELS[energy - 1]}</span>
           <input type="range" min={1} max={5} step={1} value={energy} onChange={(e) => setEnergy(Number(e.target.value))} aria-valuetext={ENERGY_LABELS[energy - 1]} />

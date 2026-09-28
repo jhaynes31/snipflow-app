@@ -12,6 +12,7 @@ export default function PartnerPage() {
   const sections = useQuery(api.manual.partners);
   const fromTable = useQuery(api.hearth.entries.sharedWithMe);
   const fromMantel = useQuery(api.mantel.sharedWithMe);
+  const fromFelt = useQuery(api.felt.sharedWithMe);
   if (!partner) {
     return (
       <div className="sh-container sh-narrow">
@@ -20,7 +21,7 @@ export default function PartnerPage() {
       </div>
     );
   }
-  if (!sections || !fromTable || !fromMantel) return <Spinner />;
+  if (!sections || !fromTable || !fromMantel || !fromFelt) return <Spinner />;
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title={`${partner.displayName}'s manual`} subtitle="Only the sections they chose to share. Their private sections don't exist here." />
@@ -40,6 +41,20 @@ export default function PartnerPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+      {fromFelt.length > 0 && (
+        <div className="sh-stack" style={{ marginTop: "1.5rem" }}>
+          <h2 className="sh-h2">What {partner.displayName} felt</h2>
+          <p className="sh-muted">Entries from the feelings wheel that {partner.displayName} chose to show you.</p>
+          {fromFelt.map((f) => (
+            <Card key={f._id}>
+              <p className="sh-eyebrow">{new Date(f.createdAt).toLocaleDateString()}</p>
+              {f.feelings.length > 0 && <p><strong>{f.feelings.join(", ")}</strong></p>}
+              {f.body.map((b, i) => <p key={i} className="sh-muted">{b.area}{b.words.length ? `: ${b.words.join(", ")}` : ""}{b.note ? ` — ${b.note}` : ""}</p>)}
+              {f.note && <p className="sh-quote">{f.note}</p>}
+            </Card>
+          ))}
         </div>
       )}
       {fromMantel.length > 0 && (

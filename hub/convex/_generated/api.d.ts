@@ -30,6 +30,7 @@ import type * as everyBox_lib from "../everyBox/lib.js";
 import type * as everyBox_reviews from "../everyBox/reviews.js";
 import type * as everyBox_tenders from "../everyBox/tenders.js";
 import type * as everyBox_themes from "../everyBox/themes.js";
+import type * as felt from "../felt.js";
 import type * as gentleMode from "../gentleMode.js";
 import type * as headsUps from "../headsUps.js";
 import type * as http from "../http.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   "everyBox/reviews": typeof everyBox_reviews;
   "everyBox/tenders": typeof everyBox_tenders;
   "everyBox/themes": typeof everyBox_themes;
+  felt: typeof felt;
   gentleMode: typeof gentleMode;
   headsUps: typeof headsUps;
   http: typeof http;

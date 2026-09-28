@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BODY, FEELINGS, SURVIVAL_SIGNS, UNDER, WAY_BACK } from "@/core/metamorphosis/mirror";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
 
@@ -88,6 +89,7 @@ function MirrorForm() {
           </div>
         </div>
       ))}
+      <FeltButton context="metamorphosis" label="The wheel, and where in my body" onPicked={(d) => { setFeelings((cur) => [...new Set([...cur, ...d.feelings])]); setBodies((cur) => [...new Set([...cur, ...d.body.flatMap((b) => b.words)])]); }} />
       {feeling && (
         <>
           <p className="sh-label mt-3">What&apos;s under it?</p>

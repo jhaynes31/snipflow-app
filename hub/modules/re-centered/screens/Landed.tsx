@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
 
@@ -25,6 +26,7 @@ export function Landed() {
         <Field label="How it felt after" hint="Optional. Honest is better than tidy.">
           <input className="sh-input" value={after} onChange={(e) => setAfter(e.target.value)} maxLength={500} />
         </Field>
+        <FeltButton context="re-centered" onInsert={(t) => setAfter((s) => (s.trim() ? `${s.trim()}. ${t}` : t).slice(0, 500))} />
         <CrisisNotice texts={[text, after]} />
         <ErrorNote error={error} />
         <div className="sh-row mt-3">

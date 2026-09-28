@@ -8,6 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { COPY, type HelpKind } from "@/core/copy/strings";
 import { MANUAL_SECTIONS, suggestionLines } from "@/core/manual/sections";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, PageTitle, Toggle, useAction } from "@/core/ui";
 
@@ -94,6 +95,7 @@ function ComposeForm() {
             <input className="sh-input" value={statusLine} onChange={(e) => setStatusLine(e.target.value)} maxLength={140} required />
           </Field>
           <CrisisNotice texts={[statusLine]} />
+          <FeltButton context="heads-up" onInsert={(t) => setStatusLine((s) => (s.trim() ? `${s.trim()}, ${t}` : t).slice(0, 140))} />
           <div className="sh-chips" aria-label="Quick phrases">
             {PRESETS.map((p) => (
               <button key={p} type="button" className="sh-chip" onClick={() => setStatusLine(p)}>

@@ -1390,4 +1390,16 @@ export default defineSchema({
     source: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Felt: feelings from the wheel, where in the body, what it was like there. Private unless one is shared. */
+  felt: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    feelings: v.array(v.string()),
+    body: v.array(v.object({ area: v.string(), words: v.array(v.string()), note: v.optional(v.string()) })),
+    note: v.optional(v.string()),
+    /** Where in The Shire the wheel was opened ("check-in", "heads-up", "coach", "felt"). */
+    context: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

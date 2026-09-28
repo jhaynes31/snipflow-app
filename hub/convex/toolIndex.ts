@@ -28,6 +28,7 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("hub.checkIn", "How are you, really?", "The Shire", "/check-in", "A quick check-in: weather, energy, what would help.", ["check in", "checking in", "how am i", "just here", "okay"]),
   T("hub.talk", "Talk it through", "The Shire", "/talk", "A private chat with the coach, from anywhere.", ["talk", "coach", "chat", "vent", "don't know", "unsure", "confused"]),
   T("hub.headsUp", "Send a heads-up", "The Shire", "/heads-up/new", "Tell your partner how today is and what would help, in one card.", ["heads up", "tell john", "tell jen", "let them know", "need space", "need help"]),
+  T("hub.felt", "The wheel", "The Shire", "/felt", "I don't know what I'm feeling. A wheel of words, then where it sits in the body.", ["feeling", "feelings", "what am i feeling", "don't know what i feel", "emotions", "emotion wheel", "wheel", "in my body", "where in my body", "felt"]),
   T("hub.mantel", "The Mantel", "The Shire", "/mantel", "Lines you kept to come back to, and what you're learning, in your words.", ["mantel", "quote", "quotes", "takeaway", "takeaways", "learning", "something i'm learning", "remember this", "keep this", "line to keep"]),
   T("hub.paths", "Walk me through it", "The Shire", "/paths", "A few tools in a row for one situation, one Next button. Start one, or build your own.", ["path", "walk me through", "step by step", "what order", "funnel", "a few tools"]),
   T("hub.helpNow", "Need help now", "The Shire", "/help-now", "Crisis lines, your safety plan, and one tap to reach your partner.", ["not safe", "crisis", "emergency", "safety plan", "help now"]),
@@ -235,6 +236,7 @@ export const DOORS_HER: Door[] = [
   { label: "I need mothering", toolKey: "hh.sit" },
   { label: "Walk me through it", toolKey: "hub.paths" },
   { label: "Something I'm learning", toolKey: "hub.mantel" },
+  { label: "I don't know what I'm feeling", toolKey: "hub.felt" },
   { label: "I'm about to overfunction", toolKey: "rc.pause" },
   { label: "A word wasn't kept", toolKey: "rc.now" },
   { label: "I'm about to say yes when I mean no", toolKey: "lr.fawn" },
@@ -250,6 +252,7 @@ export const DOORS_HER: Door[] = [
 ];
 
 export const DOORS_JOHN: Door[] = [
+  { label: "I don't know what I'm feeling", toolKey: "hub.felt" },
   { label: "Walk me through it", toolKey: "hub.paths" },
   { label: "Something I'm learning", toolKey: "hub.mantel" },
   { label: "I can't get started", toolKey: "tend.smallestStep" },

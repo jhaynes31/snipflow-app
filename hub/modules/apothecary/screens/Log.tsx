@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { areaName, FACTORS } from "@/convex/apothecary/pure";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, useAction } from "@/core/ui";
 
 /** The log: today's thirty-second line of factors, and every entry with what was tried and what helped. */
@@ -29,6 +30,7 @@ export function Log() {
           ))}
         </div>
         <ErrorNote error={error} />
+        <FeltButton context="apothecary" label="Where is today sitting in my body?" />
         <p className="sh-muted mt-2">{days.rows.length} {days.rows.length === 1 ? "day" : "days"} logged. Patterns start showing at five.</p>
       </Card>
       <Card>

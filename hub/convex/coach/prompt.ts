@@ -42,6 +42,8 @@ export interface PromptInput {
   known?: string[];
   /** Lines this person kept on The Mantel, from any voice or their own words. */
   kept?: string[];
+  /** The last few Felt entries: feelings from the wheel and where they sat in the body. */
+  felt?: string[];
 }
 
 export const COACH_MODEL = "claude-opus-5";
@@ -115,6 +117,11 @@ export function buildSystemPrompt(input: PromptInput): string {
   if (known.length > 0) {
     parts.push(
       `What this person knows: advice and lived experience they wrote down themselves in What I know (The Hearth), each as "topic: title. text". It is their wisdom, not yours. When one answers what they are wrestling with, hand it back to them in their own words, name that it is theirs, and never improve it:\n${known.map((k) => `- ${k}`).join("\n")}`,
+    );
+  }
+  if (input.felt && input.felt.length > 0) {
+    parts.push(
+      `What this person felt lately, from the feelings wheel, newest first, with where it sat in their body. Use it to notice a repeat ("last week it was your throat and dread") and to ask about the body when it fits; never to tell them what they feel:\n${input.felt.map((f) => `- ${f}`).join("\n")}`,
     );
   }
   if (input.kept && input.kept.length > 0) {

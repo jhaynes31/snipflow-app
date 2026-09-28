@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { SORTING_QUESTIONS, WHOSE_LABEL, type Whose as WhoseKind } from "@/convex/reCentered/pure";
+import { FeltButton } from "@/core/felt/FeltButton";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
@@ -68,6 +69,7 @@ export function Whose() {
         <Field label="What got handed to you?" hint="The thing you are about to pick up: a request, a mood, a mess, a worry. A few words is enough.">
           <input className="sh-input" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={`${partnerName} is upset and I feel like I have to fix it`} />
         </Field>
+        <FeltButton context="re-centered" label="What it stirred up, on the wheel" onInsert={(t) => setText((s) => (s.trim() ? `${s.trim()} (${t})` : t).slice(0, 500))} />
         <CrisisNotice texts={[text, myPart, theirPart]} />
         <p className="sh-label">Whose is it?</p>
         <div className="sh-choices">

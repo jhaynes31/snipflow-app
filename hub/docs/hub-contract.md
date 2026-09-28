@@ -319,3 +319,18 @@ in and offers that session on Today without touching the planned week. A path is
 offered only when every step is open to this person (room gates). Nothing is
 counted; stopping is just stopping; the last step asks "Did it help?" and keeps
 nothing.
+
+## Felt: the wheel and the body (2026-09-28)
+
+One feelings wheel for both people (`core/felt/`): seven cores in the middle ring;
+tap one and its slice grows into a ring of finer words, then chips for the finest.
+Then a body outline, front and back, tap every area you notice it, then sensation
+words and a box per area. Keep logs a `felt` row (feelings, body notes, context,
+time), private unless one entry is shared, and drops the words into whatever field
+opened it. It sits next to the check-in, every coach chat (Talk it through, Tend,
+the Hearth, the mentor), Send a heads-up, Let it land, Whose is this?, John's
+Mirror (adds to his feeling and body chips), The Apothecary's log, and its own page
+at `/felt` with plain patterns (`patterns()`, `patternLine()`, and a Heartwood
+session that fits the areas that keep showing up). The coach sees the last five
+entries; Seasons gets counts and the most-named feelings and areas for the person's
+own season. Nothing is scored.

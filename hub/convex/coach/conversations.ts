@@ -142,6 +142,8 @@ export const contextFor = internalQuery({
       .filter((b) => !b.retiredAt)
       .slice(0, 20)
       .map((b) => b.newLine);
+    const feltRows = await ctx.db.query("felt").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(5);
+    const felt = feltRows.map((r) => `${new Date(r.createdAt).toISOString().slice(0, 10)}: ${r.feelings.join(", ") || "no words"}${r.body.length ? `; body: ${r.body.map((b) => `${b.area}${b.words.length ? ` (${b.words.join(", ")})` : ""}`).join(", ")}` : ""}${r.note ? `; ${r.note}` : ""}`);
     const kept = (await ctx.db.query("mantel").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(30)).map((k) => k.text);
     const hhOwner = await roomOwnerOf(ctx, "hearth");
     const atHearth = hhOwner?.ownerId === me.profile._id;
@@ -155,6 +157,7 @@ export const contextFor = internalQuery({
     const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id, hearth: atHearth };
     const orchardSignals = row.module === "orchard" ? signalsFor((me.profile.moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown }).map((s) => `${s.name}: tell, ${s.tell} Test, ${s.test} Response, ${s.response}`) : [];
     return {
+      felt,
       kept,
       known,
       hearthStyle,

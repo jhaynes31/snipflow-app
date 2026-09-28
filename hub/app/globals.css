@@ -952,3 +952,20 @@ a.sh-chip {
   margin: 0.75rem 0;
 }
 .sh-mantel-text { font-family: var(--font-heading), Georgia, serif; font-size: 1.1rem; line-height: 1.45; }
+
+/* Felt: the wheel, the body, the picker */
+.sh-felt { display: grid; gap: 0.8rem; }
+.sh-felt-steps { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.sh-wheel svg { width: 100%; max-width: 340px; height: auto; display: block; margin: 0 auto; }
+.sh-wedge { cursor: pointer; }
+.sh-wedge:focus-visible path { stroke: var(--accent); stroke-width: 3; }
+.sh-wedge text { pointer-events: none; user-select: none; }
+.sh-bodymap svg { width: 100%; max-width: 220px; height: auto; display: block; margin: 0.5rem auto; }
+.sh-body-outline { fill: none; stroke: var(--border); stroke-width: 1.5; }
+.sh-body-area { fill: var(--surface-alt, var(--surface)); stroke: var(--border); stroke-width: 1.2; cursor: pointer; transition: fill 0.15s; }
+.sh-body-area:hover { fill: var(--tile-tint, #eee); }
+.sh-body-area.is-on { fill: var(--accent, #9a5b3c); stroke: var(--accent, #9a5b3c); opacity: 0.85; }
+.sh-body-area:focus-visible { stroke: var(--accent); stroke-width: 3; outline: none; }
+.sh-felt-area { padding: 0.5rem 0; border-top: 1px solid var(--border); }
+.sh-felt-card { margin: 0.5rem 0; }
+.sh-felt-open { margin-top: 0.3rem; }
