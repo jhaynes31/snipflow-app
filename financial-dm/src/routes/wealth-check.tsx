@@ -72,6 +72,8 @@ interface QuizState {
   };
   /** The lead form was submitted once; never ask twice. */
   leadCaptured?: boolean;
+  /** Name and email from the form, kept with the quiz so the Calendly hand-off is still prefilled after a refresh. */
+  contact?: { name: string; email: string };
   /** The loot item this person owns, as confirmed by the server. */
   lootId?: string;
   /** This email or phone had claimed loot before; same item, no second prize. */
@@ -94,6 +96,7 @@ function loadState(): QuizState | null {
       answers: parsed.answers && typeof parsed.answers === "object" ? parsed.answers : {},
       rolls: parsed.rolls && typeof parsed.rolls === "object" ? parsed.rolls : {},
       leadCaptured: Boolean(parsed.leadCaptured),
+      contact: parsed.contact && typeof parsed.contact.name === "string" ? { name: parsed.contact.name, email: String(parsed.contact.email ?? "") } : undefined,
       lootId: typeof parsed.lootId === "string" ? parsed.lootId : undefined,
       lootRepeat: Boolean(parsed.lootRepeat),
     };
@@ -399,7 +402,7 @@ function WealthCheckPage() {
 
     setShowModal(false);
     setContact({ name, email });
-    update({ leadCaptured: true, phase: "loot", lootId, lootRepeat });
+    update({ leadCaptured: true, phase: "loot", lootId, lootRepeat, contact: { name, email } });
     scrollTop();
   };
 
@@ -818,7 +821,7 @@ function WealthCheckPage() {
           <button
             onClick={() => {
               update({ phase: shareFacts ? "share" : "loot" });
-              if (!shareFacts) goToCalendly(contact?.name, contact?.email);
+              if (!shareFacts) goToCalendly(contact?.name ?? state.contact?.name, contact?.email ?? state.contact?.email);
               scrollTop();
             }}
             className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
@@ -847,7 +850,7 @@ function WealthCheckPage() {
             {shareStatus === "working" ? "Rendering the card..." : shareStatus === "shared" ? "✅ Shared" : shareStatus === "downloaded" ? "✅ Saved to your device" : shareStatus === "error" ? "Could not render the card. Try again." : "📤 Share the Card"}
           </button>
           <button
-            onClick={() => goToCalendly(contact?.name, contact?.email)}
+            onClick={() => goToCalendly(contact?.name ?? state.contact?.name, contact?.email ?? state.contact?.email)}
             className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
           >
             🎲 Summon Thy DM

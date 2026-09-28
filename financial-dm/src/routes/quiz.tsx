@@ -50,6 +50,8 @@ interface QuizState {
   myths?: MythGame;
   /** The lead form was submitted once; never ask twice. */
   leadCaptured?: boolean;
+  /** Name and email from the form, kept with the quiz so the Calendly hand-off is still prefilled after a refresh. */
+  contact?: { name: string; email: string };
   /** The loot item chosen from the answers at claim time. */
   lootId?: string;
 }
@@ -88,6 +90,7 @@ function loadState(): QuizState | null {
       answers: { ...a, party: { members, kids: Math.max(1, Math.min(6, Number(a.party?.kids) || 1)), youngest } },
       myths,
       leadCaptured: Boolean(p.leadCaptured),
+      contact: p.contact && typeof p.contact.name === "string" ? { name: p.contact.name, email: String(p.contact.email ?? "") } : undefined,
       lootId: typeof p.lootId === "string" ? p.lootId : undefined,
     };
   } catch {
@@ -409,7 +412,7 @@ function QuizPage() {
 
     setContact({ name, email });
     setShowModal(false);
-    update({ leadCaptured: true, phase: "loot", lootId: armor.loot });
+    update({ leadCaptured: true, phase: "loot", lootId: armor.loot, contact: { name, email } });
   };
 
   const inQuestions = state.phase === "money" || state.phase === "coverage";
@@ -677,7 +680,7 @@ function QuizPage() {
           <button
             onClick={() => {
               if (state.myths) update({ phase: "share" });
-              else goToCalendly(contact?.name, contact?.email);
+              else goToCalendly(contact?.name ?? state.contact?.name, contact?.email ?? state.contact?.email);
             }}
             className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
           >
@@ -706,7 +709,7 @@ function QuizPage() {
             {shareStatus === "working" ? "Rendering the card..." : shareStatus === "shared" ? "✅ Shared" : shareStatus === "downloaded" ? "✅ Saved to your device" : shareStatus === "error" ? "Could not render the card. Try again." : "📤 Share the Card"}
           </button>
           <button
-            onClick={() => goToCalendly(contact?.name, contact?.email)}
+            onClick={() => goToCalendly(contact?.name ?? state.contact?.name, contact?.email ?? state.contact?.email)}
             className="w-full max-w-xs px-6 py-4 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold text-lg shadow-xl shadow-[#c08020]/20 transition-all font-fantasy tracking-wider"
           >
             🎲 Summon Thy DM
