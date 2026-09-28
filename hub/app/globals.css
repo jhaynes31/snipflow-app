@@ -956,11 +956,11 @@ a.sh-chip {
 /* Felt: the wheel, the body, the picker */
 .sh-felt { display: grid; gap: 0.8rem; }
 .sh-felt-steps { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.sh-wheel svg { width: 100%; max-width: 340px; height: auto; display: block; margin: 0 auto; }
+.sh-wheel svg { width: 100%; max-width: 440px; height: auto; display: block; margin: 0 auto; }
 .sh-wedge { cursor: pointer; }
 .sh-wedge:focus-visible path { stroke: var(--accent); stroke-width: 3; }
 .sh-wedge text { pointer-events: none; user-select: none; }
-.sh-bodymap svg { width: 100%; max-width: 220px; height: auto; display: block; margin: 0.5rem auto; }
+.sh-bodymap svg { width: 100%; max-width: 260px; height: auto; display: block; margin: 0.5rem auto; }
 .sh-body-outline { fill: none; stroke: var(--border); stroke-width: 1.5; }
 .sh-body-area { fill: var(--surface-alt, var(--surface)); stroke: var(--border); stroke-width: 1.2; cursor: pointer; transition: fill 0.15s; }
 .sh-body-area:hover { fill: var(--tile-tint, #eee); }
@@ -969,3 +969,5 @@ a.sh-chip {
 .sh-felt-area { padding: 0.5rem 0; border-top: 1px solid var(--border); }
 .sh-felt-card { margin: 0.5rem 0; }
 .sh-felt-open { margin-top: 0.3rem; }
+.sh-wheel text { font-family: var(--font-body), system-ui, sans-serif; }
+.sh-wedge:hover path { filter: brightness(1.06); }

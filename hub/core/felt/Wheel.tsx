@@ -27,7 +27,12 @@ export function Wheel({ picked, onToggle }: { picked: Set<string>; onToggle: (wo
   const n = WHEEL.length;
   const step = (2 * Math.PI) / n;
   const start = -Math.PI / 2;
-  const fill = (hue: number, on: boolean, soft = false) => (on ? `hsl(${hue} 45% 42%)` : soft ? `hsl(${hue} 35% 88%)` : `hsl(${hue} 40% 80%)`);
+  // Fixed ink colors, not the theme's: pale wedges always carry dark text, chosen wedges white text, in both modes.
+  const fill = (hue: number, on: boolean, soft = false) => (on ? `hsl(${hue} 55% 36%)` : soft ? `hsl(${hue} 55% 80%)` : `hsl(${hue} 60% 70%)`);
+  const ink = (on: boolean) => (on ? "#ffffff" : "#1f261c");
+  // With nothing tapped the seven cores fill the whole wheel; tapping one makes room for its ring.
+  const coreOuter = focus ? 96 : 150;
+  const coreText = focus ? 66 : 100;
   const ring = focus?.ring ?? [];
   const rstep = ring.length ? (2 * Math.PI) / ring.length : 0;
   const finer = ring.find((r) => r.word === sub)?.words ?? [];
@@ -43,8 +48,8 @@ export function Wheel({ picked, onToggle }: { picked: Set<string>; onToggle: (wo
           const isFocus = focus?.key === c.key;
           return (
             <g key={c.key} className="sh-wedge" onClick={() => { setFocus(isFocus && !on ? null : c); setSub(null); onToggle(c.word.toLowerCase()); }} role="button" aria-pressed={on} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFocus(c); onToggle(c.word.toLowerCase()); } }}>
-              <path d={wedge(34, isFocus ? 104 : 96, a0, a1)} fill={fill(c.hue, on)} stroke="var(--surface)" strokeWidth="2" />
-              <text x={CX + 66 * Math.cos(mid)} y={CY + 66 * Math.sin(mid)} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="700" fill={on ? "#fff" : "var(--text)"}>{c.word}</text>
+              <path d={wedge(34, isFocus ? coreOuter + 6 : coreOuter, a0, a1)} fill={fill(c.hue, on)} stroke="var(--surface)" strokeWidth="3" />
+              <text x={CX + coreText * Math.cos(mid)} y={CY + coreText * Math.sin(mid)} textAnchor="middle" dominantBaseline="middle" fontSize={focus ? 13 : 16} fontWeight="700" fill={ink(on)}>{c.word}</text>
             </g>
           );
         })}
@@ -56,12 +61,12 @@ export function Wheel({ picked, onToggle }: { picked: Set<string>; onToggle: (wo
           const isSub = sub === r.word;
           return (
             <g key={r.word} className="sh-wedge" onClick={() => { setSub(isSub ? null : r.word); onToggle(r.word); }} role="button" aria-pressed={on} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSub(r.word); onToggle(r.word); } }}>
-              <path d={wedge(108, isSub ? 156 : 150, a0, a1)} fill={fill(focus!.hue, on, true)} stroke="var(--surface)" strokeWidth="2" />
-              <text x={CX + 130 * Math.cos(mid)} y={CY + 130 * Math.sin(mid)} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill={on ? "#fff" : "var(--text)"}>{r.word}</text>
+              <path d={wedge(108, isSub ? 156 : 150, a0, a1)} fill={fill(focus!.hue, on, true)} stroke="var(--surface)" strokeWidth="3" />
+              <text x={CX + 130 * Math.cos(mid)} y={CY + 130 * Math.sin(mid)} textAnchor="middle" dominantBaseline="middle" fontSize="13" fontWeight="600" fill={ink(on)}>{r.word}</text>
             </g>
           );
         })}
-        {!focus && <text x={CX} y={CY} textAnchor="middle" dominantBaseline="middle" fontSize="10" fill="var(--text-muted)">tap one</text>}
+        {!focus && <text x={CX} y={CY} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="var(--text-muted)">tap one</text>}
       </svg>
       {finer.length > 0 && (
         <div className="sh-chips" aria-label={`Finer words for ${sub}`}>
