@@ -111,6 +111,13 @@ export default function SessionView({ initial, api, backTo, backLabel = "Practic
         setError(res.error ?? "Something went wrong.");
         if (!res.session) setDraft(text);
       }
+    } catch (e) {
+      // The call itself failed (timeout, lost connection, signed out). Put the
+      // words back in the box and take the unsaved line off the screen.
+      console.error("[practice] send failed:", e);
+      setS((prev) => (prev ? { ...prev, transcript: prev.transcript.filter((t, i) => !(i === prev.transcript.length - 1 && t.role === "john" && t.text === text)) } : prev));
+      setDraft(text);
+      setError("That did not send. Your words are back in the box; try again in a moment.");
     } finally {
       setBusy("");
     }
@@ -127,16 +134,24 @@ export default function SessionView({ initial, api, backTo, backLabel = "Practic
       const res = await api.pauseHint(s.id);
       if (res.session) setS(res.session);
       if (!res.ok) setError(res.error ?? "No hint right now.");
+    } catch (e) {
+      console.error("[practice] hint failed:", e);
+      setError("Could not get a hint right now. Try again in a moment.");
     } finally {
       setBusy("");
     }
   };
   const finish = async (outcome: Outcome) => {
     setBusy("end");
+    setError("");
     try {
       const res = await api.endSession(s.id, outcome);
       if (res.session) setS(res.session);
-      setEnding(false);
+      if (!res.ok) setError(res.error ?? "Could not end the session.");
+      else setEnding(false);
+    } catch (e) {
+      console.error("[practice] end failed:", e);
+      setError("Could not end the session. Try again in a moment.");
     } finally {
       setBusy("");
     }
@@ -397,6 +412,9 @@ function PresentationPanel({ session: s, api, onSession, onAllDone, voice }: { s
       if (r.session) onSession(r.session);
       if (!r.ok) setError(r.error ?? "Could not record that.");
       else setSaid("");
+    } catch (e) {
+      console.error("[practice] section event failed:", e);
+      setError("Could not record that. Your notes are still here; try again.");
     } finally {
       setBusy("");
     }
@@ -462,6 +480,8 @@ function ShareToggle({ sessionId, api, initial }: { sessionId: number; api: Sess
     try {
       const r = await api.shareWithJohn!(sessionId, !shared);
       if (r.ok) setShared(!shared);
+    } catch (e) {
+      console.error("[practice] share toggle failed:", e);
     } finally {
       setBusy(false);
     }

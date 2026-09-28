@@ -15,7 +15,7 @@ import { ADMIN_TABS, activeTab, availableTabs, crumb } from "~/lib/adminShell";
 const pill = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-fantasy transition-all whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1520]";
 const idle = `${pill} border-transparent text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#406080]/50`;
 const active = `${pill} border-[#c08020]/60 bg-[#c08020]/15 text-[#c08020]`;
-const menuPanel = "absolute right-0 mt-1 w-72 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50";
+const menuPanel = "fixed inset-x-3 top-14 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-1 sm:w-72 rounded-xl border border-[#406080]/40 bg-[#111a28] shadow-2xl p-1.5 z-50";
 const menuItem = "block px-3 py-2 rounded-lg hover:bg-[#204060]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020]";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +32,9 @@ export default function AdminNav() {
     getApprovals()
       .then(setApprovals)
       .catch(() => setApprovals(null));
-  }, [pathname]);
+    // The query string changes when John approves a Guild piece or marks a review on the same page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, JSON.stringify(search)]);
 
   // Menus close when you click anywhere else, open another menu, pick an item, or press Escape.
   useEffect(() => {

@@ -3,6 +3,7 @@ import { outcomeLabel } from "~/lib/practiceConfig";
 import { grantPracticeAccess, recruitPracticeStats, revokePracticeAccess, type RecruitPracticeStats } from "~/server/practiceRecruit";
 import type { Recruit } from "~/server/guild";
 import { smsTo } from "./QuestLogPanel";
+import { errorText } from "~/lib/errorText";
 
 /**
  * John's side of a recruit's Sparring Dummy access (AI practice spec,
@@ -41,6 +42,8 @@ export default function PracticePanel({ r, onSaved }: { r: Recruit; onSaved: (pa
       const res = await fn();
       if (!res.ok) setError(res.error ?? "Something went wrong.");
       else onSaved({ practiceToken: res.token ?? "", practiceGrantedAt: res.grantedAt ?? "" });
+    } catch (e) {
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

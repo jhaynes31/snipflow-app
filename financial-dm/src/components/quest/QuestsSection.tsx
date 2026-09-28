@@ -1,12 +1,14 @@
 import { recruitCta } from "~/lib/guildCompliance";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { QUEST_CONFIG, generatorById, type GeneratorId } from "~/lib/questConfig";
-import { WEEKDAY_NAMES, defaultEndDate, groupByWeek, partOrderWarnings, generatorSummary, seriesBadge, slugProblem, suggestSlug, toISODate, weekdayOf, type PlannedSlot, type SlotStatus, SLOT_STATUSES } from "~/lib/questPlan";
+import { WEEKDAY_NAMES, defaultEndDate, groupByWeek, partOrderWarnings, generatorSummary, seriesBadge, slugProblem, suggestSlug, weekdayOf, type PlannedSlot, type SlotStatus, SLOT_STATUSES } from "~/lib/questPlan";
 import { getProfiles, type ClientProfile } from "~/server/questBoard";
 import { acceptPlan, deleteQuest, deleteSeries, deleteSlot, draftPlan, draftSeriesOutline, getQuests, getSeries, getSlots, saveQuest, saveSeries, saveSlot, type ContentSlot, type Quest, type QuestInput, type Series, type SeriesInput, type SlotInput } from "~/server/quests";
 import { acknowledgeFlags } from "~/server/campaign";
 import SuggestField from "~/components/quest/SuggestField";
 import { GENERATOR_REASONS, HOOK_ANGLES, RETRO_STARTERS, SERIES_DESCRIPTIONS, SHOW_DESCRIPTIONS, SHOW_NAMES, SLOT_NOTES, TOPICS, lootHighlights, questNames, seriesNames, slugIdeas, testingIdeas } from "~/lib/questSuggestions";
+import { errorText } from "~/lib/errorText";
+import { todayYmd } from "~/lib/home";
 
 /**
  * Quest Board › Quests (spec, Section 6): the quest list and builder, the
@@ -34,7 +36,8 @@ function Pill({ children, className = "" }: { children: React.ReactNode; classNa
   return <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-fantasy border ${className}`}>{children}</span>;
 }
 
-const today = () => toISODate(new Date());
+// John's calendar day, Eastern time; the UTC clock used to make evening slots land on tomorrow.
+const today = () => todayYmd();
 const fmtDate = (iso: string) => {
   if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
@@ -73,6 +76,7 @@ export default function QuestsSection({ questId, onSelectQuest, startNew = false
   if (selected) {
     return (
       <QuestDetail
+        key={selected.id}
         quest={selected}
         allSeries={series}
         profiles={profiles}
@@ -456,6 +460,8 @@ function SeriesForm({ initial, questId, profileName, onCancel, onSaved }: { init
       const res = await draftSeriesOutline({ data: { questId: form.questId, name: form.name, totalParts: parts, description: form.description } });
       if (!res.ok) setError(res.error || "No outline came back.");
       else set("outline", res.outline);
+    } catch (e) {
+      setError(errorText(e, "No outline came back. Try again in a moment."));
     } finally {
       setDrafting(false);
     }
@@ -472,6 +478,8 @@ function SeriesForm({ initial, questId, profileName, onCancel, onSaved }: { init
         return;
       }
       onSaved();
+    } catch (e) {
+      setError(errorText(e, "Could not save the series."));
     } finally {
       setSaving(false);
     }
@@ -554,6 +562,7 @@ function SeriesForm({ initial, questId, profileName, onCancel, onSaved }: { init
 
 function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: { quest: Quest; allSeries: Series[]; profiles: ClientProfile[]; onBack: () => void; onEdit: () => void; onChanged: () => void }) {
   const [slots, setSlots] = useState<ContentSlot[]>([]);
+  const [slotsLoaded, setSlotsLoaded] = useState(false);
   const [error, setError] = useState("");
   const [filterGen, setFilterGen] = useState<GeneratorId | null>(null);
   const [editingSlot, setEditingSlot] = useState<Partial<SlotInput> | null>(null);
@@ -564,15 +573,24 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
   const multiPart = allSeries.filter((s) => s.kind === "multi_part" && s.questId === quest.id);
   const showsOn = allSeries.filter((s) => s.kind === "recurring" && quest.showIds.includes(s.id));
 
+  // Only the newest request may set the list, so a slow reply for an earlier load never overwrites a later one.
+  const loadSeq = useRef(0);
   const loadSlots = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
-      setSlots(await getSlots({ data: { questId: quest.id } }));
+      const list = await getSlots({ data: { questId: quest.id } });
+      if (seq !== loadSeq.current) return;
+      setSlots(list);
+      setSlotsLoaded(true);
     } catch (e) {
-      setError(String(e));
+      if (seq === loadSeq.current) setError(errorText(e, "Could not load the slots. Try again in a moment."));
     }
   }, [quest.id]);
   useEffect(() => {
     loadSlots();
+    return () => {
+      loadSeq.current++;
+    };
   }, [loadSlots]);
 
   const summary = useMemo(() => generatorSummary(slots), [slots]);
@@ -587,18 +605,31 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
       setEditingSlot({ ...slot, status: "posted" });
       return;
     }
-    const res = await saveSlot({ data: { ...slot, status } });
-    if (!res.ok) setError(res.error || "Could not update the slot.");
+    try {
+      const res = await saveSlot({ data: { ...slot, status } });
+      if (!res.ok) setError(res.error || "Could not update the slot.");
+    } catch (e) {
+      setError(errorText(e, "Could not update the slot."));
+    }
     await loadSlots();
   };
   const ackFlags = async (slot: ContentSlot) => {
-    const res = await acknowledgeFlags({ data: { slotId: slot.id } });
-    if (!res.ok) setError(res.error || "Could not acknowledge the flags.");
+    try {
+      const res = await acknowledgeFlags({ data: { slotId: slot.id } });
+      if (!res.ok) setError(res.error || "Could not acknowledge the flags.");
+    } catch (e) {
+      setError(errorText(e, "Could not acknowledge the flags."));
+    }
     await loadSlots();
   };
   const removeSlot = async (slot: ContentSlot) => {
     if (!confirm("Delete this slot?")) return;
-    await deleteSlot({ data: { id: slot.id } });
+    try {
+      const res = await deleteSlot({ data: { id: slot.id } });
+      if (!res.ok) setError(res.error || "Could not delete the slot.");
+    } catch (e) {
+      setError(errorText(e, "Could not delete the slot."));
+    }
     await loadSlots();
   };
   const runDraft = async () => {
@@ -608,20 +639,39 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
       const res = await draftPlan({ data: { questId: quest.id } });
       if (!res.ok) setError(res.error || "Could not draft a plan.");
       else setPlan({ slots: res.slots, changes: res.changes, source: res.source });
+    } catch (e) {
+      setError(errorText(e, "The plan did not come back. Try Draft a plan again."));
     } finally {
       setDrafting(false);
     }
   };
   const accept = async (accepted: PlannedSlot[]) => {
-    const res = await acceptPlan({ data: { questId: quest.id, slots: accepted } });
-    if (!res.ok) setError(res.error || "Could not save the plan.");
+    try {
+      const res = await acceptPlan({ data: { questId: quest.id, slots: accepted } });
+      if (!res.ok) {
+        setError(res.error || "Could not save the plan.");
+        return;
+      }
+    } catch (e) {
+      setError(errorText(e, "Could not save the plan. It is still on screen; try Accept again."));
+      return;
+    }
     setPlan(null);
     await loadSlots();
     onChanged();
   };
   const removeQuest = async () => {
     if (!confirm(`Delete the quest "${quest.name}" and all of its slots?`)) return;
-    await deleteQuest({ data: { id: quest.id } });
+    try {
+      const res = await deleteQuest({ data: { id: quest.id } });
+      if (!res.ok) {
+        setError(res.error || "Could not delete the quest.");
+        return;
+      }
+    } catch (e) {
+      setError(errorText(e, "Could not delete the quest."));
+      return;
+    }
     onChanged();
     onBack();
   };
@@ -713,7 +763,9 @@ function QuestDetail({ quest, allSeries, profiles, onBack, onEdit, onChanged }: 
         <SlotForm initial={editingSlot} quest={quest} series={[...multiPart, ...showsOn]} profile={profile} onCancel={() => setEditingSlot(null)} onSaved={async () => { setEditingSlot(null); await loadSlots(); onChanged(); }} />
       )}
 
-      {weeks.length === 0 ? (
+      {!slotsLoaded && weeks.length === 0 ? (
+        <p className="text-[#606080] font-fantasy text-sm py-6 text-center" data-slots-loading>Loading the calendar...</p>
+      ) : weeks.length === 0 ? (
         <p className="text-[#606080] font-fantasy text-sm py-6 text-center">No slots yet. Draft a plan or add one by hand.</p>
       ) : (
         weeks.map((w) => (
@@ -844,6 +896,8 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
         return;
       }
       onSaved();
+    } catch (e) {
+      setError(errorText(e, "Could not save the slot."));
     } finally {
       setSaving(false);
     }
@@ -935,7 +989,7 @@ function SlotForm({ initial, quest, series, profile, onCancel, onSaved }: { init
           <span className={label}>Post link (the TikTok URL)</span>
           <input className={input} value={form.postUrl} onChange={(e) => set("postUrl", e.target.value)} maxLength={300} placeholder="https://www.tiktok.com/@.../video/..." data-post-url />
         </label>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {(["views", "likes", "comments", "shares", "saves"] as const).map((k) => (
             <label key={k} className="block">
               <span className={label}>{k}</span>

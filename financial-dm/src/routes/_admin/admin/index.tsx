@@ -4,6 +4,7 @@ import { availableTabs, greetingWord, TOOLS_BUILT } from "~/lib/adminShell";
 import { dayLine, quietLine, todayYmd, type HomeCard, type HomeItem } from "~/lib/home";
 import { getHomeAppointments, getHomeApprovals, getHomeColdLeads, getHomeFilmNext, getHomeNewLeads, getHomeNumbers, getHomeQuestStatus, getHomeRecruits, type AppointmentsCard, type HomeNumbers, type QuestStatusCard } from "~/server/home";
 import { dismissHomeItem, type SnoozeLength } from "~/server/homeState";
+import { errorText } from "~/lib/errorText";
 
 /**
  * The Tavern Keeper's Morning (spec, Section 4): greeting and day line,
@@ -200,11 +201,16 @@ const SNOOZE: Array<{ length: SnoozeLength; label: string }> = [
 /** A row with its snooze menu. Dismissing hides it here only; it comes back if the record changes (Section 6.4). */
 function ItemRow({ item, onHide }: { item: HomeItem; onHide: (key: string) => void }) {
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
   const snooze = async (length: SnoozeLength) => {
     setBusy(true);
+    setNote("");
     try {
       const res = await dismissHomeItem({ data: { key: item.key, sig: item.sig, length } });
       if (res.ok) onHide(item.key);
+      else setNote(res.error || "Could not snooze that.");
+    } catch (e) {
+      setNote(errorText(e, "Could not snooze that."));
     } finally {
       setBusy(false);
     }
@@ -227,6 +233,7 @@ function ItemRow({ item, onHide }: { item: HomeItem; onHide: (key: string) => vo
             </button>
           ))}
           <p className="px-3 py-1 text-[10px] text-[#606080]">Only hides it here. Comes back if it changes.</p>
+          {note && <p className="px-3 py-1 text-[10px] text-red-300" data-snooze-error>{note}</p>}
         </div>
       </details>
     </li>

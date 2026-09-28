@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getLeads, updateLeadStatus, deleteLead, initLeadsTable, quizTypeLabel, addLeadManually, MANUAL_LEAD_SOURCES, type Lead } from "~/server/leads";
 import { LEAD_STATUSES, NOT_A_FIT_REASONS, PRODUCT_TYPES, productLabel, reasonLabel, sourceSummary } from "~/lib/attribution";
+import { errorText } from "~/lib/errorText";
+import { fmtDateTime } from "~/lib/dates";
 
 export const Route = createFileRoute("/_admin/admin/leads")({
   validateSearch: (s: Record<string, unknown>): { lead?: number; add?: number } => ({ lead: Number(s.lead) > 0 ? Number(s.lead) : undefined, add: Number(s.add) === 1 ? 1 : undefined }),
@@ -28,10 +30,13 @@ function DashboardPage() {
   // A Home card can point at one lead: scroll to it and light it up for a moment.
   const { lead: focusLead, add } = Route.useSearch();
   const [showAdd, setShowAdd] = useState(add === 1);
+  // Once per focused lead: re-running on every list change used to jump the page back on each status change.
+  const focused = useRef<number | null>(null);
   useEffect(() => {
-    if (!focusLead || !leads.length) return;
+    if (!focusLead || !leads.length || focused.current === focusLead) return;
     const row = document.querySelector<HTMLElement>(`[data-lead-row='${focusLead}']`);
     if (!row) return;
+    focused.current = focusLead;
     row.scrollIntoView({ block: "center" });
     row.classList.add("ring-2", "ring-[#c08020]");
     const t = setTimeout(() => row.classList.remove("ring-2", "ring-[#c08020]"), 4000);
@@ -121,20 +126,7 @@ function DashboardPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => fmtDateTime(dateStr) || dateStr;
 
   const resultDisplay = (lead: Lead) => {
     if (!lead.quiz_result) return "—";
@@ -371,6 +363,7 @@ function DashboardPage() {
             {visible.map((lead) => (
               <div
                 key={lead.id}
+                data-lead-row={lead.id}
                 className="p-4 rounded-xl border border-[#406080]/30 bg-[#204060]/5 space-y-2"
               >
                 <div className="flex items-center justify-between">
@@ -395,15 +388,16 @@ function DashboardPage() {
                     <button
                       onClick={() => handleDelete(lead.id)}
                       disabled={updatingId === lead.id}
-                      className="text-red-400/60 hover:text-red-400 text-sm transition-colors disabled:opacity-30"
+                      className="text-red-400/60 hover:text-red-400 text-base p-2 -m-1 transition-colors disabled:opacity-30"
                       title="Delete lead"
+                      aria-label="Delete lead"
                     >
                       🗑️
                     </button>
                   </div>
                 </div>
-                <div className="text-xs text-[#a0a0a0] space-y-0.5">
-                  <p>{lead.email}</p>
+                <div className="text-xs text-[#a0a0a0] space-y-0.5 break-words">
+                  <p className="break-all">{lead.email}</p>
                   <p>{lead.phone}</p>
                   <p>Age: {lead.age_range} · Deps: {lead.dependents} · Concern: {lead.biggest_concern}</p>
                   <p>Timeline: {lead.timeline} · Type: {quizTypeLabel(lead.quiz_type)} · Source: {utmDisplay(lead)}</p>
@@ -482,6 +476,8 @@ function AddLeadForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
       const res = await addLeadManually({ data: { name, phone, email, source, note } });
       if (res.ok) onDone();
       else setError(res.error ?? "Could not add the lead.");
+    } catch (e) {
+      setError(errorText(e, "Could not add the lead. Nothing was saved; try again."));
     } finally {
       setBusy(false);
     }

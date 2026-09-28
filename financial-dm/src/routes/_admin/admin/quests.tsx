@@ -7,6 +7,7 @@ import { LIFE_STAGES, PROFILE_NAMES, RECRUIT_PROFILE_NAMES, RECRUIT_SITUATIONS, 
 import { useCallback, useEffect, useState } from "react";
 import { QUEST_CONFIG } from "~/lib/questConfig";
 import { deleteProfile, draftProfile, getProfiles, saveProfile, setProfileArchived, suggestPainPoints, type ClientProfile, type ProfileInput, type ProfileKind } from "~/server/questBoard";
+import { errorText } from "~/lib/errorText";
 
 type Section = "profiles" | "quests" | "scoreboard" | "guide";
 
@@ -144,15 +145,23 @@ function ProfilesSection() {
   };
 
   const toggleArchive = async (p: ClientProfile) => {
-    const res = await setProfileArchived({ data: { id: p.id, archived: !p.archived } });
-    if (!res.ok) setError(res.error || "Could not update the profile.");
+    try {
+      const res = await setProfileArchived({ data: { id: p.id, archived: !p.archived } });
+      if (!res.ok) setError(res.error || "Could not update the profile.");
+    } catch (e) {
+      setError(errorText(e, "Could not update the profile."));
+    }
     await load();
   };
 
   const remove = async (p: ClientProfile) => {
     if (!confirm(`Delete the "${p.name}" profile? Quests that used it keep their own copy of the details.`)) return;
-    const res = await deleteProfile({ data: { id: p.id } });
-    if (!res.ok) setError(res.error || "Could not delete the profile.");
+    try {
+      const res = await deleteProfile({ data: { id: p.id } });
+      if (!res.ok) setError(res.error || "Could not delete the profile.");
+    } catch (e) {
+      setError(errorText(e, "Could not delete the profile."));
+    }
     await load();
   };
 

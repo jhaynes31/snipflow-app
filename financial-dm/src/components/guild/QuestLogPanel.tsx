@@ -3,6 +3,7 @@ import { daysSince, needsNudge, nextStep, nudgeText, questLogProgress, type Ques
 import { rotateQuestLogLink, saveQuestLog, setQuestLogStep, startQuestLog } from "~/server/questLog";
 import type { Recruit } from "~/server/guild";
 import type { RecruitStage } from "~/lib/guildConfig";
+import { errorText } from "~/lib/errorText";
 
 /**
  * John's side of a recruit's Quest Log (recruiting spec, Phase 5): start it,
@@ -42,6 +43,8 @@ export default function QuestLogPanel({ r, onSaved }: { r: Recruit; onSaved: (pa
       const res = await fn();
       if (!res.ok) setError(res.error ?? "Something went wrong.");
       else onSaved({ ...(res.log ? { questLog: res.log } : {}), ...(res.token ? { questLogToken: res.token } : {}), ...(res.stage ? { stage: res.stage } : {}) });
+    } catch (e) {
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

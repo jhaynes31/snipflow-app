@@ -14,6 +14,8 @@ import { getSignoffs, setSignoff, type Signoffs } from "~/server/homeState";
 import { getMailStatus } from "~/server/mail";
 import type { MailStatus } from "~/server/mail.server";
 import { MAIL_TEMPLATES } from "~/lib/mailTemplates";
+import { errorText } from "~/lib/errorText";
+import { fmtDay } from "~/lib/dates";
 
 /**
  * Settings (Tavern Keeper's Morning spec, Section 7): a hub that points at
@@ -148,24 +150,35 @@ function Hub() {
 }
 
 function ConfigView({ def }: { def: ViewDef }) {
-  const [signoffs, setSignoffs] = useState<Signoffs>({});
+  // null while loading, so the review buttons cannot flash "Mark reviewed" before the answer arrives.
+  const [signoffs, setSignoffs] = useState<Signoffs | null>(null);
   const [busy, setBusy] = useState("");
+  const [loadError, setLoadError] = useState("");
   useEffect(() => {
-    getSignoffs().then(setSignoffs).catch(() => setSignoffs({}));
+    getSignoffs()
+      .then(setSignoffs)
+      .catch((e) => {
+        setSignoffs({});
+        setLoadError(errorText(e, "Could not load the review marks; they may show as unreviewed until the page is refreshed."));
+      });
   }, []);
   const sections = useMemo(() => def.sections.map((s) => ({ ...s, rows: flattenConfig(s.data) })), [def]);
   const placeholders = sections.reduce((t, s) => t + s.rows.filter((r) => r.placeholder).length, 0);
   const reviews = REVIEW_ITEMS.filter((r) => def.reviewKeys.includes(r.key));
   const toggle = async (key: string, signed: boolean) => {
     setBusy(key);
+    setLoadError("");
     try {
       const res = await setSignoff({ data: { key, signed } });
+      if (!res.ok) setLoadError(res.error || "Could not save that review mark.");
       if (res.ok) setSignoffs((prev) => {
-        const next = { ...prev };
+        const next = { ...(prev ?? {}) };
         if (signed) next[key] = res.signedAt ?? new Date().toISOString();
         else delete next[key];
         return next;
       });
+    } catch (e) {
+      setLoadError(errorText(e, "Could not save that review mark."));
     } finally {
       setBusy("");
     }
@@ -179,14 +192,15 @@ function ConfigView({ def }: { def: ViewDef }) {
         <p className={`text-xs font-fantasy mt-2 ${placeholders ? "text-[#e0c080]" : "text-[#7fd08a]"}`} data-placeholder-count={placeholders}>
           {placeholders ? `${placeholders} value${placeholders === 1 ? " looks" : "s look"} like a placeholder. Flagged below.` : "No placeholders found."}
         </p>
+        {loadError && <p className="mt-2 text-xs text-red-300 font-fantasy" data-signoff-error>{loadError}</p>}
         {reviews.length > 0 && (
           <ul className="mt-3 space-y-1.5" data-review-list>
             {reviews.map((r) => {
-              const at = signoffs[r.key];
+              const at = signoffs?.[r.key];
               return (
                 <li key={r.key} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#406080]/30 px-3 py-2" data-review={r.key} data-signed={at ? "true" : "false"}>
-                  <span className="text-sm text-[#e0e0e0]">{r.label}{at && <span className="block text-[11px] text-[#7fd08a]">Reviewed by John · {new Date(at).toLocaleDateString()}</span>}</span>
-                  <button type="button" onClick={() => toggle(r.key, !at)} disabled={busy === r.key} className={at ? btn : `${btn} bg-[#c08020] text-[#0d1520] border-[#c08020] hover:text-[#0d1520]`} data-review-toggle>
+                  <span className="text-sm text-[#e0e0e0]">{r.label}{at && <span className="block text-[11px] text-[#7fd08a]">Reviewed by John · {fmtDay(at)}</span>}</span>
+                  <button type="button" onClick={() => toggle(r.key, !at)} disabled={busy === r.key || signoffs === null} className={at ? btn : `${btn} bg-[#c08020] text-[#0d1520] border-[#c08020] hover:text-[#0d1520]`} data-review-toggle>
                     {at ? "Undo" : "✔ Mark reviewed by John"}
                   </button>
                 </li>
@@ -221,15 +235,18 @@ function ConfigView({ def }: { def: ViewDef }) {
 /** Section 7: email status and templates, read-only. Templates live in the mail templates file. */
 function EmailView() {
   const [status, setStatus] = useState<MailStatus | null>(null);
+  const [statusError, setStatusError] = useState("");
   useEffect(() => {
-    getMailStatus().then(setStatus).catch(() => setStatus(null));
+    getMailStatus().then(setStatus).catch((e) => setStatusError(errorText(e, "Could not check the email setup. Refresh to try again.")));
   }, []);
   return (
     <div className="space-y-4" data-settings-view="email">
       <Link {...linkTo("/admin/settings")} className="text-xs font-fantasy text-[#a0a0a0] hover:text-[#c08020]">← All settings</Link>
       <section className={`${card} p-4`} data-mail-status data-configured={status?.configured ? "true" : "false"}>
         <h2 className="font-fantasy text-[#e0e0e0] text-lg">Email notifications</h2>
-        {!status ? (
+        {statusError ? (
+          <p className="text-red-300 text-xs mt-1" data-mail-status-error>{statusError}</p>
+        ) : !status ? (
           <p className="text-[#a0a0a0] text-xs mt-1">Checking...</p>
         ) : status.configured ? (
           <p className="text-[#7fd08a] text-sm mt-1">Sending is set up. From <span className="text-[#e0e0e0]">{status.from}</span> via <span className="text-[#e0e0e0]">{status.host}</span>. John's notifications go to <span className="text-[#e0e0e0]">{status.notifyTo}</span>.</p>

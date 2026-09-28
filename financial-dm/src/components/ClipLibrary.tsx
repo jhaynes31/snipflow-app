@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { put } from "@vercel/blob/client";
 import { deleteClip, getClipUploadToken, saveClip, updateClip } from "~/server/clips";
 import { type ClipSummary, formatCue } from "~/lib/brollUtils";
+import { errorText } from "~/lib/errorText";
 
 /**
  * John's b roll clip library: upload a video (straight to Vercel Blob) or
@@ -176,6 +177,8 @@ export default function ClipLibrary({
       const res = await deleteClip({ data: { id: clip.id } });
       if (res.ok) onChange(clips.filter((c) => c.id !== clip.id));
       else setError(res.error || "Could not remove the clip.");
+    } catch (e) {
+      setError(errorText(e, "Could not remove the clip."));
     } finally {
       setDeletingId(null);
     }

@@ -20,6 +20,8 @@ import { getQuests, type Quest } from "~/server/quests";
 import QuestLogPanel, { questLogUrl, smsTo } from "~/components/guild/QuestLogPanel";
 import PracticePanel from "~/components/guild/PracticePanel";
 import { QUEST_LOG_STALE_DAYS, daysSince, needsNudge, nextStep, nudgeText, questLogProgress } from "~/lib/questLog";
+import { errorText } from "~/lib/errorText";
+import { fmtDateTime } from "~/lib/dates";
 
 type View = "recruits" | "facts" | "questlogs";
 
@@ -113,12 +115,16 @@ function RecruitsSection() {
 
   const changeStage = async (id: number, stage: RecruitStage, reason = "") => {
     setPending(null);
-    const res = await setRecruitStage({ data: { id, stage, reason } });
-    if (!res.ok) {
-      setError(res.error || "Could not change the stage.");
-      return;
+    try {
+      const res = await setRecruitStage({ data: { id, stage, reason } });
+      if (!res.ok) {
+        setError(res.error || "Could not change the stage.");
+        return;
+      }
+      setRecruits((prev) => prev.map((r) => (r.id === id ? { ...r, stage, stageHistory: res.history ?? r.stageHistory, notMovingReason: stage === "not_moving_forward" ? reason : "" } : r)));
+    } catch (e) {
+      setError(errorText(e, "Could not change the stage."));
     }
-    setRecruits((prev) => prev.map((r) => (r.id === id ? { ...r, stage, stageHistory: res.history ?? r.stageHistory, notMovingReason: stage === "not_moving_forward" ? reason : "" } : r)));
   };
   const onStagePick = (r: Recruit, stage: RecruitStage) => {
     if (stage === "not_moving_forward") setPending({ id: r.id, name: r.name });
@@ -126,9 +132,13 @@ function RecruitsSection() {
   };
   const remove = async (id: number) => {
     if (!confirm("Remove this recruit from the records?")) return;
-    const res = await deleteRecruit({ data: { id } });
-    if (res.ok) setRecruits((prev) => prev.filter((r) => r.id !== id));
-    else setError(res.error || "Could not remove the recruit.");
+    try {
+      const res = await deleteRecruit({ data: { id } });
+      if (res.ok) setRecruits((prev) => prev.filter((r) => r.id !== id));
+      else setError(res.error || "Could not remove the recruit.");
+    } catch (e) {
+      setError(errorText(e, "Could not remove the recruit."));
+    }
   };
 
   return (
@@ -160,7 +170,9 @@ function RecruitsSection() {
       {error && <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/30 text-red-300 text-sm font-fantasy">{error}</div>}
       {showAdd && <QuickAdd quests={quests} onDone={() => { setShowAdd(false); load(); }} onCancel={() => setShowAdd(false)} />}
 
-      {!loading && recruits.length === 0 ? (
+      {loading && recruits.length === 0 ? (
+        <p className="text-[#a0a0a0] font-fantasy text-sm py-8 text-center" data-recruits-loading>Opening the Guild ledger...</p>
+      ) : !loading && recruits.length === 0 ? (
         <section className={`${card} p-8 text-center`}>
           <h2 className="font-fantasy text-[#c08020] text-xl">No recruits yet</h2>
           <p className="text-[#a0a0a0] text-sm font-fantasy mt-2 max-w-md mx-auto">People arrive here from the Guild Hall's form, from the fit quiz later, or from Quick add when someone texts you.</p>
@@ -277,32 +289,32 @@ function QuestLogsSection() {
   );
 }
 
-function fmt(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-  } catch {
-    return iso;
-  }
-}
+const fmt = (iso: string): string => fmtDateTime(iso) || iso;
 
 function RecruitCard({ r, quests, onStage, onRemove, onSaved }: { r: Recruit; quests: Quest[]; onStage: (s: RecruitStage) => void; onRemove: () => void; onSaved: (patch: Partial<Recruit>) => void }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState(r.note);
-  const saveNote = async () => {
-    const res = await updateRecruit({ data: { id: r.id, note } });
-    if (res.ok) onSaved({ note });
+  const [cardError, setCardError] = useState("");
+  /** Every small save on the card reports back; a note typed then blurred can no longer vanish quietly. */
+  const patch = async (data: Parameters<typeof updateRecruit>[0]["data"], applied: Partial<Recruit>, what: string) => {
+    setCardError("");
+    try {
+      const res = await updateRecruit({ data });
+      if (res.ok) onSaved(applied);
+      else setCardError(res.error || `Could not save the ${what}.`);
+    } catch (e) {
+      setCardError(errorText(e, `Could not save the ${what}.`));
+    }
   };
-  const toggleInvest = async (v: boolean) => {
-    const res = await updateRecruit({ data: { id: r.id, pursuingInvestment: v } });
-    if (res.ok) onSaved({ pursuingInvestment: v });
-  };
-  const setQuest = async (v: string) => {
+  const saveNote = () => patch({ id: r.id, note }, { note }, "note");
+  const toggleInvest = (v: boolean) => patch({ id: r.id, pursuingInvestment: v }, { pursuingInvestment: v }, "investment flag");
+  const setQuest = (v: string) => {
     const questId = v ? Number(v) : null;
-    const res = await updateRecruit({ data: { id: r.id, questId } });
-    if (res.ok) onSaved({ questId, questName: quests.find((q) => q.id === questId)?.name ?? "" });
+    return patch({ id: r.id, questId }, { questId, questName: quests.find((q) => q.id === questId)?.name ?? "" }, "quest");
   };
   return (
     <article className="rounded-lg border border-[#406080]/30 bg-[#0d1520]/60 p-3 space-y-2" data-recruit={r.id}>
+      {cardError && <p className="text-red-300 text-xs font-fantasy" data-recruit-error>{cardError}</p>}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[#e0e0e0] text-sm font-fantasy truncate">{r.isNew && <span className="text-[#c08020]">● </span>}{r.name}</p>
@@ -371,6 +383,8 @@ function QuickAdd({ quests, onDone, onCancel }: { quests: Quest[]; onDone: () =>
       const res = await quickAddRecruit({ data: { name, phone, source, questId: questId ? Number(questId) : null, foundVia } });
       if (res.ok) onDone();
       else setError(res.error || "Could not add them.");
+    } catch (e) {
+      setError(errorText(e, "Could not add them. Nothing was saved; try again."));
     } finally {
       setBusy(false);
     }

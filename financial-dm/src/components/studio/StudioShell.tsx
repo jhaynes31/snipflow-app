@@ -4,6 +4,7 @@ import { STUDIO_CONFIG, STUDIO_SOURCES, STUDIO_STATUSES, fmtLength, studioLink, 
 import { getStudioVideo, updateStudioVideo, type StudioPatch } from "~/server/studio";
 import ScriptStep from "./ScriptStep";
 import StepBar from "./StepBar";
+import { errorText } from "~/lib/errorText";
 
 const card = "rounded-xl border border-[#406080]/30 bg-[#111a28]";
 const btnGhost = "px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs disabled:opacity-50";
@@ -38,7 +39,7 @@ export default function StudioShell({ id }: { id: number }) {
         setVideo(v);
         if (v) versionRef.current = v.version;
       })
-      .catch((e) => alive && setError(String(e)));
+      .catch((e) => alive && setError(errorText(e)));
     return () => {
       alive = false;
     };
@@ -111,6 +112,13 @@ export default function StudioShell({ id }: { id: number }) {
 
   const go = (step: StudioStep) => queue({ step }, true);
 
+  if (video === undefined && error)
+    return (
+      <div className={`${card} p-6 text-center space-y-3`} data-studio-load-error>
+        <p className="text-red-300 font-fantasy text-sm">Could not open this video. Refresh to try again.</p>
+        <Link {...studioLink()} className={btnGhost}>← Video Library</Link>
+      </div>
+    );
   if (video === undefined) return <p className="text-[#a0a0a0] font-fantasy text-sm py-10 text-center">Opening the Studio...</p>;
   if (video === null)
     return (

@@ -2,6 +2,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AUDIENCE_LABEL, fmtEastern as fmt, type ScriptAudience } from "~/lib/dmScreen";
 import { archiveScript, createScript, duplicateScript, listScripts, renameScript, setDefaultScript, type ScriptListItem } from "~/server/dmScreen";
+import { errorText } from "~/lib/errorText";
 
 /**
  * The DM Screen, script list (presentation script spec, Section 4.1).
@@ -31,7 +32,7 @@ function ScriptsPage() {
   const [newAudience, setNewAudience] = useState<ScriptAudience>("client");
   const [renaming, setRenaming] = useState<{ id: number; name: string } | null>(null);
 
-  const load = useCallback(() => listScripts().then(setItems).catch((e) => setError(String(e))), []);
+  const load = useCallback(() => listScripts().then(setItems).catch((e) => setError(errorText(e, "Could not load the scripts. Refresh to try again."))), []);
   useEffect(() => {
     load();
   }, [load]);
@@ -105,7 +106,7 @@ function ScriptsPage() {
           </div>
         </section>
 
-        {!items ? (
+        {!items && error ? null : !items ? (
           <p className="text-xs text-[#a0a0a0] font-fantasy">Loading scripts...</p>
         ) : (
           groups.map((g) => (

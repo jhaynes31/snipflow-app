@@ -410,14 +410,18 @@ function GeneratorHub() {
 function BrollLibraryView() {
   const [clips, setClips] = useState<ClipSummary[]>([]);
   const [uploadsEnabled, setUploadsEnabled] = useState(false);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     getClips()
       .then((r) => {
         setClips(r.clips);
         setUploadsEnabled(r.uploadsEnabled);
+        setState("ready");
       })
-      .catch(() => {});
+      .catch(() => setState("error"));
   }, []);
+  if (state === "loading") return <p className="text-[#a0a0a0] font-fantasy text-sm py-6 text-center" data-clips-loading>Opening the clip library...</p>;
+  if (state === "error") return <p className="text-red-300 font-fantasy text-sm py-6 text-center" data-clips-error>Could not load the clip library. Refresh to try again.</p>;
   return (
     <ClipLibrary
       clips={clips}

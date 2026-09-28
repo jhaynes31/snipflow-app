@@ -2,6 +2,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { STUDIO_SOURCES, STUDIO_STATUSES, filterVideos, fmtLength, scriptText, studioLink, topicsOf, type LibraryFilter, type StudioSource, type StudioStatus, type VideoProject } from "~/lib/studio";
 import { deleteStudioVideo, duplicateStudioVideo, listStudioVideos, startStudioVideo, updateStudioVideo } from "~/server/studio";
+import { errorText } from "~/lib/errorText";
+import { fmtShortDay } from "~/lib/dates";
 
 const card = "rounded-xl border border-[#406080]/30 bg-[#111a28]";
 const focus = "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c08020]";
@@ -9,7 +11,7 @@ const input = `px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 t
 const btnPrimary = `px-4 py-2 rounded-lg bg-[#c08020] hover:bg-[#a06a18] text-[#0d1520] font-bold font-fantasy text-sm disabled:opacity-50 ${focus}`;
 const btnGhost = `px-3 py-1.5 rounded-lg border border-[#406080]/40 text-[#a0a0a0] hover:text-[#e0e0e0] hover:border-[#c08020]/50 font-fantasy text-xs disabled:opacity-50 ${focus}`;
 
-const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "");
+const fmtDate = (s: string) => fmtShortDay(s);
 
 /**
  * Every video John has made, so he always knows where his posts are
@@ -24,7 +26,7 @@ export default function VideoLibrary() {
   const [busy, setBusy] = useState("");
   const [filter, setFilter] = useState<LibraryFilter>({ status: "all", source: "all", shelf: "all", topic: "", q: "" });
 
-  const load = useCallback(() => listStudioVideos().then(setRows).catch((e) => setError(String(e))), []);
+  const load = useCallback(() => listStudioVideos().then(setRows).catch((e) => setError(errorText(e, "Could not load the videos."))), []);
   useEffect(() => {
     load();
   }, [load]);
@@ -38,7 +40,7 @@ export default function VideoLibrary() {
     try {
       await fn();
     } catch (e) {
-      setError(String(e));
+      setError(errorText(e));
     } finally {
       setBusy("");
     }
@@ -82,7 +84,7 @@ export default function VideoLibrary() {
         <div>
           <h2 className="font-fantasy text-[#c08020] text-lg">🎬 Video Library</h2>
           <p className="text-[#606080] text-xs font-fantasy">
-            {rows === null ? "Opening the library..." : rows.length === 0 ? "Nothing recorded yet. Press Record this in any forge, or start a new video here." : `${rows.length} video${rows.length === 1 ? "" : "s"}${guildCount ? ` · ${guildCount} on the Guild shelf` : ""}`}
+            {rows === null && error ? "Could not open the library. Refresh to try again." : rows === null ? "Opening the library..." : rows.length === 0 ? "Nothing recorded yet. Press Record this in any forge, or start a new video here." : `${rows.length} video${rows.length === 1 ? "" : "s"}${guildCount ? ` · ${guildCount} on the Guild shelf` : ""}`}
           </p>
         </div>
         <button type="button" onClick={newVideo} disabled={busy === "new"} className={btnPrimary} data-studio-new>

@@ -7,6 +7,7 @@ import PracticeBanner from "~/components/practice/PracticeBanner";
 import SetupForm, { type SetupApi, type SetupData } from "~/components/practice/SetupForm";
 import { deletePersona, deletePresentation, deleteSession, generatePersona, getPracticeOverview, getPracticeSetup, getPresentations, getRubrics, savePersona, savePresentation, saveRubric, setSessionExample, startSession, type PracticeOverview, type PracticeSetup, type Rubrics, type SessionSummary } from "~/server/practice";
 import { listPracticeRecruits } from "~/server/practiceRecruit";
+import { errorText } from "~/lib/errorText";
 
 /**
  * The Sparring Dummy setup screen (AI practice spec, Sections 1, 4, 5, 6).
@@ -40,7 +41,7 @@ function PracticePage() {
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [error, setError] = useState("");
   const loadPresentations = () => getPresentations().then(setPresentations).catch(() => setPresentations([]));
-  const load = () => Promise.all([getPracticeSetup().then(setSetup), loadPresentations()]).catch((e) => setError(String(e)));
+  const load = () => Promise.all([getPracticeSetup().then(setSetup), loadPresentations()]).catch((e) => setError(errorText(e, "Could not load the practice setup. Refresh to try again.")));
   useEffect(() => {
     load();
   }, []);
@@ -69,7 +70,7 @@ function PracticePage() {
           <SessionsView />
         ) : (
           <>
-            {!data ? (
+            {!data && error ? null : !data ? (
               <p className="text-xs text-[#a0a0a0] font-fantasy">Loading profiles...</p>
             ) : (
               <SetupForm
@@ -201,16 +202,30 @@ function RubricEditor() {
   const [rubrics, setRubrics] = useState<Rubrics | null>(null);
   const [drafts, setDrafts] = useState<Record<Conversation, string>>({ coverage: "", recruiting: "" });
   const [saved, setSaved] = useState("");
+  const [rubricError, setRubricError] = useState("");
+  const [savingRubric, setSavingRubric] = useState("");
   useEffect(() => {
-    getRubrics().then((r) => { setRubrics(r); setDrafts({ coverage: r.coverage.join("\n"), recruiting: r.recruiting.join("\n") }); }).catch(() => setRubrics({ coverage: [], recruiting: [] }));
+    // If the rubric cannot be read, saving stays off: an empty box must never overwrite the real list.
+    getRubrics()
+      .then((r) => { setRubrics(r); setDrafts({ coverage: r.coverage.join("\n"), recruiting: r.recruiting.join("\n") }); })
+      .catch((e) => setRubricError(errorText(e, "Could not load your rubric. Refresh before editing it.")));
   }, []);
   const save = async (c: Conversation) => {
-    const res = await saveRubric({ data: { conversation: c, items: drafts[c] } });
-    if (res.ok) {
-      setRubrics((prev) => (prev ? { ...prev, [c]: res.items } : prev));
-      setDrafts((prev) => ({ ...prev, [c]: res.items.join("\n") }));
-      setSaved(c);
-      setTimeout(() => setSaved(""), 1500);
+    if (!rubrics) return;
+    setSavingRubric(c);
+    setRubricError("");
+    try {
+      const res = await saveRubric({ data: { conversation: c, items: drafts[c] } });
+      if (res.ok) {
+        setRubrics((prev) => (prev ? { ...prev, [c]: res.items } : prev));
+        setDrafts((prev) => ({ ...prev, [c]: res.items.join("\n") }));
+        setSaved(c);
+        setTimeout(() => setSaved(""), 1500);
+      } else setRubricError("Could not save the rubric. Nothing was changed.");
+    } catch (e) {
+      setRubricError(errorText(e, "Could not save the rubric. Your lines are still in the box."));
+    } finally {
+      setSavingRubric("");
     }
   };
   return (
@@ -218,15 +233,16 @@ function RubricEditor() {
       <summary className="font-fantasy text-[#c08020] cursor-pointer">📋 Your rubric: what the debrief should notice</summary>
       <p className="text-[11px] text-[#a0a0a0] mt-2">One thing per line, in your words. The debrief judges only against these and the content rules; it never brings its own theory of selling. Lines that start with "Example: edit or delete" are starters.</p>
       {!rubrics ? (
-        <p className="text-xs text-[#a0a0a0] mt-2">Loading...</p>
+        <p className="text-xs text-[#a0a0a0] mt-2">{rubricError || "Loading..."}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 mt-3">
+          {rubricError && <p className="md:col-span-2 text-xs text-red-300 font-fantasy" data-rubric-error>{rubricError}</p>}
           {(["coverage", "recruiting"] as Conversation[]).map((c) => (
             <div key={c} data-rubric={c}>
               <label className="block text-xs font-fantasy text-[#e0e0e0] mb-1">{c === "coverage" ? "🛡️ Coverage" : "🧭 Recruiting"} · {rubrics[c].length} item{rubrics[c].length === 1 ? "" : "s"}</label>
               <textarea value={drafts[c]} onChange={(e) => setDrafts((prev) => ({ ...prev, [c]: e.target.value }))} rows={6} className={`w-full px-3 py-2 rounded-lg bg-[#0d1520]/60 border border-[#406080]/40 text-[#e0e0e0] text-sm ${focus}`} data-rubric-input />
               <div className="flex items-center gap-2 mt-1">
-                <button type="button" onClick={() => save(c)} className={btnGhost} data-rubric-save>Save</button>
+                <button type="button" onClick={() => save(c)} disabled={savingRubric === c} className={btnGhost} data-rubric-save>{savingRubric === c ? "Saving..." : "Save"}</button>
                 {saved === c && <span className="text-[11px] text-[#7fd08a] font-fantasy">Saved</span>}
               </div>
             </div>
@@ -250,11 +266,19 @@ function PresentationEditor({ presentations, onChange }: { presentations: Presen
     : { id: null, name: "", conversation: "recruiting", sections: [{ ...blankSection(), pointsText: "" }] });
   const upd = (i: number, patch: Partial<PresentationSection & { pointsText: string }>) => setEditing((e) => (e ? { ...e, sections: e.sections.map((x, j) => (j === i ? { ...x, ...patch } : x)) } : e));
   const move = (i: number, dir: -1 | 1) => setEditing((e) => { if (!e) return e; const a = [...e.sections]; const j = i + dir; if (j < 0 || j >= a.length) return e; [a[i], a[j]] = [a[j], a[i]]; return { ...e, sections: a }; });
+  const [savingPres, setSavingPres] = useState(false);
   const save = async () => {
-    if (!editing) return;
-    const res = await savePresentation({ data: { id: editing.id ?? undefined, name: editing.name, conversation: editing.conversation, sections: editing.sections.map((x) => ({ id: x.id, title: x.title, minMinutes: x.minMinutes, maxMinutes: x.maxMinutes, points: x.pointsText.split("\n") })) } });
-    if (res.ok) { setMsg(`Saved · version ${res.presentation?.version}`); setEditing(null); onChange(); setTimeout(() => setMsg(""), 2000); }
-    else setMsg(res.error ?? "Could not save.");
+    if (!editing || savingPres) return;
+    setSavingPres(true);
+    try {
+      const res = await savePresentation({ data: { id: editing.id ?? undefined, name: editing.name, conversation: editing.conversation, sections: editing.sections.map((x) => ({ id: x.id, title: x.title, minMinutes: x.minMinutes, maxMinutes: x.maxMinutes, points: x.pointsText.split("\n") })) } });
+      if (res.ok) { setMsg(`Saved · version ${res.presentation?.version}`); setEditing(null); onChange(); setTimeout(() => setMsg(""), 2000); }
+      else setMsg(res.error ?? "Could not save.");
+    } catch (e) {
+      setMsg(errorText(e, "Could not save the presentation."));
+    } finally {
+      setSavingPres(false);
+    }
   };
   return (
     <details className={`${card} p-4`} data-presentation-editor>

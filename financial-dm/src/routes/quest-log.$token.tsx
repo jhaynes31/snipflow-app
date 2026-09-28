@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { GUILD_CONFIG } from "~/lib/guildConfig";
 import { getQuestLogByToken, recruitMarkStep, type QuestLogPublic } from "~/server/questLog";
+import { fmtDay } from "~/lib/dates";
 
 /**
  * A recruit's private Quest Log (recruiting spec, Phase 5) at
@@ -34,12 +35,17 @@ function QuestLogPage() {
   const { token } = Route.useParams();
   const [data, setData] = useState<QuestLogPublic>(initial);
   const [busy, setBusy] = useState("");
+  const [note, setNote] = useState("");
 
   const mark = async (stepId: string, done: boolean) => {
     setBusy(stepId);
+    setNote("");
     try {
       const res = await recruitMarkStep({ data: { token, stepId, done } });
       if (res.ok) setData(res);
+      else setNote("That did not save. Please try again in a moment.");
+    } catch {
+      setNote("That did not save. Check your connection and try again.");
     } finally {
       setBusy("");
     }
@@ -95,6 +101,7 @@ function QuestLogPage() {
         {/* Steps */}
         <section>
           <h2 className="text-xl text-[#1c3660] mb-3" style={DISPLAY}>The steps</h2>
+          {note && <p className="mb-2 text-sm text-[#a13d2d]" data-quest-log-note>{note}</p>}
           <ol className="space-y-2" data-quest-log-steps>
             {data.steps.map((s, i) => {
               const isNext = i === nextIdx;
@@ -109,7 +116,7 @@ function QuestLogPage() {
                       <p className={`text-lg leading-snug ${s.done ? "text-[#6b6355] line-through decoration-[#c8a24b]" : "text-[#1c2b3a]"}`}>{s.title}</p>
                       {s.detail && !s.done && <p className="mt-1 text-sm text-[#4a5568]">{s.detail}</p>}
                       {isNext && <p className="mt-1 text-xs uppercase tracking-wider text-[#1c3660]" style={DISPLAY}>You are here</p>}
-                      {s.done && <p className="mt-1 text-xs text-[#6b6355]">{johnDone ? `Confirmed by ${johnFirst}` : "You marked this done"}{s.doneAt ? ` · ${new Date(s.doneAt).toLocaleDateString()}` : ""}</p>}
+                      {s.done && <p className="mt-1 text-xs text-[#6b6355]">{johnDone ? `Confirmed by ${johnFirst}` : "You marked this done"}{s.doneAt ? ` · ${fmtDay(s.doneAt)}` : ""}</p>}
                     </div>
                     {!johnDone && (
                       <button type="button" onClick={() => mark(s.id, !s.done)} disabled={busy === s.id} className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold ${s.done ? "border border-[#d9d2c2] text-[#6b6355]" : "bg-[#1c3660] text-[#f3eee3]"} disabled:opacity-50`} data-quest-log-mark>

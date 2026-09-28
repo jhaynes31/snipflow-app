@@ -3,6 +3,7 @@ import { DEFAULT_DIFFICULTY, DIFFICULTY_LEVELS, DIFFICULTY_NOTE, outcomeLabel, t
 import type { Persona } from "~/lib/practicePrompts";
 import type { Presentation } from "~/lib/practicePresentation";
 import type { PracticeSession, SessionResult } from "~/server/practice";
+import { errorText } from "~/lib/errorText";
 
 /**
  * The Sparring Dummy setup (AI practice spec, Sections 1, 4, 5, 6), shared
@@ -75,6 +76,8 @@ export default function SetupForm({ data, api, onStarted, sessionHref, suggested
         setPersona(res.persona);
         setSnapshot(res.snapshot ?? "");
       }
+    } catch (e) {
+      setError(errorText(e, "Could not invent a persona. Try again in a moment."));
     } finally {
       setBusy("");
     }
@@ -86,6 +89,8 @@ export default function SetupForm({ data, api, onStarted, sessionHref, suggested
       const res = await api.savePersona({ conversation, profileId, profileSnapshot: snapshot, persona });
       if (res.ok) api.refresh();
       else setError(res.error ?? "Could not save.");
+    } catch (e) {
+      setError(errorText(e, "Could not save the persona."));
     } finally {
       setBusy("");
     }
@@ -98,6 +103,8 @@ export default function SetupForm({ data, api, onStarted, sessionHref, suggested
       const res = await api.startSession({ conversation, profileId, profileSnapshot: snapshot, persona, temperament, difficulty, mode, presentationId: mode === "presentation" ? presentationId ?? undefined : undefined });
       if (!res.ok || !res.session) setError(res.error ?? "Could not start.");
       else onStarted(res.session.id);
+    } catch (e) {
+      setError(errorText(e, "Could not start the session. Try again in a moment."));
     } finally {
       setBusy("");
     }
