@@ -109,15 +109,18 @@ export default function LeadModal({ isOpen, onSubmit, onClose }: LeadModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style={{ backgroundColor: "rgba(8, 14, 22, 0.85)" }}
-      onClick={onClose}
+      onClick={() => {
+        // A stray tap outside the box must not erase what was typed.
+        if (!name && !email && !phone) onClose();
+      }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={ids.title}
-        className="w-full max-w-sm rounded-xl border-2 border-[#406080]/50 shadow-2xl overflow-hidden"
+        className="w-full max-w-sm my-auto max-h-[92dvh] overflow-y-auto rounded-xl border-2 border-[#406080]/50 shadow-2xl"
         style={{
           background: "linear-gradient(180deg, #0d1520 0%, #111a28 100%)",
         }}

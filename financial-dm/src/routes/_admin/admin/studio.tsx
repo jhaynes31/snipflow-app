@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_admin/admin/studio")({
 function StudioPage() {
   const { video } = Route.useSearch();
   return (
+    <main className="min-h-dvh py-6 px-4" style={{ background: "linear-gradient(180deg, #0d1520 0%, #111a28 50%, #0d1520 100%)" }}>
     <div className="max-w-5xl mx-auto space-y-4">
       {!video && (
         <header className="text-center space-y-1">
@@ -24,5 +25,6 @@ function StudioPage() {
       )}
       {video ? <StudioShell key={video} id={video} /> : <VideoLibrary />}
     </div>
+    </main>
   );
 }

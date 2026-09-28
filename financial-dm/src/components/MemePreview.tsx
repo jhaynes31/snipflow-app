@@ -149,6 +149,8 @@ function DraggableTextBox({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      // Registered non-passive so this can stop the page from scrolling under the drag.
+      e.preventDefault();
       const touch = e.touches[0];
       if (touch) handleMove(touch.clientX, touch.clientY);
     };
@@ -223,7 +225,7 @@ function DraggableTextBox({
       <div className="relative block w-full">
         {/* Controls (hover visible) */}
         <div
-          className={`absolute -top-2 -right-2 flex gap-0.5 transition-opacity ${
+          className={`absolute -top-2 -right-2 flex gap-0.5 transition-opacity [@media(hover:none)]:opacity-100 ${
             hovered || editing ? "opacity-100" : "opacity-0"
           }`}
           style={{ zIndex: 51, transform: "translateY(-100%)" }}

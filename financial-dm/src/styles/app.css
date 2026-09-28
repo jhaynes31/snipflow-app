@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* iPhone Safari zooms the whole page when a focused field's text is smaller
+   than 16px. On small screens every field is at least 16px, whatever class
+   it carries, so tapping a box never jumps the layout. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Brand fonts, self hosted in /public/fonts (SIL Open Font License).
    Same origin matters: html-to-image can only embed fonts it can read, and
    the PNG export must use the exact font the screen used, or text wraps

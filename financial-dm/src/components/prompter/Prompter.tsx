@@ -362,14 +362,14 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
                 ))}
               </div>
               <div className="space-y-1">
-                <label className="flex items-center gap-3">
-                  <span className="w-28">Speed</span>
+                <label className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <span className="w-full sm:w-28">Speed</span>
                   <button type="button" onClick={() => update({ wpm: settings.wpm - PROMPTER_CONFIG.wpmStep })} className={pill} aria-label="Slower" data-prompter-slower>− Slower</button>
-                  <input type="range" min={PROMPTER_CONFIG.wpmMin} max={PROMPTER_CONFIG.wpmMax} step={PROMPTER_CONFIG.wpmStep} value={settings.wpm} onChange={(e) => update({ wpm: Number(e.target.value) })} className="flex-1 accent-[#E0B45C]" aria-label="Speed" data-prompter-speed />
+                  <input type="range" min={PROMPTER_CONFIG.wpmMin} max={PROMPTER_CONFIG.wpmMax} step={PROMPTER_CONFIG.wpmStep} value={settings.wpm} onChange={(e) => update({ wpm: Number(e.target.value) })} className="flex-1 min-w-[6rem] accent-[#E0B45C]" aria-label="Speed" data-prompter-speed />
                   <button type="button" onClick={() => update({ wpm: settings.wpm + PROMPTER_CONFIG.wpmStep })} className={pill} aria-label="Faster" data-prompter-faster>Faster +</button>
                   <span className="w-20 text-right tabular-nums" data-prompter-wpm>{settings.wpm} wpm</span>
                 </label>
-                <p className="pl-[7.75rem]" style={{ color: MUTED }}>How long each beat stays up. 150 is a steady conversational pace; nudge it with + and − during a take too. Voice tracking, which follows your own pace, is the next update.</p>
+                <p className="sm:pl-[7.75rem]" style={{ color: MUTED }}>How long each beat stays up. 150 is a steady conversational pace; nudge it with + and − during a take too. Voice tracking, which follows your own pace, is the next update.</p>
               </div>
               <label className="flex items-center gap-3">
                 <span className="w-28">Mirror</span>
@@ -394,7 +394,7 @@ export default function Prompter({ parts: initialParts, scriptId, title, onClose
       {(phase === "running" || phase === "paused" || phase === "done") && beat && (
         <>
           {/* The three-line window. Top by default: the closest point to the lens (Section 5). */}
-          <div className={`absolute left-0 right-0 ${settings.anchor === "top" ? "top-[2vh]" : "top-1/2 -translate-y-1/2"} px-4`} style={{ transform: `${settings.anchor === "center" ? "translateY(-50%) " : ""}${settings.mirror ? "scaleX(-1)" : ""}`.trim() || undefined }} data-prompter-window>
+          <div className={`absolute left-0 right-0 ${settings.anchor === "top" ? "top-[2vh]" : "top-1/2"} px-4`} style={{ transform: `${settings.anchor === "center" ? "translateY(-50%) " : ""}${settings.mirror ? "scaleX(-1)" : ""}`.trim() || undefined }} data-prompter-window>
             <div style={{ minHeight: settings.fontSize * 0.4 * 1.2 }}>{prevBeat ? renderBeat(prevBeat, "prev") : null}</div>
             <div className="mt-[0.35em]" style={{ fontSize: settings.fontSize }}>{renderBeat(beat, "current")}</div>
             {beat.cue && (
