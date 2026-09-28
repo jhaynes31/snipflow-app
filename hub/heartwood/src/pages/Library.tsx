@@ -8,6 +8,8 @@ import { EXERCISES } from '@/data/exercises';
 import { db } from '@/db/db';
 import { contextFromProfile, exclusionReason, isHardExcluded } from '@/domain/safety';
 import type { Exercise } from '@/domain/types';
+import { poseSvg } from '@/media/pose';
+import { POSES } from '@/media/poses';
 import { useProfile } from '@/hooks/useProfile';
 
 const CATS: { id: Exercise['category'] | 'all' | 'locked'; label: string }[] = [
@@ -43,7 +45,7 @@ export function LibraryPage() {
           return (
             <li key={e.id}>
               <Link to={`/exercise/${e.id}`} className="card-soft flex items-center gap-3 no-underline">
-                <img src={assetUrl(e.media[0]?.src ?? '')} alt="" width={64} height={48} style={{ borderRadius: 10, objectFit: 'cover' }} />
+                <Thumb exercise={e} />
                 <span className="flex-1"><span className="font-bold block">{e.name}</span><span className="muted text-sm">{e.summary}</span></span>
                 {reason && <Lock size={18} aria-label="Locked" />}
               </Link>
@@ -54,4 +56,13 @@ export function LibraryPage() {
       {list.length === 0 && <p className="muted">Nothing here yet.</p>}
     </div>
   );
+}
+
+/** A small picture for the list: the exercise's own drawing, or its stance pictogram. */
+function Thumb({ exercise }: { exercise: Exercise }) {
+  const m = exercise.media[0];
+  if (m?.type === 'pose' && POSES[m.src]) {
+    return <span style={{ width: 64, height: 48, borderRadius: 10, overflow: 'hidden', display: 'inline-block', flex: 'none' }} aria-hidden dangerouslySetInnerHTML={{ __html: poseSvg({ a: POSES[m.src].a, props: POSES[m.src].props }, '') }} />;
+  }
+  return <img src={assetUrl(m?.src ?? '')} alt="" width={64} height={48} style={{ borderRadius: 10, objectFit: 'cover' }} />;
 }

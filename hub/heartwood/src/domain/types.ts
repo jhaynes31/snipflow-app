@@ -19,7 +19,8 @@ export type TimerType = 'hold' | 'tempo' | 'rest' | 'interval' | 'none';
 export type ExclusionTag = 'lunge' | 'burpee' | 'crunch' | 'situp' | 'neck-flexion-loaded' | 'plyometric' | 'jumping';
 export type CautionTag = 'unsupported-single-leg' | 'deep-knee-flexion' | 'heavy-overhead' | 'step-up';
 
-export type MediaType = 'gif' | 'video' | 'svg' | 'custom';
+/** 'pose' is a drawing of the exercise itself (src is the exercise id; see src/media/poses.ts). */
+export type MediaType = 'gif' | 'video' | 'svg' | 'custom' | 'pose';
 
 export interface ExerciseMedia {
   type: MediaType;

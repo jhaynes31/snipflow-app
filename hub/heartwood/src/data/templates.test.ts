@@ -54,3 +54,13 @@ describe('templates (2026-09-23: somatic, fascia, pelvic floor, mobility)', () =
     expect(guideForTemplate('pelvicFloor').role).toBe('Pelvic floor');
   });
 });
+
+describe('exercise drawings (2026-09-28)', () => {
+  it('every exercise that can be shown has its own drawing', async () => {
+    const { POSES } = await import('@/media/poses');
+    const { EXERCISES } = await import('./exercises');
+    const missing = EXERCISES.filter((e) => !e.id.startsWith('x-') && !POSES[e.id]).map((e) => e.id);
+    expect(missing).toEqual([]);
+    for (const e of EXERCISES) if (!e.id.startsWith('x-')) expect(e.media[0]).toEqual({ type: 'pose', src: e.id });
+  });
+});

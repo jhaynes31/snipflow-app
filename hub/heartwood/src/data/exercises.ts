@@ -1,4 +1,5 @@
 import type { Exercise, Stance } from '@/domain/types';
+import { hasPose } from '@/media/poses';
 
 /**
  * Curated v1 library (~75 exercises). Every record carries the full safety tagging
@@ -6,7 +7,8 @@ import type { Exercise, Stance } from '@/domain/types';
  * included so the filter engine is exercised for real and the tests prove they never
  * surface in a plan or a swap.
  *
- * Media: each exercise points at a stance pictogram under /media/ by default. When
+ * Media: each exercise gets its own drawing (src/media/poses.ts, 2026-09-28) and falls
+ * back to a stance pictogram under /media/ if a pose is missing. When
  * `scripts/fetch-exercisedb.mjs` has been run, a GIF entry is added by the media
  * manifest at runtime (see src/data/media.ts).
  * Licensing decision: ExerciseDB FREE V1 dataset only (non-commercial, attribution
@@ -26,7 +28,7 @@ function ex(e: ExInput): Exercise {
     lessonIds: [],
     musclesSecondary: [],
     unilateral: false,
-    media: [stanceMedia(e.stance)],
+    media: [hasPose(e.id) ? { type: 'pose' as const, src: e.id } : stanceMedia(e.stance)],
     ...e,
   };
 }

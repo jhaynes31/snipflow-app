@@ -3,6 +3,8 @@ import { mediaOverride } from '@/data/media';
 import { assetUrl } from '@/app/base';
 import { db } from '@/db/db';
 import type { Exercise } from '@/domain/types';
+import { poseSvg } from '@/media/pose';
+import { POSES } from '@/media/poses';
 
 /** Looping demo with pause and slow-motion where supported (Section 6.3). */
 export function DemoMedia({ exercise, slow = false, height = 220 }: { exercise: Exercise; slow?: boolean; height?: number }) {
@@ -27,6 +29,9 @@ export function DemoMedia({ exercise, slow = false, height = 220 }: { exercise: 
   }, [slow, paused]);
 
   if (!media) return null;
+  if (media.type === 'pose' && POSES[media.src]) {
+    return <div style={{ height, width: '100%', borderRadius: 18, overflow: 'hidden', background: 'var(--bg-card-soft)', display: 'grid', placeItems: 'center' }} className="pose-demo" dangerouslySetInnerHTML={{ __html: poseSvg(POSES[media.src], `${exercise.name} demonstration`) }} />;
+  }
   const style = { height, width: '100%', objectFit: 'contain' as const, borderRadius: 18, background: 'var(--bg-card-soft)' };
 
   if (media.type === 'video' || (media.type === 'custom' && blobUrl)) {
