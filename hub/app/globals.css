@@ -976,3 +976,13 @@ a.sh-chip {
 .sh-wheel text { pointer-events: none; user-select: none; }
 .sh-chat-box { min-height: 7rem; line-height: 1.5; }
 .tend-msg { white-space: pre-wrap; }
+
+/* A tapped chip looks tapped, everywhere (2026-09-29, after the Apothecary chips seemed dead). */
+.sh-chip:hover { background: var(--surface-alt, var(--surface)); }
+.sh-chip[aria-pressed="true"] {
+  background: var(--tile-accent);
+  color: var(--tile-on-accent);
+  border-color: transparent;
+  font-weight: 700;
+}
+.sh-chip[aria-pressed="true"]:hover { filter: brightness(1.08); }
