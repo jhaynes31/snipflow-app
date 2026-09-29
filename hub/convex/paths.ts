@@ -111,6 +111,13 @@ export interface PathState {
   /** Index of the step they're on. */
   step: number;
   startedAt: number;
+  /**
+   * A path made on the spot (2026-09-29, Jen's ask): the tools one coach
+   * reply pointed to, walked one after another. Carried here, since it
+   * isn't in PATHS or their own list.
+   */
+  name?: string;
+  steps?: string[];
 }
 
 export function readPathState(moduleSettings: Record<string, unknown> | undefined): PathState | null {
@@ -118,7 +125,35 @@ export function readPathState(moduleSettings: Record<string, unknown> | undefine
   if (!raw || typeof raw !== "object") return null;
   const p = raw as Partial<PathState>;
   if (typeof p.key !== "string" || typeof p.step !== "number") return null;
-  return { key: p.key, step: p.step, startedAt: typeof p.startedAt === "number" ? p.startedAt : 0 };
+  const state: PathState = { key: p.key, step: p.step, startedAt: typeof p.startedAt === "number" ? p.startedAt : 0 };
+  if (Array.isArray(p.steps) && p.steps.length > 0 && p.steps.every((s) => typeof s === "string")) {
+    state.steps = p.steps;
+    state.name = typeof p.name === "string" && p.name ? p.name : "From the coach";
+  }
+  return state;
+}
+
+/** The path a state carries with it, if it does; otherwise the one it names. */
+export function pathFromState(state: PathState | null, paths: Path[]): Path | null {
+  if (!state) return null;
+  if (state.steps?.length) return { key: state.key, name: state.name ?? "From the coach", when: "The tools the coach pointed to, one after another.", words: [], steps: state.steps, who: "either" };
+  return paths.find((p) => p.key === state.key) ?? null;
+}
+
+/**
+ * The steps for a path made from one coach reply: the tool that was tapped
+ * first, then the rest in the order the coach named them. Unknown keys and
+ * repeats drop out.
+ */
+export function replySteps(keys: string[], first: string | undefined, known: (key: string) => boolean): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const k of first ? [first, ...keys] : keys) {
+    if (!known(k) || seen.has(k)) continue;
+    seen.add(k);
+    out.push(k);
+  }
+  return out;
 }
 
 export function readCustomPaths(moduleSettings: Record<string, unknown> | undefined): CustomPath[] {

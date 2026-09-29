@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildSystemPrompt, FATHER_VOICE, MOTHER_VOICE } from "../convex/coach/prompt.ts";
-import { availablePaths, coachPathList, PATH_MAP, PATHS, pathsFor, readCustomPaths, readPathState, searchPaths } from "../convex/paths.ts";
+import { availablePaths, coachPathList, PATH_MAP, PATHS, pathFromState, pathsFor, readCustomPaths, readPathState, replySteps, searchPaths } from "../convex/paths.ts";
 import { availableTools, splitReply, TOOL_INDEX, toolByKey } from "../convex/toolIndex.ts";
 
 describe("paths", () => {
@@ -42,6 +42,16 @@ describe("paths", () => {
     assert.equal(readPathState({ hub: { background: "moss" } }), null);
     assert.equal(readPathState(undefined), null);
     assert.equal(readCustomPaths({ hub: { paths: [{ key: "c", name: "n", steps: [] }, "junk"] } }).length, 1);
+  });
+  it("carries a path made from one coach reply, tapped tool first", () => {
+    const known = (k: string) => !!toolByKey(k);
+    assert.deepEqual(replySteps(["tend.storyCheck", "rc.whose", "tend.storyCheck", "nope"], "rc.whose", known), ["rc.whose", "tend.storyCheck"]);
+    assert.deepEqual(replySteps(["tend.storyCheck", "rc.whose"], undefined, known), ["tend.storyCheck", "rc.whose"]);
+    const state = readPathState({ hub: { path: { key: "reply-1", step: 1, startedAt: 5, steps: ["rc.whose", "tend.storyCheck"] } } });
+    assert.deepEqual(state, { key: "reply-1", step: 1, startedAt: 5, steps: ["rc.whose", "tend.storyCheck"], name: "From the coach" });
+    assert.deepEqual(pathFromState(state, PATHS)?.steps, ["rc.whose", "tend.storyCheck"]);
+    assert.equal(pathFromState({ key: "her.stung", step: 0, startedAt: 0 }, PATHS)?.key, "her.stung");
+    assert.equal(readPathState({ hub: { path: { key: "x", step: 0, steps: [] } } })?.steps, undefined);
   });
   it("the coach can propose a path with a tag, and the reply becomes a Start button", () => {
     const list = coachPathList(availablePaths(TOOL_INDEX));

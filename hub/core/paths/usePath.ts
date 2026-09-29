@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { pathsFor, readCustomPaths, readPathState, type CustomPath, type Path, type PathState } from "@/convex/paths";
+import { pathFromState, pathsFor, readCustomPaths, readPathState, replySteps, type CustomPath, type Path, type PathState } from "@/convex/paths";
 import { toolByKey, type ToolEntry } from "@/convex/toolIndex";
 import { useHub } from "@/core/shell/HubContext";
 import { useTools } from "@/core/tools/useTools";
@@ -23,6 +23,8 @@ export interface PathHandle {
   stepHref: string | null;
   nextTool: ToolEntry | null;
   start: (key: string) => Promise<void>;
+  /** Walk the tools one coach reply pointed to, one after another, beginning with `first` if given. */
+  startSteps: (name: string, keys: string[], first?: string) => Promise<void>;
   openStep: () => void;
   next: () => Promise<void>;
   stop: () => Promise<void>;
@@ -39,7 +41,7 @@ export function usePath(): PathHandle {
   const state = readPathState(profile.moduleSettings);
   const custom = readCustomPaths(profile.moduleSettings);
   const paths = tools ? pathsFor(tools.tools, custom) : [];
-  const current = state ? paths.find((p) => p.key === state.key) ?? null : null;
+  const current = pathFromState(state, paths);
   const stepKey = current && state ? current.steps[state.step] : null;
   const step = stepKey ? toolByKey(stepKey) ?? null : null;
   const nextKey = current && state ? current.steps[state.step + 1] : null;
@@ -75,6 +77,14 @@ export function usePath(): PathHandle {
       await write({ key, step: 0, startedAt: Date.now() });
       const first = toolByKey(p.steps[0]);
       if (first) go(hrefFor(first));
+    },
+    startSteps: async (name, keys, first) => {
+      const known = new Set((tools?.tools ?? []).map((t) => t.key));
+      const steps = replySteps(keys, first, (k) => known.has(k));
+      if (steps.length === 0) return;
+      await write({ key: `reply-${Date.now()}`, step: 0, startedAt: Date.now(), name, steps });
+      const head = toolByKey(steps[0]);
+      if (head) go(hrefFor(head));
     },
     openStep: () => { if (stepHref) go(stepHref); },
     next: async () => {

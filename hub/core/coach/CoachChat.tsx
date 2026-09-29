@@ -6,7 +6,7 @@ import { useAction as useConvexAction, useMutation, useQuery } from "convex/reac
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PATHS } from "@/convex/paths";
-import { splitReply, toolByKey, type PathLike, type ToolEntry } from "@/convex/toolIndex";
+import { splitReply, toolByKey, type PathLike, type ReplyPart, type ToolEntry } from "@/convex/toolIndex";
 import { FeltButton } from "@/core/felt/FeltButton";
 import { KeepLine } from "@/core/mantel/KeepLine";
 import { usePath } from "@/core/paths/usePath";
@@ -34,14 +34,23 @@ export interface Suggestions {
 
 /** Room to write. Raised from 3,000 on 2026-09-29 at Jen's ask; the server allows the same. */
 const MESSAGE_MAX = 20000;
+/** How long a conversation in one place stays the one you land back in. */
+const RESUME_WINDOW = 24 * 60 * 60 * 1000;
 
 export function CoachChat({ module, task, opening, placeholder = "Ask in your own words.", suggestions, initialId = null }: { module: string; task: string; opening?: string; placeholder?: string; suggestions?: Suggestions; initialId?: Id<"coachConversations"> | null }) {
   const start = useMutation(api.coach.conversations.start);
   const remove = useMutation(api.coach.conversations.remove);
   const send = useConvexAction(api.coach.chat.send);
   const [id, setId] = useState<Id<"coachConversations"> | null>(initialId);
+  const [fresh, setFresh] = useState(false);
+  const [openedAt] = useState(() => Date.now());
   const earlier = useQuery(api.coach.conversations.mine, { module });
-  const row = useQuery(api.coach.conversations.get, id ? { id } : "skip");
+  // Coming back to the same place picks up the conversation from the last day
+  // (2026-09-29, Jen's ask), unless this chat opens with its own context or
+  // they asked for a new one. Nothing is lost either way; the rest are listed below.
+  const resumed = !id && !initialId && !opening && !fresh ? earlier?.find((c) => c.count > 0 && openedAt - c.updatedAt < RESUME_WINDOW) ?? null : null;
+  const activeId = id ?? resumed?._id ?? null;
+  const row = useQuery(api.coach.conversations.get, activeId ? { id: activeId } : "skip");
   const { busy, error, run } = useAction();
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<string | null>(null);
@@ -60,12 +69,12 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
     setPending(question);
     setDraft("");
     void run(async () => {
-      let convo = id;
+      let convo = activeId;
       if (!convo) {
         convo = await start({ module, task });
         setId(convo);
       }
-      const message = opening && count === 0 && !id ? `${opening}\n\nMy question: ${question}` : question;
+      const message = opening && count === 0 && !activeId ? `${opening}\n\nMy question: ${question}` : question;
       const out = await send({ id: convo, message, task });
       setCrisis(out.crisis);
       return true;
@@ -83,6 +92,11 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
 
   return (
     <Card>
+      {resumed && row && (
+        <p className="sh-hint" style={{ marginTop: 0 }}>
+          Picking up where you left off, {timeAgo(resumed.updatedAt)}. The buttons the coach gave you are still here.
+        </p>
+      )}
       <div className="tend-chat" aria-live="polite">
         {shown.map((m, i) => (
           <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
@@ -122,25 +136,25 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
         <FeltButton context={module === "hub" ? "coach" : module} label="Start from a feeling" onInsert={(t) => setDraft((d) => (d.trim() ? `${d.trim()} ${t}` : `I feel ${t}`))} />
         <div className="sh-row sh-wrap">
           <Btn type="submit" disabled={busy || !draft.trim()}>{busy ? "Sending…" : "Ask"}</Btn>
-          {id && (
+          {activeId && (
             <>
-              <Btn type="button" variant="ghost" disabled={busy} onClick={() => { setId(null); setCrisis(false); }}>
+              <Btn type="button" variant="ghost" disabled={busy} onClick={() => { setId(null); setFresh(true); setCrisis(false); }}>
                 New conversation
               </Btn>
-              <Btn type="button" variant="ghost" disabled={busy} onClick={() => void run(async () => { await remove({ id }); setId(null); })}>
+              <Btn type="button" variant="ghost" disabled={busy} onClick={() => void run(async () => { await remove({ id: activeId }); setId(null); setFresh(true); })}>
                 Delete this conversation
               </Btn>
             </>
           )}
         </div>
       </form>
-      {earlier && earlier.filter((c) => c._id !== id && c.count > 0).length > 0 && (
+      {earlier && earlier.filter((c) => c._id !== activeId && c.count > 0).length > 0 && (
         <details className="sh-menu mt-3">
-          <summary>Earlier conversations here ({earlier.filter((c) => c._id !== id && c.count > 0).length})</summary>
+          <summary>Earlier conversations here ({earlier.filter((c) => c._id !== activeId && c.count > 0).length})</summary>
           <ul className="sh-list" style={{ marginTop: "0.5rem" }}>
-            {earlier.filter((c) => c._id !== id && c.count > 0).map((c) => (
+            {earlier.filter((c) => c._id !== activeId && c.count > 0).map((c) => (
               <li key={c._id} className="sh-row sh-wrap">
-                <button type="button" className="sh-link" style={{ background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer" }} onClick={() => { setId(c._id); setCrisis(false); }}>
+                <button type="button" className="sh-link" style={{ background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer" }} onClick={() => { setId(c._id); setFresh(false); setCrisis(false); }}>
                   {c.firstLine || "Empty conversation"}
                 </button>
                 <span className="sh-muted">{timeAgo(c.updatedAt)}</span>
@@ -156,9 +170,19 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
   );
 }
 
-/** A coach reply, with each [[tool:key]] tag turned into an Open button. */
+/**
+ * A coach reply, with each [[tool:key]] tag turned into an Open button. When
+ * a reply points to two or more tools, tapping any of them starts a path
+ * through all of them (that one first), so the rest are waiting in the bar
+ * at the top of the page instead of lost in the conversation (2026-09-29,
+ * Jen's ask). One button at the end walks them in the coach's order.
+ */
 export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry) => string) | null }) {
   const parts = splitReply(text, undefined, PATHS);
+  const path = usePath();
+  const toolKeys = parts.filter((p): p is Extract<ReplyPart, { kind: "tool" }> => p.kind === "tool").map((p) => p.tool.key);
+  const walk = toolKeys.length >= 2 && path.ready;
+  const name = "What the coach pointed to";
   return (
     <>
       {parts.map((p, i) =>
@@ -166,6 +190,12 @@ export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry)
           <span key={i}><Rich text={p.text} /> </span>
         ) : p.kind === "path" ? (
           <PathStart key={i} path={p.path} />
+        ) : walk ? (
+          <span key={i} className="tend-tool-open">
+            <button type="button" className="sh-btn sh-btn-secondary sh-btn-inline" onClick={() => void path.startSteps(name, toolKeys, p.tool.key)} title={`Opens ${p.tool.name}, then the rest of these one after another`}>
+              {p.tool.name} →
+            </button>
+          </span>
         ) : (
           <span key={i} className="tend-tool-open">
             {href && p.tool.href.includes("/app/") ? (
@@ -175,6 +205,13 @@ export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry)
             )}
           </span>
         ),
+      )}
+      {walk && (
+        <span className="tend-tool-open" style={{ display: "block", marginTop: "0.5rem" }}>
+          <button type="button" className="sh-btn sh-btn-primary sh-btn-inline" onClick={() => void path.startSteps(name, toolKeys)}>
+            Walk me through all {toolKeys.length}, one after another → {toolKeys.map((k) => toolByKey(k)?.name ?? k).join(", ")}
+          </button>
+        </span>
       )}
     </>
   );
