@@ -30,6 +30,9 @@ export interface Suggestions {
   added: Set<string>;
 }
 
+/** Room to write. Raised from 3,000 on 2026-09-29 at Jen's ask; the server allows the same. */
+const MESSAGE_MAX = 20000;
+
 export function CoachChat({ module, task, opening, placeholder = "Ask in your own words.", suggestions, initialId = null }: { module: string; task: string; opening?: string; placeholder?: string; suggestions?: Suggestions; initialId?: Id<"coachConversations"> | null }) {
   const start = useMutation(api.coach.conversations.start);
   const remove = useMutation(api.coach.conversations.remove);
@@ -111,7 +114,8 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
           submit();
         }}
       >
-        <textarea className="sh-input sh-textarea" rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={3000} placeholder={placeholder} aria-label="Your question" />
+        <textarea className="sh-input sh-textarea sh-chat-box" rows={Math.min(24, Math.max(4, draft.split("\n").length + Math.floor(draft.length / 90)))} value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={MESSAGE_MAX} placeholder={placeholder} aria-label="Your question" onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
+        {draft.length > MESSAGE_MAX * 0.75 && <p className="sh-hint">{draft.length.toLocaleString()} of {MESSAGE_MAX.toLocaleString()} characters.</p>}
         <CrisisNotice texts={[draft]} />
         <FeltButton context={module === "hub" ? "coach" : module} label="Start from a feeling" onInsert={(t) => setDraft((d) => (d.trim() ? `${d.trim()} ${t}` : `I feel ${t}`))} />
         <div className="sh-row sh-wrap">

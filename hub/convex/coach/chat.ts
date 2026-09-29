@@ -25,7 +25,8 @@ export const send = action({
   handler: async (ctx, args): Promise<{ reply: string; crisis: boolean; loop: boolean }> => {
     const message = args.message.trim();
     if (!message) throw new ConvexError("Write something first.");
-    if (message.length > 4000) throw new ConvexError("That message is long (max 4000 characters). Try it in two parts.");
+    // Room to write (2026-09-29): long messages are the point in some rooms. Matches the boxes' limit.
+    if (message.length > 20000) throw new ConvexError("That message is very long (max 20,000 characters). Try it in two parts.");
 
     const context = await ctx.runQuery(internal.coach.conversations.contextFor, { id: args.id });
 

@@ -170,10 +170,10 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
         >
           <textarea
             className="sh-input sh-textarea"
-            rows={3}
+            rows={Math.min(24, Math.max(4, draft.split("\n").length + Math.floor(draft.length / 90)))}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            maxLength={4000}
+            maxLength={20000}
             placeholder="Say it however it comes out."
             aria-label="Your message"
             onKeyDown={(e) => {

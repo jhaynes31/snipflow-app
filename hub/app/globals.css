@@ -974,3 +974,5 @@ a.sh-chip {
 .sh-body-name { text-align: center; font-weight: 700; min-height: 1.4em; margin: 0.2rem 0 0; }
 .sh-body-side { font-size: 11px; font-weight: 700; fill: var(--text-muted); letter-spacing: 0.02em; }
 .sh-wheel text { pointer-events: none; user-select: none; }
+.sh-chat-box { min-height: 7rem; line-height: 1.5; }
+.tend-msg { white-space: pre-wrap; }
