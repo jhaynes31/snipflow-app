@@ -5,17 +5,38 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { WEATHER } from "@/convex/tend/pure";
 import { COPY } from "@/core/copy/strings";
+import { embeddedPersonFor } from "@/core/person";
+import { ownsSeedSet, cardTitles } from "@/core/tend/needCards/cards";
 import { useHub } from "@/core/shell/HubContext";
+import { ReflectPrompt } from "./Reflect";
 import { Card, LinkBtn, PageTitle, timeAgo } from "@/core/ui";
 
 /** Tend's front door: check in, reach your partner, and where "Need help now" always is. */
 export function Now() {
-  const { partner, headsUpsForMe } = useHub();
+  const { profile, partner, headsUpsForMe } = useHub();
   const recent = useQuery(api.checkIns.recent, { limit: 5 });
+  const openSignals = useQuery(api.tend.signals.openForMe);
+  const canSignal = ownsSeedSet(embeddedPersonFor(profile));
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title="Now" subtitle="A warm corner for hard days." />
+      {openSignals && openSignals.length > 0 && (
+        <div className="sh-stack tn">
+          {openSignals.map((s) => (
+            <Link key={s._id} href={`/tend/support/${s._id}`} className="sh-card block no-underline tn-open">
+              <strong>{partner?.displayName ?? "Your partner"} could use you 🌿</strong> <span className="sh-muted">· {cardTitles(s.cards) || "something hard"} · {timeAgo(s.createdAt)}{s.onItAt ? " · you're on it" : ""}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+      {canSignal && <ReflectPrompt />}
       <div className="sh-stack">
+        {canSignal && partner && (
+          <div className="tn-signal-row">
+            <LinkBtn href="/tend/signal" big variant="accent" className="tn-struggling">I&apos;m struggling</LinkBtn>
+            <LinkBtn href="/tend/signal/shutdown" big variant="secondary" className="tn-shutdown-btn">Shutdown</LinkBtn>
+          </div>
+        )}
         <LinkBtn href="/check-in" big variant="accent">
           {COPY.checkInButton}
         </LinkBtn>

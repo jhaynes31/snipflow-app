@@ -34,6 +34,7 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("hub.helpNow", "Need help now", "The Shire", "/help-now", "Crisis lines, your safety plan, and one tap to reach your partner.", ["not safe", "crisis", "emergency", "safety plan", "help now"]),
 
   // Tend
+  T("tend.signal", "I'm struggling", "Tend", "/tend/signal", "Tell your partner what's going on and what would help, in two taps.", ["struggling", "i'm struggling", "tell john i'm struggling", "signal", "need john", "hard moment", "shutdown", "can't talk", "non-verbal"]),
   T("tend.groundMe", "Ground Me", "Tend", "/tend/tools/groundMe", "Overwhelmed, wired, or sensory overload.", ["overwhelmed", "wired", "panic", "anxious", "sensory", "too loud", "breathe", "calm down"]),
   T("tend.shameInterrupter", "Shame Interrupter", "Tend", "/tend/tools/shameInterrupter", "Shame spiral or harsh self-talk.", ["shame", "spiral", "hate myself", "stupid", "failure", "worthless", "harsh"]),
   T("tend.goodEnough", "Good Enough", "Tend", "/tend/tools/goodEnough", "Perfectionism, or stuck on quality.", ["perfect", "perfectionism", "not good enough", "polish", "never done"]),
@@ -232,6 +233,7 @@ export interface Door {
 }
 
 export const DOORS_HER: Door[] = [
+  { label: "I'm struggling", toolKey: "tend.signal" },
   { label: "Something stung", toolKey: "tend.storyCheck" },
   { label: "I need mothering", toolKey: "hh.sit" },
   { label: "Walk me through it", toolKey: "hub.paths" },

@@ -10,7 +10,15 @@ export function TendToday() {
   const { profile } = useHub();
   const f = useQuery(api.tend.log.partnerForecast);
   const repairs = useQuery(api.tend.repair.list);
+  const signals = useQuery(api.tend.signals.openForMe);
   const invite = repairs?.find((r) => r.status === "invited" && r.partnerId === profile._id);
+  if (signals && signals.length > 0) {
+    return (
+      <Link href={`/tend/support/${signals[0]._id}`} className="sh-card block no-underline">
+        <strong>Tend:</strong> your partner could use you right now 🌿
+      </Link>
+    );
+  }
   if (invite) {
     return (
       <Link href="/tend/together" className="sh-card block no-underline">

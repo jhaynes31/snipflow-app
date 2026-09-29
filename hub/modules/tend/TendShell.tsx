@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, HeartHandshake, LineChart, Sunrise, Users, Wrench } from "lucide-react";
+import { BookOpen, HeartHandshake, LineChart, Sunrise, Users, Wrench, LifeBuoy } from "lucide-react";
 import type { ReactNode } from "react";
 import "./tend.css";
 
@@ -14,6 +14,7 @@ const NAV = [
   { href: `${ROUTE}/for-you`, label: "For you", icon: HeartHandshake },
   { href: `${ROUTE}/together`, label: "Together", icon: Users },
   { href: `${ROUTE}/my-manual`, label: "My manual", icon: BookOpen },
+  { href: `${ROUTE}/need-cards`, label: "My cards", icon: LifeBuoy },
 ];
 
 /** Tend's frame inside The Shire: a hearth corner with its own sub-navigation. */

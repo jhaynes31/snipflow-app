@@ -1,0 +1,303 @@
+{
+  "version": 1,
+  "owner_profile": "jen",
+  "support_person_profile": "john",
+  "need_types": [
+    { "id": "practical", "label": "Help me with things", "icon": "🧺" },
+    { "id": "emotional", "label": "Help my heart", "icon": "💛" },
+    { "id": "spiritual", "label": "Pray with me", "icon": "🕯️" },
+    { "id": "presence", "label": "Just be near me", "icon": "🌿" },
+    { "id": "space", "label": "I need space (not from you)", "icon": "🍃" }
+  ],
+  "intensity_levels": [
+    { "id": 1, "label": "A little low" },
+    { "id": 2, "label": "Struggling" },
+    { "id": 3, "label": "Really hard right now" }
+  ],
+  "cards": [
+    {
+      "id": "audhd",
+      "title": "AuDHD",
+      "subtitle": "Overloaded, stuck, or out of spoons",
+      "signs": ["Can't start or finish things", "Sensitive to noise, light, touch", "Stimming more", "Short or quiet"],
+      "do_first": ["Lower lights and noise", "Make one decision for her", "Bring water and a safe snack"],
+      "practical": [
+        "Reduce sensory load: dim lights, quiet the room, offer headphones or a soft blanket",
+        "Make decisions instead of asking open questions (\"I'm making X for dinner, okay?\")",
+        "Body-double, or break the task into one tiny next step",
+        "Keep safe foods, water, and fidgets within reach"
+      ],
+      "emotional": [
+        "Don't take stimming, space, or quiet personally",
+        "Ask: help, company, or quiet?",
+        "Notice small wins, low-key"
+      ],
+      "spiritual": [
+        "Short, simple prayer",
+        "Low-volume worship music if it helps her regulate"
+      ],
+      "say_this": [
+        "Your brain is out of spoons, not out of worth.",
+        "Do you want help, company, or quiet right now?"
+      ],
+      "avoid": ["Lots of questions at once", "\"Just do it\" or \"it's easy\"", "Extra noise or surprises"],
+      "scripture": { "ref": "Psalm 139:14", "note": "Fearfully and wonderfully made, brain included." }
+    },
+    {
+      "id": "ocd",
+      "title": "OCD",
+      "subtitle": "Caught in a loop",
+      "signs": ["Asking for reassurance repeatedly", "Checking or repeating", "Stuck on a thought", "Visibly anxious"],
+      "do_first": ["Stay calm and kind", "Name it gently as OCD", "Follow the plan you two agreed on"],
+      "practical": [
+        "Use the reassurance/compulsion plan agreed on in a calm moment (and with a therapist if she has one)",
+        "Gently redirect to grounding or a different activity",
+        "Protect and support treatment time"
+      ],
+      "emotional": [
+        "Separate her from the disorder",
+        "Never react with shock or disgust to intrusive thoughts",
+        "The distress is real even when the fear isn't"
+      ],
+      "spiritual": [
+        "Don't feed faith-based reassurance loops",
+        "Pray for peace over her, not for the fear to be answered"
+      ],
+      "say_this": [
+        "That's the OCD talking, not you.",
+        "I know this feels urgent. I'm right here while it passes."
+      ],
+      "avoid": ["Arguing with the fear's logic", "Giving reassurance outside your agreed plan", "Impatience or sighing"],
+      "scripture": { "ref": "Philippians 4:7", "note": "Peace that doesn't depend on certainty." },
+      "personalize_prompt": "Jen: add your agreed reassurance plan here."
+    },
+    {
+      "id": "cptsd",
+      "title": "CPTSD",
+      "subtitle": "Triggered or on high alert",
+      "signs": ["Jumpy or hypervigilant", "Seems far away or young", "Sudden fear, anger, or tears", "Needs to leave"],
+      "do_first": ["Soft voice, slow down", "Orient her: you're safe, here, today", "Offer an easy way out"],
+      "practical": [
+        "Know her triggers and early warning signs",
+        "Keep things predictable: share plans ahead, no surprises",
+        "Grounding help: name date and place, weighted blanket, name things she can see and hear",
+        "Always give an easy exit from a situation"
+      ],
+      "emotional": [
+        "Don't argue with what a flashback makes her feel",
+        "Don't take hypervigilance personally",
+        "Consistency over time is the medicine"
+      ],
+      "spiritual": [
+        "God as refuge",
+        "Pray for healing with no timeline",
+        "Lament is allowed",
+        "Honor the cycle-breaking she's doing"
+      ],
+      "say_this": [
+        "You're safe. You're here with me. It's [today's date].",
+        "You don't have to explain. I'm staying."
+      ],
+      "avoid": ["Sudden touch without asking", "Raised voice", "\"That was in the past\""],
+      "scripture": { "ref": "Psalm 46:1", "note": "Refuge and strength, an ever-present help." }
+    },
+    {
+      "id": "depression",
+      "title": "Depression",
+      "subtitle": "Heavy, empty, or hopeless",
+      "signs": ["Staying in bed", "Not eating or showering", "Flat or tearful", "Pulling away"],
+      "do_first": ["Take one task off her plate", "Sit with her without fixing", "Tell her she's not a burden"],
+      "practical": [
+        "Handle meals, dishes, laundry, and business tasks like client visits and messages",
+        "Low-bar invites: five minutes outside, starting the shower for her",
+        "Help with meds and appointments if she wants",
+        "Open curtains, fresh air, a short walk together"
+      ],
+      "emotional": [
+        "Presence over solutions",
+        "Keep checking in even if she says little",
+        "No \"just think positive\""
+      ],
+      "spiritual": [
+        "Carry faith for her when she can't feel it",
+        "Read Psalms of lament together",
+        "Never link depression to weak faith"
+      ],
+      "say_this": [
+        "You're not a burden to me. I'm glad to be here.",
+        "You don't have to do anything right now. I've got it."
+      ],
+      "avoid": ["\"Look on the bright side\"", "Pushing big plans", "Leaving her alone for long stretches"],
+      "scripture": { "ref": "Psalm 42:11", "note": "Why, my soul, are you downcast? Honest faith." },
+      "safety": {
+        "trigger": "If she mentions hopelessness, not wanting to be here, or hurting herself",
+        "action": "Ask her directly and calmly, stay with her, and help her reach professional support. In the US, call or text 988 (Suicide & Crisis Lifeline), or call 911 if she's in immediate danger."
+      }
+    },
+    {
+      "id": "pms-pmdd",
+      "title": "PMS / PMDD",
+      "subtitle": "Hormonal lows, irritability, pain",
+      "signs": ["Near that time in her cycle", "Irritable or tearful", "Cramps, fatigue", "Feeling unlovable"],
+      "do_first": ["Heating pad and snacks", "Lighten the schedule", "Extra reassurance of love"],
+      "practical": [
+        "Track her cycle together to see hard days coming",
+        "Stock comfort items ahead: heating pad, snacks, pain relief, cozy clothes",
+        "Pick up extra chores that week"
+      ],
+      "emotional": [
+        "The feelings are real, even if the timing is hormonal",
+        "Don't take irritability personally; save hard talks for later",
+        "Remind her it will lift"
+      ],
+      "spiritual": [
+        "Remind her to give herself grace",
+        "Pray for rest and peace in her body"
+      ],
+      "say_this": [
+        "This is a hard week, not a hard you.",
+        "It's lifted before and it will again. I'm here till it does."
+      ],
+      "avoid": ["\"It's just hormones\"", "Starting conflicts this week", "Keeping score"],
+      "scripture": { "ref": "Psalm 30:5", "note": "Weeping for a night, joy in the morning." }
+    },
+    {
+      "id": "shutdown",
+      "title": "Shutdown",
+      "subtitle": "Complete overwhelm, non-verbal",
+      "signs": ["Can't talk", "Frozen or withdrawn", "Won't make eye contact", "Needs dark or quiet"],
+      "do_first": ["Stop all questions", "Lower lights and sound", "Offer the signal system"],
+      "practical": [
+        "Cut input immediately: lights, noise, questions",
+        "Use non-verbal signals: thumbs up/down, hand squeeze, text, or Tend's one-tap buttons",
+        "Quietly bring water and a blanket",
+        "Handle anything outside: calls, clients, visitors"
+      ],
+      "emotional": [
+        "No demands for words or eye contact",
+        "Quiet presence, nearby or in the room, her choice",
+        "Afterward, no interrogation",
+        "It's overwhelm, not rejection"
+      ],
+      "spiritual": [
+        "Silent prayer; hand on her back if touch is okay",
+        "Soft instrumental worship if it helps"
+      ],
+      "say_this": [
+        "You don't need to talk. Squeeze my hand if you want me to stay.",
+        "I'm handling everything else. Take all the time you need."
+      ],
+      "avoid": ["\"What's wrong?\"", "Asking her to explain", "Treating it as the silent treatment"],
+      "scripture": { "ref": "Romans 8:26", "note": "The Spirit prays with wordless groans. No words needed." },
+      "nonverbal_mode": true
+    },
+    {
+      "id": "shame",
+      "title": "Shame",
+      "subtitle": "Feeling like I am bad",
+      "signs": ["Harsh self-talk", "Hiding or avoiding", "Over-apologizing", "Can't look at him"],
+      "do_first": ["Move closer, not away", "Separate the action from her", "Help repair if needed"],
+      "practical": [
+        "Interrupt the spiral: step outside, change rooms, work alongside her",
+        "Help repair a real mistake so it stops looming",
+        "Quietly handle the thing she feels ashamed about"
+      ],
+      "emotional": [
+        "Stay close; shame expects abandonment",
+        "Share his own imperfections",
+        "No jokes at her expense right now"
+      ],
+      "spiritual": [
+        "Speak her identity in Christ over her",
+        "Pray a blessing over her by name"
+      ],
+      "say_this": [
+        "You made a mistake. You are not a bad person.",
+        "I'm not going anywhere."
+      ],
+      "avoid": ["Silence that feels like judgment", "Lecturing", "\"You shouldn't feel that way\""],
+      "scripture": { "ref": "Romans 8:1", "note": "No condemnation." }
+    },
+    {
+      "id": "rejection-sensitivity",
+      "title": "Rejection Sensitivity",
+      "subtitle": "Feeling rejected or too much",
+      "signs": ["Reading into tone or silence", "Sudden hurt or withdrawal", "Asking \"are you mad at me?\""],
+      "do_first": ["Reassure right away", "Clarify tone if needed", "Be specific and explicit"],
+      "practical": [
+        "Be clear, not vague",
+        "When he needs space, say why and when he'll be back",
+        "Follow through; text if running late"
+      ],
+      "emotional": [
+        "Reassure before she has to ask",
+        "Never call it an overreaction",
+        "Remind her he chose and keeps choosing her"
+      ],
+      "spiritual": [
+        "Remind her she's accepted in the Beloved",
+        "Pray against the lie of too much / not enough"
+      ],
+      "say_this": [
+        "I'm not upset with you. I just need 20 minutes to decompress.",
+        "I choose you. Today too."
+      ],
+      "avoid": ["Going quiet without explanation", "\"You're too sensitive\"", "Sarcasm"],
+      "scripture": { "ref": "Ephesians 1:6", "note": "Accepted, chosen, not tolerated." }
+    },
+    {
+      "id": "betrayal-trauma",
+      "title": "Betrayal Trauma",
+      "subtitle": "Trust feels unsafe",
+      "signs": ["Needing to check or ask", "Guarded or suspicious", "Triggered by reminders"],
+      "do_first": ["Stay calm, not defensive", "Offer transparency", "Answer patiently"],
+      "practical": [
+        "Offer the transparency you've agreed on without being asked",
+        "Keep words and actions consistent, especially in small things",
+        "Answer questions without defensiveness, even repeated ones"
+      ],
+      "emotional": [
+        "Triggers aren't accusations",
+        "Her caution makes sense",
+        "Steady beats perfect"
+      ],
+      "spiritual": [
+        "God is faithful even when people aren't",
+        "Forgiveness and rebuilding trust are separate; neither is rushed"
+      ],
+      "say_this": [
+        "Your caution makes sense. I'll be patient with it.",
+        "Ask me anything. I'm not going to get defensive."
+      ],
+      "avoid": ["\"Get over it\"", "\"That was a long time ago\"", "Getting defensive"],
+      "scripture": { "ref": "Lamentations 3:22–23", "note": "His mercies are new every morning." }
+    },
+    {
+      "id": "low-self-esteem",
+      "title": "Low Self-Esteem",
+      "subtitle": "Feeling not enough",
+      "signs": ["Putting herself down", "Comparing", "Brushing off compliments", "Giving up on goals"],
+      "do_first": ["Give one specific compliment", "Challenge the harsh self-talk", "Show up for her goal"],
+      "practical": [
+        "Specific compliments tied to real things she did",
+        "Back her goals with action: show up, review her projects, cheer",
+        "Celebrate her wins out loud, including in front of others"
+      ],
+      "emotional": [
+        "Affirm character and effort, not just looks",
+        "Tell her what he admires, unprompted"
+      ],
+      "spiritual": [
+        "Read identity scripture over her (Psalm 139, Ephesians 2:10)",
+        "Pray blessing and purpose over her",
+        "Remind her she's a cycle-breaker"
+      ],
+      "say_this": [
+        "Hey, that's my wife you're talking about.",
+        "Breaking cycles takes strength most people never see. You have it."
+      ],
+      "avoid": ["Agreeing jokingly with put-downs", "Generic \"you're fine\"", "Comparing her to others"],
+      "scripture": { "ref": "Zephaniah 3:17", "note": "He rejoices over you with singing." }
+    }
+  ]
+}

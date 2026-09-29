@@ -1402,4 +1402,49 @@ export default defineSchema({
     context: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** "What I Need Right Now": a signal from one person to the other. Shared by design; the partner is the reader. */
+  tnSignals: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    cards: v.array(v.string()),
+    needs: v.array(v.string()),
+    intensity: v.optional(v.number()),
+    note: v.optional(v.string()),
+    /** One-tap non-verbal messages after sending. */
+    taps: v.array(v.object({ key: v.string(), label: v.string(), at: v.number() })),
+    createdAt: v.number(),
+    onItAt: v.optional(v.number()),
+    resolvedAt: v.optional(v.number()),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Per-card personalization by the card set's owner. Shared so the partner's support view uses it. */
+  tnCardEdits: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    cardId: v.string(),
+    sections: v.array(v.object({ key: v.string(), items: v.array(v.object({ text: v.string(), hidden: v.boolean(), starred: v.boolean(), custom: v.boolean() })) })),
+    plan: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_owner_card", ["ownerId", "cardId"]),
+
+  /** Edit history for undo: the edits as they were before each save. */
+  tnCardHistory: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    cardId: v.string(),
+    snapshot: v.string(),
+    at: v.number(),
+  }).index("by_owner_card", ["ownerId", "cardId", "at"]),
+
+  /** After a hard moment: what helped, what didn't. Private to the sender. */
+  tnReflections: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    signalId: v.id("tnSignals"),
+    helped: v.array(v.string()),
+    didnt: v.array(v.string()),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });
