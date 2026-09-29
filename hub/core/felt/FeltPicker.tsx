@@ -18,6 +18,7 @@ export function FeltPicker({ context, onDone, onCancel }: { context: string; onD
   const { run, error, busy } = useAction();
   const [step, setStep] = useState<"feel" | "body" | "words">("feel");
   const [feelings, setFeelings] = useState<Set<string>>(new Set());
+  const [wheelBody, setWheelBody] = useState<Set<string>>(new Set());
   const [areas, setAreas] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState<Record<string, BodyNote>>({});
   const [note, setNote] = useState("");
@@ -25,9 +26,12 @@ export function FeltPicker({ context, onDone, onCancel }: { context: string; onD
   const wordFor = (area: string, w: string) => setNotes((cur) => { const b = cur[area] ?? { area, words: [] }; const words = b.words.includes(w) ? b.words.filter((x) => x !== w) : [...b.words, w]; return { ...cur, [area]: { ...b, words } }; });
   const noteFor = (area: string, text: string) => setNotes((cur) => ({ ...cur, [area]: { ...(cur[area] ?? { area, words: [] }), note: text } }));
 
+  // Sensations picked on the wheel's outer ring ride along with every tapped area, or as "all over" when no area was tapped.
   const draft = (): FeltDraft => ({
     feelings: [...feelings],
-    body: [...areas].map((a) => ({ area: a, words: notes[a]?.words ?? [], note: notes[a]?.note?.trim() || undefined })),
+    body: areas.size
+      ? [...areas].map((a) => ({ area: a, words: [...new Set([...(notes[a]?.words ?? []), ...wheelBody])], note: notes[a]?.note?.trim() || undefined }))
+      : wheelBody.size ? [{ area: "whole", words: [...wheelBody] }] : [],
     note: note.trim() || undefined,
   });
 
@@ -48,7 +52,7 @@ export function FeltPicker({ context, onDone, onCancel }: { context: string; onD
       </div>
       {step === "feel" && (
         <>
-          <Wheel picked={feelings} onToggle={toggle(setFeelings)} />
+          <Wheel picked={feelings} onToggle={toggle(setFeelings)} pickedBody={wheelBody} onToggleBody={toggle(setWheelBody)} />
           <div className="sh-row sh-wrap">
             <Btn onClick={() => setStep("body")}>Where in my body →</Btn>
             <Btn variant="ghost" onClick={() => setStep("words")}>Skip the body</Btn>
@@ -67,6 +71,7 @@ export function FeltPicker({ context, onDone, onCancel }: { context: string; onD
       {step === "words" && (
         <>
           {[...areas].length === 0 && <p className="sh-muted">No areas tapped. You can still keep the feelings, or go back and tap where you notice it.</p>}
+          {wheelBody.size > 0 && <p className="sh-muted">From the wheel: {[...wheelBody].join(", ")}. These go with every area you tapped.</p>}
           {[...areas].map((a) => (
             <div key={a} className="sh-felt-area">
               <p className="sh-label">{AREA_LABEL[a] ?? a}</p>
@@ -85,7 +90,7 @@ export function FeltPicker({ context, onDone, onCancel }: { context: string; onD
           </label>
           <ErrorNote error={error} />
           <div className="sh-row sh-wrap mt-2">
-            <Btn big disabled={busy || (feelings.size === 0 && areas.size === 0)} onClick={() => void keep()}>{onDone ? "Keep it and use the words" : "Keep it"}</Btn>
+            <Btn big disabled={busy || (feelings.size === 0 && areas.size === 0 && wheelBody.size === 0)} onClick={() => void keep()}>{onDone ? "Keep it and use the words" : "Keep it"}</Btn>
             <Btn variant="ghost" onClick={() => setStep("body")}>← Back</Btn>
             {onCancel && <Btn variant="ghost" onClick={onCancel}>Not now</Btn>}
           </div>

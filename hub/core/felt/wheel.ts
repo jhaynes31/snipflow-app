@@ -7,67 +7,67 @@
 export interface Core {
   key: string;
   word: string;
-  /** Secondaries, each with its finer words. */
-  ring: { word: string; words: string[] }[];
+  /** Secondaries, each with its finer words and the body sensations that tend to come with it. */
+  ring: { word: string; words: string[]; body: string[] }[];
   hue: number;
 }
 
 /** Seven cores, the classic wheel with a calm center added; several things are usually true at once. */
 export const WHEEL: Core[] = [
   { key: "angry", word: "Angry", hue: 8, ring: [
-    { word: "frustrated", words: ["annoyed", "irritated", "impatient"] },
-    { word: "mad", words: ["furious", "enraged", "seething"] },
-    { word: "hurt", words: ["betrayed", "let down", "wronged"] },
-    { word: "critical", words: ["skeptical", "dismissive", "cynical"] },
-    { word: "distant", words: ["withdrawn", "cold", "shut off"] },
-    { word: "resentful", words: ["bitter", "jealous", "used"] },
-    { word: "hostile", words: ["provoked", "defensive", "aggressive"] },
+    { word: "frustrated", words: ["annoyed", "irritated", "impatient"], body: ["tight jaw", "sigh"] },
+    { word: "mad", words: ["furious", "enraged", "seething"], body: ["hot", "loud words"] },
+    { word: "hurt", words: ["betrayed", "let down", "wronged"], body: ["lump in throat", "heavy chest"] },
+    { word: "critical", words: ["skeptical", "dismissive", "cynical"], body: ["lip curled", "arms crossed"] },
+    { word: "distant", words: ["withdrawn", "cold", "shut off"], body: ["numb", "turning away"] },
+    { word: "resentful", words: ["bitter", "jealous", "used"], body: ["gut-turning", "clenched"] },
+    { word: "hostile", words: ["provoked", "defensive", "aggressive"], body: ["racing heart", "flushed"] },
   ] },
   { key: "sad", word: "Sad", hue: 215, ring: [
-    { word: "lonely", words: ["isolated", "abandoned", "unseen"] },
-    { word: "hurt", words: ["disappointed", "wounded", "rejected"] },
-    { word: "guilty", words: ["ashamed", "remorseful", "embarrassed"] },
-    { word: "grieving", words: ["mourning", "heavy", "bereft"] },
-    { word: "hopeless", words: ["powerless", "empty", "defeated"] },
-    { word: "tired", words: ["depleted", "worn down", "done"] },
-    { word: "vulnerable", words: ["fragile", "exposed", "raw"] },
+    { word: "lonely", words: ["isolated", "abandoned", "unseen"], body: ["hollow", "empty"] },
+    { word: "hurt", words: ["disappointed", "wounded", "rejected"], body: ["crying", "chest ache"] },
+    { word: "guilty", words: ["ashamed", "remorseful", "embarrassed"], body: ["looking down", "flushed"] },
+    { word: "grieving", words: ["mourning", "heavy", "bereft"], body: ["heaviness", "slow heart"] },
+    { word: "hopeless", words: ["powerless", "empty", "defeated"], body: ["slouching", "tired"] },
+    { word: "tired", words: ["depleted", "worn down", "done"], body: ["body aches", "eyes heavy"] },
+    { word: "vulnerable", words: ["fragile", "exposed", "raw"], body: ["curling up", "shaky"] },
   ] },
   { key: "scared", word: "Scared", hue: 275, ring: [
-    { word: "anxious", words: ["worried", "overwhelmed", "on edge"] },
-    { word: "insecure", words: ["inadequate", "not enough", "small"] },
-    { word: "unwanted", words: ["excluded", "left out", "unheard"] },
-    { word: "helpless", words: ["frightened", "trapped", "stuck"] },
-    { word: "threatened", words: ["nervous", "unsafe", "watched"] },
-    { word: "confused", words: ["uncertain", "lost", "torn"] },
-    { word: "frozen", words: ["shut down", "braced", "numb"] },
+    { word: "anxious", words: ["worried", "overwhelmed", "on edge"], body: ["racing heart", "fidgety"] },
+    { word: "insecure", words: ["inadequate", "not enough", "small"], body: ["blushing", "hiding"] },
+    { word: "unwanted", words: ["excluded", "left out", "unheard"], body: ["lip-tremble", "limp"] },
+    { word: "helpless", words: ["frightened", "trapped", "stuck"], body: ["cold", "frozen"] },
+    { word: "threatened", words: ["nervous", "unsafe", "watched"], body: ["tense", "unsteady"] },
+    { word: "confused", words: ["uncertain", "lost", "torn"], body: ["dizzy", "foggy"] },
+    { word: "frozen", words: ["shut down", "braced", "numb"], body: ["numb hands", "trembling"] },
   ] },
   { key: "happy", word: "Happy", hue: 45, ring: [
-    { word: "content", words: ["satisfied", "at ease", "comfortable"] },
-    { word: "playful", words: ["cheeky", "free", "silly"] },
-    { word: "proud", words: ["confident", "capable", "respected"] },
-    { word: "hopeful", words: ["optimistic", "inspired", "expectant"] },
-    { word: "loving", words: ["warm", "tender", "affectionate"] },
-    { word: "grateful", words: ["thankful", "moved", "blessed"] },
-    { word: "excited", words: ["eager", "energetic", "alive"] },
+    { word: "content", words: ["satisfied", "at ease", "comfortable"], body: ["soft", "warm"] },
+    { word: "playful", words: ["cheeky", "free", "silly"], body: ["energetic", "light"] },
+    { word: "proud", words: ["confident", "capable", "respected"], body: ["tall", "inflated"] },
+    { word: "hopeful", words: ["optimistic", "inspired", "expectant"], body: ["open", "awake"] },
+    { word: "loving", words: ["warm", "tender", "affectionate"], body: ["warm chest", "still"] },
+    { word: "grateful", words: ["thankful", "moved", "blessed"], body: ["full", "tearful"] },
+    { word: "excited", words: ["eager", "energetic", "alive"], body: ["buzzing", "jumpy"] },
   ] },
   { key: "disgusted", word: "Disgusted", hue: 95, ring: [
-    { word: "disapproving", words: ["judgmental", "put off", "offended"] },
-    { word: "let down", words: ["appalled", "disillusioned", "cheated"] },
-    { word: "repelled", words: ["revolted", "nauseated", "horrified"] },
-    { word: "uneasy", words: ["hesitant", "wary", "icked out"] },
+    { word: "disapproving", words: ["judgmental", "put off", "offended"], body: ["face-scrunched", "shuddering"] },
+    { word: "let down", words: ["appalled", "disillusioned", "cheated"], body: ["turn away", "sinking"] },
+    { word: "repelled", words: ["revolted", "nauseated", "horrified"], body: ["nausea", "queasy"] },
+    { word: "uneasy", words: ["hesitant", "wary", "icked out"], body: ["need to move", "writhing"] },
   ] },
   { key: "surprised", word: "Surprised", hue: 175, ring: [
-    { word: "startled", words: ["shocked", "dismayed", "rattled"] },
-    { word: "confused", words: ["perplexed", "thrown", "blindsided"] },
-    { word: "amazed", words: ["astonished", "in awe", "wonder"] },
-    { word: "caught off guard", words: ["flustered", "unprepared", "speechless"] },
+    { word: "startled", words: ["shocked", "dismayed", "rattled"], body: ["jaw drop", "jumpy"] },
+    { word: "confused", words: ["perplexed", "thrown", "blindsided"], body: ["eyebrows up", "speechless"] },
+    { word: "amazed", words: ["astonished", "in awe", "wonder"], body: ["breathless", "electrified"] },
+    { word: "off guard", words: ["flustered", "unprepared", "speechless"], body: ["sweaty palms", "startled"] },
   ] },
   { key: "calm", word: "Calm", hue: 150, ring: [
-    { word: "peaceful", words: ["settled", "safe", "quiet"] },
-    { word: "present", words: ["grounded", "here", "clear"] },
-    { word: "relieved", words: ["lighter", "unburdened", "released"] },
-    { word: "soft", words: ["open", "gentle", "receptive"] },
-    { word: "steady", words: ["sure", "held", "rooted"] },
+    { word: "peaceful", words: ["settled", "safe", "quiet"], body: ["relaxed", "slow breath"] },
+    { word: "present", words: ["grounded", "here", "clear"], body: ["steady", "feet heavy"] },
+    { word: "relieved", words: ["lighter", "unburdened", "released"], body: ["sigh", "loose"] },
+    { word: "soft", words: ["open", "gentle", "receptive"], body: ["sensitive", "warm"] },
+    { word: "steady", words: ["sure", "held", "rooted"], body: ["jaw set", "still"] },
   ] },
 ];
 

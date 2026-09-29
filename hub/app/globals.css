@@ -956,7 +956,7 @@ a.sh-chip {
 /* Felt: the wheel, the body, the picker */
 .sh-felt { display: grid; gap: 0.8rem; }
 .sh-felt-steps { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.sh-wheel svg { width: 100%; max-width: 440px; height: auto; display: block; margin: 0 auto; }
+.sh-wheel svg { width: 100%; max-width: 640px; height: auto; display: block; margin: 0 auto; }
 .sh-wedge { cursor: pointer; }
 .sh-wedge:focus-visible path { stroke: var(--accent); stroke-width: 3; }
 .sh-wedge text { pointer-events: none; user-select: none; }
@@ -973,3 +973,4 @@ a.sh-chip {
 .sh-wedge:hover path { filter: brightness(1.06); }
 .sh-body-name { text-align: center; font-weight: 700; min-height: 1.4em; margin: 0.2rem 0 0; }
 .sh-body-side { font-size: 11px; font-weight: 700; fill: var(--text-muted); letter-spacing: 0.02em; }
+.sh-wheel text { pointer-events: none; user-select: none; }

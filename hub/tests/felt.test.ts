@@ -11,6 +11,7 @@ describe("Felt: the wheel and the body", () => {
       const words = c.ring.flatMap((r) => [r.word, ...r.words]);
       assert.equal(new Set(words).size, words.length, c.key);
       assert.ok(c.ring.length >= 4, c.key);
+      for (const r of c.ring) assert.ok(r.body.length >= 2 && r.body.every((w) => w.length <= 14), `${c.key}/${r.word}`);
     }
     assert.equal(coreOf("betrayed")?.key, "angry");
     assert.equal(coreOf("Calm")?.key, "calm");
