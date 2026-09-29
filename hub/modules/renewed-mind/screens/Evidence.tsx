@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Evidence for the New. Each truer line collects the moments that proved
@@ -51,7 +52,7 @@ function EvidenceInner() {
             </select>
           </Field>
           <Field label="What happened" hint="Specific and small. &ldquo;I said no to the extra shift and nothing broke.&rdquo;">
-            <textarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={400} />
+            <RichTextarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={400} />
           </Field>
           <CrisisNotice texts={[text]} />
           <ErrorNote error={error} />

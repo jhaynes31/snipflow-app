@@ -13,6 +13,8 @@ import { usePath } from "@/core/paths/usePath";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useTools } from "@/core/tools/useTools";
 import { Btn, Card, ErrorNote, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /**
  * A small chat with the shared coach, for any module. The conversation is
@@ -84,7 +86,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
       <div className="tend-chat" aria-live="polite">
         {shown.map((m, i) => (
           <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
-            {m.role === "user" ? m.content : <CoachReply text={m.content} href={tools ? tools.href : null} />}
+            {m.role === "user" ? <Rich text={m.content} /> : <CoachReply text={m.content} href={tools ? tools.href : null} />}
             {m.role !== "user" && <KeepLine reply={m.content} task={task} />}
             {m.role !== "user" && suggestions && (
               <div className="sh-choices" style={{ marginTop: "0.4rem" }}>
@@ -114,7 +116,7 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
           submit();
         }}
       >
-        <textarea className="sh-input sh-textarea sh-chat-box" rows={Math.min(24, Math.max(4, draft.split("\n").length + Math.floor(draft.length / 90)))} value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={MESSAGE_MAX} placeholder={placeholder} aria-label="Your question" onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
+        <RichTextarea className="sh-input sh-textarea sh-chat-box" rows={Math.min(24, Math.max(4, draft.split("\n").length + Math.floor(draft.length / 90)))} value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={MESSAGE_MAX} placeholder={placeholder} aria-label="Your question" onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } }} />
         {draft.length > MESSAGE_MAX * 0.75 && <p className="sh-hint">{draft.length.toLocaleString()} of {MESSAGE_MAX.toLocaleString()} characters.</p>}
         <CrisisNotice texts={[draft]} />
         <FeltButton context={module === "hub" ? "coach" : module} label="Start from a feeling" onInsert={(t) => setDraft((d) => (d.trim() ? `${d.trim()} ${t}` : `I feel ${t}`))} />
@@ -161,7 +163,7 @@ export function CoachReply({ text, href }: { text: string; href: ((t: ToolEntry)
     <>
       {parts.map((p, i) =>
         p.kind === "text" ? (
-          <span key={i}>{p.text} </span>
+          <span key={i}><Rich text={p.text} /> </span>
         ) : p.kind === "path" ? (
           <PathStart key={i} path={p.path} />
         ) : (

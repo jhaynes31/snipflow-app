@@ -12,6 +12,8 @@ import { useTools } from "@/core/tools/useTools";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, LinkBtn, Spinner, timeAgo, useAction } from "@/core/ui";
 import { ToolFrame } from "./ToolFrame";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /**
  * Talk It Out: a private chat with the shared coach, grounded in the
@@ -140,7 +142,7 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
           )}
           {row.messages.map((m, i) => (
             <div key={i} className={`tend-msg ${m.role === "user" ? "tend-msg-user" : "tend-msg-coach"}`}>
-              {m.role === "user" ? m.content : <CoachReply text={m.content} href={tools ? tools.href : null} />}
+              {m.role === "user" ? <Rich text={m.content} /> : <CoachReply text={m.content} href={tools ? tools.href : null} />}
               {m.role !== "user" && <KeepLine reply={m.content} task="tend.talkItOut" />}
             </div>
           ))}
@@ -168,7 +170,7 @@ function Conversation({ id }: { id: Id<"coachConversations"> }) {
             submit();
           }}
         >
-          <textarea
+          <RichTextarea
             className="sh-input sh-textarea"
             rows={Math.min(24, Math.max(4, draft.split("\n").length + Math.floor(draft.length / 90)))}
             value={draft}

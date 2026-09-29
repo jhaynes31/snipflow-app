@@ -7,6 +7,7 @@ import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, Field, LinkBtn, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const QUESTIONS = [
   { key: "facts", label: "What actually happened?", hint: "Just the facts a camera would record." },
@@ -81,7 +82,7 @@ function Body() {
     <Card>
       <p className="sh-eyebrow">{i + 1} of {QUESTIONS.length}</p>
       <Field label={q.label} hint={q.hint}>
-        <textarea className="sh-input sh-textarea" rows={3} value={answers[q.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.key]: e.target.value })} maxLength={800} />
+        <RichTextarea className="sh-input sh-textarea" rows={3} value={answers[q.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.key]: e.target.value })} maxLength={800} />
       </Field>
       <CrisisNotice texts={Object.values(answers)} />
       <div className="sh-choices">

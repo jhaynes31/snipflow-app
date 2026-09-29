@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { LAYERS, PEARLS_DEFAULT, TRUTH } from "@/convex/orchard/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * People, by layer. Adding someone is the moment the old pattern likes to
@@ -57,7 +58,7 @@ export function People() {
               <input className="sh-input" type="date" value={metDay} onChange={(e) => setMetDay(e.target.value)} />
             </Field>
             <Field label="The story I'm already telling myself" hint="Write it down so it stops running in the dark. &ldquo;We&apos;re going to be best friends. She gets me.&rdquo; You&apos;ll re-read it in a month beside the facts.">
-              <textarea className="sh-input sh-textarea" rows={3} value={story} onChange={(e) => setStory(e.target.value)} maxLength={1500} />
+              <RichTextarea className="sh-input sh-textarea" rows={3} value={story} onChange={(e) => setStory(e.target.value)} maxLength={1500} />
             </Field>
             <p className="sh-eyebrow">Pearls I&apos;m holding until it&apos;s earned</p>
             <div className="sh-chips">

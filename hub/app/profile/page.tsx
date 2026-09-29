@@ -12,6 +12,8 @@ import { COPY } from "@/core/copy/strings";
 import { MANUAL_SECTIONS, type ManualKey, type ManualSectionMeta } from "@/core/manual/sections";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, VisibilityMark, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 export default function ProfilePage() {
   const { profile, partner } = useHub();
@@ -116,7 +118,7 @@ function SectionEditor({
         <VisibilityMark visibility={visibility} />
       </div>
       <p className="sh-hint">{meta.prompt}</p>
-      <textarea
+      <RichTextarea
         className="sh-input sh-textarea"
         value={body}
         onChange={(e) => setBody(e.target.value)}
@@ -176,7 +178,7 @@ function SectionEditor({
         <div className="sh-preview mt-4" role="dialog" aria-label="Sharing preview">
           <p className="sh-eyebrow">Preview. {partnerName} will see exactly this:</p>
           {sharing === "shared" ? (
-            <p className="sh-quote">{section.body || "(empty)"}</p>
+            <p className="sh-quote">{section.body ? <Rich text={section.body} /> : "(empty)"}</p>
           ) : (
             <Field label="One-line summary" hint="Only this line is shared. The full section stays private.">
               <input className="sh-input" value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} />

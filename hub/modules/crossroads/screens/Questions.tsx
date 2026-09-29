@@ -7,6 +7,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { QUESTIONS, SECTIONS, type Question } from "@/core/crossroads/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const SCALE = ["Doesn't matter", "A little", "Some", "Matters", "A lot", "Non-negotiable"];
 
@@ -53,7 +54,7 @@ function QuestionRow({ q, row }: { q: Question; row?: Doc<"crAnswers"> }) {
       )}
       {(q.kind === "text" || q.kind === "both") && (
         <div className="sh-stack-sm mt-3">
-          <textarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label={q.text} />
+          <RichTextarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label={q.text} />
           <CrisisNotice texts={[text]} />
           <div className="sh-row">
             <Btn variant="secondary" disabled={busy || text === (row?.text ?? "")} onClick={() => void run(async () => { await answer({ key: q.key, text }); setSaved(true); setTimeout(() => setSaved(false), 1500); })}>Save</Btn>

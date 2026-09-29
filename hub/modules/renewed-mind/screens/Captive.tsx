@@ -8,6 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { CHECK_LABEL, type Check } from "@/convex/renewedMind/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, LinkBtn, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Take It Captive (2 Corinthians 10:5). Two minutes, in the moment: the
@@ -75,7 +76,7 @@ export function Captive() {
           </div>
         ))}
         <Field label="What would you say to a friend who thought this? (optional)">
-          <textarea className="sh-input sh-textarea" rows={2} value={friendSays} onChange={(e) => setFriendSays(e.target.value)} maxLength={400} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={friendSays} onChange={(e) => setFriendSays(e.target.value)} maxLength={400} />
         </Field>
         {active.length > 0 && (
           <>

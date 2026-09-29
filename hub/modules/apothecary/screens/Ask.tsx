@@ -8,6 +8,7 @@ import { AREAS, CONDITIONS, ONSET, QUALITIES, SIDES, type Side } from "@/convex/
 import { CoachChat } from "@/core/coach/CoachChat";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Ask: what's going on, in your words and a few chips. The entry is saved
@@ -78,7 +79,7 @@ export function Ask() {
             <input className="sh-input" value={duration} onChange={(e) => setDuration(e.target.value)} maxLength={80} />
           </Field>
           <Field label="In your words" hint="Everything you'd tell a friend who happened to know a lot. What makes it better or worse, what you've tried, what you're afraid it is.">
-            <textarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
+            <RichTextarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
           </Field>
           <CrisisNotice texts={[text]} />
           <ErrorNote error={error} />

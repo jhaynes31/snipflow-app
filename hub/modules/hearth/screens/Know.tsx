@@ -8,6 +8,8 @@ import { CoachChat } from "@/core/coach/CoachChat";
 import { KNOW_TOPIC_MAP, KNOW_TOPICS } from "@/core/hearth/know";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /**
  * What I know: the reverse of the rest of the room. She writes; the table
@@ -46,7 +48,7 @@ export function Know() {
               <input className="sh-input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="The thing I'd say first" />
             </Field>
             <Field label="What you know" hint="In your words. Nobody edits this, including the coach.">
-              <textarea className="sh-input sh-textarea" rows={7} value={text} onChange={(e) => setText(e.target.value)} maxLength={6000} />
+              <RichTextarea className="sh-input sh-textarea" rows={7} value={text} onChange={(e) => setText(e.target.value)} maxLength={6000} />
             </Field>
             <ErrorNote error={error} />
             <Btn big disabled={busy || !title.trim() || !text.trim()} onClick={() => void save()}>Keep it</Btn>
@@ -85,7 +87,7 @@ function KnowRow({ row, partnerName }: { row: Doc<"hhKnow">; partnerName: string
       {editing ? (
         <>
           <input className="sh-input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
-          <textarea className="sh-input sh-textarea mt-2" rows={6} value={text} onChange={(e) => setText(e.target.value)} maxLength={6000} />
+          <RichTextarea className="sh-input sh-textarea mt-2" rows={6} value={text} onChange={(e) => setText(e.target.value)} maxLength={6000} />
           <div className="sh-row mt-2">
             <Btn disabled={busy} onClick={() => void run(async () => { await update({ id: row._id, title, text }); setEditing(false); })}>Save</Btn>
             <Btn variant="ghost" onClick={() => { setTitle(row.title); setText(row.text); setEditing(false); }}>Cancel</Btn>
@@ -94,7 +96,7 @@ function KnowRow({ row, partnerName }: { row: Doc<"hhKnow">; partnerName: string
       ) : (
         <>
           <h3 className="sh-h4">{row.title}</h3>
-          <p className="hh-line">{row.text}</p>
+          <p className="hh-line"><Rich text={row.text} /></p>
           <div className="sh-row" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
             <Toggle checked={row.ready} onChange={(v) => void run(() => update({ id: row._id, ready: v }))} label="Ready to hand someone" />
             <Toggle checked={row.visibility === "shared"} onChange={(v) => void run(() => update({ id: row._id, shared: v }))} label={`Share with ${partnerName}`} />

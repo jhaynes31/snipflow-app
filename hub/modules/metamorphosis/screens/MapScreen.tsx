@@ -7,6 +7,7 @@ import { MAP_LEVELS } from "@/core/metamorphosis/map";
 import { CoachChat } from "@/core/coach/CoachChat";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** The Map: from the one thing to the whole story, one level at a time. */
 export function MapScreen() {
@@ -28,7 +29,7 @@ export function MapScreen() {
         <Card>
           <p className="sh-eyebrow">{i + 1} of {MAP_LEVELS.length} · {level.label}</p>
           <Field label={level.prompt}>
-            <textarea className="sh-input sh-textarea" rows={3} value={answers[level.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [level.key]: e.target.value })} maxLength={600} />
+            <RichTextarea className="sh-input sh-textarea" rows={3} value={answers[level.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [level.key]: e.target.value })} maxLength={600} />
           </Field>
           <CrisisNotice texts={Object.values(answers)} />
           <div className="sh-choices">

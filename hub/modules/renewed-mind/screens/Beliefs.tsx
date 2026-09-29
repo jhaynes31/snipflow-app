@@ -10,6 +10,7 @@ import { readTendSettings } from "@/convex/tend/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Put Off, Put On (Ephesians 4:22-24). An old line, where it came from, and
@@ -55,7 +56,7 @@ function BeliefsInner() {
           <input className="sh-input" value={origin} onChange={(e) => setOrigin(e.target.value)} maxLength={400} />
         </Field>
         <Field label="The truer line" hint="Yours, not a slogan. Say it out loud once before you save it.">
-          <textarea className="sh-input sh-textarea" rows={2} value={newLine} onChange={(e) => setNewLine(e.target.value)} maxLength={300} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={newLine} onChange={(e) => setNewLine(e.target.value)} maxLength={300} />
         </Field>
         {faith && (
           <>
@@ -63,7 +64,7 @@ function BeliefsInner() {
               <input className="sh-input" value={verse} onChange={(e) => setVerse(e.target.value)} maxLength={80} />
             </Field>
             <Field label="The verse's words (optional)">
-              <textarea className="sh-input sh-textarea" rows={2} value={verseText} onChange={(e) => setVerseText(e.target.value)} maxLength={600} />
+              <RichTextarea className="sh-input sh-textarea" rows={2} value={verseText} onChange={(e) => setVerseText(e.target.value)} maxLength={600} />
             </Field>
           </>
         )}

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Btn, ErrorNote, useAction } from "@/core/ui";
 import { KIND_LABEL, pickKeep, speakerForTask, sourceForTask, type MantelKind } from "./labels";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * The small Keep button under a coach, Dad, or Mom reply. Highlight one
@@ -33,7 +34,7 @@ export function KeepLine({ reply, task }: { reply: string; task?: string }) {
   }
   return (
     <div className="sh-keep-panel sh-stack-sm">
-      <textarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label="The line to keep" />
+      <RichTextarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label="The line to keep" />
       <div className="sh-chips">
         {(Object.keys(KIND_LABEL) as MantelKind[]).map((k) => (
           <button key={k} type="button" className={`sh-chip ${kind === k ? "" : "sh-chip-quiet"}`} aria-pressed={kind === k} onClick={() => setKind(k)}>{KIND_LABEL[k]}</button>

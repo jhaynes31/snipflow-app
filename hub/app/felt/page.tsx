@@ -10,6 +10,7 @@ import { AREA_LABEL, movementFor, patternLine, patterns } from "@/core/felt/whee
 import { useHub } from "@/core/shell/HubContext";
 import { useTools } from "@/core/tools/useTools";
 import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
+import { Rich } from "@/core/text/RichText";
 
 /** Felt: the wheel with no form attached, every entry, and where it shows up. */
 export default function FeltPage() {
@@ -64,7 +65,7 @@ export default function FeltPage() {
               {r.body.map((b, i) => (
                 <p key={i} className="sh-muted">{AREA_LABEL[b.area] ?? b.area}{b.words.length ? `: ${b.words.join(", ")}` : ""}{b.note ? ` — ${b.note}` : ""}</p>
               ))}
-              {r.note && <p className="sh-quote">{r.note}</p>}
+              {r.note && <p className="sh-quote"><Rich text={r.note} /></p>}
               <div className="sh-row sh-wrap">
                 <Toggle checked={r.visibility === "shared"} onChange={(v) => void run(() => setShared({ id: r._id, shared: v }))} label={`Share with ${partnerName}`} />
                 <Btn variant="ghost" disabled={busy} onClick={() => { if (confirm("Delete this one?")) void run(() => remove({ id: r._id })); }}>Delete</Btn>

@@ -9,6 +9,7 @@ import { parseRef, refHref } from "@/core/well/refs";
 import { useHub } from "@/core/shell/HubContext";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** Lies and truth: a lie beside what Jesus says and does. Starter cards, and your own. */
 export function Lies() {
@@ -35,7 +36,7 @@ export function Lies() {
           <input className="sh-input" value={lie} onChange={(e) => setLie(e.target.value)} maxLength={300} />
         </Field>
         <Field label="What's actually true" hint="In your words. What Jesus did or said that answers it.">
-          <textarea className="sh-input sh-textarea" rows={2} value={truth} onChange={(e) => setTruth(e.target.value)} maxLength={800} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={truth} onChange={(e) => setTruth(e.target.value)} maxLength={800} />
         </Field>
         <Field label="A reference, if you have one" hint="For example: john 8:10-11">
           <input className="sh-input" value={ref} onChange={(e) => setRef(e.target.value)} maxLength={60} />

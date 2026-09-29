@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { sectionMeta } from "@/core/manual/sections";
 import { useHub } from "@/core/shell/HubContext";
 import { Card, PageTitle, Spinner } from "@/core/ui";
+import { Rich } from "@/core/text/RichText";
 
 /** The partner's manual, only the parts they chose to share. */
 export default function PartnerPage() {
@@ -37,7 +38,7 @@ export default function PartnerPage() {
               <Card key={s.key}>
                 <h2 className="sh-h3">{meta?.title ?? s.key}</h2>
                 {s.summaryOnly && <p className="sh-hint">Summary only.</p>}
-                <p className="sh-quote">{s.body}</p>
+                <p className="sh-quote"><Rich text={s.body} /></p>
               </Card>
             );
           })}
@@ -52,7 +53,7 @@ export default function PartnerPage() {
               <p className="sh-eyebrow">{new Date(f.createdAt).toLocaleDateString()}</p>
               {f.feelings.length > 0 && <p><strong>{f.feelings.join(", ")}</strong></p>}
               {f.body.map((b, i) => <p key={i} className="sh-muted">{b.area}{b.words.length ? `: ${b.words.join(", ")}` : ""}{b.note ? ` — ${b.note}` : ""}</p>)}
-              {f.note && <p className="sh-quote">{f.note}</p>}
+              {f.note && <p className="sh-quote"><Rich text={f.note} /></p>}
             </Card>
           ))}
         </div>
@@ -64,7 +65,7 @@ export default function PartnerPage() {
           {fromMantel.map((m) => (
             <Card key={m._id}>
               <p className="sh-eyebrow">{m.speaker === "me" ? partner.displayName : m.speaker === "dad" ? "Dad" : m.speaker === "mom" ? "Mom" : "The coach"}{m.source ? `, ${m.source}` : ""}</p>
-              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}>{m.text}</p>
+              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}><Rich text={m.text} /></p>
             </Card>
           ))}
         </div>
@@ -77,7 +78,7 @@ export default function PartnerPage() {
             <Card key={k._id}>
               <p className="sh-eyebrow">{k.topic}</p>
               <h3 className="sh-h3">{k.title}</h3>
-              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}>{k.text}</p>
+              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}><Rich text={k.text} /></p>
             </Card>
           ))}
         </div>

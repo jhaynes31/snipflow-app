@@ -8,6 +8,8 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { KIND_LABEL, SPEAKER_LABEL, type MantelKind } from "@/core/mantel/labels";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /**
  * The Mantel (2026-09-25): lines kept to come back to, and takeaways in your
@@ -34,7 +36,7 @@ export default function MantelPage() {
       <PageTitle title="The Mantel" subtitle="The shelf above the hearth: lines you want to see again, and what you're learning, in your words." />
       <Card>
         <Field label="Write a takeaway" hint="Something you're learning, a line that landed, a prayer. Yours.">
-          <textarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="What I'm learning is…" />
+          <RichTextarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="What I'm learning is…" />
         </Field>
         <div className="sh-chips">
           {(Object.keys(KIND_LABEL) as MantelKind[]).map((k) => (
@@ -86,14 +88,14 @@ function MantelRow({ row, partnerName }: { row: Doc<"mantel">; partnerName: stri
       <p className="sh-eyebrow">{KIND_LABEL[row.kind]} · {SPEAKER_LABEL[row.speaker]}{row.source ? `, ${row.source}` : ""} · {timeAgo(row.createdAt)}{row.visibility === "shared" ? ` · shared with ${partnerName}` : ""}</p>
       {editing ? (
         <>
-          <textarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
+          <RichTextarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
           <div className="sh-row mt-2">
             <Btn disabled={busy} onClick={() => void run(async () => { await update({ id: row._id, text }); setEditing(false); })}>Save</Btn>
             <Btn variant="ghost" onClick={() => { setText(row.text); setEditing(false); }}>Cancel</Btn>
           </div>
         </>
       ) : (
-        <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}>{row.text}</p>
+        <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}><Rich text={row.text} /></p>
       )}
       <div className="sh-row sh-wrap">
         <Toggle checked={row.visibility === "shared"} onChange={(v) => void run(() => update({ id: row._id, shared: v }))} label={`Share with ${partnerName}`} />

@@ -7,6 +7,7 @@ import { readReCenteredSettings } from "@/convex/reCentered/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * My word to me: what I will and won't do, my if-then plan for a broken word,
@@ -33,10 +34,10 @@ export function Boundaries() {
       <PageTitle title="My word to me" subtitle="Written on a steady day, in your words. Read back on a hard one. Nothing here is sent to anyone." />
       <Card>
         <Field label="What I will and won't do" hint="For example: I won't remind him about his appointments. I will go to the thing I planned even if he doesn't come.">
-          <textarea className="sh-input sh-textarea" rows={5} value={boundaries} onChange={(e) => setBoundaries(e.target.value)} maxLength={2000} />
+          <RichTextarea className="sh-input sh-textarea" rows={5} value={boundaries} onChange={(e) => setBoundaries(e.target.value)} maxLength={2000} />
         </Field>
         <Field label="If a word isn't kept, then I will…" hint="Your own plan, decided now, so you don't have to decide it while hurt. This room shows it back to you when a word is marked as not kept.">
-          <textarea className="sh-input sh-textarea" rows={4} value={ifThen} onChange={(e) => setIfThen(e.target.value)} maxLength={2000} />
+          <RichTextarea className="sh-input sh-textarea" rows={4} value={ifThen} onChange={(e) => setIfThen(e.target.value)} maxLength={2000} />
         </Field>
         <CrisisNotice texts={[boundaries, ifThen]} />
         <ErrorNote error={error} />

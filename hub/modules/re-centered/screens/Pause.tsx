@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { ENDING_LABEL, type PauseEnding } from "@/convex/reCentered/pure";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const QUESTIONS = [
   { key: "ifNothing", label: "If I do nothing, what happens?", hint: "The actual, boring, literal outcome." },
@@ -50,7 +51,7 @@ export function Pause() {
         <Card>
           <p className="sh-eyebrow">{i + 1} of {QUESTIONS.length}</p>
           <Field label={QUESTIONS[i].label} hint={QUESTIONS[i].hint}>
-            <textarea className="sh-input sh-textarea" rows={3} value={answers[QUESTIONS[i].key]} onChange={(e) => setAnswers({ ...answers, [QUESTIONS[i].key]: e.target.value })} maxLength={600} />
+            <RichTextarea className="sh-input sh-textarea" rows={3} value={answers[QUESTIONS[i].key]} onChange={(e) => setAnswers({ ...answers, [QUESTIONS[i].key]: e.target.value })} maxLength={600} />
           </Field>
           <CrisisNotice texts={Object.values(answers)} />
           <div className="sh-choices">

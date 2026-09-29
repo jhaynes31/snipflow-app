@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { DEFAULT_PERMISSIONS } from "@/core/well/permissions";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Note, PageTitle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 function readPermissions(moduleSettings: Record<string, unknown> | undefined): string[] {
   const raw = (moduleSettings?.well as { permissions?: unknown } | undefined)?.permissions;
@@ -38,7 +39,7 @@ export function Permissions() {
         </Card>
       ) : (
         <Card>
-          <textarea className="sh-input sh-textarea" rows={12} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} aria-label="Permissions, one per line" />
+          <RichTextarea className="sh-input sh-textarea" rows={12} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} aria-label="Permissions, one per line" />
           <p className="sh-hint">One per line.</p>
           <ErrorNote error={error} />
           <div className="sh-row">

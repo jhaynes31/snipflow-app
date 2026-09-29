@@ -10,6 +10,7 @@ import { signalByKey } from "@/convex/orchard/signals";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const NOTE_KINDS = [
   ["fact", "What they showed", "Only things you watched happen."],
@@ -153,7 +154,7 @@ export function Person({ id }: { id: string }) {
           {NOTE_KINDS.map(([k, label]) => <button key={k} type="button" className="sh-chip" aria-pressed={kind === k} onClick={() => setKind(k)}>{label}</button>)}
         </div>
         <Field label={NOTE_KINDS.find(([k]) => k === kind)?.[1] ?? ""} hint={NOTE_KINDS.find(([k]) => k === kind)?.[2]}>
-          <textarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} />
         </Field>
         {(kind === "flag") && (
           <>
@@ -254,7 +255,7 @@ export function Person({ id }: { id: string }) {
         </div>
         {panel === "story" && story !== null && (
           <div className="mt-2">
-            <textarea className="sh-input sh-textarea" rows={3} value={story} onChange={(e) => setStory(e.target.value)} maxLength={1500} />
+            <RichTextarea className="sh-input sh-textarea" rows={3} value={story} onChange={(e) => setStory(e.target.value)} maxLength={1500} />
             <Btn className="mt-2" disabled={busy} onClick={() => void run(async () => { await update({ id: p._id, story }); setPanel("none"); })}>Save, and re-read in a month</Btn>
           </div>
         )}

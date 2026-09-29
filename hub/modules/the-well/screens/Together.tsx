@@ -11,6 +11,7 @@ import { refHref, refLabel } from "@/core/well/refs";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** Together: passages marked for each other, and one question a week. Never a comparison. */
 export function Together() {
@@ -40,7 +41,7 @@ export function Together() {
             ) : (
               <>
                 <Field label="Your answer, in your words">
-                  <textarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={1500} />
+                  <RichTextarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={1500} />
                 </Field>
                 <CrisisNotice texts={[text]} />
                 <Btn disabled={busy || !text.trim()} onClick={() => void run(async () => { await answer({ weekKey, text }); setText(""); })}>Share my answer</Btn>

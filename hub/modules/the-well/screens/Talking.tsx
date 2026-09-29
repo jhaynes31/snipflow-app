@@ -8,6 +8,8 @@ import { LAMENT_PSALMS } from "@/core/well/permissions";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /** Talking with him: prayer in your own words, lament allowed, and a way out when you can't. */
 export function Talking() {
@@ -43,7 +45,7 @@ export function Talking() {
       </div>
       <Card>
         <Field label="What I want to say to him">
-          <textarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
+          <RichTextarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
         </Field>
         <CrisisNotice texts={[text]} />
         <ErrorNote error={error} />
@@ -69,7 +71,7 @@ export function Talking() {
           <h2 className="sh-h2">Said before</h2>
           {prayers.map((p) => (
             <div key={p._id} className="well-entry">
-              <p style={{ whiteSpace: "pre-wrap" }}>{p.text}</p>
+              <p style={{ whiteSpace: "pre-wrap" }}><Rich text={p.text} /></p>
               <p className="sh-hint">
                 {timeAgo(p.createdAt)}
                 {p.answeredAt ? ` · answered${p.answerNote ? `: ${p.answerNote}` : ""}` : ""}

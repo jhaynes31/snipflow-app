@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { CARD_MAP, editsFor, intensityLabel, mergeDoFirst, NEED_SECTION, NEED_TYPES, SECTION_LABEL, shown, type CardEdits, type Section } from "@/core/tend/needCards/cards";
 import { Btn, Card, ErrorNote, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { Rich } from "@/core/text/RichText";
 
 /**
  * The support view: what was picked, then Do first (big, above the fold),
@@ -40,7 +41,7 @@ export function Support({ id }: { id: Id<"tnSignals"> }) {
       <Card tone="alt">
         <p><strong>{cards.map((c) => c.card.title).join(", ") || "Something hard"}</strong>{s.intensity ? ` · ${intensityLabel(s.intensity)}` : ""}</p>
         {needLabels.length > 0 && <p>{needLabels.join(" · ")}</p>}
-        {s.note && <p className="sh-quote">{s.note}</p>}
+        {s.note && <p className="sh-quote"><Rich text={s.note} /></p>}
         {s.taps.length > 0 && (
           <ul className="sh-list tn-taps">
             {s.taps.slice(-6).map((t, i) => <li key={i}><strong>{t.label}</strong> <span className="sh-muted">· {timeAgo(t.at)}</span></li>)}

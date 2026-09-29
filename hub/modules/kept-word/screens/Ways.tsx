@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, PageTitle, Spinner, timeAgo } from "@/core/ui";
+import { Rich } from "@/core/text/RichText";
 
 const COLUMN: Record<string, string> = { practical: "Practical", emotional: "Emotional", spiritual: "Spiritual" };
 const SECTION: Record<string, string> = { howToLoveMe: "How to love me when I'm low", whatHelps: "What helps" };
@@ -68,7 +69,7 @@ export function Ways() {
           {ways.sections.map((s) => (
             <div key={s.key} className="kw-word">
               <span className="kw-meta">{SECTION[s.key] ?? s.key}</span>
-              <span className="kw-word-text" style={{ whiteSpace: "pre-wrap" }}>{s.body}</span>
+              <span className="kw-word-text" style={{ whiteSpace: "pre-wrap" }}><Rich text={s.body} /></span>
             </div>
           ))}
         </Card>

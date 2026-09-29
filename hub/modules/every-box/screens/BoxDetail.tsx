@@ -16,6 +16,7 @@ import { StageVisual } from "@/modules/every-box/components/StageVisual";
 import { TendButton } from "@/modules/every-box/components/TendButton";
 import { Btn, Spinner } from "@/modules/every-box/components/ui";
 import { useNow } from "@/modules/every-box/components/useNow";
+import { Rich } from "@/core/text/RichText";
 
 function formatWhen(ts: number): string {
   return new Date(ts).toLocaleString(undefined, {
@@ -127,7 +128,7 @@ export function BoxDetail({ id }: { id: string }) {
                     {h.kind === "tend" ? theme.tendPast + " this" : "left a note"}
                     <span className="eb-muted"> · {formatWhen(h.at)}</span>
                   </div>
-                  {h.text && <div className="mt-0.5 whitespace-pre-wrap">{h.text}</div>}
+                  {h.text && <div className="mt-0.5 whitespace-pre-wrap"><Rich text={h.text} /></div>}
                 </div>
                 {h.by === partner._id && (
                   <Btn

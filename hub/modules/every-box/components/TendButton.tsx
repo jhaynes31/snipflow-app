@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useEveryBox } from "./context";
 import { Btn, ErrorNote, useAction } from "./ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** How long the Undo stays offered after a tap. */
 const UNDO_WINDOW_MS = 10_000;
@@ -126,7 +127,7 @@ export function TendButton({ categoryId, compact, onTended }: Props) {
         void submit();
       }}
     >
-      <textarea
+      <RichTextarea
         className="eb-textarea"
         placeholder="Optional: what did you do? (only the two of you see this)"
         value={note}

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, Field, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 export function GoodEnough() {
   return (
@@ -28,7 +29,7 @@ function Body() {
           <input className="sh-input" value={task} onChange={(e) => setTask(e.target.value)} maxLength={200} />
         </Field>
         <Field label="What does &ldquo;good enough to be done&rdquo; look like?" hint="Not perfect. Done. One or two lines.">
-          <textarea className="sh-input sh-textarea" rows={2} value={finish} onChange={(e) => setFinish(e.target.value)} maxLength={400} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={finish} onChange={(e) => setFinish(e.target.value)} maxLength={400} />
         </Field>
         <CrisisNotice texts={[task, finish]} />
         <div className="sh-row mt-3">

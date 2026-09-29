@@ -10,6 +10,7 @@ import { Btn, Card, ErrorNote, Note, PageTitle, useAction } from "@/core/ui";
 import { HEARTH } from "../Shell";
 import { TeachCards, Tiles } from "../Cards";
 import { HairGlyph } from "../Glyphs";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const C = `${HEARTH}/care`;
 
@@ -145,7 +146,7 @@ export function Style() {
         <Card>
           <label className="block">
             <span className="sh-label">Anything else, in your words</span>
-            <textarea className="sh-input sh-textarea" rows={3} value={draft.notes ?? ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} maxLength={800} placeholder="I always feel best in… / I hate how … looks on me" />
+            <RichTextarea className="sh-input sh-textarea" rows={3} value={draft.notes ?? ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} maxLength={800} placeholder="I always feel best in… / I hate how … looks on me" />
           </label>
         </Card>
         <ErrorNote error={error} />

@@ -9,6 +9,7 @@ import { parseRef, refHref } from "@/core/well/refs";
 import { CoachChat } from "@/core/coach/CoachChat";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Untangle: two columns. What I was taught, and what Jesus actually did.
@@ -61,7 +62,7 @@ function Row({ row, asking, onAsk }: { row: Doc<"wellUntangle">; asking: boolean
         </div>
         <div>
           <p className="sh-eyebrow">What Jesus actually did</p>
-          <textarea className="sh-input sh-textarea" rows={3} value={jesusDid} onChange={(e) => setJesusDid(e.target.value)} maxLength={1500} placeholder="In your words, from the text." aria-label="What Jesus actually did" />
+          <RichTextarea className="sh-input sh-textarea" rows={3} value={jesusDid} onChange={(e) => setJesusDid(e.target.value)} maxLength={1500} placeholder="In your words, from the text." aria-label="What Jesus actually did" />
           <input className="sh-input mt-3" value={ref} onChange={(e) => setRef(e.target.value)} maxLength={60} placeholder="Reference, like luke 15:20" aria-label="Reference" />
         </div>
       </div>

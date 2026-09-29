@@ -7,6 +7,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { SHEET, sessionZero, type SheetQuestion } from "@/core/metamorphosis/sheet";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** The Character Sheet: who this character is, in his words. One question at a time is the method. */
 export function Sheet() {
@@ -48,7 +49,7 @@ function Question({ q, row }: { q: SheetQuestion; row?: Doc<"mmSheet"> }) {
     <div className="mm-entry">
       <p><strong>{q.label}</strong></p>
       <p className="sh-hint">{q.hint}</p>
-      <textarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label={q.label} />
+      <RichTextarea className="sh-input sh-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} aria-label={q.label} />
       <CrisisNotice texts={[text]} />
       <div className="sh-row sh-wrap">
         <Toggle checked={coach} onChange={setCoach} label="The mentor may read this" />

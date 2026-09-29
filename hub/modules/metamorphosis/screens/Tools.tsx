@@ -11,6 +11,7 @@ import { CoachChat } from "@/core/coach/CoachChat";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -101,7 +102,7 @@ export function Tired() {
       <Card tone="alt">
         <h2 className="sh-h2">My plan for tired days</h2>
         <p className="sh-hint">Written on a good day. &ldquo;When I don&apos;t want to, I will…&rdquo; This room shows it back when you need it.</p>
-        <textarea className="sh-input sh-textarea" rows={3} value={plan} onChange={(e) => setPlan(e.target.value)} maxLength={800} aria-label="My plan for tired days" />
+        <RichTextarea className="sh-input sh-textarea" rows={3} value={plan} onChange={(e) => setPlan(e.target.value)} maxLength={800} aria-label="My plan for tired days" />
         <Btn variant="secondary" disabled={busy || plan === (settings.tiredPlan ?? "")} onClick={() => void run(() => setModuleSettings({ moduleId: "metamorphosis", settings: { ...settings, tiredPlan: plan.trim() } }))}>Save the plan</Btn>
       </Card>
       {!rows ? <Spinner /> : rows.length > 0 && (
@@ -135,7 +136,7 @@ export function Shield() {
         <Card>
           <p className="sh-eyebrow">{i + 1} of {SHIELD_STEPS.length} · {step.title}</p>
           <Field label={step.prompt} hint={step.hint}>
-            <textarea className="sh-input sh-textarea" rows={3} value={answers[i]} onChange={(e) => setAnswers(answers.map((a, j) => (j === i ? e.target.value : a)))} maxLength={800} />
+            <RichTextarea className="sh-input sh-textarea" rows={3} value={answers[i]} onChange={(e) => setAnswers(answers.map((a, j) => (j === i ? e.target.value : a)))} maxLength={800} />
           </Field>
           <CrisisNotice texts={answers} />
           <ErrorNote error={error} />
@@ -355,7 +356,7 @@ export function CompassScreen() {
         <h2 className="sh-h2">Where I&apos;m headed</h2>
         {COMPASS_PROMPTS.map((p) => (
           <Field key={p.key} label={p.label} hint={p.hint}>
-            <textarea className="sh-input sh-textarea" rows={2} value={vision[p.key]} onChange={(e) => setVision({ ...vision, [p.key]: e.target.value })} maxLength={1000} />
+            <RichTextarea className="sh-input sh-textarea" rows={2} value={vision[p.key]} onChange={(e) => setVision({ ...vision, [p.key]: e.target.value })} maxLength={1000} />
           </Field>
         ))}
         <Btn variant="secondary" disabled={busy || !dirty} onClick={() => void run(() => setModuleSettings({ moduleId: "metamorphosis", settings: { ...settings, ...Object.fromEntries(COMPASS_PROMPTS.map((p) => [`vision_${p.key}`, vision[p.key].trim()])) } }))}>Save</Btn>

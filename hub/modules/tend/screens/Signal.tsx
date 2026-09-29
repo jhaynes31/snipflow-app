@@ -8,6 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { CARD_MAP, CARDS, INTENSITIES, NEED_TYPES, NONVERBAL_TAPS } from "@/core/tend/needCards/cards";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * "I'm struggling": the sender's flow. Pick what's going on (several is
@@ -92,7 +93,7 @@ export function Signal({ shutdown = false }: { shutdown?: boolean }) {
           <Card>
             <label className="block">
               <span className="sh-label">A note, if you want <span className="sh-muted">Optional.</span></span>
-              <textarea className="sh-input sh-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Or nothing. That's fine." />
+              <RichTextarea className="sh-input sh-textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Or nothing. That's fine." />
             </label>
             <ErrorNote error={error} />
             <Btn big disabled={busy || cards.length === 0} onClick={() => void go()}>{busy ? "Sending…" : `Send to ${partnerName}`}</Btn>

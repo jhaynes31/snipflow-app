@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Btn, ErrorNote, useAction } from "./ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Either partner can leave a context note. It's visible to both and never
@@ -35,7 +36,7 @@ export function NoteForm({ categoryId }: { categoryId: Id<"ebCategories"> }) {
         });
       }}
     >
-      <textarea
+      <RichTextarea
         className="eb-textarea"
         placeholder="e.g. “We actually talked Tuesday, might not be logged.”"
         value={text}

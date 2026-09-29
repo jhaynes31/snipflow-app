@@ -8,6 +8,7 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, Spinner, Toggle, timeAgo, useAction } from "@/core/ui";
 import { ToolFrame } from "./ToolFrame";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -192,7 +193,7 @@ function Walk({ project }: { project: Doc<"tendProjects"> }) {
         <p className="sh-hint">{current.hint}</p>
         <ErrorNote error={error} />
         {current.key === "done" && (
-          <textarea className="sh-input sh-textarea" rows={2} value={done} onChange={(e) => setDone(e.target.value)} maxLength={400} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={done} onChange={(e) => setDone(e.target.value)} maxLength={400} />
         )}
         {current.key === "parts" && (
           <div className="sh-stack-sm">

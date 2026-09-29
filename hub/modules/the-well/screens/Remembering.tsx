@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /** Remembering: times he showed up. Reread on low days. Tend's Anchor reads these too. */
 export function Remembering() {
@@ -19,7 +21,7 @@ export function Remembering() {
       <PageTitle title="Remembering" subtitle="Times he showed up. Written down because low days lie about the past. Tend's Anchor tool reads from here." />
       <Card>
         <Field label="What happened">
-          <textarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={1500} />
+          <RichTextarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={1500} />
         </Field>
         <Field label="When, roughly" hint="Optional. 'Spring 2019' is fine.">
           <input className="sh-input" value={when} onChange={(e) => setWhen(e.target.value)} maxLength={40} />
@@ -40,7 +42,7 @@ export function Remembering() {
         <Card>
           {rows.map((r) => (
             <div key={r._id} className="well-entry">
-              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}>{r.text}</p>
+              <p className="sh-quote" style={{ whiteSpace: "pre-wrap" }}><Rich text={r.text} /></p>
               <p className="sh-hint">
                 {r.happenedOn ?? timeAgo(r.createdAt)} ·{" "}
                 <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => remove({ id: r._id }))}>Delete</button>

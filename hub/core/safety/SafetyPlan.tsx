@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { CrisisNotice } from "./CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, Spinner, Toggle, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 const PARTS = [
   { key: "warningSigns", title: "My warning signs", hint: "What it looks like when I'm starting to slide. Thoughts, feelings, things I do." },
@@ -91,7 +92,7 @@ export function SafetyPlan({ partnerName }: { partnerName: string | null }) {
           >
             {PARTS.map((p) => (
               <Field key={p.key} label={p.title} hint={p.hint}>
-                <textarea className="sh-input sh-textarea" rows={3} value={draft[p.key]} onChange={(e) => setDraft({ ...draft, [p.key]: e.target.value })} maxLength={2000} />
+                <RichTextarea className="sh-input sh-textarea" rows={3} value={draft[p.key]} onChange={(e) => setDraft({ ...draft, [p.key]: e.target.value })} maxLength={2000} />
               </Field>
             ))}
             <CrisisNotice texts={Object.values(draft)} />

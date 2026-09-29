@@ -6,6 +6,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { CARD_MAP, CARDS, editsFor, SECTION_LABEL, SECTIONS, type Card as NeedCard, type CardEdits, type EditItem, type Section } from "@/core/tend/needCards/cards";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** The owner's list of cards, with what's been personalized. */
 export function NeedCardsList() {
@@ -67,7 +68,7 @@ function Editor({ card, initial }: { card: NeedCard; initial: CardEdits }) {
       {card.personalize_prompt && (
         <Card>
           <Field label="Your agreed plan" hint="Shown to your partner under Say this.">
-            <textarea className="sh-input sh-textarea" rows={4} value={edits.plan ?? ""} onChange={(e) => { setEdits({ ...edits, plan: e.target.value }); setDirty(true); }} maxLength={2000} />
+            <RichTextarea className="sh-input sh-textarea" rows={4} value={edits.plan ?? ""} onChange={(e) => { setEdits({ ...edits, plan: e.target.value }); setDirty(true); }} maxLength={2000} />
           </Field>
         </Card>
       )}

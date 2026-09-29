@@ -10,6 +10,7 @@ import { CALL_LABEL, LAYERS, type CompassCall, type Expect, type Feel, type Repa
 import { CoachChat } from "@/core/coach/CoachChat";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, LinkBtn, Note, PageTitle, Spinner, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * The Compass: when conflict or a pattern shows, which way? Say it once,
@@ -103,7 +104,7 @@ function Inner() {
             </select>
           </Field>
           <Field label="What happened" hint="Just the facts a camera would record.">
-            <textarea className="sh-input sh-textarea" rows={2} value={what} onChange={(e) => setWhat(e.target.value)} maxLength={600} />
+            <RichTextarea className="sh-input sh-textarea" rows={2} value={what} onChange={(e) => setWhat(e.target.value)} maxLength={600} />
           </Field>
           <div className="or-entry">
             <p>Which of my signals is this? Pick every one that fits, or none.</p>

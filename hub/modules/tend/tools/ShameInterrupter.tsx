@@ -8,6 +8,7 @@ import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, Field, Note } from "@/core/ui";
 import { ToolFrame, useToolUse } from "./ToolFrame";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 export function ShameInterrupter() {
   return (
@@ -32,14 +33,14 @@ function Body() {
     <div className="sh-stack">
       <Card>
         <Field label="What is the shame voice saying?" hint="Its exact words. Naming it is the first move.">
-          <textarea className="sh-input sh-textarea" rows={2} value={voice} onChange={(e) => setVoice(e.target.value)} maxLength={500} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={voice} onChange={(e) => setVoice(e.target.value)} maxLength={500} />
         </Field>
         <CrisisNotice texts={[voice, toPartner, kinder]} />
         <p className="sh-hint">If the voice sounds like religion, <Link href="/the-well/lies" className="sh-link">Lies and truth</Link> in The Well has the answers Jesus gave.</p>
       </Card>
       <Card>
         <Field label={`What would you say to ${name} if they did this?`} hint="You already know how to be kind. Borrow it.">
-          <textarea className="sh-input sh-textarea" rows={2} value={toPartner} onChange={(e) => setToPartner(e.target.value)} maxLength={500} />
+          <RichTextarea className="sh-input sh-textarea" rows={2} value={toPartner} onChange={(e) => setToPartner(e.target.value)} maxLength={500} />
         </Field>
       </Card>
       <Card>

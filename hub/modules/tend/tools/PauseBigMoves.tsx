@@ -7,6 +7,7 @@ import { readTendSettings } from "@/convex/tend/pure";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, useAction } from "@/core/ui";
 import { ToolFrame } from "./ToolFrame";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Pause Before Big Moves: set your own rule on a steady day. When a
@@ -31,7 +32,7 @@ function Body() {
     <Card>
       <p className="sh-muted">Write this on a steady day, in your own words. Tend shows it back to you when your energy reads revved up.</p>
       <Field label="My rule" hint="For example: I wait 24 hours before big purchases, commitments, or major decisions.">
-        <textarea className="sh-input sh-textarea" rows={3} value={rule} onChange={(e) => setRule(e.target.value)} maxLength={400} />
+        <RichTextarea className="sh-input sh-textarea" rows={3} value={rule} onChange={(e) => setRule(e.target.value)} maxLength={400} />
       </Field>
       <ErrorNote error={error} />
       <div className="sh-row">

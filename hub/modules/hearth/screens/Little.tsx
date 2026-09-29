@@ -8,6 +8,8 @@ import { CoachChat } from "@/core/coach/CoachChat";
 import { KIND_LABEL, LETTER_PROMPTS, LITTLE_ROOMS, type LetterKind, type LittleWho } from "@/core/hearth/little";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 /**
  * The girl (5 to 7) and the teenager (12 to 16). Trauma-informed: every
@@ -46,7 +48,7 @@ export function Little({ who }: { who: LittleWho }) {
         {prompt && (
           <>
             <p className="sh-hint mt-2">{prompt.prompt}</p>
-            <textarea className="sh-input sh-textarea" rows={6} value={text} onChange={(e) => setText(e.target.value)} maxLength={6000} />
+            <RichTextarea className="sh-input sh-textarea" rows={6} value={text} onChange={(e) => setText(e.target.value)} maxLength={6000} />
             <CrisisNotice texts={[text]} />
             <ErrorNote error={error} />
             <div className="sh-row mt-2">
@@ -71,7 +73,7 @@ export function Little({ who }: { who: LittleWho }) {
           {rows.map((r) => (
             <div key={r._id} className="hh-entry">
               <p className="sh-eyebrow">{KIND_LABEL[r.kind as LetterKind] ?? r.kind} · {timeAgo(r.createdAt)}</p>
-              <p className="hh-line">{r.text}</p>
+              <p className="hh-line"><Rich text={r.text} /></p>
               <Btn variant="ghost" disabled={busy} onClick={() => { if (confirm("Delete this one?")) void run(() => remove({ id: r._id })); }}>Delete</Btn>
             </div>
           ))}

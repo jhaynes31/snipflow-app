@@ -8,6 +8,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, timeAgo, useAction } from "@/core/ui";
 import { toolByKey } from "../tools/registry";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** Shared ground: Repair, the monthly view, appreciation, and the shared forecast. */
 export function Together() {
@@ -122,13 +123,13 @@ function RepairFlow({ r, me, name }: { r: Repair; me: string; name: string }) {
         >
           <p className="sh-hint">Written privately. {name} sees it only when you&apos;ve both submitted, and you both see each other&apos;s at the same time.</p>
           <Field label="What happened, for me">
-            <textarea className="sh-input sh-textarea" rows={3} value={happened} onChange={(e) => setHappened(e.target.value)} maxLength={1500} required />
+            <RichTextarea className="sh-input sh-textarea" rows={3} value={happened} onChange={(e) => setHappened(e.target.value)} maxLength={1500} required />
           </Field>
           <Field label="What I felt">
-            <textarea className="sh-input sh-textarea" rows={2} value={felt} onChange={(e) => setFelt(e.target.value)} maxLength={800} required />
+            <RichTextarea className="sh-input sh-textarea" rows={2} value={felt} onChange={(e) => setFelt(e.target.value)} maxLength={800} required />
           </Field>
           <Field label="What I needed">
-            <textarea className="sh-input sh-textarea" rows={2} value={needed} onChange={(e) => setNeeded(e.target.value)} maxLength={800} required />
+            <RichTextarea className="sh-input sh-textarea" rows={2} value={needed} onChange={(e) => setNeeded(e.target.value)} maxLength={800} required />
           </Field>
           <CrisisNotice texts={[happened, felt, needed]} />
           <div>
@@ -163,7 +164,7 @@ function RepairFlow({ r, me, name }: { r: Repair; me: string; name: string }) {
               }}
             >
               <Field label="What I heard you say is…">
-                <textarea className="sh-input sh-textarea" rows={2} value={heard} onChange={(e) => setHeard(e.target.value)} maxLength={800} />
+                <RichTextarea className="sh-input sh-textarea" rows={2} value={heard} onChange={(e) => setHeard(e.target.value)} maxLength={800} />
               </Field>
               <Field label="One thing I own">
                 <input className="sh-input" value={own} onChange={(e) => setOwn(e.target.value)} maxLength={400} />

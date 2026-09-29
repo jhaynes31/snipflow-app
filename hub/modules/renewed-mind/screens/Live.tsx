@@ -9,6 +9,7 @@ import { ARENA_LABEL, extractSteps, suggestFor, THEMES, type Arena } from "@/con
 import { CoachChat } from "@/core/coach/CoachChat";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /**
  * Live It: where a truer line gets felt. Pick a line; take a practical step
@@ -170,7 +171,7 @@ function StepRow({ s, busy, onDone, onSkip, onRemove }: { s: Doc<"rmSteps">; bus
       ) : (
         <>
           <Field label="What actually happened?" hint="The plain facts. This is the part that rewrites the path.">
-            <textarea className="sh-input sh-textarea" rows={2} value={happened} onChange={(e) => setHappened(e.target.value)} maxLength={400} />
+            <RichTextarea className="sh-input sh-textarea" rows={2} value={happened} onChange={(e) => setHappened(e.target.value)} maxLength={400} />
           </Field>
           <CrisisNotice texts={[happened]} />
           <label className="sh-row" style={{ gap: "0.5rem" }}>

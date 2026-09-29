@@ -1022,3 +1022,11 @@ a.sh-chip {
 .tn-star.is-on { color: #d9a441; }
 @media (max-width: 600px) { .tn-edit-list li { grid-template-columns: auto 1fr; } .tn-edit-actions { grid-column: 1 / -1; } }
 @media (prefers-reduced-motion: reduce) { .tn * { transition: none !important; animation: none !important; } }
+
+/* Bold, italic, underline in any text box */
+.sh-richbox { display: block; position: relative; }
+.sh-richbox textarea { width: 100%; }
+.sh-richbar { display: flex; gap: 0.25rem; margin-top: 0.25rem; }
+.sh-richbar button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; min-width: 2.2rem; height: 1.9rem; font: inherit; cursor: pointer; }
+.sh-richbar button:hover { background: var(--surface-alt, var(--surface)); }
+.sh-rich { white-space: pre-wrap; }

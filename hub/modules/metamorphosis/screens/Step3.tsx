@@ -12,6 +12,8 @@ import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, CopyButton, ErrorNote, Field, LinkBtn, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
 import { Passage } from "@/modules/the-well/components/Passage";
+import { RichTextarea } from "@/core/text/RichTextarea";
+import { Rich } from "@/core/text/RichText";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -69,7 +71,7 @@ export function Origins() {
         {prompt && (
           <div className="sh-stack-sm mt-3">
             <p className="sh-hint">{prompt.prompt}</p>
-            <textarea className="sh-input sh-textarea" rows={8} value={body} onChange={(e) => setBody(e.target.value)} maxLength={8000} aria-label={prompt.title} />
+            <RichTextarea className="sh-input sh-textarea" rows={8} value={body} onChange={(e) => setBody(e.target.value)} maxLength={8000} aria-label={prompt.title} />
             <CrisisNotice texts={[body]} />
             <ErrorNote error={error} />
             <Btn disabled={busy || !body.trim()} onClick={() => void run(async () => { await write({ key: prompt.key, title: prompt.title, body }); setBody(""); setKey(null); })}>Keep it, unsent</Btn>
@@ -82,7 +84,7 @@ export function Origins() {
           {mine.map((l) => (
             <details key={l._id} className="mm-entry">
               <summary>{l.title} <span className="sh-muted">· {timeAgo(l.createdAt)}</span></summary>
-              <p style={{ whiteSpace: "pre-wrap" }}>{l.body}</p>
+              <p style={{ whiteSpace: "pre-wrap" }}><Rich text={l.body} /></p>
               <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => remove({ id: l._id }))}>Delete</button>
             </details>
           ))}
@@ -197,7 +199,7 @@ export function Horizon() {
           ))}
         </div>
         <p className="mm-line mt-3">{prompt}</p>
-        <textarea className="sh-input sh-textarea" rows={5} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} aria-label="Dream" placeholder="Sketch it. Half-sentences count." />
+        <RichTextarea className="sh-input sh-textarea" rows={5} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} aria-label="Dream" placeholder="Sketch it. Half-sentences count." />
         <CrisisNotice texts={[text]} />
         <ErrorNote error={error} />
         <div className="sh-choices">
@@ -212,7 +214,7 @@ export function Horizon() {
           {rows.map((r) => (
             <div key={r._id} className="mm-entry">
               {r.prompt && <p className="sh-eyebrow">{r.prompt}</p>}
-              <p style={{ whiteSpace: "pre-wrap" }}>{r.text}</p>
+              <p style={{ whiteSpace: "pre-wrap" }}><Rich text={r.text} /></p>
               <p className="sh-hint">{timeAgo(r.createdAt)} · <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => remove({ id: r._id }))}>Delete</button></p>
             </div>
           ))}
@@ -296,7 +298,7 @@ export function Actually() {
           <>
             <p className="sh-eyebrow">{i + 1} of {FAILURE_CHECK.length}</p>
             <Field label={step.label} hint={step.hint}>
-              <textarea className="sh-input sh-textarea" rows={3} value={answers[step.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [step.key]: e.target.value })} maxLength={800} />
+              <RichTextarea className="sh-input sh-textarea" rows={3} value={answers[step.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [step.key]: e.target.value })} maxLength={800} />
             </Field>
             <CrisisNotice texts={Object.values(answers)} />
             <div className="sh-choices">
@@ -499,7 +501,7 @@ export function Blessing() {
           {rows.map((b) => (
             <div key={b._id} className="mm-entry">
               <p className="sh-eyebrow">{b.occasion} · {new Date(b.createdAt).toLocaleDateString()}</p>
-              {b.body ? <p className="mm-voice" style={{ whiteSpace: "pre-wrap" }}>{b.body}</p> : <Btn disabled={busy} onClick={() => void run(() => open({ id: b._id }))}>Open it</Btn>}
+              {b.body ? <p className="mm-voice" style={{ whiteSpace: "pre-wrap" }}><Rich text={b.body} /></p> : <Btn disabled={busy} onClick={() => void run(() => open({ id: b._id }))}>Open it</Btn>}
             </div>
           ))}
         </Card>
@@ -526,7 +528,7 @@ export function BlessingWriter({ ownerName }: { ownerName: string }) {
         <input className="sh-input" value={occasion} onChange={(e) => setOccasion(e.target.value)} maxLength={120} />
       </Field>
       <Field label="The blessing">
-        <textarea className="sh-input sh-textarea" rows={6} value={body} onChange={(e) => setBody(e.target.value)} maxLength={6000} />
+        <RichTextarea className="sh-input sh-textarea" rows={6} value={body} onChange={(e) => setBody(e.target.value)} maxLength={6000} />
       </Field>
       <ErrorNote error={error} />
       <div className="sh-row">
@@ -581,7 +583,7 @@ export function Letters() {
           <Card key={l._id}>
             <p className="sh-eyebrow">{l.title} · {new Date(l.createdAt).toLocaleDateString()}</p>
             {l.openedAt ? (
-              <p className="mm-voice" style={{ whiteSpace: "pre-wrap" }}>{l.body}</p>
+              <p className="mm-voice" style={{ whiteSpace: "pre-wrap" }}><Rich text={l.body} /></p>
             ) : (
               <Btn disabled={busy} onClick={() => void run(() => openLetter({ id: l._id }))}>Open it</Btn>
             )}

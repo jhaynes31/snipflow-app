@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { FeltButton } from "@/core/felt/FeltButton";
 import { CrisisNotice } from "@/core/safety/CrisisNotice";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { RichTextarea } from "@/core/text/RichTextarea";
 
 /** The log of times I didn't fix or manage it. Only ever about what I did. */
 export function Landed() {
@@ -21,7 +22,7 @@ export function Landed() {
       <PageTitle title="Let it land" subtitle="A time you didn't fix it, manage it, or catch it. In your words. This page is your evidence of your own change." />
       <Card>
         <Field label="What I did, or didn't do" hint="For example: I didn't remind him. I let the appointment be his to remember.">
-          <textarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={800} />
+          <RichTextarea className="sh-input sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} maxLength={800} />
         </Field>
         <Field label="How it felt after" hint="Optional. Honest is better than tidy.">
           <input className="sh-input" value={after} onChange={(e) => setAfter(e.target.value)} maxLength={500} />
