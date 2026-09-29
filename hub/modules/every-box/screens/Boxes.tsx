@@ -21,6 +21,7 @@ export function Boxes() {
   const update = useMutation(api.everyBox.categories.update);
   const archive = useMutation(api.everyBox.categories.archive);
   const restore = useMutation(api.everyBox.categories.restore);
+  const remove = useMutation(api.everyBox.categories.remove);
   const reorder = useMutation(api.everyBox.categories.reorder);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Id<"ebCategories"> | null>(null);
@@ -155,6 +156,9 @@ export function Boxes() {
                 <span className="flex-1">{c.name}</span>
                 <Btn small variant="secondary" disabled={busy} onClick={() => void run(() => restore({ categoryId: c._id }))}>
                   Bring back
+                </Btn>
+                <Btn small variant="ghost" disabled={busy} onClick={() => { if (confirm(`Delete "${c.name}" for good? Its history goes with it. This can't be undone.`)) void run(() => remove({ categoryId: c._id })); }}>
+                  Delete for good
                 </Btn>
               </li>
             ))}

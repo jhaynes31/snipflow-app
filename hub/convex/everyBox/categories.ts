@@ -282,3 +282,22 @@ export const noteDormant = mutation({
     });
   },
 });
+
+/**
+ * Delete a resting box for good (2026-09-29, Jen's ask). Either person in the
+ * household can; the box must be resting first, so a slip is two steps away.
+ * Its tending history and notes go with it. Commitments keep their own rows.
+ */
+export const remove = mutation({
+  args: { categoryId: v.id("ebCategories") },
+  handler: async (ctx, args) => {
+    const m = await requireMembership(ctx);
+    const c = await requireCategory(ctx, m, args.categoryId);
+    if (!c.archivedAt) throw new ConvexError("Let it rest first, then delete it from the resting list.");
+    const events = await ctx.db.query("ebTendingEvents").withIndex("by_category", (q) => q.eq("categoryId", c._id)).collect();
+    for (const e of events) await ctx.db.delete(e._id);
+    const notes = await ctx.db.query("ebCategoryNotes").withIndex("by_category", (q) => q.eq("categoryId", c._id)).collect();
+    for (const n of notes) await ctx.db.delete(n._id);
+    await ctx.db.delete(c._id);
+  },
+});
