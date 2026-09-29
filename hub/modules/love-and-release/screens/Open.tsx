@@ -107,6 +107,12 @@ export function Open() {
             </span>
           </Link>
         )}
+        <Link href="/love-and-release/circle" className="sh-tile">
+          <span className="sh-tile-name">Someone in my circle</span>
+          <span className="sh-tile-tagline">
+            Write what you know about someone you&apos;re letting in, tap the green and red flags, and let the coach sort it: what to confront, what to watch, what&apos;s too soon to tell.
+          </span>
+        </Link>
       </div>
 
       <div className="sh-choices">

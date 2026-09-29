@@ -90,6 +90,7 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rc.landed", "Let it land", "Re-Centered, John and me", "/love-and-release/john/landed", "You didn't fix it. Write that down.", ["let it land", "didn't fix", "held back", "let it be"], "re-centered"),
   T("rc.security", "Where I stand", "Re-Centered, John and me", "/love-and-release/john/security", "One tap: where your security is sitting today.", ["security", "where i stand", "steady", "secure", "insecure"], "re-centered"),
   T("rc.ownLife", "My own life", "Re-Centered, John and me", "/love-and-release/john/own-life", "The things that are yours, and a way back into them.", ["my own life", "my things", "lost myself", "hobby", "what's mine"], "re-centered"),
+  T("rc.circle", "Someone in my circle", "Re-Centered", "/love-and-release/circle", "Write what you know about someone you're letting in; tap green and red flags; the coach sorts it.", ["circle", "new person", "letting in", "let them in", "green flag", "red flag", "green flags", "red flags", "confront", "monitor", "trust them", "should i trust", "sort them out"]),
   T("rc.boundaries", "My word to me", "Re-Centered, John and me", "/love-and-release/john/boundaries", "What you will and won't do, and your if-then plan.", ["boundary with john", "my word to me", "if then", "i won't", "what i will do"], "re-centered"),
 
   // Re-Centered: the app ("Everyone, and me"; one copy per person on the device)
@@ -246,6 +247,7 @@ export const DOORS_HER: Door[] = [
   { label: "An old lie is running me", toolKey: "rm.captive" },
   { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
+  { label: "I'm adding someone to my circle", toolKey: "rc.circle" },
   { label: "I'm lonely", toolKey: "orchard.lonely" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },
@@ -264,6 +266,7 @@ export const DOORS_JOHN: Door[] = [
   { label: "I said I would", toolKey: "keptWord.words" },
   { label: "An old lie is running me", toolKey: "rm.captive" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
+  { label: "I'm adding someone to my circle", toolKey: "rc.circle" },
   { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I'm lonely", toolKey: "orchard.lonely" },
   { label: "Something stung", toolKey: "tend.storyCheck" },

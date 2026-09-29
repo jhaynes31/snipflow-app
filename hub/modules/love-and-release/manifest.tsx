@@ -4,6 +4,7 @@ import { Leaf } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
 import { hearth } from "@/modules/hearth/manifest";
 import { reCentered } from "@/modules/re-centered/manifest";
+import { Circle } from "./screens/Circle";
 import { Open } from "./screens/Open";
 
 /**
@@ -42,6 +43,7 @@ export const loveAndRelease: ModuleManifest = {
       const Room = reCentered.Screen;
       return <Room path={rest} />;
     }
+    if (first === "circle") return <Circle />;
     if (first === "hearth") {
       const Room = hearth.Screen;
       return <Room path={rest} />;

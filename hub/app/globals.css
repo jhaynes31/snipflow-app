@@ -1030,3 +1030,58 @@ a.sh-chip {
 .sh-richbar button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; min-width: 2.2rem; height: 1.9rem; font: inherit; cursor: pointer; }
 .sh-richbar button:hover { background: var(--surface-alt, var(--surface)); }
 .sh-rich { white-space: pre-wrap; }
+
+/* Someone in my circle (Re-Centered): green and red flag chips, and the coach's sort. */
+.rc-flags[data-kind="green"] .sh-chip[aria-pressed="true"],
+.sh-chip.rc-flag-green {
+  background: #d7e6c8;
+  color: #1f2e16;
+  border-color: #7a9b6a;
+}
+.rc-flags[data-kind="red"] .sh-chip[aria-pressed="true"],
+.sh-chip.rc-flag-red {
+  background: #f0d3cf;
+  color: #4a1a15;
+  border-color: #c4756a;
+}
+.rc-flags[data-kind="mixed"] .sh-chip {
+  cursor: default;
+}
+.rc-sort {
+  display: grid;
+  gap: 0.6rem;
+}
+.rc-sort-bucket {
+  border-left: 4px solid var(--border);
+  padding: 0.2rem 0 0.2rem 0.7rem;
+}
+.rc-sort-bucket[data-bucket="green"] { border-left-color: #7a9b6a; }
+.rc-sort-bucket[data-bucket="red"] { border-left-color: #c4756a; }
+.rc-sort-bucket[data-bucket="confront"] { border-left-color: #c9a36a; }
+.rc-sort-bucket[data-bucket="monitor"] { border-left-color: #a8b5c4; }
+.rc-sort-bucket[data-bucket="unclear"] { border-left-color: #b8a6c9; }
+.rc-sort-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+}
+.rc-sort-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.rc-sort-list li + li { margin-top: 0.2rem; }
+.rc-quote {
+  border-left: 5px solid var(--tile-accent, var(--border));
+  padding-left: 0.7rem;
+  white-space: pre-wrap;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .rc-flags[data-kind="green"] .sh-chip[aria-pressed="true"],
+  :root:not([data-theme="light"]) .sh-chip.rc-flag-green { background: #34482a; color: #dfeacf; border-color: #8fb069; }
+  :root:not([data-theme="light"]) .rc-flags[data-kind="red"] .sh-chip[aria-pressed="true"],
+  :root:not([data-theme="light"]) .sh-chip.rc-flag-red { background: #4d2622; color: #f3d9d4; border-color: #d18a7e; }
+}
+:root[data-theme="dark"] .rc-flags[data-kind="green"] .sh-chip[aria-pressed="true"],
+:root[data-theme="dark"] .sh-chip.rc-flag-green { background: #34482a; color: #dfeacf; border-color: #8fb069; }
+:root[data-theme="dark"] .rc-flags[data-kind="red"] .sh-chip[aria-pressed="true"],
+:root[data-theme="dark"] .sh-chip.rc-flag-red { background: #4d2622; color: #f3d9d4; border-color: #d18a7e; }

@@ -334,3 +334,7 @@ at `/felt` with plain patterns (`patterns()`, `patternLine()`, and a Heartwood
 session that fits the areas that keep showing up). The coach sees the last five
 entries; Seasons gets counts and the most-named feelings and areas for the person's
 own season. Nothing is scored.
+
+## Someone in my circle (2026-09-29)
+
+Jen's ask: a box in Re-Centered for what she knows about a person she is letting in, and the coach sorting it into green flags, red flags, something to confront, something to monitor, and not enough to tell yet. At `/love-and-release/circle`, a fourth tile on Re-Centered's front door. Green and red flags are tappable chips, as many as fit, plus "my own" for each; the note takes rich text up to 20,000 characters. Rows live in `rcCircle` (owner-scoped, always private; `convex/reCentered/circle.ts`). "Sort it with the coach" is one model call (`convex/reCentered/circleSort.ts`) under the coach's usual character and hard rules, with the reply parsed into buckets by `parseSort` in `circlePure.ts`; editing the note clears the old sort. "Talk it through" opens the coach with the note, flags, and sort as its silent opening (task `reCentered.circle`). Tool `rc.circle` and a door for both people, "I'm adding someone to my circle". Not room-gated: each person has their own private rows. Nothing is counted or shared.

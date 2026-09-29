@@ -1447,4 +1447,31 @@ export default defineSchema({
     note: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /**
+   * Someone in my circle (2026-09-29, Jen's ask): notes about a person
+   * being let in, with tapped green and red flags, and the coach's sort of
+   * it all into green flags, red flags, something to confront, something to
+   * monitor, and not enough to tell yet. Private to the person who wrote it.
+   */
+  rcCircle: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    text: v.string(),
+    green: v.array(v.string()),
+    red: v.array(v.string()),
+    sort: v.optional(
+      v.object({
+        green: v.array(v.string()),
+        red: v.array(v.string()),
+        confront: v.array(v.string()),
+        monitor: v.array(v.string()),
+        unclear: v.array(v.string()),
+        line: v.string(),
+      }),
+    ),
+    sortedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });
