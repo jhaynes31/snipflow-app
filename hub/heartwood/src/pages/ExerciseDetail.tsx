@@ -5,6 +5,7 @@ import { BodyMap } from '@/components/BodyMap';
 import { DemoMedia, ownDemoKey } from '@/components/DemoMedia';
 import { Button, Card, Callout } from '@/components/ui';
 import { EXERCISE_MAP } from '@/data/exercises';
+import { feelFor } from '@/data/feel';
 import { db } from '@/db/db';
 import { contextFromProfile, exclusionReason, isHardExcluded } from '@/domain/safety';
 import type { CautionTag } from '@/domain/types';
@@ -51,6 +52,14 @@ export function ExerciseDetailPage() {
       )}
       {reason?.kind === 'pt-restriction' && <Callout>Excluded by your PT's restriction: {reason.label}.</Callout>}
 
+      {feelFor(ex.id) && (
+        <Card className="stack-sm feel-card">
+          <h3>What it should feel like</h3>
+          <p><strong>Where:</strong> {feelFor(ex.id)!.where}</p>
+          <p><strong>Like:</strong> {feelFor(ex.id)!.like}</p>
+          <p className="muted"><strong>Not:</strong> {feelFor(ex.id)!.not}</p>
+        </Card>
+      )}
       <Card className="stack-sm"><h3>How to do it</h3><ol className="list-decimal pl-5 stack-sm">{ex.steps.map((s, i) => <li key={i}>{s}</li>)}</ol></Card>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Card soft><h3>Key cues</h3><ul className="list-disc pl-5">{ex.cues.map((c, i) => <li key={i}>{c}</li>)}</ul></Card>

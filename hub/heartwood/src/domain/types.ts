@@ -179,6 +179,8 @@ export interface CoachSettings {
   faithTrack: boolean;
   coachDesign: 'oak' | 'willow' | 'cedar';
   ptDesign: 'fern' | 'moss' | 'river';
+  /** Chosen speech voices by name (from the device's list), and a speaking rate. Added 2026-09-29. */
+  voices?: { coach?: string; pt?: string; rate?: number };
 }
 
 export interface SensorySettings {

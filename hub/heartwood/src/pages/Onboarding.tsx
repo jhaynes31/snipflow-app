@@ -10,6 +10,7 @@ import { startingLevelsFrom } from '@/domain/assessment';
 import { WEEKDAY_SHORT } from '@/domain/dates';
 import type { Assessment, CoachSettings, Goal, MuscleRegion, SabbathDay, UserProfile, Weekday } from '@/domain/types';
 import { updateProfile, useProfile } from '@/hooks/useProfile';
+import { getSpeaker } from '@/coach/tts';
 import { WhyRecorder } from '@/components/WhyRecorder';
 
 const STEPS = ['Welcome', 'Goals', 'Schedule', 'Equipment', 'Body history', 'Movement screen', 'Your why', 'Coach setup', 'Screen setup', 'Plan ready'];
@@ -254,8 +255,46 @@ export function CoachStep({ settings, onChange, back, next }: { settings: CoachS
           <Chip active={settings.voice === 'off'} onClick={() => set({ voice: 'off' })}>Off</Chip>
         </div>
       </Field>
+      <VoicePicker settings={settings} set={set} />
       <Toggle label="Faith-based encouragement" hint="Scripture and reflections on stewarding the body, rest, and partnering with God in the work." checked={settings.faithTrack} onChange={(v) => set({ faithTrack: v })} />
       {back && next && <Nav back={back} next={next} />}
+    </div>
+  );
+}
+
+/** Pick which of the device's voices speak for the Coach and for the guides, and how fast (2026-09-29). */
+function VoicePicker({ settings, set }: { settings: CoachSettings; set: (p: Partial<CoachSettings>) => void }) {
+  const speaker = getSpeaker();
+  const [voices, setVoices] = useState(() => speaker.listVoices());
+  useEffect(() => {
+    if (voices.length) return;
+    const id = window.setInterval(() => { const v = speaker.listVoices(); if (v.length) { setVoices(v); window.clearInterval(id); } }, 500);
+    return () => window.clearInterval(id);
+  }, [speaker, voices.length]);
+  if (!speaker.available) return null;
+  const v = settings.voices ?? {};
+  const setV = (p: Partial<NonNullable<CoachSettings['voices']>>) => set({ voices: { ...v, ...p } });
+  const hear = (kind: 'coach' | 'pt') => speaker.speak(kind === 'coach' ? 'Nice and steady. You have got this.' : 'Slow down, and let the breath lead.', { voice: kind, voiceName: kind === 'coach' ? v.coach : v.pt, rate: v.rate });
+  const pick = (kind: 'coach' | 'pt', label: string) => (
+    <Field label={label} hint={voices.length ? undefined : 'Voices load when the browser is ready; try again in a moment.'}>
+      <div className="flex gap-2 flex-wrap items-center">
+        <select className="input" value={v[kind] ?? ''} onChange={(e) => setV({ [kind]: e.target.value || undefined })} aria-label={label}>
+          <option value="">Automatic</option>
+          {voices.map((o) => <option key={o.name} value={o.name}>{o.name} ({o.lang})</option>)}
+        </select>
+        <Button variant="ghost" size="sm" onClick={() => hear(kind)}>Hear it</Button>
+      </div>
+    </Field>
+  );
+  return (
+    <div className="stack-sm">
+      {pick('coach', "Coach's voice")}
+      {pick('pt', "Guides' voice (PT, somatic, fascia, pelvic floor, mobility)")}
+      <Field label="Speed">
+        <div className="flex flex-wrap gap-2">
+          {([['Slower', 0.8], ['Normal', 0.95], ['Quicker', 1.1]] as const).map(([l, r]) => <Chip key={l} active={(v.rate ?? 0.95) === r} onClick={() => setV({ rate: r })}>{l}</Chip>)}
+        </div>
+      </Field>
     </div>
   );
 }

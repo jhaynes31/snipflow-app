@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Pause, Play, Square } from 'lucide-react';
 import { messageText, pickMessage, type Speaker } from '@/coach/messages';
 import { guideForCategory, guideForTemplate } from '@/data/guides';
+import { feelFor } from '@/data/feel';
 import { getSpeaker } from '@/coach/tts';
 import { CoachBubble } from '@/components/CoachBubble';
 import { CountdownRing } from '@/components/CountdownRing';
@@ -94,8 +95,9 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   const say = useCallback((text: string, who: Speaker, kind: 'cue' | 'talk') => {
     if (cs.voice === 'off') return;
     if (cs.voice === 'cues' && kind === 'talk') return;
-    speaker.speak(text, { voice: who === 'coach' ? 'coach' : 'pt' });
-  }, [cs.voice, speaker]);
+    const chosen = who === 'coach' ? cs.voices?.coach : cs.voices?.pt;
+    speaker.speak(text, { voice: who === 'coach' ? 'coach' : 'pt', voiceName: chosen, rate: cs.voices?.rate });
+  }, [cs.voice, cs.voices, speaker]);
 
   const showBubble = useCallback((speakerKind: Speaker, text: string, kind: 'cue' | 'talk' = 'talk') => {
     setBubble({ speaker: speakerKind, text });
@@ -103,10 +105,33 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
   }, [say]);
 
   // ----- timers -----
+  // Five seconds to press Start and get into position before a timed exercise begins (2026-09-29).
+  const READY_SECONDS = 5;
+  const readyRef = useRef<null | { kind: 'hold'; target: number } | { kind: 'tempo'; target: number }>(null);
+  const [ready, setReady] = useState(false);
   const countdown = useCountdown(
-    (left) => { if (left <= 3 && left > 0) { softTone(ss); softBuzz(ss, 30); } },
-    () => { softTone(ss, 'done'); softBuzz(ss, [60, 40, 60]); if (stage === 'rest') advanceAfterRest(); },
+    (left) => {
+      if (readyRef.current) { if (left <= 3 && left > 0) { softTone(ss); say(String(left), 'coach', 'cue'); } return; }
+      if (left <= 3 && left > 0) { softTone(ss); softBuzz(ss, 30); }
+    },
+    () => {
+      const r = readyRef.current;
+      if (r) {
+        readyRef.current = null; setReady(false);
+        say('Go', 'coach', 'cue');
+        if (r.kind === 'hold') countdown.start(r.target); else startTempo(r.target);
+        return;
+      }
+      softTone(ss, 'done'); softBuzz(ss, [60, 40, 60]); if (stage === 'rest') advanceAfterRest();
+    },
   );
+  const clearReady = () => { readyRef.current = null; setReady(false); };
+  const getReady = (kind: 'hold' | 'tempo', target: number) => {
+    readyRef.current = { kind, target };
+    setReady(true);
+    say('Get ready. Into position.', 'coach', 'cue');
+    countdown.start(READY_SECONDS);
+  };
   const tempoRef = useRef<number | null>(null);
   const stopTempo = useCallback(() => { if (tempoRef.current) { clearInterval(tempoRef.current); tempoRef.current = null; } setTempoPhase(null); }, []);
   useEffect(() => () => { stopTempo(); speaker.cancel(); }, [stopTempo, speaker]);
@@ -143,7 +168,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
 
   // ----- navigation between sets/sides/exercises -----
   const goNextExercise = () => {
-    countdown.reset(); stopTempo();
+    countdown.reset(); stopTempo(); clearReady();
     if (exIdx + 1 >= totalSteps) { setStage('reflect'); return; }
     setExIdx(exIdx + 1); setSetNo(1); setSideIdx(0); setStage('exercise');
   };
@@ -154,7 +179,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
     goNextExercise();
   };
   const finishSet = () => {
-    countdown.reset(); stopTempo();
+    countdown.reset(); stopTempo(); clearReady();
     if (rx.block === 'main') setStage('log');
     else afterLog();
   };
@@ -171,7 +196,7 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
     const alt = findSafeAlternative(ex, EXERCISES, ctx, session.prescriptions.map((p) => p.exerciseId));
     if (!alt) { showBubble('pt', 'No safe swap is available for this one. Skip it if you need to.'); return; }
     await swapExerciseInSession(session.id, ex.id, alt);
-    setSetNo(1); setSideIdx(0); countdown.reset(); stopTempo();
+    setSetNo(1); setSideIdx(0); countdown.reset(); stopTempo(); clearReady();
     setSwappedNote(`Swapped to ${alt.name}.`);
   };
 
@@ -312,13 +337,15 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
           {rx.weight != null ? ` · ${rx.weight} ${profile.equipment.weightUnit}` : ''}{rx.bandLevel ? ` · ${rx.bandLevel} band` : ''}{rx.supportLevel ? ` · ${rx.supportLevel.replace('-', ' ')}` : ''}</p>
         {rx.substitutedFor && <p className="text-sm muted">Swapped in for {EXERCISE_MAP[rx.substitutedFor]?.name ?? 'a locked exercise'}.</p>}
         {swappedNote && <p className="text-sm" style={{ color: 'var(--secondary)' }}>{swappedNote}</p>}
+        {feelFor(ex.id) && <p className="text-sm feel-line"><strong>Feel it:</strong> {feelFor(ex.id)!.where} <span className="muted">{feelFor(ex.id)!.like}</span></p>}
       </div>
       {bubble && <CoachBubble speaker={bubble.speaker} text={bubble.text} settings={cs} onDismiss={() => setBubble(null)} />}
 
       {isHold && (
         <div className="text-center stack-sm">
-          {countdown.total > 0 ? <CountdownRing remaining={countdown.remaining} total={countdown.total} label="hold" /> : null}
-          {countdown.total === 0 && <Button variant="start" onClick={() => { countdown.start(target); }}>Start hold</Button>}
+          {countdown.total > 0 ? <CountdownRing remaining={countdown.remaining} total={countdown.total} label={ready ? 'get ready' : 'hold'} /> : null}
+          {ready && <p className="font-bold" aria-live="polite">Get into position…</p>}
+          {countdown.total === 0 && <Button variant="start" onClick={() => getReady('hold', target)}>Start hold</Button>}
           {countdown.total > 0 && !countdown.running && countdown.remaining === 0 && <Button variant="secondary" size="lg" onClick={finishSet}>Done, next</Button>}
           {countdown.running && <Button variant="ghost" size="sm" onClick={midSetCue}>Cue me</Button>}
         </div>
@@ -331,7 +358,8 @@ function Player({ session, profile }: { session: PlannedSession; profile: UserPr
               <p className="text-2xl font-bold" style={{ color: 'var(--timer)' }} aria-live="polite">{tempoPhase === 'down' ? 'lower… 3 · 2 · 1' : tempoPhase === 'pause' ? 'pause' : tempoPhase === 'up' ? 'up' : 'set complete'}</p>
             </div>
           ) : null}
-          {!tempoPhase && tempoCount === 0 && <Button variant="start" onClick={() => startTempo(target)}>Start reps</Button>}
+          {ready && <div className="card-soft"><CountdownRing remaining={countdown.remaining} total={countdown.total} label="get ready" /><p className="font-bold" aria-live="polite">Get into position…</p></div>}
+          {!ready && !tempoPhase && tempoCount === 0 && <Button variant="start" onClick={() => getReady('tempo', target)}>Start reps</Button>}
           {(!tempoPhase && tempoCount > 0) || tempoPhase ? <Button variant="secondary" size="lg" onClick={finishSet}>Done, next</Button> : null}
           {tempoPhase && <Button variant="ghost" size="sm" onClick={midSetCue}>Cue me</Button>}
         </div>

@@ -64,3 +64,13 @@ describe('exercise drawings (2026-09-28)', () => {
     for (const e of EXERCISES) if (!e.id.startsWith('x-')) expect(e.media[0]).toEqual({ type: 'pose', src: e.id });
   });
 });
+
+describe('what it should feel like (2026-09-29)', () => {
+  it('every exercise that can be shown says where and what it should feel like', async () => {
+    const { FEEL } = await import('./feel');
+    const { EXERCISES } = await import('./exercises');
+    const missing = EXERCISES.filter((e) => !e.id.startsWith('x-') && !FEEL[e.id]).map((e) => e.id);
+    expect(missing).toEqual([]);
+    for (const f of Object.values(FEEL)) { expect(f.where.length).toBeGreaterThan(8); expect(f.like.length).toBeGreaterThan(8); expect(f.not.length).toBeGreaterThan(8); }
+  });
+});
