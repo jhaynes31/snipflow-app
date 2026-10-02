@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Shell } from '@/components/Shell'
@@ -11,11 +11,64 @@ import flagPatterns from '@/data/flagPatterns.json'
 import type { FlagPattern } from '@/db/types'
 import { accessDiff, placementName, suggestCloser, timeKnown, usePersonSignals, useRings } from '@/lib/circles'
 import { JesusLine } from '@/components/JesusLine'
+import jesusCards from '@/data/jesusCards.json'
 import { Speak } from '@/components/Speak'
 import { fmtDate } from '@/lib/dates'
 
 const PATTERNS = flagPatterns as FlagPattern[]
 type Kind = 'closer' | 'further' | 'release' | 'restore' | 'place'
+
+/**
+ * Everything typed in a move review is kept on this device until the move
+ * is made (2026-10-02, Jen's ask: she lost a long review by opening one of
+ * the Jesus examples). Opening a card, a closing-message draft, or The
+ * Shire and coming back lands on the same step with the same words.
+ */
+interface Draft {
+  to: Placement
+  step: number
+  criteriaMet: string[]
+  reason: string
+  reasons: string[]
+  pattern: 'pattern' | 'moment' | ''
+  communicated: 'yes' | 'no' | 'unsafe' | ''
+  releaseKind: 'quiet' | 'conversation' | 'no-contact' | ''
+}
+const draftKey = (personId: string) => `lr:move-review:${personId}`
+function readDraft(personId: string | undefined): Partial<Draft> {
+  if (!personId) return {}
+  try {
+    const raw = localStorage.getItem(draftKey(personId))
+    return raw ? (JSON.parse(raw) as Partial<Draft>) : {}
+  } catch {
+    return {}
+  }
+}
+function clearDraft(personId: string | undefined) {
+  if (!personId) return
+  try { localStorage.removeItem(draftKey(personId)) } catch { /* storage may be off; nothing to clear */ }
+}
+
+type JesusCard = { id: string; title: string; reference: string; whatHappened: string; howHeHandledIt: string; meaningForMe: string; prompt: string }
+const CARDS = jesusCards as JesusCard[]
+
+/** One of the Jesus examples, opened right here so the review isn't left behind. */
+function InlineJesusCard({ id, from }: { id: string; from: string }) {
+  const card = CARDS.find((c) => c.id === id)
+  if (!card) return null
+  return (
+    <details className="item card-link">
+      <summary style={{ cursor: 'pointer', listStyle: 'none' }}><div className="item-title">{card.title}</div><div className="item-meta">{card.reference} · tap to read it here</div></summary>
+      <div className="stack mt">
+        <p>{card.whatHappened}</p>
+        <div className="card-sage"><strong>How Jesus handled it</strong><p style={{ margin: '6px 0 0' }}>{card.howHeHandledIt}</p></div>
+        <p className="truth" style={{ margin: 0 }}>{card.meaningForMe}</p>
+        <p className="small muted" style={{ margin: 0 }}>{card.prompt}</p>
+        <Link to={`/jesus/${card.id}?from=${encodeURIComponent(from)}`} className="small">Open the full card (your review is kept)</Link>
+      </div>
+    </details>
+  )
+}
 
 export function MoveReview() {
   const { personId } = useParams()
@@ -24,15 +77,23 @@ export function MoveReview() {
   const rings = useRings()
   const person = useLiveQuery(() => (personId ? db.people.get(personId) : undefined), [personId])
   const sig = usePersonSignals(personId)
-  const [to, setTo] = useState<Placement>(params.get('to') ?? '')
-  const [step, setStep] = useState(0)
-  const [criteriaMet, setCriteriaMet] = useState<string[]>([])
-  const [reason, setReason] = useState('')
-  const [reasons, setReasons] = useState<string[]>([])
-  const [pattern, setPattern] = useState<'pattern' | 'moment' | ''>('')
-  const [communicated, setCommunicated] = useState<'yes' | 'no' | 'unsafe' | ''>('')
-  const [releaseKind, setReleaseKind] = useState<'quiet' | 'conversation' | 'no-contact' | ''>('')
+  const [draft] = useState(() => readDraft(personId))
+  const [to, setTo] = useState<Placement>(params.get('to') ?? draft.to ?? '')
+  const [step, setStep] = useState(draft.step ?? 0)
+  const [criteriaMet, setCriteriaMet] = useState<string[]>(draft.criteriaMet ?? [])
+  const [reason, setReason] = useState(draft.reason ?? '')
+  const [reasons, setReasons] = useState<string[]>(draft.reasons ?? [])
+  const [pattern, setPattern] = useState<'pattern' | 'moment' | ''>(draft.pattern ?? '')
+  const [communicated, setCommunicated] = useState<'yes' | 'no' | 'unsafe' | ''>(draft.communicated ?? '')
+  const [releaseKind, setReleaseKind] = useState<'quiet' | 'conversation' | 'no-contact' | ''>(draft.releaseKind ?? '')
   const [done, setDone] = useState(false)
+  const here = `/circles/move/${personId}`
+
+  useEffect(() => {
+    if (!personId || done) return
+    const d: Draft = { to, step, criteriaMet, reason, reasons, pattern, communicated, releaseKind }
+    try { localStorage.setItem(draftKey(personId), JSON.stringify(d)) } catch { /* storage may be off; the review still works for this visit */ }
+  }, [personId, done, to, step, criteriaMet, reason, reasons, pattern, communicated, releaseKind])
 
   const fromRing = rings.find((r) => r.id === person?.ringId)
   const toRing = rings.find((r) => r.id === to)
@@ -52,6 +113,7 @@ export function MoveReview() {
   const commit = async (extra?: { toReleaseJournal?: boolean }) => {
     await db.ringMoves.add({ id: newId(), personId: person.id, fromRingId: person.ringId, toRingId: to, reason: [reasons.join(', '), reason.trim()].filter(Boolean).join(' · '), criteriaMet, date: now() })
     await db.people.update(person.id, { ringId: to })
+    clearDraft(person.id)
     if (extra?.toReleaseJournal) nav(`/release/new?person=${person.id}`)
     else setDone(true)
   }
@@ -199,9 +261,7 @@ export function MoveReview() {
       {step === 1 && (<div className="stack">
         <p className="question">Jesus let people walk away.</p>
         <div className="list">
-          <Link to="/jesus/jc-looked-and-loved" className="item card-link"><div className="item-title">Looked at Him and Loved Him</div><div className="item-meta">Mark 10:17–22</div></Link>
-          <Link to="/jesus/jc-hometown" className="item card-link"><div className="item-title">Moved On From Hometown Rejection</div><div className="item-meta">Mark 6:1–6</div></Link>
-          <Link to="/jesus/jc-rebuked-revenge" className="item card-link"><div className="item-title">Rebuked Revenge, Went Elsewhere</div><div className="item-meta">Luke 9:51–56</div></Link>
+          {['jc-looked-and-loved', 'jc-hometown', 'jc-rebuked-revenge'].map((id) => <InlineJesusCard key={id} id={id} from={here} />)}
         </div>
         <StepActions onBack={() => setStep(0)} onNext={() => setStep(2)} onSkip={() => setStep(2)} />
       </div>)}
@@ -217,7 +277,7 @@ export function MoveReview() {
       {step === 3 && (<div className="stack">
         <p className="question">Do you want closing words?</p>
         <p className="hint">Optional. Honest and kind is enough. You don't owe a case file.</p>
-        <Link to="/boundaries/new?starter=Pausing%20a%20conversation" className="btn btn-ghost">Draft a closing message</Link>
+        <Link to={`/boundaries/new?starter=Pausing%20a%20conversation&from=${encodeURIComponent(here)}`} className="btn btn-ghost">Draft a closing message</Link>
         <StepActions onBack={() => setStep(2)} onNext={() => setStep(4)} onSkip={() => setStep(4)} />
       </div>)}
       {step === 4 && (<div className="stack">

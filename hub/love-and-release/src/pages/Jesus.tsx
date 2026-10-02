@@ -44,6 +44,10 @@ export function JesusLibrary() {
 
 export function JesusCardPage() {
   const { id } = useParams()
+  const [cardParams] = useSearchParams()
+  // Opened from a move review (or anywhere else inside the app): the back button returns there.
+  const from = cardParams.get('from')
+  const back = from && from.startsWith('/') && !from.startsWith('//') ? from : '/jesus'
   const card = useLiveQuery(() => (id ? db.jesusCards.get(id) : undefined), [id])
   const [savedMsg, setSavedMsg] = useState('')
   const looping = useLoopGuard(id ? `card:${id}` : undefined)
@@ -52,7 +56,7 @@ export function JesusCardPage() {
     [card?.id],
   )
 
-  if (!card) return <Shell back="/jesus"><p className="faint">Loading…</p></Shell>
+  if (!card) return <Shell back={back}><p className="faint">Loading…</p></Shell>
 
   const saveTruth = async () => {
     await db.truths.put({
@@ -67,8 +71,9 @@ export function JesusCardPage() {
   }
 
   return (
-    <Shell back="/jesus" hideNav={false}>
+    <Shell back={back} hideNav={false}>
       <article className="stack-lg">
+        {from && <Link to={from} className="btn btn-ghost btn-sm">← Back to the move review</Link>}
         {looping && <LoopNotice tool="this card" />}
         <div>
           <h1>{card.title}</h1>

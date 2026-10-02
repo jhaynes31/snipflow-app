@@ -94,15 +94,18 @@ export function BoundaryEditor() {
   const [params] = useSearchParams()
   const fromId = params.get('from')
   const starter = STARTERS.find((s) => s.title === params.get('starter'))
+  // Opened from a move review: back and Save return there, with the review's draft still kept.
+  const fromParam = params.get('from')
+  const backTo = fromParam && fromParam.startsWith('/') && !fromParam.startsWith('//') ? fromParam : undefined
   const existing = useLiveQuery(() => (isNew ? undefined : db.boundaries.get(id!)), [id])
   const fromTemplate = useLiveQuery(() => (fromId ? db.boundaries.get(fromId) : undefined), [fromId])
 
-  if (isNew) return <Editor key={fromId ?? starter?.title ?? 'new'} initial={{ title: fromTemplate?.title ?? starter?.title ?? '', body: fromTemplate?.body ?? starter?.body ?? '', isTemplate: false }} draftKey="boundary" waiting={!!fromId && !fromTemplate} onSaved={(d) => nav(`/boundaries/${d.id}`, { replace: true })} />
+  if (isNew) return <Editor key={fromId ?? starter?.title ?? 'new'} initial={{ title: fromTemplate?.title ?? starter?.title ?? '', body: fromTemplate?.body ?? starter?.body ?? '', isTemplate: false }} draftKey="boundary" waiting={!!fromId && !fromTemplate} backTo={backTo} onSaved={(d) => nav(backTo ?? `/boundaries/${d.id}`, { replace: true })} />
   if (!existing) return <Shell back="/boundaries"><p className="faint">Loading…</p></Shell>
   return <Editor key={existing.id} existing={existing} initial={{ title: existing.title, body: existing.body, isTemplate: existing.isTemplate }} draftKey={`boundary-${existing.id}`} onSaved={() => undefined} />
 }
 
-function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Draft; existing?: BoundaryDraft; draftKey: string; waiting?: boolean; onSaved: (d: BoundaryDraft) => void }) {
+function Editor({ initial, existing, draftKey, waiting, onSaved, backTo = '/boundaries' }: { initial: Draft; existing?: BoundaryDraft; draftKey: string; waiting?: boolean; onSaved: (d: BoundaryDraft) => void; backTo?: string }) {
   const nav = useNavigate()
   const [d, update] = useDraft<Draft>(draftKey, initial)
   const [mode, setMode] = useState<'write' | 'rehearse' | 'sent'>('write')
@@ -176,7 +179,7 @@ function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Dr
   }
 
   return (
-    <Shell back="/boundaries" hideNav title={existing ? 'Edit boundary' : 'New boundary'}>
+    <Shell back={backTo} hideNav title={existing ? 'Edit boundary' : 'New boundary'}>
       <div className="stack">
         <input className="input" value={d.title} placeholder="Title (optional), e.g. Saying no to Sunday" onChange={(e) => update({ title: e.target.value })} aria-label="Title" />
         <VoiceTextarea large value={d.body} onChange={(body) => update({ body })} placeholder="Say what's true. Short is fine. Kind is enough." label="What I want to say" />
@@ -193,7 +196,7 @@ function Editor({ initial, existing, draftKey, waiting, onSaved }: { initial: Dr
         <Link to="/unhooked/tools/send-check" className="btn btn-quiet btn-sm">Is this to connect, or for reassurance? Check before sending</Link>
         <div className="btn-row">
           <button type="button" className="btn btn-ghost" onClick={() => setMode('rehearse')} disabled={!d.body.trim()}>Rehearse</button>
-          <button type="button" className="btn btn-primary" onClick={async () => { const r = await persist(); onSaved(r); nav('/boundaries') }} disabled={!d.body.trim() && !d.title.trim()}>Save</button>
+          <button type="button" className="btn btn-primary" onClick={async () => { const r = await persist(); onSaved(r); nav(backTo) }} disabled={!d.body.trim() && !d.title.trim()}>Save</button>
         </div>
         {existing && !existing.sentAt && <button type="button" className="btn btn-sage btn-block" onClick={async () => { await persist({ sentAt: now() }); setMode('sent') }}>I sent it</button>}
         {existing && <button type="button" className="btn btn-quiet" onClick={() => setConfirmDelete(true)}>Delete this draft</button>}
