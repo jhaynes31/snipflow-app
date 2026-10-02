@@ -114,6 +114,14 @@ describe("system prompt", () => {
     assert.match(p, /988/);
     assert.match(p, /Never take sides/);
   });
+  it("believes the person first, before any pattern or tool (Jen's ask, 2026-10-02)", () => {
+    const p = buildSystemPrompt(base);
+    assert.match(p, /Believe them first/);
+    assert.match(p, /Reassurance before direction/);
+    assert.match(p, /never imply they are being dramatic, oversensitive, or emotional/);
+    assert.match(p, /being believed is not reassurance and is never withheld/);
+    assert.ok(p.indexOf("Believe them first") < p.indexOf("Hard rules"), "believing comes before the hard rules and everything after them");
+  });
   it("respects faith off and loop notice", () => {
     const p = buildSystemPrompt({ ...base, faith: false, loopSuspected: true, mySections: [], partnerName: null, partnerSections: [] });
     assert.match(p, /faith features off/);
