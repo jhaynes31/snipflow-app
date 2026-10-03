@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { APP_DISPLAY_NAME } from "@/core/config";
 import { COPY } from "@/core/copy/strings";
+import { HOME_SCREEN_MODULES } from "@/core/modules/brand";
 import { MODULES } from "@/core/modules/registry";
 import { useHub } from "@/core/shell/HubContext";
 import { PushSettings } from "@/core/push/PushSettings";
@@ -80,6 +82,11 @@ export default function SettingsPage() {
             <PushSettings />
           </div>
           <div className="sh-card-alt">
+            <h3 className="sh-h3">Which ways, for which places</h3>
+            <p className="sh-hint">Notification, email, or text, chosen area by area, plus the email address and phone number they go to.</p>
+            <Link href="/notifications" className="sh-btn sh-btn-secondary mt-2">Open Notifications</Link>
+          </div>
+          <div className="sh-card-alt">
             <h3 className="sh-h3">4. Calendar</h3>
             <p className="sh-hint">
               Subscribe to this feed in any calendar app. It holds one daily &ldquo;how are you, really?&rdquo; event and a
@@ -146,6 +153,32 @@ export default function SettingsPage() {
             label="Quiet visuals"
             hint="Mutes colors and removes every texture and animation."
           />
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="sh-h2">On your phone&apos;s home screen</h2>
+        <p className="sh-muted">
+          {APP_DISPLAY_NAME} as a whole can sit on your phone as an app, and any one place can sit there as its own icon that opens straight into it. Pick whichever you want, in any mix.
+        </p>
+        <div className="sh-stack-sm mt-3">
+          <div className="sh-card-alt">
+            <h3 className="sh-h3">{APP_DISPLAY_NAME}, whole</h3>
+            <p className="sh-hint">iPhone: open the home page in Safari, tap Share, then &ldquo;Add to Home Screen&rdquo;. Android: open it in Chrome, tap the three dots, then &ldquo;Add to Home screen&rdquo; or &ldquo;Install app&rdquo;. A long press on the icon lists every place.</p>
+          </div>
+          <div className="sh-card-alt">
+            <h3 className="sh-h3">One place on its own</h3>
+            <p className="sh-hint">Open that place first, then do the same &ldquo;Add to Home Screen&rdquo;. The icon takes that place&apos;s color and name and opens right into it. Any of these:</p>
+            <div className="sh-chips">
+              {HOME_SCREEN_MODULES.map((m) => (
+                <Link key={m.id} href={`/${m.id}`} className="sh-chip" style={{ borderColor: m.accent }}>
+                  <span aria-hidden style={{ display: "inline-block", width: "0.8em", height: "0.8em", borderRadius: "50%", background: m.accent, marginRight: "0.4em", verticalAlign: "-0.05em" }} />
+                  {m.name}
+                </Link>
+              ))}
+            </div>
+            <p className="sh-hint mt-2">A phone can&apos;t show a live widget from a website, so the icon is the closest thing; the badge on {APP_DISPLAY_NAME}&apos;s icon still counts open heads-ups.</p>
+          </div>
         </div>
       </Card>
 

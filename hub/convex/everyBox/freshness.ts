@@ -143,3 +143,15 @@ export function describeCadence(days: number): string {
   if (preset) return preset.label;
   return `Every ${days} days`;
 }
+
+/**
+ * The line above the meter (2026-10-03, Jen's ask): the date it was last
+ * done and how many days that is. "Last done Tue, Sep 30 · 3 days ago".
+ */
+export function lastDoneLine(lastTendedAt: number | null | undefined, now: number = Date.now()): string {
+  if (lastTendedAt === null || lastTendedAt === undefined) return "Not done yet";
+  const days = calendarDaysBetween(lastTendedAt, now);
+  const date = new Date(lastTendedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const ago = days <= 0 ? "today" : days === 1 ? "1 day ago" : `${days} days ago`;
+  return `Last done ${date} · ${ago}`;
+}

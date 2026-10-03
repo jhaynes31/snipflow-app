@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { computeFreshness, describeCadence, describeLastTended } from "@/convex/everyBox/freshness";
+import { computeFreshness, describeCadence, describeLastTended, lastDoneLine } from "@/convex/everyBox/freshness";
 import { stageVisual } from "@/convex/everyBox/themes";
 import { partnerName, partnerNames, useEveryBox } from "@/modules/every-box/components/context";
 import { isTender, tenderIdsOf } from "@/convex/everyBox/tenders";
@@ -15,6 +15,7 @@ import { NoteForm } from "@/modules/every-box/components/NoteForm";
 import { StageVisual } from "@/modules/every-box/components/StageVisual";
 import { TendButton } from "@/modules/every-box/components/TendButton";
 import { Btn, Spinner } from "@/modules/every-box/components/ui";
+import { RemindMe } from "@/modules/every-box/components/RemindMe";
 import { useNow } from "@/modules/every-box/components/useNow";
 import { Rich } from "@/core/text/RichText";
 
@@ -68,6 +69,7 @@ export function BoxDetail({ id }: { id: string }) {
 
       <section className="eb-card mt-3 flex flex-col items-center gap-3 text-center">
         <StageVisual theme={theme} stage={fresh.stage} size={7} justTended={justTended} />
+        <div className="eb-lastdone">{lastDoneLine(category.lastTendedAt, now)}</div>
         <FreshnessMeter theme={theme} stage={fresh.stage} className="max-w-xs" />
         <div>
           <h1 className="text-2xl font-bold">
@@ -85,6 +87,8 @@ export function BoxDetail({ id }: { id: string }) {
         </p>
         {category.archivedAt && <span className="eb-chip">Resting</span>}
       </section>
+
+      {!category.archivedAt && <RemindMe categoryId={category._id} cadenceDays={category.idealCadenceDays} />}
 
       <section className="mt-4 grid gap-3">
         {mine && !category.archivedAt && (

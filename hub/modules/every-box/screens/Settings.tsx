@@ -28,6 +28,10 @@ export function Settings() {
       <PageTitle title="Every Box settings" subtitle="Just the things that belong to Every Box." />
       <ErrorNote error={error} />
 
+      <Section id="reminders" title="Reminders" blurb="Box by box: remind me when it hasn't been done in a while, by phone or computer notification, email, or text. Yours alone; your partner picks their own.">
+        <Link href="/every-box/reminders" className="eb-btn eb-btn-primary">Choose my box reminders</Link>
+      </Section>
+
       <Section id="theme" title="Theme" blurb="Purely a skin. Switching never changes anything underneath, and it changes for both of you.">
         <div className="grid gap-2 sm:grid-cols-2">
           {THEME_IDS.map((id) => (

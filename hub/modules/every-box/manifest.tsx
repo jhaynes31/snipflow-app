@@ -10,6 +10,7 @@ import { Dashboard } from "./screens/Dashboard";
 import { Glance } from "./screens/Glance";
 import { Review } from "./screens/Review";
 import { Settings } from "./screens/Settings";
+import { Reminders } from "./screens/Reminders";
 import { EveryBoxHome, EveryBoxToday } from "./widgets";
 
 /**
@@ -52,6 +53,7 @@ export const everyBox: ModuleManifest = {
     else if (first === "review") screen = <Review />;
     else if (first === "glance") screen = <Glance />;
     else if (first === "settings") screen = <Settings />;
+    else if (first === "reminders") screen = <Reminders />;
     else screen = <Dashboard />;
     return <EveryBoxShell bare={bare}>{screen}</EveryBoxShell>;
   },

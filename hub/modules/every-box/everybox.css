@@ -341,3 +341,10 @@ details.eb-archive > summary::-webkit-details-marker { display: none; }
   .eb-chip svg { display: inline-block; vertical-align: -0.2em; margin-right: 0.2rem; }
   .eb-stage .eb-stage-glyph svg { display: block; }
 }
+
+/* The line above the meter: the date it was last done and how many days ago (2026-10-03). */
+.eb-lastdone { font-size: 0.8rem; font-weight: 600; color: var(--eb-muted); }
+.eb-remind { display: grid; gap: 0.6rem; }
+.eb-remind-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+.eb-remind-row label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; }
+.eb-remind select, .eb-remind input[type="number"] { font: inherit; padding: 0.3rem 0.5rem; border: 1px solid var(--eb-border, #ccc); border-radius: 0.5rem; background: var(--eb-surface, transparent); color: inherit; }

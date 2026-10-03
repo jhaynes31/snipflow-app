@@ -48,9 +48,12 @@ export function Boxes() {
         subtitle="The parts of life you want to keep an eye on together. Fully yours to define."
         action={
           !adding && (
-            <Btn onClick={() => { setAdding(true); setEditing(null); setError(null); }}>
-              Add a {theme.noun}
-            </Btn>
+            <span className="flex flex-wrap items-center gap-2">
+              <Link href="/every-box/reminders" className="eb-btn eb-btn-secondary">Reminders</Link>
+              <Btn onClick={() => { setAdding(true); setEditing(null); setError(null); }}>
+                Add a {theme.noun}
+              </Btn>
+            </span>
           )
         }
       />

@@ -1085,3 +1085,11 @@ a.sh-chip {
 :root[data-theme="dark"] .sh-chip.rc-flag-green { background: #34482a; color: #dfeacf; border-color: #8fb069; }
 :root[data-theme="dark"] .rc-flags[data-kind="red"] .sh-chip[aria-pressed="true"],
 :root[data-theme="dark"] .sh-chip.rc-flag-red { background: #4d2622; color: #f3d9d4; border-color: #d18a7e; }
+
+/* Notifications: the ways-by-area grid (2026-10-03). */
+.sh-notify-grid { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0.4rem 0.9rem; align-items: center; }
+.sh-notify-head, .sh-notify-row { display: contents; }
+.sh-notify-head span { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+.sh-notify-row > span:not(:first-child) { text-align: center; }
+.sh-notify-row input[type="checkbox"] { width: 1.15rem; height: 1.15rem; }
+.sh-notify-row > span:first-child { padding: 0.35rem 0; border-top: 1px solid var(--border); }

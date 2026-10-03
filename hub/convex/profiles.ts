@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { AREAS, cleanEmail, cleanPhone } from "./push/channels";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import {
@@ -102,10 +103,36 @@ export const updateReminders = mutation({
     /** Hours 0-23, or null to clear. */
     quietHoursStart: v.optional(v.union(v.number(), v.null())),
     quietHoursEnd: v.optional(v.union(v.number(), v.null())),
+    /** Where email and texts go; null clears (email then falls back to the sign-in address). */
+    email: v.optional(v.union(v.string(), v.null())),
+    phone: v.optional(v.union(v.string(), v.null())),
+    /** One area's ways to be reached (push/channels.ts AREAS). */
+    channel: v.optional(v.object({ area: v.string(), push: v.boolean(), email: v.boolean(), text: v.boolean() })),
   },
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const r = { ...me.profile.reminders };
+    if (args.email !== undefined) {
+      if (args.email === null || !args.email.trim()) delete r.email;
+      else {
+        const e = cleanEmail(args.email);
+        if (!e) throw new ConvexError("That doesn't look like an email address.");
+        r.email = e;
+      }
+    }
+    if (args.phone !== undefined) {
+      if (args.phone === null || !args.phone.trim()) delete r.phone;
+      else {
+        const ph = cleanPhone(args.phone);
+        if (!ph) throw new ConvexError("Write the number with the country code, like +1 555 555 0123.");
+        r.phone = ph;
+      }
+    }
+    if (args.channel) {
+      const { area, ...ways } = args.channel;
+      if (!AREAS.some((a) => a.key === area)) throw new ConvexError("That area isn't one The Shire knows.");
+      r.channels = { ...(r.channels ?? {}), [area]: ways };
+    }
     if (args.dailyCheckInHour !== undefined) {
       if (!Number.isInteger(args.dailyCheckInHour) || args.dailyCheckInHour < 0 || args.dailyCheckInHour > 23) {
         throw new ConvexError("Pick an hour from 0 to 23.");

@@ -85,6 +85,12 @@ export default defineSchema({
       /** Quiet hours, 0-23 in the person's time zone; only urgent heads-ups get through. */
       quietHoursStart: v.optional(v.number()),
       quietHoursEnd: v.optional(v.number()),
+      /** Where email reaches this person; the sign-in address when blank (2026-10-03). */
+      email: v.optional(v.string()),
+      /** A phone number for texts, with country code, like +15555550123. */
+      phone: v.optional(v.string()),
+      /** Per area of The Shire (push/channels.ts AREAS): which ways to reach them. Missing area: push only. */
+      channels: v.optional(v.record(v.string(), v.object({ push: v.boolean(), email: v.boolean(), text: v.boolean() }))),
     }),
     accessibility: v.object({
       textSize: v.union(v.literal("normal"), v.literal("large"), v.literal("larger")),
@@ -480,6 +486,26 @@ export default defineSchema({
     stuckNotifiedAt: v.optional(v.number()),
     visibility: v.optional(visibilityValidator),
   }).index("by_household", ["householdId"]),
+
+  /**
+   * "Remind me about this box" (2026-10-03, John's ask): one row per person
+   * per box. When the box hasn't been tended in `afterDays`, a reminder goes
+   * out at `hour` in the person's time zone by the ways they picked, once,
+   * or every day until it's tended.
+   */
+  ebReminders: defineTable({
+    profileId: v.id("profiles"),
+    householdId: v.id("ebHouseholds"),
+    categoryId: v.id("ebCategories"),
+    afterDays: v.number(),
+    hour: v.number(),
+    everyDay: v.boolean(),
+    channels: v.object({ push: v.boolean(), email: v.boolean(), text: v.boolean() }),
+    lastSentAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_category", ["categoryId"]),
 
   ebTendingEvents: defineTable({
     householdId: v.id("ebHouseholds"),

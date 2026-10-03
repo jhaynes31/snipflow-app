@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { firstName, partnerOf, type Me } from "../lib";
+import { areaFromUrl, channelsFor, type Channels } from "./channels";
 import { hourIn, isQuietHour } from "./pure";
 
 /**
@@ -19,21 +20,40 @@ export interface Notice {
   /** Same tag replaces an earlier notification instead of stacking. */
   tag?: string;
   urgent?: boolean;
+  /** The ways to send this one, instead of the person's choice for the area (Every Box reminders pass their own). */
+  channels?: Channels;
 }
 
+/**
+ * Sends by the ways this person chose for the area the link belongs to
+ * (Settings, Notifications): a push to their devices, an email, a text, or
+ * any mix. Push also needs "Notifications on". Quiet hours hold every way
+ * back unless it is urgent.
+ */
 export async function notify(ctx: MutationCtx, to: Id<"profiles">, n: Notice): Promise<boolean> {
   const p = await ctx.db.get(to);
-  if (!p || !p.reminders.pushEnabled) return false;
+  if (!p) return false;
   if (!n.urgent && isQuietHour(hourIn(p.timeZone), p.reminders.quietHoursStart, p.reminders.quietHoursEnd)) return false;
-  await ctx.scheduler.runAfter(0, internal.push.send.deliver, {
-    profileId: to,
-    title: n.title.slice(0, 80),
-    body: n.body.slice(0, 160),
-    url: n.url,
-    tag: n.tag,
-    urgent: n.urgent ?? false,
-  });
-  return true;
+  const chosen = n.channels ?? channelsFor(p.reminders.channels, areaFromUrl(n.url));
+  const title = n.title.slice(0, 80);
+  const body = n.body.slice(0, 160);
+  let sent = false;
+  if (chosen.push && p.reminders.pushEnabled) {
+    await ctx.scheduler.runAfter(0, internal.push.send.deliver, { profileId: to, title, body, url: n.url, tag: n.tag, urgent: n.urgent ?? false });
+    sent = true;
+  }
+  if (chosen.email) {
+    const address = p.reminders.email ?? (await ctx.db.get(p.userId))?.email ?? null;
+    if (address) {
+      await ctx.scheduler.runAfter(0, internal.push.email.deliver, { to: address, title, body, url: n.url });
+      sent = true;
+    }
+  }
+  if (chosen.text && p.reminders.phone) {
+    await ctx.scheduler.runAfter(0, internal.push.text.deliver, { to: p.reminders.phone, title, body, url: n.url });
+    sent = true;
+  }
+  return sent;
 }
 
 export async function notifyPartner(ctx: MutationCtx, me: Me, n: Notice): Promise<boolean> {

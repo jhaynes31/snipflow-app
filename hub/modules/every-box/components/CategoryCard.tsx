@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { computeFreshness, describeLastTended } from "@/convex/everyBox/freshness";
+import { computeFreshness, describeLastTended, lastDoneLine } from "@/convex/everyBox/freshness";
 import { stageVisual } from "@/convex/everyBox/themes";
 import { partnerNames, useEveryBox } from "./context";
 import { isTender, tenderIdsOf } from "@/convex/everyBox/tenders";
@@ -45,6 +45,7 @@ export function CategoryCard({ category, now }: Props) {
           </div>
         </div>
       </div>
+      <div className="eb-lastdone">{lastDoneLine(category.lastTendedAt, now)}</div>
       <FreshnessMeter theme={theme} stage={fresh.stage} />
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs eb-muted">{visual.flavor}</span>
