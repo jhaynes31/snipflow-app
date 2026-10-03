@@ -81,6 +81,8 @@ export interface Ring {
   exitSignals: string[]
   softCap?: number
   minTimeKnown?: string
+  /** Her own words for the layer's guide (timeline, rhythm, responsibilities, qualities). Missing fields use the suggested text. */
+  guide?: Partial<import('@/data/layerGuide').LayerGuide>
 }
 
 export interface RingMove {

@@ -393,3 +393,9 @@ a.chip { color: inherit; }
 .tl-dot-win { background: var(--sage); } .tl-dot-release { background: var(--gold); } .tl-dot-flag { background: var(--text-faint); } .tl-dot-comfort { background: var(--accent-soft); border: 2px solid var(--accent); }
 .big-check { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .big-check .btn { min-height: 64px; }
+
+/* Layer guide (2026-10-03) */
+.guide-list { margin: 6px 0 0; padding-left: 1.1rem; }
+.guide-list li + li { margin-top: 4px; }
+.guide-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .guide-two { grid-template-columns: 1fr; } }

@@ -57,9 +57,9 @@ export function CircleView() {
             {rings.length === 0 ? (
               <div className="card center"><p className="muted">No layers yet.</p><Link to="/circles/layers" className="btn btn-primary">Set up my layers</Link></div>
             ) : (
-              <RingMap rings={rings} people={placed} cues={cues} onOpen={(id) => nav(`/people/${id}`)} onMove={(id, to) => nav(`/circles/move/${id}?to=${encodeURIComponent(to)}`)} />
+              <RingMap rings={rings} people={placed} cues={cues} onOpen={(id) => nav(`/people/${id}`)} onMove={(id, to) => nav(`/circles/move/${id}?to=${encodeURIComponent(to)}`)} onRing={(id) => nav(`/circles/layers/${id}`)} />
             )}
-            <p className="help center">Tap a person to open them. Drag them to another ring to start a move.</p>
+            <p className="help center">Tap a person to open them. Drag them to another ring to start a move. Tap a ring itself to see what that layer means: what's safe to share, what to expect, and what moves someone closer.</p>
             <div className="row" style={{ justifyContent: 'center' }}>
               <Link to="/new-person" className="btn btn-sm btn-sage">I met someone</Link>
               <Link to="/circles/layers" className="btn btn-sm btn-ghost">My layers</Link>
@@ -131,7 +131,7 @@ export function Avatar({ person, size = 40 }: { person: Person; size?: number })
 /* ---------- the visual circle ---------- */
 const SIZE = 400, C = 200, ME_R = 30, PAD = 4
 
-function RingMap({ rings, people, cues, onOpen, onMove }: { rings: Ring[]; people: Person[]; cues: Record<string, { oneSided: boolean; watch: boolean }>; onOpen: (id: string) => void; onMove: (id: string, to: Placement) => void }) {
+function RingMap({ rings, people, cues, onOpen, onMove, onRing }: { rings: Ring[]; people: Person[]; cues: Record<string, { oneSided: boolean; watch: boolean }>; onOpen: (id: string) => void; onMove: (id: string, to: Placement) => void; onRing: (id: string) => void }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; startX: number; startY: number; moved: boolean } | null>(null)
   const w = (C - ME_R - PAD) / rings.length
@@ -194,8 +194,10 @@ function RingMap({ rings, people, cues, onOpen, onMove }: { rings: Ring[]; peopl
         const outer = ME_R + (i + 1) * w
         return (
           <g key={r.id}>
-            <circle cx={C} cy={C} r={outer} fill={r.color} stroke={hover === r.id ? 'var(--accent)' : 'var(--surface)'} strokeWidth={hover === r.id ? 3 : 1.5} />
-            <text x={C} y={C + outer - 6} textAnchor="middle" fontSize="10.5" fill="var(--text-soft)" fontWeight="700">{r.name}</text>
+            <circle cx={C} cy={C} r={outer} fill={r.color} stroke={hover === r.id ? 'var(--accent)' : 'var(--surface)'} strokeWidth={hover === r.id ? 3 : 1.5} style={{ cursor: 'pointer' }} role="button" tabIndex={0} aria-label={`${r.name}: what this layer means`} onClick={() => { if (!drag) onRing(r.id) }} onKeyDown={(e) => e.key === 'Enter' && onRing(r.id)}>
+              <title>{r.name}: tap to see what this layer means</title>
+            </circle>
+            <text x={C} y={C + outer - 6} textAnchor="middle" fontSize="10.5" fill="var(--text-soft)" fontWeight="700" style={{ pointerEvents: 'none' }}>{r.name}</text>
           </g>
         )
       })}

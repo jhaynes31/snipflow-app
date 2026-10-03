@@ -20,6 +20,7 @@ import { History } from '@/pages/History'
 import { SettingsPage } from '@/pages/Settings'
 import { AddPerson, CircleView, WhyCircles } from '@/pages/Circles'
 import { LayerEditor, LayersList, SetupRedirect } from '@/pages/Layers'
+import { LayerGuidePage } from '@/pages/LayerGuide'
 import { MoveReview } from '@/pages/MoveReview'
 import { FlagDetail, FlagLibrary, LogRedFlag } from '@/pages/Flags'
 import { LayerBoundaries } from '@/pages/LayerBoundaries'
@@ -89,7 +90,8 @@ export default function App() {
         <Route path="/circles/why" element={<WhyCircles />} />
         <Route path="/circles/add" element={<AddPerson />} />
         <Route path="/circles/layers" element={<LayersList />} />
-        <Route path="/circles/layers/:ringId" element={<LayerEditor />} />
+        <Route path="/circles/layers/:ringId" element={<LayerGuidePage />} />
+        <Route path="/circles/layers/:ringId/edit" element={<LayerEditor />} />
         <Route path="/circles/setup" element={<SetupRedirect />} />
         <Route path="/circles/move/:personId" element={<MoveReview />} />
         <Route path="/circles/flags" element={<FlagLibrary />} />

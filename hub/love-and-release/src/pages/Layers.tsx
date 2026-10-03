@@ -21,7 +21,7 @@ export function LayersList() {
   const addRing = async () => {
     const r: Ring = { id: newId(), name: 'New layer', order: rings.length, color: RING_COLORS[rings.length % RING_COLORS.length], meaning: '', access: [], expectations: [], entryCriteria: [], exitSignals: [] }
     await db.rings.add(r)
-    nav(`/circles/layers/${r.id}`)
+    nav(`/circles/layers/${r.id}/edit`)
   }
   const move = async (r: Ring, dir: -1 | 1) => {
     const idx = rings.indexOf(r)
@@ -55,6 +55,7 @@ export function LayersList() {
               </span>
             </div>
             {r.meaning && <div className="small muted" style={{ marginTop: 4 }}>{r.meaning}</div>}
+            <div className="row" style={{ marginTop: 6, gap: 6 }}><Link to={`/circles/layers/${r.id}`} className="btn btn-sm btn-ghost">What this layer means</Link><Link to={`/circles/layers/${r.id}/edit`} className="btn btn-sm btn-quiet">Edit</Link></div>
           </div>
         ))}
         {rings.length === 0 && <button type="button" className="btn btn-primary" onClick={restoreDefaultRings}>Restore the suggested layers</button>}
@@ -91,14 +92,14 @@ export function LayerEditor() {
   const nextRing = rings[idx + 1]
 
   const finish = () => {
-    if (setup && nextRing) { setStep(0); nav(`/circles/layers/${nextRing.id}?setup=1`) }
+    if (setup && nextRing) { setStep(0); nav(`/circles/layers/${nextRing.id}/edit?setup=1`) }
     else nav(setup ? '/circles' : '/circles/layers')
   }
   const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : finish())
   const back = () => (step > 0 ? setStep(step - 1) : nav(-1))
 
   return (
-    <Shell back="/circles/layers" hideNav action={setup ? <span className="faint">Layer {idx + 1} of {rings.length}</span> : undefined}>
+    <Shell back={`/circles/layers/${ring.id}`} hideNav action={setup ? <span className="faint">Layer {idx + 1} of {rings.length}</span> : undefined}>
       <div className="row mb"><span className="ring-swatch" style={{ background: ring.color }} /><strong>{ring.name}</strong></div>
       <Stepper step={step} total={STEPS.length} />
       <p className="question">{STEPS[step]}</p>
@@ -146,6 +147,6 @@ export function LayerEditor() {
 export function SetupRedirect() {
   const rings = useRings()
   const nav = useNavigate()
-  if (rings.length) { nav(`/circles/layers/${rings[0].id}?setup=1`, { replace: true }); return null }
+  if (rings.length) { nav(`/circles/layers/${rings[0].id}/edit?setup=1`, { replace: true }); return null }
   return <Shell back="/circles"><p className="faint">Loading…</p></Shell>
 }
