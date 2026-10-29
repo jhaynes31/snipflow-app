@@ -52,6 +52,7 @@ import type * as metamorphosis_tools from "../metamorphosis/tools.js";
 import type * as moduleHooks from "../moduleHooks.js";
 import type * as privacy from "../privacy.js";
 import type * as orchard_entries from "../orchard/entries.js";
+import type * as passwordReset from "../passwordReset.js";
 import type * as profiles from "../profiles.js";
 import type * as push_channelStatus from "../push/channelStatus.js";
 import type * as push_channels from "../push/channels.js";
@@ -147,6 +148,7 @@ declare const fullApi: ApiFromModules<{
   moduleHooks: typeof moduleHooks;
   privacy: typeof privacy;
   "orchard/entries": typeof orchard_entries;
+  passwordReset: typeof passwordReset;
   profiles: typeof profiles;
   "push/channelStatus": typeof push_channelStatus;
   "push/channels": typeof push_channels;

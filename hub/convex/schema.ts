@@ -115,6 +115,19 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_calendar_token", ["calendarToken"]),
 
+  /**
+   * A password reset code on its way (2026-10-29, Jen's ask after being
+   * locked out). Convex Auth keeps its own copy to check against; this one
+   * exists so the other person can read the code out when email isn't
+   * connected. Rows expire with the code.
+   */
+  passwordResets: defineTable({
+    email: v.string(),
+    code: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_email", ["email"]),
+
   /** One row per filled-in user-manual section. Each has its own privacy setting. */
   userManualSections: defineTable({
     ownerId: v.id("profiles"),

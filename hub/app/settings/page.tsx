@@ -156,6 +156,8 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      <HelpPartnerBackIn />
+
       <Card>
         <h2 className="sh-h2">On your phone&apos;s home screen</h2>
         <p className="sh-muted">
@@ -257,5 +259,32 @@ function InstallHint() {
         ? "In Safari, tap Share, then “Add to Home Screen”."
         : "In Chrome or Edge, open the browser menu and choose “Install app” or “Add to Home screen”."}
     </p>
+  );
+}
+
+/**
+ * When the other one of you asks for a password reset and email isn't
+ * connected yet, their six-digit code shows here for fifteen minutes
+ * (2026-10-29). Once email is connected, codes go to the inbox instead and
+ * this card only says so.
+ */
+function HelpPartnerBackIn() {
+  const reset = useQuery(api.passwordReset.forPartner);
+  if (!reset || !reset.partnerName) return null;
+  return (
+    <Card>
+      <h2 className="sh-h2">Help {reset.partnerName} back in</h2>
+      {reset.email ? (
+        <p className="sh-muted">If {reset.partnerName} forgets their password, &ldquo;Forgot your password?&rdquo; on the sign-in page emails them a code. Nothing to do here.</p>
+      ) : reset.code ? (
+        <>
+          <p className="sh-muted">{reset.partnerName} asked for a password reset. Read them this code; it works for fifteen minutes and only once, together with the new password they choose.</p>
+          <p className="sh-h1" style={{ letterSpacing: "0.2em", margin: "0.5rem 0" }}>{reset.code}</p>
+          <p className="sh-hint">Expires {new Date(reset.expiresAt ?? 0).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}. If they didn&apos;t ask for it, don&apos;t share it; nothing changes without the code.</p>
+        </>
+      ) : (
+        <p className="sh-muted">If {reset.partnerName} forgets their password, they tap &ldquo;Forgot your password?&rdquo; on the sign-in page, and their six-digit code shows up here for you to read out. Once email is connected under Notifications, codes go to their inbox instead.</p>
+      )}
+    </Card>
   );
 }
