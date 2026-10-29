@@ -721,3 +721,18 @@ export function verificationNote(facts: Facts, job: { title: string; employer: s
   if (qs.length === 0) return null;
   return `Hello,\n\nI'm interested in the ${job.title} role at ${job.employer}. Before I apply, could you help me with a few questions?\n\n${qs.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n\nThank you for your time.\n\n${name}`.trim();
 }
+
+// ---------- Whose search ----------
+
+/**
+ * Which search to show someone: the one they last chose when both are open
+ * to them, otherwise whichever one is. Null means neither, so they're
+ * offered a start.
+ */
+export function chooseSearch(o: { mine: boolean; partnerOpen: boolean; want?: "self" | "partner" }): "self" | "partner" | null {
+  if (o.want === "partner" && o.partnerOpen) return "partner";
+  if (o.want === "self" && o.mine) return "self";
+  if (o.partnerOpen && !o.mine) return "partner";
+  if (o.mine) return "self";
+  return null;
+}

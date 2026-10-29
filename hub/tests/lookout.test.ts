@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { INTAKE, MUST_HAVE_FOR_DOCUMENTS, nextQuestion } from "../convex/lookout/intake.ts";
-import { verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
-import { LETTER_SYSTEM, READABLE, readerSchema, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
+import { chooseSearch, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
+import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
 import { openFromPage, parseSource, titleFits, usFriendly } from "../convex/lookout/sources.ts";
 import { blocking, findDashes, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
 
@@ -265,13 +265,36 @@ describe("9 to 11. approval, preserved documents, accurate status", () => {
 });
 
 describe("12. his data can be deleted", () => {
-  it("closing the Lookout deletes every Lookout table", () => {
+  it("deleting a search clears every Lookout table", () => {
     const schema = readFileSync(new URL("../convex/schema.ts", import.meta.url), "utf8");
-    const rooms = readFileSync(new URL("../convex/rooms.ts", import.meta.url), "utf8");
+    const data = readFileSync(new URL("../convex/lookout/data.ts", import.meta.url), "utf8");
     const tables = [...schema.matchAll(/^ {2}(lo[A-Z]\w*): defineTable/gm)].map((m) => m[1]);
-    assert.ok(tables.length >= 7);
-    const line = rooms.split("\n").find((l) => l.trim().startsWith("lookout:"))!;
+    assert.ok(tables.length >= 8);
+    const line = data.split("\n").find((l) => l.includes("export const LOOKOUT_TABLES"))!;
     for (const t of tables) assert.ok(line.includes(`"${t}"`), t);
+  });
+});
+
+describe("both of them can reach a search", () => {
+  it("shows the partner's search when you have none, and yours when they have none", () => {
+    assert.equal(chooseSearch({ mine: false, partnerOpen: true }), "partner");
+    assert.equal(chooseSearch({ mine: true, partnerOpen: false }), "self");
+    assert.equal(chooseSearch({ mine: false, partnerOpen: false }), null);
+  });
+  it("remembers the choice when both are open, and never shows one that isn't", () => {
+    assert.equal(chooseSearch({ mine: true, partnerOpen: true, want: "partner" }), "partner");
+    assert.equal(chooseSearch({ mine: true, partnerOpen: true, want: "self" }), "self");
+    assert.equal(chooseSearch({ mine: true, partnerOpen: false, want: "partner" }), "self");
+  });
+});
+
+describe("resume upload", () => {
+  it("is told to copy only what the resume says, and its answers only cover what a resume can", () => {
+    assert.match(IMPORT_SYSTEM, /Never add, infer, round, or improve/);
+    const schema = importSchema() as { properties: { answers: { required: string[] } } };
+    assert.deepEqual(schema.properties.answers.required, [...RESUME_ANSWER_KEYS]);
+    for (const k of RESUME_ANSWER_KEYS) assert.ok(INTAKE.some((q) => q.key === k), k);
+    assert.ok(!(RESUME_ANSWER_KEYS as readonly string[]).includes("disclose"));
   });
 });
 

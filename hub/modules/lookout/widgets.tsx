@@ -9,7 +9,7 @@ import { api } from "@/convex/_generated/api";
 export function LookoutToday() {
   const [now] = useState(() => Date.now());
   const status = useQuery(api.lookout.data.status);
-  const open = status?.state === "mine" || status?.state === "helping";
+  const open = !!status?.viewing;
   const data = useQuery(api.lookout.data.jobs, open ? {} : "skip");
   if (!open || !data) return null;
   const soon = data.events.filter((e) => e.kind === "interview" && e.at && e.at - now < 36 * 3600000 && e.at > now - 3600000);

@@ -107,15 +107,20 @@ export const recheck = action({
 export const tick = internalAction({
   args: {},
   handler: async (ctx) => {
-    const ownerId = await ctx.runQuery(internal.lookout.data.scheduledOwner, {});
-    if (!ownerId) return;
-    const result = await search(ctx, ownerId, false);
-    const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId });
-    for (const j of jobs) await recheckOne(ctx, j);
-    const strong: number = await ctx.runQuery(internal.lookout.data.strongNew, { ownerId });
-    // One quiet note, only when there's something worth opening.
-    if (result.fresh > 0 && strong > 0) {
-      await ctx.runMutation(internal.push.notify.send, { profileId: ownerId, title: "The Lookout found something", body: strong === 1 ? "One new job looks like a strong match." : `${strong} new jobs look like strong matches.`, url: "/lookout", tag: "lookout-digest" });
+    const owners: Id<"profiles">[] = await ctx.runQuery(internal.lookout.data.scheduledOwners, {});
+    for (const ownerId of owners) {
+      try {
+        const result = await search(ctx, ownerId, false);
+        const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId });
+        for (const j of jobs) await recheckOne(ctx, j);
+        const strong: number = await ctx.runQuery(internal.lookout.data.strongNew, { ownerId });
+        // One quiet note, only when there's something worth opening.
+        if (result.fresh > 0 && strong > 0) {
+          await ctx.runMutation(internal.push.notify.send, { profileId: ownerId, title: "The Lookout found something", body: strong === 1 ? "One new job looks like a strong match." : `${strong} new jobs look like strong matches.`, url: "/lookout", tag: "lookout-digest" });
+        }
+      } catch (err) {
+        console.error("Lookout: scheduled search failed", err instanceof Error ? err.message : err);
+      }
     }
   },
 });

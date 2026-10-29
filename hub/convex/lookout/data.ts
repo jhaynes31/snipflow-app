@@ -4,24 +4,27 @@ import { internalMutation, internalQuery, mutation, query, type MutationCtx } fr
 import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
-import { dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
+import { chooseSearch, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
 import { DEFAULT_SOURCES } from "./sources";
 import { blocking, findDashes, profileText, reviewDocument, scrubDashes } from "./writing";
 
 /**
- * The Lookout: a personal recruiter for one person looking for work.
+ * The Lookout: a personal recruiter for the person looking for work.
  *
- * Access. It is a one-person room (module id "lookout" in moduleOwners):
- * whoever is looking for work claims it. He can then let his partner help.
- * A helper sees and edits everything, with three exceptions that stay his
- * alone: approving an application, the privacy settings, and deleting or
- * exporting his data. Every row's ownerId is his, whoever wrote it.
+ * Access. Each person can have one search, and either can start one for
+ * the other. The partner sees and helps with a search by default (Jen,
+ * 2026-10-29: she helps John with his); its owner can turn that off. A
+ * helper sees and edits everything, with these exceptions that stay the
+ * owner's: approving an application, confirming history and answers, the
+ * privacy settings, and exporting or deleting the search. Every row's
+ * ownerId is the search owner's, whoever wrote it.
  *
  * Truth. Facts about a job carry their source. Only a person's check marks
  * one "verified". Documents are drafted only from his confirmed history and
  * interview answers, and every saved document is scrubbed of dashes and
  * reviewed against that history before it can be approved.
  */
+// Before searches were per person, the Lookout was a claimed room; that claim still counts as a search.
 const ROOM = "lookout";
 
 export interface Access {
@@ -34,22 +37,43 @@ async function settingsOf(ctx: Ctx, ownerId: Id<"profiles">): Promise<Doc<"loSet
   return await ctx.db.query("loSettings").withIndex("by_owner", (q) => q.eq("ownerId", ownerId)).first();
 }
 
+/** Whether this person has a search: a settings row, or the old room claim. */
+async function hasSearch(ctx: Ctx, profileId: Id<"profiles">): Promise<boolean> {
+  if (await settingsOf(ctx, profileId)) return true;
+  const claim = await roomOwnerOf(ctx, ROOM);
+  return claim?.ownerId === profileId;
+}
+
+/** The partner may see and help with a search unless its owner turned that off. On by default. */
+export function partnerMayHelp(row: Doc<"loSettings"> | null): boolean {
+  return row?.partnerAccess ?? true;
+}
+
+type Viewing = "self" | "partner";
+function viewingOf(me: Me): Viewing | undefined {
+  const v = (me.profile.moduleSettings as Record<string, { viewing?: Viewing } | undefined> | undefined)?.lookout?.viewing;
+  return v === "self" || v === "partner" ? v : undefined;
+}
+
+/**
+ * Which search the signed-in person is looking at, and as whom. Each person
+ * can have a search of their own, and can help with the partner's. When
+ * both are open to them, the last one they chose is shown.
+ */
 export async function lookoutAccess(ctx: Ctx): Promise<Access | null> {
   const me = await requireMe(ctx);
-  const owner = await roomOwnerOf(ctx, ROOM);
-  if (!owner) return null;
-  if (owner.ownerId === me.profile._id) return { me, ownerId: owner.ownerId, role: "owner" };
-  if (me.partner && owner.ownerId === me.partner._id) {
-    const s = await settingsOf(ctx, owner.ownerId);
-    if (s?.helper) return { me, ownerId: owner.ownerId, role: "helper" };
-  }
+  const mine = await hasSearch(ctx, me.profile._id);
+  const theirs = me.partner && (await hasSearch(ctx, me.partner._id)) && partnerMayHelp(await settingsOf(ctx, me.partner._id)) ? me.partner : null;
+  const pick = chooseSearch({ mine, partnerOpen: !!theirs, want: viewingOf(me) });
+  if (pick === "partner" && theirs) return { me, ownerId: theirs._id, role: "helper" };
+  if (pick === "self") return { me, ownerId: me.profile._id, role: "owner" };
   return null;
 }
 
 export async function requireLookout(ctx: Ctx, ownerOnly = false): Promise<Access> {
   const a = await lookoutAccess(ctx);
   if (!a) throw new ConvexError("The Lookout isn't open to you.");
-  if (ownerOnly && a.role !== "owner") throw new ConvexError("Only the person looking for work can do this.");
+  if (ownerOnly && a.role !== "owner") throw new ConvexError("Only the person this search is for can do this.");
   return a;
 }
 
@@ -58,8 +82,8 @@ async function ensureSettings(ctx: MutationCtx, ownerId: Id<"profiles">): Promis
   if (row) return row;
   const id = await ctx.db.insert("loSettings", {
     ownerId,
-    visibility: "private",
-    helper: false,
+    visibility: "shared",
+    partnerAccess: true,
     minHourly: DEFAULT_REQUIREMENTS.minHourly,
     maxHours: DEFAULT_REQUIREMENTS.maxHours,
     homeState: DEFAULT_REQUIREMENTS.homeState,
@@ -75,7 +99,7 @@ async function ensureSettings(ctx: MutationCtx, ownerId: Id<"profiles">): Promis
 
 function settingsView(row: Doc<"loSettings"> | null) {
   return {
-    helper: row?.helper ?? false,
+    partnerAccess: partnerMayHelp(row),
     minHourly: row?.minHourly ?? DEFAULT_REQUIREMENTS.minHourly,
     maxHours: row?.maxHours ?? DEFAULT_REQUIREMENTS.maxHours,
     homeState: row?.homeState ?? DEFAULT_REQUIREMENTS.homeState,
@@ -109,17 +133,94 @@ function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile
   return rank(job.facts as Facts, { req: { minHourly: s.minHourly, maxHours: s.maxHours, homeState: s.homeState }, weights: s.weights, jobText: `${job.title}\n${job.description}`, profileText: profile });
 }
 
-// ---------- The room ----------
+// ---------- Whose search ----------
 
 export const status = query({
   args: {},
   handler: async (ctx) => {
     const me = await requireMe(ctx);
-    const owner = await roomOwnerOf(ctx, ROOM);
-    if (!owner) return { state: "unclaimed" as const, ownerName: null, partnerName: me.partner?.displayName ?? null };
-    if (owner.ownerId === me.profile._id) return { state: "mine" as const, ownerName: me.profile.displayName, partnerName: me.partner?.displayName ?? null };
-    const s = await settingsOf(ctx, owner.ownerId);
-    return { state: s?.helper ? ("helping" as const) : ("theirs" as const), ownerName: me.partner?.displayName ?? "your partner", partnerName: me.profile.displayName };
+    const a = await lookoutAccess(ctx);
+    const mine = await hasSearch(ctx, me.profile._id);
+    const partnerHas = me.partner ? await hasSearch(ctx, me.partner._id) : false;
+    const partnerOpen = partnerHas && partnerMayHelp(me.partner ? await settingsOf(ctx, me.partner._id) : null);
+    return {
+      myName: me.profile.displayName,
+      partnerName: me.partner?.displayName ?? null,
+      mine,
+      partnerHas,
+      partnerOpen,
+      viewing: a ? (a.role === "owner" ? ("self" as const) : ("partner" as const)) : null,
+      ownerName: a ? (a.role === "owner" ? me.profile.displayName : me.partner?.displayName ?? "your partner") : null,
+    };
+  },
+});
+
+/** Start a search, for yourself or for your partner. A search for the partner is theirs from the start. */
+export const start = mutation({
+  args: { forWhom: v.union(v.literal("self"), v.literal("partner")) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    const target = args.forWhom === "self" ? me.profile._id : me.partner?._id;
+    if (!target) throw new ConvexError("Your partner hasn't signed in yet. They need to sign in once first.");
+    if (!(await settingsOf(ctx, target))) await ensureSettings(ctx, target);
+    await setViewingFor(ctx, me, args.forWhom);
+  },
+});
+
+async function setViewingFor(ctx: MutationCtx, me: Me, viewing: Viewing) {
+  const settings = { ...((me.profile.moduleSettings as Record<string, unknown> | undefined) ?? {}) };
+  settings.lookout = { ...((settings.lookout as Record<string, unknown> | undefined) ?? {}), viewing };
+  await ctx.db.patch(me.profile._id, { moduleSettings: settings });
+}
+
+/** Switch between your own search and your partner's. */
+export const setViewing = mutation({
+  args: { viewing: v.union(v.literal("self"), v.literal("partner")) },
+  handler: async (ctx, args) => {
+    const me = await requireMe(ctx);
+    await setViewingFor(ctx, me, args.viewing);
+  },
+});
+
+/** Every Lookout table. Deleting a search clears its rows from all of them. */
+export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports"] as const;
+
+/** Delete the search you own and everything in it. Only its owner can. */
+export const deleteMySearch = mutation({
+  args: { confirm: v.literal("delete") },
+  handler: async (ctx) => {
+    const a = await requireLookout(ctx, true);
+    for (const table of LOOKOUT_TABLES) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) if (row.ownerId === a.ownerId) await ctx.db.delete(row._id);
+    }
+    const claim = await roomOwnerOf(ctx, ROOM);
+    if (claim && claim.ownerId === a.ownerId) await ctx.db.delete(claim._id);
+  },
+});
+
+/**
+ * Hand a search you own to your partner, with everything in it: for when it
+ * was started on the wrong account. Only when the partner has none.
+ */
+export const giveToPartner = mutation({
+  args: { confirm: v.literal("give") },
+  handler: async (ctx) => {
+    const a = await requireLookout(ctx, true);
+    const partner = a.me.partner;
+    if (!partner) throw new ConvexError("Your partner hasn't signed in yet.");
+    if (await hasSearch(ctx, partner._id)) throw new ConvexError("Your partner already has a search of their own.");
+    await ensureSettings(ctx, a.ownerId);
+    for (const table of LOOKOUT_TABLES) {
+      const rows = await ctx.db.query(table).collect();
+      for (const row of rows) if (row.ownerId === a.ownerId) await ctx.db.patch(row._id, { ownerId: partner._id });
+    }
+    const claim = await roomOwnerOf(ctx, ROOM);
+    if (claim && claim.ownerId === a.ownerId) await ctx.db.delete(claim._id);
+    // Answers and history move as written; the new owner confirms them.
+    for (const r of await ctx.db.query("loRoles").withIndex("by_owner", (q) => q.eq("ownerId", partner._id)).collect()) await ctx.db.patch(r._id, { confirmed: false });
+    for (const r of await ctx.db.query("loAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", partner._id)).collect()) await ctx.db.patch(r._id, { confirmed: false });
+    await setViewingFor(ctx, a.me, "partner");
   },
 });
 
@@ -138,7 +239,7 @@ const sourceV = v.object({ kind: v.string(), token: v.string(), name: v.string()
 
 export const setSettings = mutation({
   args: {
-    helper: v.optional(v.boolean()),
+    partnerAccess: v.optional(v.boolean()),
     allowHealthDisclosure: v.optional(v.boolean()),
     minHourly: v.optional(v.number()),
     maxHours: v.optional(v.number()),
@@ -149,11 +250,11 @@ export const setSettings = mutation({
     sources: v.optional(v.array(sourceV)),
   },
   handler: async (ctx, args) => {
-    const privacy = args.helper !== undefined || args.allowHealthDisclosure !== undefined;
+    const privacy = args.partnerAccess !== undefined || args.allowHealthDisclosure !== undefined;
     const a = await requireLookout(ctx, privacy);
     const row = await ensureSettings(ctx, a.ownerId);
     const patch: Partial<Doc<"loSettings">> = { updatedAt: Date.now() };
-    if (args.helper !== undefined) patch.helper = args.helper;
+    if (args.partnerAccess !== undefined) patch.partnerAccess = args.partnerAccess;
     if (args.allowHealthDisclosure !== undefined) patch.allowHealthDisclosure = args.allowHealthDisclosure;
     if (args.minHourly !== undefined) {
       if (!Number.isFinite(args.minHourly) || args.minHourly < 7.25 || args.minHourly > 500) throw new ConvexError("Minimum pay is dollars per hour, from 7.25 to 500.");
@@ -208,10 +309,13 @@ export const saveAnswer = mutation({
 
 // ---------- Work history ----------
 
+/** A month and year (2019-03), or a year alone (2019) when that's all a resume says. */
+export const DATE_RE = /^\d{4}(-(0[1-9]|1[0-2]))?$/;
 const ym = (s: string | undefined, label: string) => {
-  if (s === undefined || s === "") return undefined;
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(s)) throw new ConvexError(`${label} is a month and year.`);
-  return s;
+  if (s === undefined || s.trim() === "") return undefined;
+  const t = s.trim();
+  if (!DATE_RE.test(t)) throw new ConvexError(`${label} is a year, or a month and year, like 2019 or 2019-03.`);
+  return t;
 };
 
 export const roles = query({
@@ -238,8 +342,8 @@ const roleFields = {
 };
 
 function cleanRole(args: { employer: string; title: string; start: string; end?: string; location?: string; channels: string[]; duties: string; achievements: string; tools: string; leftNote?: string; sales: boolean }) {
-  const start = ym(args.start, "Start")!;
-  if (!start) throw new ConvexError("Start is a month and year.");
+  const start = ym(args.start, "Start");
+  if (!start) throw new ConvexError("Add when the job started: a year, or a month and year.");
   const end = ym(args.end, "End");
   if (end && end < start) throw new ConvexError("The end is before the start.");
   return {
@@ -283,6 +387,7 @@ export const confirmRole = mutation({
     const a = await requireLookout(ctx, true);
     const row = await ctx.db.get(args.id);
     if (!row || row.ownerId !== a.ownerId) throw new ConvexError("That job isn't here.");
+    if (!DATE_RE.test(row.start)) throw new ConvexError("Add when this job started before confirming it.");
     await ctx.db.patch(args.id, { confirmed: true, updatedAt: Date.now() });
   },
 });
@@ -594,7 +699,7 @@ export const exportAll = query({
   args: {},
   handler: async (ctx) => {
     const a = await requireLookout(ctx, true);
-    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
+    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
     return {
       exportedAt: new Date().toISOString(),
       settings: settingsView(await settingsOf(ctx, a.ownerId)),
@@ -604,6 +709,7 @@ export const exportAll = query({
       documents: await by("loDocs"),
       applications: await by("loApplications"),
       events: await by("loEvents"),
+      resumeImports: await by("loImports"),
     };
   },
 });
@@ -670,23 +776,21 @@ export const searchPlan = internalQuery({
   handler: async (ctx, args) => {
     let ownerId = args.ownerId;
     if (!ownerId) ownerId = (await requireLookout(ctx)).ownerId;
-    const owner = await roomOwnerOf(ctx, ROOM);
-    if (!owner || owner.ownerId !== ownerId) return null;
+    if (!(await hasSearch(ctx, ownerId))) return null;
     const s = settingsView(await settingsOf(ctx, ownerId));
     return { ownerId, settings: s };
   },
 });
 
-export const scheduledOwner = internalQuery({
+/** Everyone whose scheduled search is due. */
+export const scheduledOwners = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const owner = await roomOwnerOf(ctx, ROOM);
-    if (!owner) return null;
-    const s = await settingsOf(ctx, owner.ownerId);
-    if (!s || s.frequency === "off") return null;
-    const gap = s.frequency === "daily" ? 20 * 3600000 : 6.5 * 86400000;
-    if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return null;
-    return owner.ownerId;
+    const rows = await ctx.db.query("loSettings").collect();
+    return rows
+      .filter((s) => s.frequency !== "off")
+      .filter((s) => !s.lastSearchAt || Date.now() - s.lastSearchAt >= (s.frequency === "daily" ? 20 * 3600000 : 6.5 * 86400000))
+      .map((s) => s.ownerId);
   },
 });
 
@@ -756,5 +860,93 @@ export const strongNew = internalQuery({
     const profile = await profileSource(ctx, args.ownerId);
     const rows = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", args.ownerId).eq("status", "new")).collect();
     return rows.filter((j) => Date.now() - j.discoveredAt < 86400000).map((j) => rankJob(j, s, profile)).filter((r) => r.verdict !== "rejected" && (r.score ?? 0) >= 60).length;
+  },
+});
+
+// ---------- Resume upload ----------
+
+/** A one-time address to upload a resume PDF to. The file is read once and then deleted. */
+export const uploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireLookout(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/** Only a PDF uploaded in the last half hour is read (and then deleted), never another stored file. */
+export const freshUpload = internalQuery({
+  args: { id: v.id("_storage") },
+  handler: async (ctx, args) => {
+    await requireLookout(ctx);
+    const meta = await ctx.db.system.get(args.id);
+    return !!meta && meta.contentType === "application/pdf" && Date.now() - meta._creationTime < 30 * 60000;
+  },
+});
+
+export const imports = query({
+  args: {},
+  handler: async (ctx) => {
+    const a = await requireLookout(ctx);
+    return (await ctx.db.query("loImports").withIndex("by_owner", (q) => q.eq("ownerId", a.ownerId)).collect()).sort((x, y) => y.importedAt - x.importedAt);
+  },
+});
+
+const importedRoleV = v.object({ employer: v.string(), title: v.string(), start: v.string(), end: v.string(), location: v.string(), channels: v.array(v.string()), duties: v.array(v.string()), achievements: v.array(v.string()), tools: v.array(v.string()), sales: v.boolean() });
+
+/**
+ * What was read from an uploaded resume goes in as drafts: every job and
+ * answer waits for the owner to check and confirm it, even when the owner
+ * uploaded it, because reading a resume can misread one. Nothing already
+ * there is overwritten: a job that's already in the history is skipped, and
+ * only unanswered interview questions are filled in.
+ */
+export const saveImport = internalMutation({
+  args: { fileName: v.string(), roles: v.array(importedRoleV), answers: v.array(v.object({ key: v.string(), answer: v.string() })), notes: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const now = Date.now();
+    const existing = await ctx.db.query("loRoles").withIndex("by_owner", (q) => q.eq("ownerId", a.ownerId)).collect();
+    const same = (x: string, y: string) => x.trim().toLowerCase() === y.trim().toLowerCase();
+    let rolesAdded = 0;
+    const notes = [...args.notes];
+    for (const r of args.roles.slice(0, 30)) {
+      if (!r.employer.trim() || !r.title.trim()) continue;
+      if (existing.some((e) => same(e.employer, r.employer) && same(e.title, r.title))) continue;
+      const start = DATE_RE.test(r.start.trim()) ? r.start.trim() : "";
+      const end = DATE_RE.test(r.end.trim()) ? r.end.trim() : undefined;
+      if (!start) notes.push(`${r.title} at ${r.employer}: the start date wasn't clear on the resume. Add it on Work history.`);
+      await ctx.db.insert("loRoles", {
+        ownerId: a.ownerId,
+        visibility: "private",
+        employer: r.employer.trim().slice(0, 120),
+        title: r.title.trim().slice(0, 120),
+        start,
+        end,
+        location: r.location.trim().slice(0, 120) || undefined,
+        channels: r.channels.slice(0, 10).map((c) => c.slice(0, 40)),
+        duties: r.duties.map((d) => d.trim()).filter(Boolean).join("\n").slice(0, 6000),
+        achievements: r.achievements.map((d) => d.trim()).filter(Boolean).join("\n").slice(0, 6000),
+        tools: r.tools.map((d) => d.trim()).filter(Boolean).join(", ").slice(0, 2000),
+        sales: r.sales,
+        confirmed: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+      rolesAdded++;
+    }
+    let answersAdded = 0;
+    for (const x of args.answers) {
+      if (!INTAKE.some((q) => q.key === x.key) || x.key === "disclose") continue;
+      const answer = x.answer.trim().slice(0, 6000);
+      if (!answer) continue;
+      const row = await ctx.db.query("loAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", a.ownerId).eq("key", x.key)).first();
+      if (row?.answer.trim()) continue;
+      if (row) await ctx.db.patch(row._id, { answer, skipped: false, confirmed: false, updatedAt: now });
+      else await ctx.db.insert("loAnswers", { ownerId: a.ownerId, visibility: "private", key: x.key, answer, skipped: false, confirmed: false, updatedAt: now });
+      answersAdded++;
+    }
+    await ctx.db.insert("loImports", { ownerId: a.ownerId, visibility: "private", fileName: args.fileName.slice(0, 200), rolesAdded, answersAdded, notes: notes.slice(0, 20).map((n) => n.slice(0, 400)), importedAt: now });
+    return { rolesAdded, answersAdded, notes };
   },
 });
