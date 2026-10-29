@@ -7,6 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { CHANNELS } from "@/convex/lookout/intake";
 import { monthYear } from "@/convex/lookout/writing";
 import { Btn, Card, ErrorNote, Field, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
+import { ResumeUpload } from "../ResumeUpload";
 
 const EMPTY = { employer: "", title: "", start: "", end: "", location: "", channels: [] as string[], duties: "", achievements: "", tools: "", leftNote: "", sales: false };
 type Form = typeof EMPTY;
@@ -17,6 +18,7 @@ type Form = typeof EMPTY;
  */
 export function History() {
   const roles = useQuery(api.lookout.data.roles);
+  const status = useQuery(api.lookout.data.status);
   const settings = useQuery(api.lookout.data.settings);
   const add = useMutation(api.lookout.data.addRole);
   const update = useMutation(api.lookout.data.updateRole);
@@ -25,7 +27,7 @@ export function History() {
   const { busy, error, run } = useAction();
   const [editing, setEditing] = useState<Id<"loRoles"> | "new" | null>(null);
   const [f, setF] = useState<Form>(EMPTY);
-  if (!roles || !settings) return <Spinner />;
+  if (!roles || !settings || !status) return <Spinner />;
   const owner = settings.role === "owner";
 
   function open(id: Id<"loRoles"> | "new") {
@@ -48,8 +50,8 @@ export function History() {
         <Field label="Employer"><input className="sh-input" value={f.employer} maxLength={120} onChange={(e) => setF({ ...f, employer: e.target.value })} /></Field>
         <Field label="Job title, as it was"><input className="sh-input" value={f.title} maxLength={120} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
         <div className="sh-row sh-wrap">
-          <Field label="Started (month)"><input className="sh-input" type="month" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
-          <Field label="Ended (blank if current)"><input className="sh-input" type="month" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
+          <Field label="Started" hint="Year and month, like 2019-03, or just the year."><input className="sh-input sh-input-sm" inputMode="numeric" value={f.start} maxLength={7} placeholder="2019-03" onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
+          <Field label="Ended" hint="Blank if it's current."><input className="sh-input sh-input-sm" inputMode="numeric" value={f.end} maxLength={7} placeholder="2024-11" onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
         </div>
         <Field label="Location (optional)" hint="For example: Remote, or Charleston, West Virginia."><input className="sh-input" value={f.location} maxLength={120} onChange={(e) => setF({ ...f, location: e.target.value })} /></Field>
         <div>
@@ -79,15 +81,17 @@ export function History() {
     <div className="sh-container sh-narrow">
       <PageTitle title="Work history" subtitle="Every job, as it really was. Resumes take employers, titles, and dates from here exactly." action={editing ? undefined : <Btn onClick={() => open("new")}>Add a job</Btn>} />
       {editing && form}
+      {!editing && <ResumeUpload owner={owner} ownerName={status.ownerName ?? "them"} />}
       <Card>
         {roles.length === 0 && <p className="sh-muted">No jobs yet. Start with the most recent.</p>}
         {roles.map((r) => (
           <div key={r._id} className="lo-entry">
-            <p><strong>{r.title}</strong>, {r.employer} <span className="sh-muted">· {monthYear(r.start)} to {monthYear(r.end)}{r.sales ? " · sales" : ""}</span></p>
+            <p><strong>{r.title}</strong>, {r.employer} <span className="sh-muted">· {r.start ? `${monthYear(r.start)} to ${monthYear(r.end)}` : "start date needed"}{r.sales ? " · sales" : ""}</span></p>
             {r.channels.length > 0 && <p className="sh-hint">{r.channels.join(", ")}</p>}
             {r.duties && <p style={{ whiteSpace: "pre-wrap" }}>{r.duties}</p>}
             {r.achievements && <p style={{ whiteSpace: "pre-wrap" }} className="sh-hint">{r.achievements}</p>}
             <div className="sh-row sh-wrap">
+              {!r.confirmed && <span className="sh-hint">Draft: check it, then confirm.</span>}
               {r.confirmed ? <span className="lo-verified">Confirmed</span> : owner ? <Btn variant="secondary" disabled={busy} onClick={() => void run(() => confirm({ id: r._id }))}>Confirm it&apos;s right</Btn> : <span className="sh-hint">Waiting for confirmation</span>}
               <button type="button" className="sh-link" onClick={() => open(r._id)}>Change</button>
               <button type="button" className="sh-link" disabled={busy} onClick={() => { if (window.confirm(`Remove ${r.title} at ${r.employer}?`)) void run(() => remove({ id: r._id })); }}>Remove</button>

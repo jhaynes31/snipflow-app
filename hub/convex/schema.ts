@@ -1515,15 +1515,17 @@ export default defineSchema({
   }).index("by_owner_time", ["ownerId", "createdAt"]),
 
   // ---------- The Lookout (job search for one person; docs/lookout-spec.md) ----------
-  // Every row's ownerId is the person looking for work (the room's owner),
-  // even when their partner helps and writes it. Release deletes them all.
+  // Every row's ownerId is the person the search is for, even when their
+  // partner helps and writes it. Each person can have one search.
 
   /** His settings: hard requirements, ranking weights, sources, helper access. */
   loSettings: defineTable({
     ownerId: v.id("profiles"),
     visibility: visibilityValidator,
-    /** Whether the partner may help: see and edit everything except approval and deletion. */
-    helper: v.boolean(),
+    /** Old switch from before partner access was on by default; no longer read. */
+    helper: v.optional(v.boolean()),
+    /** Whether the partner may see and help: edit everything except approval, privacy, and deletion. Absent means yes. */
+    partnerAccess: v.optional(v.boolean()),
     minHourly: v.number(),
     maxHours: v.number(),
     homeState: v.string(),
@@ -1631,6 +1633,17 @@ export default defineSchema({
     submittedAt: v.optional(v.number()),
     confirmation: v.optional(v.string()),
   }).index("by_job", ["jobId"]),
+
+  /** A resume uploaded to fill in the profile: what was read from it and what it added. */
+  loImports: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    fileName: v.string(),
+    rolesAdded: v.number(),
+    answersAdded: v.number(),
+    notes: v.array(v.string()),
+    importedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
 
   /** Interviews, follow ups, and notes on a job, with a date when there is one. */
   loEvents: defineTable({

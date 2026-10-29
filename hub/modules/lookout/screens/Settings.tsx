@@ -14,7 +14,8 @@ export function LookoutSettings() {
   const s = useQuery(api.lookout.data.settings);
   const status = useQuery(api.lookout.data.status);
   const set = useMutation(api.lookout.data.setSettings);
-  const release = useMutation(api.rooms.release);
+  const deleteSearch = useMutation(api.lookout.data.deleteMySearch);
+  const give = useMutation(api.lookout.data.giveToPartner);
   const convex = useConvex();
   const router = useRouter();
   const { busy, error, run } = useAction();
@@ -91,7 +92,7 @@ export function LookoutSettings() {
         <h2 className="sh-h2">Privacy</h2>
         {owner ? (
           <>
-            <Toggle checked={s.helper} onChange={(helper) => void run(async () => { await set({ helper }); done(); })} label={`Let ${status.partnerName ?? "your partner"} help`} hint="They can add jobs, check facts, and edit drafts. Answers and history they write wait for your confirmation. Approving, privacy, and deleting stay yours." />
+            <Toggle checked={s.partnerAccess} onChange={(partnerAccess) => void run(async () => { await set({ partnerAccess }); done(); })} label={`${status.partnerName ?? "Your partner"} can see and help with this search`} hint="On unless you turn it off. They can add jobs, check facts, upload a resume, and edit drafts. Answers and history they write wait for your confirmation. Approving, privacy, and deleting stay yours." />
             <Toggle checked={s.allowHealthDisclosure} onChange={(allowHealthDisclosure) => void run(async () => { await set({ allowHealthDisclosure }); done(); })} label="Allow health or accommodation details in applications" hint="Off means they never appear in a resume, letter, or answer, and the checker blocks any document that mentions them." />
           </>
         ) : (
@@ -101,12 +102,18 @@ export function LookoutSettings() {
 
       {owner && (
         <Card>
-          <h2 className="sh-h2">Your data</h2>
+          <h2 className="sh-h2">This search&apos;s data</h2>
           <p className="sh-hint">Everything here is stored in The Shire&apos;s private database, reachable only through signed in functions that check it&apos;s yours. Job listings are fetched from public posting pages; your profile is sent to the writing model only to draft your documents.</p>
           <div className="sh-row sh-wrap">
             <Btn variant="secondary" disabled={busy} onClick={() => void run(async () => { const all = await convex.query(api.lookout.data.exportAll, {}); download(new Blob([JSON.stringify(all, null, 2)], { type: "application/json" }), `lookout_${new Date().toISOString().slice(0, 10)}.json`); })}>Download everything</Btn>
-            <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Delete everything in the Lookout: the interview, work history, every job, document, and application record? This can't be undone.")) void run(async () => { await release({ moduleId: "lookout", confirm: "release" }); router.push("/"); }); }}>Delete everything and close the Lookout</Btn>
+            <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Delete everything in this search: the interview, work history, every job, document, and application record? This can't be undone.")) void run(async () => { await deleteSearch({ confirm: "delete" }); router.push("/"); }); }}>Delete this search and everything in it</Btn>
           </div>
+          {status.partnerName && !status.partnerHas && (
+            <div className="lo-entry">
+              <p className="sh-hint">Started this search on the wrong account? It can become {status.partnerName}&apos;s, with everything in it. {status.partnerName} will then confirm the history and answers.</p>
+              <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Give this whole search to ${status.partnerName}? You'll still be able to see and help with it.`)) void run(async () => { await give({ confirm: "give" }); done(); }); }}>Give this search to {status.partnerName}</Btn>
+            </div>
+          )}
         </Card>
       )}
     </div>

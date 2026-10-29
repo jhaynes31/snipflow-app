@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Briefcase, History, LayoutDashboard, MessageSquareText, Plus, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
-import { Btn, Card, ErrorNote, LinkBtn, Spinner, useAction } from "@/core/ui";
+import { Btn, Card, ErrorNote, Spinner, useAction } from "@/core/ui";
 import "./lookout.css";
 
 export const LOOKOUT = "/lookout";
@@ -20,50 +20,55 @@ const NAV = [
 ];
 
 /**
- * The Lookout's frame and its gate. One person's room: whoever is looking
- * for work claims it, and can let the other account help. Every function
- * behind these screens checks the same thing on the server (convex/lookout/data.ts).
+ * The Lookout's frame and its gate. Each person can have one search; the
+ * partner sees and helps with it unless its owner turned that off. When
+ * both searches are open to someone, a switch picks which one is shown.
+ * Every function behind these screens checks the same thing on the server
+ * (convex/lookout/data.ts).
  */
 export function LookoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const status = useQuery(api.lookout.data.status);
-  const claim = useMutation(api.rooms.claim);
+  const start = useMutation(api.lookout.data.start);
+  const setViewing = useMutation(api.lookout.data.setViewing);
   const { busy, error, run } = useAction();
 
   if (!status) return <Spinner />;
-  if (status.state === "theirs") {
-    return (
-      <div className="sh-container sh-narrow">
-        <Card>
-          <p>The Lookout is {status.ownerName}&apos;s. If {status.ownerName} would like your help, it can be turned on in its Settings.</p>
-          <LinkBtn href="/" variant="ghost">Back home</LinkBtn>
-        </Card>
-      </div>
-    );
-  }
-  if (status.state === "unclaimed") {
+  const partner = status.partnerName ?? "your partner";
+  if (!status.viewing) {
     return (
       <div className="sh-container sh-narrow">
         <h1 className="sh-h1">The Lookout</h1>
         <Card>
-          <p><strong>A personal recruiter for the one of you who&apos;s looking for work.</strong></p>
+          <p><strong>A personal recruiter for remote work that fits.</strong></p>
           <p>
-            It learns your work history and what you need, looks for remote jobs that fit, checks each one against your requirements, and drafts a truthful resume and cover letter for the good ones. Nothing is ever sent to an employer from here; you approve and submit every application yourself.
+            It learns a person&apos;s work history and what they need, looks for remote jobs that fit, checks each one against their requirements, and drafts a truthful resume and cover letter for the good ones. Nothing is ever sent to an employer from here; the person applying approves and submits every application.
           </p>
-          <p className="sh-hint">
-            Claim it if you&apos;re the one looking. You can let {status.partnerName ?? "your partner"} help afterwards. If it&apos;s for {status.partnerName ?? "your partner"}, let them open it first.
-          </p>
+          <p className="sh-hint">Each of you can have a search. You can both see and help with each other&apos;s, and the person a search is for approves its applications.</p>
+          {status.partnerHas && !status.partnerOpen && <p className="sh-note">{partner} has a search and has kept it private.</p>}
           <ErrorNote error={error} />
-          <Btn big disabled={busy} onClick={() => void run(() => claim({ moduleId: "lookout" }))}>
-            I&apos;m the one looking for work
-          </Btn>
+          <div className="sh-stack-sm">
+            {status.partnerName && !status.partnerHas && (
+              <Btn big disabled={busy} onClick={() => void run(() => start({ forWhom: "partner" }))}>Start {partner}&apos;s search</Btn>
+            )}
+            <Btn big variant={status.partnerName && !status.partnerHas ? "secondary" : "primary"} disabled={busy} onClick={() => void run(() => start({ forWhom: "self" }))}>Start a search for me</Btn>
+          </div>
         </Card>
       </div>
     );
   }
+  const both = status.mine && status.partnerOpen;
   return (
     <div className="lo">
-      {status.state === "helping" && <p className="sh-hint">You&apos;re helping {status.ownerName}. Approving applications and confirming work history stay with {status.ownerName}.</p>}
+      {both && (
+        <div className="sh-chips" role="tablist" aria-label="Whose search">
+          <button type="button" role="tab" aria-selected={status.viewing === "partner"} className={`sh-chip ${status.viewing === "partner" ? "lo-chip-on" : ""}`} disabled={busy} onClick={() => void run(() => setViewing({ viewing: "partner" }))}>{partner}&apos;s search</button>
+          <button type="button" role="tab" aria-selected={status.viewing === "self"} className={`sh-chip ${status.viewing === "self" ? "lo-chip-on" : ""}`} disabled={busy} onClick={() => void run(() => setViewing({ viewing: "self" }))}>My search</button>
+        </div>
+      )}
+      {status.viewing === "partner" && <p className="sh-hint">You&apos;re helping with {partner}&apos;s search. Approving applications and confirming work history and answers stay with {partner}.</p>}
+      {!status.mine && status.viewing === "partner" && <p className="sh-hint"><button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => start({ forWhom: "self" }))}>Start a search of my own</button> (optional)</p>}
+      <ErrorNote error={error} />
       <nav className="lo-subnav" aria-label="The Lookout">
         {NAV.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);

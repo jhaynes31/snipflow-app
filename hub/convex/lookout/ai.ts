@@ -6,7 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, type ActionCtx } from "../_generated/server";
 import { MUST_HAVE_FOR_DOCUMENTS } from "./intake";
-import { ANSWERS_SCHEMA, ANSWERS_SYSTEM, factsBlock, jobBlock, LETTER_SCHEMA, LETTER_SYSTEM, LOOKOUT_MODEL, READ_SYSTEM, readerSchema, RESUME_SCHEMA, RESUME_SYSTEM, type DraftInput } from "./prompts";
+import { ANSWERS_SCHEMA, ANSWERS_SYSTEM, factsBlock, IMPORT_SYSTEM, importSchema, jobBlock, LETTER_SCHEMA, LETTER_SYSTEM, LOOKOUT_MODEL, READ_SYSTEM, readerSchema, RESUME_SCHEMA, RESUME_SYSTEM, type DraftInput } from "./prompts";
 import { renderResume, scrubDashes, type ResumeDraft } from "./writing";
 
 /**
@@ -16,7 +16,7 @@ import { renderResume, scrubDashes, type ResumeDraft } from "./writing";
  * hand edit (data.ts, writeDoc). Refused or unreadable answers save nothing.
  */
 
-async function ask(system: string, user: string, schema: Record<string, unknown>): Promise<unknown> {
+async function ask(system: string, user: string | Anthropic.Beta.BetaContentBlockParam[], schema: Record<string, unknown>): Promise<unknown> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new ConvexError("The writer isn't connected yet. Add ANTHROPIC_API_KEY to the Convex environment and try again.");
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 180_000 });
@@ -119,5 +119,48 @@ export const readListing = action({
     }
     await ctx.runMutation(internal.lookout.data.saveReadFacts, { jobId: args.jobId, facts });
     return { read: Object.keys(facts).length };
+  },
+});
+
+/**
+ * Read an uploaded resume into draft history and answers. A PDF goes to the
+ * model as the document itself; Word and text files arrive as their text,
+ * read in the browser. Nothing read here counts until its owner confirms it.
+ */
+export const importResume = action({
+  args: { fileName: v.string(), pdf: v.optional(v.id("_storage")), text: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<{ rolesAdded: number; answersAdded: number; notes: string[] }> => {
+    await ctx.runQuery(internal.lookout.data.whoFor, {});
+    let content: Anthropic.Beta.BetaContentBlockParam[];
+    if (args.pdf) {
+      if (!(await ctx.runQuery(internal.lookout.data.freshUpload, { id: args.pdf }))) throw new ConvexError("Upload the resume as a PDF and try again.");
+      const blob = await ctx.storage.get(args.pdf);
+      // The uploaded file is only needed for this one reading.
+      await ctx.storage.delete(args.pdf);
+      if (!blob) throw new ConvexError("The upload didn't arrive. Try again.");
+      if (blob.size > 5 * 1024 * 1024) throw new ConvexError("That PDF is too large. Try one under 5 MB.");
+      const data = Buffer.from(await blob.arrayBuffer()).toString("base64");
+      content = [{ type: "document", source: { type: "base64", media_type: "application/pdf", data } }, { type: "text", text: "Read this resume." }];
+    } else {
+      const text = (args.text ?? "").trim();
+      if (text.length < 80) throw new ConvexError("There wasn't enough text in that file to read. Try a PDF or Word version.");
+      content = [{ type: "text", text: `<resume>\n${text.slice(0, 60000)}\n</resume>\n\nRead this resume.` }];
+    }
+    const raw = (await ask(IMPORT_SYSTEM, content, importSchema())) as { roles?: unknown[]; answers?: Record<string, unknown>; notes?: unknown };
+    const str = (x: unknown) => (typeof x === "string" ? x : "");
+    const roles = (Array.isArray(raw.roles) ? raw.roles : []).map((r) => r as Record<string, unknown>).map((r) => ({
+      employer: str(r.employer),
+      title: str(r.title),
+      start: str(r.start),
+      end: str(r.end),
+      location: str(r.location),
+      channels: list(r.channels),
+      duties: list(r.duties),
+      achievements: list(r.achievements),
+      tools: list(r.tools),
+      sales: r.sales === true,
+    }));
+    const answers = Object.entries(raw.answers ?? {}).map(([key, answer]) => ({ key, answer: str(answer) })).filter((x) => x.answer.trim());
+    return await ctx.runMutation(internal.lookout.data.saveImport, { fileName: args.fileName, roles, answers, notes: list(raw.notes) });
   },
 });

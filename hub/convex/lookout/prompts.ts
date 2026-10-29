@@ -92,3 +92,32 @@ export function factsBlock(d: DraftInput): string {
 export function jobBlock(d: DraftInput): string {
   return `<job>\nTitle: ${d.job.title}\nEmployer: ${d.job.employer}\nListing:\n${d.job.description.slice(0, 30000)}\n</job>`;
 }
+
+/** The interview questions a resume can answer. Everything else is his to say. */
+export const RESUME_ANSWER_KEYS = ["name", "email", "phone", "cityLine", "link", "software", "education", "numbers", "writing", "admin", "channels"] as const;
+
+export const IMPORT_SYSTEM = `You read one person's own resume so it can fill in a draft of their career profile. They will check and confirm everything you return.
+
+Rules that are never broken:
+- Copy only what the resume actually says. Never add, infer, round, or improve anything: no invented duties, numbers, tools, dates, or titles.
+- Dates: "YYYY-MM" when the resume gives a month and year, "YYYY" when it gives only a year, and an empty string when it gives none or the job is current (for end).
+- duties and achievements: the resume's own lines, lightly cleaned of bullet marks. Achievements are lines with a result, award, or number; everything else is a duty.
+- channels: only from this list, and only when the resume says so: Phone, Email, Chat, Tickets, Social media, In person, Back office.
+- sales: true only when the role is plainly a sales role.
+- answers: fill a key only when the resume states it, in the resume's words. name, email, phone, cityLine (location as written), link (LinkedIn or portfolio), software (every tool named), education (degrees, certifications, trainings with years), numbers (results with numbers, as written), writing (documentation, macros, articles, training guides), admin (records, data entry, scheduling, organizing), channels (how they helped customers). Leave the rest empty.
+- notes: anything unclear, such as overlapping dates, a job with no dates, or text you couldn't read.`;
+
+export function importSchema() {
+  const str = { type: "string" };
+  const list = { type: "array", items: str };
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["roles", "answers", "notes"],
+    properties: {
+      roles: { type: "array", items: { type: "object", additionalProperties: false, required: ["employer", "title", "start", "end", "location", "channels", "duties", "achievements", "tools", "sales"], properties: { employer: str, title: str, start: str, end: str, location: str, channels: list, duties: list, achievements: list, tools: list, sales: { type: "boolean" } } } },
+      answers: { type: "object", additionalProperties: false, required: [...RESUME_ANSWER_KEYS], properties: Object.fromEntries(RESUME_ANSWER_KEYS.map((k) => [k, str])) },
+      notes: list,
+    },
+  };
+}
