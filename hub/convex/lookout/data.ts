@@ -4,7 +4,7 @@ import { internalMutation, internalQuery, mutation, query, type MutationCtx } fr
 import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
-import { chooseSearch, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
+import { chooseSearch, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
 import { DEFAULT_SOURCES } from "./sources";
 import { blocking, findDashes, profileText, reviewDocument, scrubDashes } from "./writing";
 
@@ -92,6 +92,7 @@ async function ensureSettings(ctx: MutationCtx, ownerId: Id<"profiles">): Promis
     keywords: [],
     sources: DEFAULT_SOURCES,
     allowHealthDisclosure: false,
+    scanVersion: SCAN_VERSION,
     updatedAt: Date.now(),
   });
   return (await ctx.db.get(id))!;
@@ -183,7 +184,7 @@ export const setViewing = mutation({
 });
 
 /** Every Lookout table. Deleting a search clears its rows from all of them. */
-export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports"] as const;
+export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin"] as const;
 
 /** Delete the search you own and everything in it. Only its owner can. */
 export const deleteMySearch = mutation({
@@ -221,6 +222,26 @@ export const giveToPartner = mutation({
     for (const r of await ctx.db.query("loRoles").withIndex("by_owner", (q) => q.eq("ownerId", partner._id)).collect()) await ctx.db.patch(r._id, { confirmed: false });
     for (const r of await ctx.db.query("loAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", partner._id)).collect()) await ctx.db.patch(r._id, { confirmed: false });
     await setViewingFor(ctx, a.me, "partner");
+  },
+});
+
+/** Read stored listings again when the reading rules have changed. Cheap no-op otherwise; the Overview calls it on open. */
+export const refreshReadings = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const a = await lookoutAccess(ctx);
+    if (!a) return 0;
+    // A search from before versions were kept has no number yet: read it again.
+    const version = (await settingsOf(ctx, a.ownerId))?.scanVersion ?? 1;
+    if (version >= SCAN_VERSION) return 0;
+    const row = await ensureSettings(ctx, a.ownerId);
+    const jobs = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect();
+    for (const j of jobs) {
+      const r = rescanFacts(j.facts as Facts, `${j.title}\n${j.location ?? ""}\n${j.description}`, row.homeState);
+      await ctx.db.patch(j._id, { facts: r.facts, warnings: r.warnings });
+    }
+    await ctx.db.patch(row._id, { scanVersion: SCAN_VERSION });
+    return jobs.length;
   },
 });
 
@@ -699,7 +720,7 @@ export const exportAll = query({
   args: {},
   handler: async (ctx) => {
     const a = await requireLookout(ctx, true);
-    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
+    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports" | "loNotes" | "loAdmin">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
     return {
       exportedAt: new Date().toISOString(),
       settings: settingsView(await settingsOf(ctx, a.ownerId)),
@@ -710,6 +731,8 @@ export const exportAll = query({
       applications: await by("loApplications"),
       events: await by("loEvents"),
       resumeImports: await by("loImports"),
+      writerNotes: await by("loNotes"),
+      assistant: await by("loAdmin"),
     };
   },
 });
@@ -734,7 +757,9 @@ export const forDraft = internalQuery({
     const roles = (await ctx.db.query("loRoles").withIndex("by_owner", (q) => q.eq("ownerId", a.ownerId)).collect()).filter((r) => r.confirmed);
     const answers = (await ctx.db.query("loAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", a.ownerId)).collect()).filter((x) => x.confirmed && x.answer);
     const docs = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect();
+    const notes = await ctx.db.query("loNotes").withIndex("by_owner", (q) => q.eq("ownerId", a.ownerId)).collect();
     return {
+      notes: notes.map((n) => n.text),
       job: { title: j.title, employer: j.employer, description: j.description, url: j.url, status: j.status },
       roles: roles.map((r) => ({ id: r._id as string, employer: r.employer, title: r.title, start: r.start, end: r.end, location: r.location, channels: r.channels, duties: r.duties, achievements: r.achievements, tools: r.tools, sales: r.sales })),
       // The disclosure answer is never sent to the writer; the setting decides.
