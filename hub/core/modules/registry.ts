@@ -3,6 +3,7 @@ import { apothecary } from "@/modules/apothecary/manifest";
 import { crossroads } from "@/modules/crossroads/manifest";
 import { everyBox } from "@/modules/every-box/manifest";
 import { fitness } from "@/modules/fitness/manifest";
+import { lookout } from "@/modules/lookout/manifest";
 import { loveAndRelease } from "@/modules/love-and-release/manifest";
 import { metamorphosis } from "@/modules/metamorphosis/manifest";
 import { orchard } from "@/modules/orchard/manifest";
@@ -15,7 +16,7 @@ import { theWell } from "@/modules/the-well/manifest";
 
 /** Registry order is the default tab order. People can rearrange it in Settings. */
 // The "partner, and me" room (modules/re-centered) has no tile: it lives inside Re-Centered (modules/love-and-release/manifest.tsx).
-export const MODULES: ModuleManifest[] = [everyBox, tend, renewedMind, theWell, keptWord, loveAndRelease, orchard, apothecary, metamorphosis, storehouse, crossroads, seasons, fitness];
+export const MODULES: ModuleManifest[] = [everyBox, tend, renewedMind, theWell, keptWord, loveAndRelease, orchard, apothecary, metamorphosis, storehouse, lookout, crossroads, seasons, fitness];
 
 export function moduleById(id: string): ModuleManifest | undefined {
   return MODULES.find((m) => m.id === id);

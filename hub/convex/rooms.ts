@@ -6,10 +6,10 @@ import { requireMe, type Ctx, type Me } from "./lib";
 /**
  * Single-person rooms. The first person to open one claims it; after that
  * the other account sees one line and nothing else. No name or email is
- * written in code. Used by Metamorphosis and The Hearth; Re-Centered has its
+ * written in code. Used by Metamorphosis, The Hearth, and The Lookout; Re-Centered has its
  * own copy of this from before it was generalized.
  */
-const ROOMS = ["metamorphosis", "hearth"] as const;
+const ROOMS = ["metamorphosis", "hearth", "lookout"] as const;
 const roomId = v.union(...ROOMS.map((r) => v.literal(r)));
 
 export async function roomOwnerOf(ctx: Ctx, moduleId: string): Promise<Doc<"moduleOwners"> | null> {
@@ -55,6 +55,8 @@ export const claim = mutation({
 const ROOM_TABLES = {
   metamorphosis: ["mmSheet", "mmMirror", "mmMaps", "mmScout", "mmTired", "mmShield", "mmQuests", "mmIron", "mmIronWeek", "mmCompass", "mmSeen", "mmLetters", "mmParty", "mmHorizon", "mmSmallWays", "mmPresent", "mmBuilder", "mmFailureChecks", "mmShares"] as const,
   hearth: ["hhKnow", "hhLetters"] as const,
+  // The Lookout: releasing it is how he deletes everything it holds about him.
+  lookout: ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents"] as const,
 };
 
 /**

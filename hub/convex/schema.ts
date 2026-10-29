@@ -1513,4 +1513,134 @@ export default defineSchema({
     sortedAt: v.optional(v.number()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  // ---------- The Lookout (job search for one person; docs/lookout-spec.md) ----------
+  // Every row's ownerId is the person looking for work (the room's owner),
+  // even when their partner helps and writes it. Release deletes them all.
+
+  /** His settings: hard requirements, ranking weights, sources, helper access. */
+  loSettings: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** Whether the partner may help: see and edit everything except approval and deletion. */
+    helper: v.boolean(),
+    minHourly: v.number(),
+    maxHours: v.number(),
+    homeState: v.string(),
+    weights: v.object({ schedule: v.number(), interaction: v.number(), location: v.number(), pay: v.number(), independent: v.number(), skills: v.number() }),
+    frequency: v.union(v.literal("off"), v.literal("daily"), v.literal("weekly")),
+    keywords: v.array(v.string()),
+    sources: v.array(v.object({ kind: v.string(), token: v.string(), name: v.string(), enabled: v.boolean() })),
+    allowHealthDisclosure: v.boolean(),
+    lastSearchAt: v.optional(v.number()),
+    lastSearchNote: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** One interview answer, in his words. */
+  loAnswers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    answer: v.string(),
+    skipped: v.boolean(),
+    confirmed: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerId", "key"]),
+
+  /** One job in his work history: the source of truth for every resume. */
+  loRoles: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    employer: v.string(),
+    title: v.string(),
+    start: v.string(),
+    end: v.optional(v.string()),
+    location: v.optional(v.string()),
+    channels: v.array(v.string()),
+    duties: v.string(),
+    achievements: v.string(),
+    tools: v.string(),
+    /** Why he left, for his eyes. Only an approved transition answer is ever used in writing. */
+    leftNote: v.optional(v.string()),
+    sales: v.boolean(),
+    confirmed: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** A job opening: where it came from, what it says, what has been checked. */
+  loJobs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    employer: v.string(),
+    url: v.string(),
+    applyUrl: v.optional(v.string()),
+    sourceKind: v.string(),
+    sourceName: v.string(),
+    sourceId: v.optional(v.string()),
+    dedupeKey: v.string(),
+    urlKey: v.string(),
+    location: v.optional(v.string()),
+    description: v.string(),
+    fingerprint: v.string(),
+    /** The listing page's own fingerprint at the last recheck, to notice a change. */
+    pageFingerprint: v.optional(v.string()),
+    facts: v.record(v.string(), v.object({ state: v.union(v.literal("yes"), v.literal("no"), v.literal("unknown")), value: v.optional(v.string()), source: v.union(v.literal("none"), v.literal("listing"), v.literal("ai"), v.literal("verified")), note: v.optional(v.string()) })),
+    warnings: v.array(v.string()),
+    status: v.string(),
+    statusAt: v.number(),
+    postedAt: v.optional(v.number()),
+    deadline: v.optional(v.string()),
+    discoveredAt: v.number(),
+    lastVerifiedAt: v.optional(v.number()),
+    lastCheckedAt: v.optional(v.number()),
+    changedAt: v.optional(v.number()),
+    seenAt: v.optional(v.number()),
+    /** Other places the same job was found. */
+    alsoAt: v.array(v.string()),
+    notes: v.optional(v.string()),
+  })
+    .index("by_owner_status", ["ownerId", "status"])
+    .index("by_owner_dedupe", ["ownerId", "dedupeKey"])
+    .index("by_owner_url", ["ownerId", "urlKey"]),
+
+  /** A drafted resume, cover letter, or set of application answers for one job. Editable until approved. */
+  loDocs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    jobId: v.id("loJobs"),
+    kind: v.union(v.literal("resume"), v.literal("letter"), v.literal("answers")),
+    text: v.string(),
+    questions: v.array(v.string()),
+    issues: v.array(v.object({ level: v.union(v.literal("block"), v.literal("fix"), v.literal("note")), text: v.string() })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_job", ["jobId", "kind"]),
+
+  /** An application: the exact documents he approved, frozen, and what happened. */
+  loApplications: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    jobId: v.id("loJobs"),
+    resume: v.string(),
+    letter: v.optional(v.string()),
+    answers: v.optional(v.string()),
+    approvedAt: v.number(),
+    submittedAt: v.optional(v.number()),
+    confirmation: v.optional(v.string()),
+  }).index("by_job", ["jobId"]),
+
+  /** Interviews, follow ups, and notes on a job, with a date when there is one. */
+  loEvents: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    jobId: v.id("loJobs"),
+    kind: v.union(v.literal("interview"), v.literal("followUp"), v.literal("note"), v.literal("feedback")),
+    at: v.optional(v.number()),
+    text: v.string(),
+    done: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_owner_at", ["ownerId", "at"]).index("by_job", ["jobId"]),
 });

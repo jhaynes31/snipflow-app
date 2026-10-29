@@ -1,0 +1,90 @@
+"use client";
+
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { INTAKE, nextQuestion, type IntakeQuestion } from "@/convex/lookout/intake";
+import { Btn, Card, ErrorNote, PageTitle, Spinner, useAction } from "@/core/ui";
+
+const KIND_LABEL = { about: "About you", must: "A requirement", prefer: "A preference" };
+
+/**
+ * The career interview, one question on screen at a time. Answers are saved
+ * as you go and can be changed any time. Nothing is filled in for you.
+ */
+export function Interview() {
+  const answers = useQuery(api.lookout.data.answers);
+  const settings = useQuery(api.lookout.data.settings);
+  const save = useMutation(api.lookout.data.saveAnswer);
+  const { busy, error, run } = useAction();
+  const [picked, setPicked] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
+  if (!answers || !settings) return <Spinner />;
+
+  const byKey = new Map(answers.map((a) => [a.key, a]));
+  const answered = new Set(answers.filter((a) => a.answer.trim()).map((a) => a.key));
+  const skipped = new Set(answers.filter((a) => a.skipped && !a.answer.trim()).map((a) => a.key));
+  const owner = settings.role === "owner";
+  const q: IntakeQuestion | null = (picked ? INTAKE.find((x) => x.key === picked) : null) ?? nextQuestion(answered, skipped);
+  const text = draft && q && draft.key === q.key ? draft.text : (q ? byKey.get(q.key)?.answer ?? "" : "");
+  const index = q ? INTAKE.findIndex((x) => x.key === q.key) : -1;
+  const onlyOwner = q?.key === "disclose" && !owner;
+
+  async function commit(skip: boolean) {
+    if (!q) return;
+    await save({ key: q.key, answer: skip ? byKey.get(q.key)?.answer ?? "" : text, skip });
+    setDraft(null);
+    setPicked(null);
+  }
+
+  return (
+    <div className="sh-container sh-narrow">
+      <PageTitle title="The interview" subtitle={`One question at a time. ${answered.size} of ${INTAKE.length} answered. Skip anything and come back to it.`} />
+      {q ? (
+        <Card>
+          <p className="sh-eyebrow">{q.topic} · {KIND_LABEL[q.kind]} · {index + 1} of {INTAKE.length}</p>
+          <p className="lo-question">{q.question}</p>
+          {q.hint && <p className="sh-hint">{q.hint}</p>}
+          {onlyOwner ? (
+            <p className="sh-note">This one is only for the person looking for work to answer.</p>
+          ) : q.short ? (
+            <input className="sh-input" value={text} maxLength={300} onChange={(e) => setDraft({ key: q.key, text: e.target.value })} aria-label={q.question} />
+          ) : (
+            <textarea className="sh-textarea" rows={6} value={text} onChange={(e) => setDraft({ key: q.key, text: e.target.value })} aria-label={q.question} />
+          )}
+          <ErrorNote error={error} />
+          {!onlyOwner && (
+            <div className="sh-row sh-wrap mt-3">
+              <Btn disabled={busy || !text.trim()} onClick={() => void run(() => commit(false))}>Save and go on</Btn>
+              <Btn variant="ghost" disabled={busy} onClick={() => void run(() => commit(true))}>Skip for now</Btn>
+              {picked && <Btn variant="ghost" onClick={() => { setPicked(null); setDraft(null); }}>Back to the next question</Btn>}
+            </div>
+          )}
+          {!owner && <p className="sh-hint">Answers you write wait for a confirmation before they&apos;re used in any document.</p>}
+        </Card>
+      ) : (
+        <Card>
+          <p><strong>Every question has an answer.</strong> Change any of them below whenever something changes.</p>
+        </Card>
+      )}
+
+      <Card>
+        <h2 className="sh-h2">Your answers</h2>
+        {INTAKE.map((x) => {
+          const a = byKey.get(x.key);
+          return (
+            <div key={x.key} className="lo-entry">
+              <p className="sh-hint">{x.topic} · {KIND_LABEL[x.kind]}</p>
+              <p><strong>{x.question}</strong></p>
+              {a?.answer ? <p style={{ whiteSpace: "pre-wrap" }}>{a.answer}</p> : <p className="sh-muted">{a?.skipped ? "Skipped for now." : "Not answered yet."}</p>}
+              <div className="sh-row sh-wrap">
+                <button type="button" className="sh-link" onClick={() => { setPicked(x.key); setDraft(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{a?.answer ? "Change" : "Answer"}</button>
+                {a?.answer && !a.confirmed && (owner ? <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => save({ key: x.key, answer: a.answer, confirmed: true }))}>Confirm it&apos;s right</button> : <span className="sh-hint">Waiting for confirmation</span>)}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+    </div>
+  );
+}
