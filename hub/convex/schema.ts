@@ -1536,6 +1536,8 @@ export default defineSchema({
     allowHealthDisclosure: v.boolean(),
     lastSearchAt: v.optional(v.number()),
     lastSearchNote: v.optional(v.string()),
+    /** Which version of the listing reader last read this search's jobs. */
+    scanVersion: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
 
@@ -1644,6 +1646,27 @@ export default defineSchema({
     notes: v.array(v.string()),
     importedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
+
+  /** Standing notes for the writer about how to present his history ("don't lead with the sales jobs"). */
+  loNotes: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    authorId: v.id("profiles"),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** The assistant's conversation for a search: what was said, what it changed, and how to undo each change. */
+  loAdmin: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    authorId: v.id("profiles"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    text: v.string(),
+    applied: v.array(v.object({ summary: v.string(), undo: v.any() })),
+    undoneAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 
   /** Interviews, follow ups, and notes on a job, with a date when there is one. */
   loEvents: defineTable({

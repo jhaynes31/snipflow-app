@@ -252,7 +252,7 @@ export function hardChecks(facts: Facts, req: Requirements = DEFAULT_REQUIREMENT
   const reduced = fact(facts, "reducedHoursOk");
   if (Number.isFinite(hours) && hours > req.maxHours && !yes(reduced)) add("hours", `${req.maxHours} hours a week or fewer`, "fail", `It asks for ${hours} hours a week${sourceNote(hoursFact)}.`);
   else if (Number.isFinite(hours) && hours > 0) add("hours", `${req.maxHours} hours a week or fewer`, "pass", hours > req.maxHours ? `Listed at ${hours}, but the employer confirmed a reduced schedule${sourceNote(reduced)}.` : `${hours} hours a week${sourceNote(hoursFact)}.`);
-  else add("hours", `${req.maxHours} hours a week or fewer`, "unknown", "Weekly hours aren't stated.");
+  else add("hours", `${req.maxHours} hours a week or fewer`, "unknown", hoursFact.note && hoursFact.state === "unknown" ? hoursFact.note : "Weekly hours aren't stated.");
 
   if (yes(commission)) add("commission", "Not commission only", "fail", `Commission only${sourceNote(commission)}.`);
   else if (no(commission) || yes(guaranteed)) add("commission", "Not commission only", "pass", "There is a base wage.");
@@ -503,10 +503,6 @@ export function parseHours(text: string): { hours: number; quote: string } | nul
   if (range) return { hours: Math.max(Number(range[1]), Number(range[2])), quote: range[0] };
   const single = /\b([1-6]\d)\s*(?:\+\s*)?(?:hours|hrs)\s*(?:a|per|\/|each)\s*week/i.exec(text);
   if (single) return { hours: Number(single[1]), quote: single[0] };
-  if (/\bfull[\s-]time\b/i.test(text) && !/\bpart[\s-]time\b/i.test(text)) {
-    const m = /\bfull[\s-]time\b/i.exec(text)!;
-    return { hours: 40, quote: `${m[0]} (usually 40 hours; ask whether 35 or fewer is possible)` };
-  }
   return null;
 }
 
@@ -580,6 +576,11 @@ export function scanListing(text: string, homeState = "West Virginia"): { facts:
   if (facts.commissionOnly?.state === "yes") set("payGuaranteed", { state: "no", source: "listing", note: facts.commissionOnly.note }, facts.commissionOnly.note ?? "");
   const hours = parseHours(text);
   if (hours) set("hours", { state: "yes", value: String(hours.hours), source: "listing", note: hours.quote }, hours.quote);
+  else {
+    // "Full time" alone doesn't say how many hours. Often 40, sometimes 32 to 37.5, so it's a question, not a rejection.
+    const ft = /\bfull[\s_-]?time\b/i.exec(text);
+    if (ft && !/\bpart[\s_-]?time\b/i.test(text)) set("hours", { state: "unknown", source: "listing", note: `Listed as "${ft[0]}" without the weekly hours. Ask whether 35 hours or fewer is possible.` }, ft[0]);
+  }
   const st = stateEligibility(text, homeState);
   if (st?.fact) set("wvEligible", st.fact, st.quote);
 
@@ -735,4 +736,24 @@ export function chooseSearch(o: { mine: boolean; partnerOpen: boolean; want?: "s
   if (o.partnerOpen && !o.mine) return "partner";
   if (o.mine) return "self";
   return null;
+}
+
+// ---------- Re-reading after the rules change ----------
+
+/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. */
+export const SCAN_VERSION = 2;
+
+/**
+ * Re-read a stored listing: facts the scanner wrote are replaced by a fresh
+ * reading; facts a person verified, the assistant read with a quote, or a
+ * recheck found (whether it's still open) are kept as they are.
+ */
+export function rescanFacts(old: Facts, text: string, homeState: string): { facts: Facts; warnings: string[] } {
+  const scan = scanListing(text, homeState);
+  const kept: Facts = {};
+  for (const key of FACT_KEYS) {
+    const f = old[key];
+    if (f && (f.source !== "listing" || key === "open")) kept[key] = f;
+  }
+  return { facts: mergeFacts(scan.facts, kept), warnings: scan.warnings };
 }

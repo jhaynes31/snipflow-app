@@ -1,25 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useAction as useConvexAction, useQuery } from "convex/react";
+import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { INTAKE } from "@/convex/lookout/intake";
-import type { Status } from "@/convex/lookout/pure";
 import { Btn, Card, ErrorNote, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LOOKOUT } from "../Shell";
+import { VIEWS } from "../views";
 
-const GROUPS: { label: string; statuses: Status[]; filter?: string }[] = [
-  { label: "Newly found", statuses: ["new"], filter: "new" },
-  { label: "Waiting for review", statuses: ["review"], filter: "review" },
-  { label: "Saved", statuses: ["saved"], filter: "saved" },
-  { label: "Being prepared", statuses: ["preparing"], filter: "preparing" },
-  { label: "Ready for approval", statuses: ["ready"], filter: "ready" },
-  { label: "Approved, to submit", statuses: ["approved"], filter: "approved" },
-  { label: "Submitted", statuses: ["submitted"], filter: "submitted" },
-  { label: "Interviewing", statuses: ["interview", "offer"], filter: "interview" },
-  { label: "Closed or not selected", statuses: ["rejected", "closed"], filter: "closed" },
-];
+/** The Overview's grid: every stage group from the Jobs page, so the two always count the same jobs. */
+const GRID = VIEWS.filter((v) => v.key !== "best" && v.key !== "check");
 
 /** The dashboard: setup, the best matches, what's waiting, and what's coming up. */
 export function Overview() {
@@ -28,6 +19,10 @@ export function Overview() {
   const roles = useQuery(api.lookout.data.roles);
   const settings = useQuery(api.lookout.data.settings);
   const searchNow = useConvexAction(api.lookout.discover.searchNow);
+  const refresh = useMutation(api.lookout.data.refreshReadings);
+  useEffect(() => {
+    void refresh({}).catch(() => undefined);
+  }, [refresh]);
   const { busy, error, run } = useAction();
   const [result, setResult] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -40,7 +35,7 @@ export function Overview() {
   const toCheck = live.filter((j) => j.verdict === "check" && ["new", "review", "saved"].includes(j.status)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
   const interviews = data.events.filter((e) => e.kind === "interview" && e.at && e.at > now - 3600000).sort((a, b) => a.at! - b.at!);
   const followUps = data.events.filter((e) => e.kind === "followUp" && e.at).sort((a, b) => a.at! - b.at!);
-  const rejectedCount = data.jobs.filter((j) => j.verdict === "rejected" && ["new", "review"].includes(j.status)).length;
+  const rejectedCount = data.jobs.filter((j) => j.verdict === "rejected" && ["new", "review", "saved"].includes(j.status)).length;
 
   return (
     <div className="sh-container sh-narrow">
@@ -63,7 +58,7 @@ export function Overview() {
           {settings.lastSearchAt ? `Last searched ${timeAgo(settings.lastSearchAt)}. ${settings.lastSearchNote ?? ""}` : "Not searched yet."} Scheduled search: {settings.frequency === "off" ? "off" : settings.frequency}.
         </p>
         <div className="sh-row sh-wrap">
-          <Btn disabled={busy} onClick={() => void run(async () => { const r = await searchNow({}); setResult(r.note + (r.fresh ? ` ${r.fresh} new.` : " Nothing new.")); })}>{busy ? "Searching…" : "Search now"}</Btn>
+          <Btn disabled={busy} onClick={() => void run(async () => { const r = await searchNow({}); setResult(r.note + (r.fresh ? ` ${r.fresh} new; each one is in the group below that fits it, including Set aside for any that fail a requirement.` : " Nothing new.")); })}>{busy ? "Searching…" : "Search now"}</Btn>
           <LinkBtn href={`${LOOKOUT}/add`} variant="secondary">Add one I found</LinkBtn>
         </div>
         <ErrorNote error={error} />
@@ -95,10 +90,10 @@ export function Overview() {
       <Card>
         <h2 className="sh-h2">Where everything is</h2>
         <div className="lo-grid">
-          {GROUPS.map((g) => {
-            const n = data.jobs.filter((j) => g.statuses.includes(j.status)).length;
+          {GRID.map((g) => {
+            const n = data.jobs.filter(g.test).length;
             return (
-              <Link key={g.label} href={`${LOOKOUT}/jobs?show=${g.filter}`}>
+              <Link key={g.key} href={`${LOOKOUT}/jobs?show=${g.key}`}>
                 <span className="lo-count">{n}</span>
                 <br />
                 {g.label}
@@ -106,7 +101,7 @@ export function Overview() {
             );
           })}
         </div>
-        {rejectedCount > 0 && <p className="sh-hint mt-3">{rejectedCount} found {rejectedCount === 1 ? "job was" : "jobs were"} set aside because {rejectedCount === 1 ? "it fails" : "they fail"} a requirement. They&apos;re under Jobs, Set aside, with the reason.</p>}
+        {rejectedCount > 0 && <p className="sh-hint mt-3">{rejectedCount} found {rejectedCount === 1 ? "job was" : "jobs were"} set aside because {rejectedCount === 1 ? "it fails" : "they fail"} a requirement. Open Set aside to see each reason.</p>}
       </Card>
     </div>
   );

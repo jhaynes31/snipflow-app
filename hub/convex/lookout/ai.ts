@@ -5,6 +5,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, type ActionCtx } from "../_generated/server";
+import { ADMIN_SYSTEM, adminSchema } from "./adminPure";
 import { MUST_HAVE_FOR_DOCUMENTS } from "./intake";
 import { ANSWERS_SCHEMA, ANSWERS_SYSTEM, factsBlock, IMPORT_SYSTEM, importSchema, jobBlock, LETTER_SCHEMA, LETTER_SYSTEM, LOOKOUT_MODEL, READ_SYSTEM, readerSchema, RESUME_SCHEMA, RESUME_SYSTEM, type DraftInput } from "./prompts";
 import { renderResume, scrubDashes, type ResumeDraft } from "./writing";
@@ -16,7 +17,7 @@ import { renderResume, scrubDashes, type ResumeDraft } from "./writing";
  * hand edit (data.ts, writeDoc). Refused or unreadable answers save nothing.
  */
 
-async function ask(system: string, user: string | Anthropic.Beta.BetaContentBlockParam[], schema: Record<string, unknown>): Promise<unknown> {
+async function ask(system: string, user: string | Anthropic.Beta.BetaContentBlockParam[], schema: Record<string, unknown>, history: Anthropic.Beta.BetaMessageParam[] = []): Promise<unknown> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new ConvexError("The writer isn't connected yet. Add ANTHROPIC_API_KEY to the Convex environment and try again.");
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 180_000 });
@@ -28,7 +29,7 @@ async function ask(system: string, user: string | Anthropic.Beta.BetaContentBloc
     thinking: { type: "adaptive" },
     output_config: { effort: "high", format: { type: "json_schema", schema } },
     system,
-    messages: [{ role: "user", content: user }],
+    messages: [...history, { role: "user", content: user }],
   });
   const response = await stream.finalMessage();
   if (response.stop_reason === "refusal") throw new ConvexError("The writer couldn't do this one. Nothing was changed.");
@@ -162,5 +163,31 @@ export const importResume = action({
     }));
     const answers = Object.entries(raw.answers ?? {}).map(([key, answer]) => ({ key, answer: str(answer) })).filter((x) => x.answer.trim());
     return await ctx.runMutation(internal.lookout.data.saveImport, { fileName: args.fileName, roles, answers, notes: list(raw.notes) });
+  },
+});
+
+/**
+ * The assistant: a plain instruction in, a short reply out, and the changes
+ * it describes made straight away (each one undoable). See admin.ts.
+ */
+export const askAssistant = action({
+  args: { message: v.string() },
+  handler: async (ctx, args): Promise<{ reply: string; applied: number }> => {
+    const message = args.message.trim();
+    if (!message) throw new ConvexError("Write something first.");
+    if (message.length > 8000) throw new ConvexError("That's very long. Try it in two parts.");
+    const c = await ctx.runQuery(internal.lookout.admin.forAssistant, {});
+    // Earlier turns, oldest first, starting with one of the person's messages.
+    const turns = c.history.slice(c.history.findIndex((m) => m.role === "user"));
+    const history: Anthropic.Beta.BetaMessageParam[] = [];
+    for (const m of turns) {
+      if (history.length && history[history.length - 1].role === m.role) continue;
+      history.push({ role: m.role, content: m.text });
+    }
+    if (history.length && history[history.length - 1].role === "user") history.pop();
+    const raw = (await ask(ADMIN_SYSTEM, `<current_state>\n${c.block}\n</current_state>\n\n<message>\n${message}\n</message>`, adminSchema(), history)) as { reply?: unknown; changes?: unknown };
+    const reply = typeof raw.reply === "string" ? raw.reply : "";
+    const changes = Array.isArray(raw.changes) ? raw.changes : [];
+    return await ctx.runMutation(internal.lookout.admin.record, { message, reply, changes });
   },
 });

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { INTAKE, MUST_HAVE_FOR_DOCUMENTS, nextQuestion } from "../convex/lookout/intake.ts";
-import { chooseSearch, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
+import { vetChange } from "../convex/lookout/adminPure.ts";
+import { chooseSearch, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
 import { openFromPage, parseSource, titleFits, usFriendly } from "../convex/lookout/sources.ts";
 import { blocking, findDashes, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
@@ -306,9 +307,12 @@ describe("pay and hours parsing", () => {
     assert.equal(parsePay("Pay range: $50000 to $60000 USD per year")?.min, 50000);
     assert.equal(parsePay("$26.50/hr")?.min, 26.5);
   });
-  it("reads hours, and treats plain full time as 40 to ask about", () => {
+  it("reads hours, and treats plain full time as a question, not a rejection", () => {
     assert.equal(parseHours("30 to 35 hours per week")?.hours, 35);
-    assert.equal(parseHours("This is a full-time role")?.hours, 40);
+    assert.equal(parseHours("This is a full-time role"), null);
+    const f = scanListing("Fully remote. This is a full_time role.").facts;
+    assert.equal(f.hours?.state, "unknown");
+    assert.equal(hardChecks(f).find((c) => c.key === "hours")!.result, "unknown");
     assert.equal(parseHours("Part-time, 25 hours a week")?.hours, 25);
   });
 });
@@ -338,5 +342,34 @@ describe("source parsers", () => {
 describe("facts", () => {
   it("every fact has a label and the reader covers all but the human checks", () => {
     assert.equal(READABLE.length, FACT_KEYS.length - 2);
+  });
+});
+
+describe("the assistant", () => {
+  const ctx = { roles: [{ id: "r1", employer: "Acme", title: "Rep", start: "2019-03", confirmed: true }], answerKeys: INTAKE.map((q) => q.key), notes: [{ id: "n1" }], jobs: [{ id: "j1", status: "new" }] };
+  const base = { summary: "x", roleId: "", jobId: "", noteId: "", key: "", status: "", text: "", employer: "", title: "", start: "", endAction: "unchanged", end: "", location: "", duties: "", achievements: "", tools: "", sales: "unchanged" };
+  it("marks a job ended with a real date, and nothing without one", () => {
+    assert.ok(vetChange({ ...base, kind: "roleUpdate", roleId: "r1", endAction: "set", end: "2025-06" }, ctx));
+    assert.equal(vetChange({ ...base, kind: "roleUpdate", roleId: "r1", endAction: "set", end: "" }, ctx), null);
+    assert.equal(vetChange({ ...base, kind: "roleUpdate", roleId: "r1", endAction: "set", end: "June" }, ctx), null);
+    assert.equal(vetChange({ ...base, kind: "roleUpdate", roleId: "r1", endAction: "set", end: "2018" }, ctx), null, "an end before the start");
+  });
+  it("only touches things that exist, and only allowed steps", () => {
+    assert.equal(vetChange({ ...base, kind: "roleRemove", roleId: "nope" }, ctx), null);
+    assert.equal(vetChange({ ...base, kind: "jobStatus", jobId: "j1", status: "submitted" }, ctx), null);
+    assert.ok(vetChange({ ...base, kind: "jobStatus", jobId: "j1", status: "passed" }, ctx));
+    assert.equal(vetChange({ ...base, kind: "answerSet", key: "disclose", text: "yes" }, ctx), null, "never the privacy answer");
+    assert.equal(vetChange({ ...base, kind: "roleUpdate", roleId: "r1" }, ctx), null, "a change that changes nothing");
+    assert.equal(vetChange({ ...base, kind: "bogus" }, ctx), null);
+  });
+});
+
+describe("re-reading stored listings", () => {
+  it("replaces old readings but keeps what a person verified", () => {
+    const old = { hours: { state: "yes" as const, value: "40", source: "listing" as const }, travelOk: { state: "yes" as const, source: "verified" as const }, open: { state: "yes" as const, source: "listing" as const } };
+    const r = rescanFacts(old, "Fully remote. A full-time role.", "West Virginia");
+    assert.equal(r.facts.hours?.state, "unknown");
+    assert.equal(r.facts.travelOk?.source, "verified");
+    assert.equal(r.facts.open?.state, "yes");
   });
 });

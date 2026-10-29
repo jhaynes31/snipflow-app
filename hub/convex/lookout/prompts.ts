@@ -80,13 +80,15 @@ export interface DraftInput {
   roles: { id: string; employer: string; title: string; start: string; end?: string; location?: string; channels: string[]; duties: string; achievements: string; tools: string; sales: boolean }[];
   answers: { key: string; question: string; answer: string }[];
   allowHealthDisclosure: boolean;
+  /** Standing notes from him or his family about presentation. */
+  notes?: string[];
 }
 
 /** The facts block every draft is written from. */
 export function factsBlock(d: DraftInput): string {
   const roles = d.roles.map((r) => `<role id="${r.id}">\nEmployer: ${r.employer}\nTitle: ${r.title}\nDates: ${r.start} to ${r.end || "present"}${r.location ? `\nLocation: ${r.location}` : ""}\nChannels: ${r.channels.join(", ") || "not given"}${r.sales ? "\nThis was a sales role." : ""}\nDuties:\n${r.duties || "not given"}\nAchievements:\n${r.achievements || "not given"}\nTools: ${r.tools || "not given"}\n</role>`).join("\n");
   const answers = d.answers.map((a) => `<answer topic="${a.key}">\nQ: ${a.question}\nA: ${a.answer}\n</answer>`).join("\n");
-  return `<his_history>\n${roles || "No confirmed work history yet."}\n</his_history>\n<his_answers>\n${answers || "No confirmed answers yet."}\n</his_answers>\n<sharing_health_details>${d.allowHealthDisclosure ? "He has said yes to sharing them where relevant." : "No. Never mention them."}</sharing_health_details>`;
+  return `<his_history>\n${roles || "No confirmed work history yet."}\n</his_history>\n<his_answers>\n${answers || "No confirmed answers yet."}\n</his_answers>\n<sharing_health_details>${d.allowHealthDisclosure ? "He has said yes to sharing them where relevant." : "No. Never mention them."}</sharing_health_details>${d.notes?.length ? `\n<notes_on_presentation>\nStanding notes from him or his family about how to present his history. Follow them, unless one would mean inventing something or breaking a rule above.\n${d.notes.map((n) => `- ${n}`).join("\n")}\n</notes_on_presentation>` : ""}`;
 }
 
 export function jobBlock(d: DraftInput): string {

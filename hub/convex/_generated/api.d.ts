@@ -75,6 +75,8 @@ import type * as seasons_collect from "../seasons/collect.js";
 import type * as seasons_generate from "../seasons/generate.js";
 import type * as seasons_pure from "../seasons/pure.js";
 import type * as seasons_reports from "../seasons/reports.js";
+import type * as lookout_admin from "../lookout/admin.js";
+import type * as lookout_adminPure from "../lookout/adminPure.js";
 import type * as lookout_ai from "../lookout/ai.js";
 import type * as lookout_data from "../lookout/data.js";
 import type * as lookout_discover from "../lookout/discover.js";
@@ -179,6 +181,8 @@ declare const fullApi: ApiFromModules<{
   "seasons/generate": typeof seasons_generate;
   "seasons/pure": typeof seasons_pure;
   "seasons/reports": typeof seasons_reports;
+  "lookout/admin": typeof lookout_admin;
+  "lookout/adminPure": typeof lookout_adminPure;
   "lookout/ai": typeof lookout_ai;
   "lookout/data": typeof lookout_data;
   "lookout/discover": typeof lookout_discover;

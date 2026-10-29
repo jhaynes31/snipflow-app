@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { Briefcase, History, LayoutDashboard, MessageSquareText, Plus, Settings } from "lucide-react";
+import { Bot, Briefcase, History, LayoutDashboard, MessageSquareText, Plus, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
 import { Btn, Card, ErrorNote, Spinner, useAction } from "@/core/ui";
@@ -16,6 +16,7 @@ const NAV = [
   { href: `${LOOKOUT}/add`, label: "Add a job", icon: Plus },
   { href: `${LOOKOUT}/interview`, label: "Interview", icon: MessageSquareText },
   { href: `${LOOKOUT}/history`, label: "Work history", icon: History },
+  { href: `${LOOKOUT}/assistant`, label: "Assistant", icon: Bot },
   { href: `${LOOKOUT}/settings`, label: "Settings", icon: Settings },
 ];
 
