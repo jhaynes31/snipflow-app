@@ -13,4 +13,6 @@ crons.daily("metamorphosis: the mentor's monthly letter", { hourUTC: 13, minuteU
 crons.daily("metamorphosis: field guide feeds", { hourUTC: 12, minuteUTC: 40 }, internal.metamorphosis.feeds.tick);
 // Every Box: "remind me about this box", checked once an hour so each person gets theirs at the hour they chose.
 crons.hourly("every box: box reminders", { minuteUTC: 5 }, internal.everyBox.reminders.tick);
+// The Lookout: his scheduled job search, only when he turned it on (daily or weekly; the action checks which).
+crons.daily("lookout: scheduled job search", { hourUTC: 11, minuteUTC: 15 }, internal.lookout.discover.tick);
 export default crons;

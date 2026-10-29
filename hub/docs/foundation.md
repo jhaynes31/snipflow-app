@@ -29,6 +29,7 @@ What that trades:
 | `app/[moduleId]/[[...path]]/page.tsx` | Serves every module's screens from its manifest. |
 | `convex/tend/`, `modules/tend/` | Tend: check-in vocabulary and functions on the Convex side; the check-in flow (served at `/check-in`), guidance cards, Love Menus, and "my manual" screens on the module side. |
 | `convex/everyBox/`, `modules/every-box/` | Every Box: functions and pure engine on the Convex side, shell, screens, components, and stylesheet on the module side. The first real module; a worked example of the layout above. |
+| `convex/lookout/`, `modules/lookout/` | The Lookout: one person's job search. Pure rules (`pure.ts` filters and ranking, `writing.ts` the no-dash rule and document review, `sources.ts` posting APIs) are unit-tested in `tests/lookout.test.ts`. See `docs/lookout-spec.md`. |
 | `app/calendar/[token]/route.ts` | The per-person calendar feed. |
 
 ## Adding a module
