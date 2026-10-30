@@ -9,7 +9,9 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { FACT_KEYS, FACT_LABEL, INTERACTION_KINDS, INTERACTION_LABEL, MANUAL_MOVES, SCHEDULE_KINDS, SCHEDULE_LABEL, STATUS_LABEL, verificationNote, type Fact, type FactKey, type Facts, type Status } from "@/convex/lookout/pure";
 import { Btn, Card, CopyButton, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
 import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, type SourceKind } from "@/convex/lookout/sources";
+import { isOpenAnswer, joinAnswerPairs, parseAnswerPairs } from "@/convex/lookout/writing";
 import { download, fileName, textToDocx } from "../docx";
+import { saveLabel, useAutosave } from "../useAutosave";
 import { LOOKOUT } from "../Shell";
 
 const SOURCE_LABEL: Record<Fact["source"], string> = { none: "", listing: "from the listing", ai: "read by the assistant", verified: "verified" };
@@ -226,14 +228,11 @@ function Documents({ job, docs, status }: { job: Doc<"loJobs">; docs: Doc<"loDoc
   const draftResume = useConvexAction(api.lookout.ai.draftResume);
   const draftLetter = useConvexAction(api.lookout.ai.draftLetter);
   const draftAnswers = useConvexAction(api.lookout.ai.draftAnswers);
-  const save = useMutation(api.lookout.data.saveDoc);
   const { busy, error, run } = useAction();
-  const [editing, setEditing] = useState<Record<string, string>>({});
-  const [asked, setAsked] = useState("");
   const [printing, setPrinting] = useState<string | null>(null);
   const locked = LOCKED.includes(status);
   if (["rejected", "passed"].includes(status)) return null;
-  if (["new", "review", "saved"].includes(status) && docs.length === 0) {
+  if (["new", "review", "saved"].includes(status) && docs.length === 0 && !job.applicationQuestions) {
     return (
       <Card>
         <h2 className="sh-h2">Application</h2>
@@ -247,28 +246,24 @@ function Documents({ job, docs, status }: { job: Doc<"loJobs">; docs: Doc<"loDoc
   const actions: Record<DocKind, () => Promise<unknown>> = {
     resume: () => draftResume({ jobId: job._id }),
     letter: () => draftLetter({ jobId: job._id }),
-    answers: () => draftAnswers({ jobId: job._id, questions: asked }),
+    answers: () => draftAnswers({ jobId: job._id }),
   };
 
   return (
     <Card>
       <h2 className="sh-h2">Application documents</h2>
-      <p className="sh-hint">Drafted only from your confirmed history and answers. Every save is scanned: dashes are rewritten, and any number or detail not in your profile is flagged. These are meant to be truthful and sound like you; nothing here promises anything about AI detectors.</p>
+      <p className="sh-hint">Drafted only from your confirmed history and answers. Everything here saves as you type and stays with this job. Every save is scanned: dashes are rewritten, and any number or detail not in your profile is flagged. Nothing here promises anything about AI detectors.</p>
       <ErrorNote error={error} />
       {(Object.keys(DOC_LABEL) as DocKind[]).map((kind) => {
         const d = byKind.get(kind);
-        const text = editing[kind] ?? d?.text ?? "";
         return (
           <div key={kind} className="lo-entry">
             <h3 className="sh-h3">{DOC_LABEL[kind]}</h3>
-            {kind === "answers" && !locked && (
-              <Field label="The application's questions" hint="Paste them from the employer's form, one per line. Anything only you can answer (eligibility, salary, start date) comes back as ASK FIRST.">
-                <textarea className="sh-textarea" rows={4} value={asked} onChange={(e) => setAsked(e.target.value)} />
-              </Field>
-            )}
+            {kind === "answers" && !locked && <QuestionsBox job={job} />}
             {!locked && (
               <div className="sh-row sh-wrap">
-                <Btn variant={d ? "secondary" : "primary"} disabled={busy || (kind === "answers" && !asked.trim())} onClick={() => void run(async () => { await actions[kind](); setEditing((e) => { const n = { ...e }; delete n[kind]; return n; }); })}>{busy ? "Writing…" : d ? "Draft it again" : `Draft the ${DOC_LABEL[kind].toLowerCase()}`}</Btn>
+                <Btn variant={d ? "secondary" : "primary"} disabled={busy || (kind === "answers" && !job.applicationQuestions?.trim())} onClick={() => void run(actions[kind])}>{busy ? "Writing…" : d ? "Draft it again" : `Draft the ${DOC_LABEL[kind].toLowerCase()}`}</Btn>
+                {d && kind === "answers" && <span className="sh-hint">Drafting again keeps every answer already given for this job.</span>}
               </div>
             )}
             {d && (
@@ -285,9 +280,8 @@ function Documents({ job, docs, status }: { job: Doc<"loJobs">; docs: Doc<"loDoc
                     {d.issues.map((i) => <li key={i.text} className={i.level === "block" ? "sh-error" : undefined}>{i.level === "block" ? "Must fix: " : i.level === "fix" ? "Worth fixing: " : "Note: "}{i.text}</li>)}
                   </ul>
                 ) : <p className="lo-verified">Checked: no dashes, nothing unsupported, nothing private.</p>}
-                <textarea className="sh-textarea lo-doc" value={text} readOnly={locked} onChange={(e) => setEditing({ ...editing, [kind]: e.target.value })} aria-label={DOC_LABEL[kind]} />
+                {kind === "answers" ? <AnswersEditor key={`${d._id}:${d.draftedAt ?? 0}`} job={job} doc={d} locked={locked} /> : <DocEditor key={`${d._id}:${d.draftedAt ?? 0}`} job={job} doc={d} locked={locked} />}
                 <div className="sh-row sh-wrap mt-3">
-                  {!locked && editing[kind] !== undefined && editing[kind] !== d.text && <Btn disabled={busy} onClick={() => void run(async () => { await save({ jobId: job._id, kind, text: editing[kind] }); setEditing((e) => { const n = { ...e }; delete n[kind]; return n; }); })}>Save my edits (checks again)</Btn>}
                   <DocExports text={d.text} name={fileName(DOC_LABEL[kind], job.employer)} onPrint={() => { setPrinting(d.text); setTimeout(() => window.print(), 50); }} />
                 </div>
               </>
@@ -297,6 +291,62 @@ function Documents({ job, docs, status }: { job: Doc<"loJobs">; docs: Doc<"loDoc
       })}
       {printing && <div className="lo-print" aria-hidden>{printing}</div>}
     </Card>
+  );
+}
+
+/** The employer's questions, pasted once and kept with the job. */
+function QuestionsBox({ job }: { job: Doc<"loJobs"> }) {
+  const save = useMutation(api.lookout.data.saveApplicationQuestions);
+  const auto = useAutosave((text) => save({ jobId: job._id, text }));
+  const [text, setText] = useState(job.applicationQuestions ?? "");
+  return (
+    <Field label="The application's questions" hint="Paste them from the employer's form, one per line. They're kept with this job. Anything only you can answer (eligibility, salary, start date) comes back as ASK FIRST, unless you've answered it on another application.">
+      <textarea className="sh-textarea" rows={4} value={text} onChange={(e) => { setText(e.target.value); auto.change(e.target.value); }} onBlur={() => void auto.flush()} />
+      <span className="sh-hint">{saveLabel(auto.state)}</span>
+    </Field>
+  );
+}
+
+function DocEditor({ job, doc, locked }: { job: Doc<"loJobs">; doc: Doc<"loDocs">; locked: boolean }) {
+  const save = useMutation(api.lookout.data.saveDoc);
+  const auto = useAutosave((text) => save({ jobId: job._id, kind: doc.kind, text }), 1800);
+  const [text, setText] = useState(doc.text);
+  return (
+    <>
+      <textarea className="sh-textarea lo-doc" value={text} readOnly={locked} onChange={(e) => { setText(e.target.value); auto.change(e.target.value); }} onBlur={() => void auto.flush()} aria-label={DOC_LABEL[doc.kind]} />
+      <span className="sh-hint">{saveLabel(auto.state)}{auto.state === "error" && auto.error ? `: ${auto.error}` : ""}</span>
+    </>
+  );
+}
+
+/**
+ * The answers one question at a time: each with its own box, saved as he
+ * types, and a copy button for pasting into the employer's form. Open ones
+ * (ASK FIRST) are marked. What he writes here is remembered for the same
+ * question on later applications.
+ */
+function AnswersEditor({ job, doc, locked }: { job: Doc<"loJobs">; doc: Doc<"loDocs">; locked: boolean }) {
+  const save = useMutation(api.lookout.data.saveDoc);
+  const auto = useAutosave((text) => save({ jobId: job._id, kind: "answers", text }));
+  const [pairs, setPairs] = useState(() => parseAnswerPairs(doc.text));
+  const open = pairs.filter((p) => isOpenAnswer(p.answer)).length;
+  function edit(i: number, answer: string) {
+    const next = pairs.map((p, j) => (j === i ? { ...p, answer } : p));
+    setPairs(next);
+    auto.change(joinAnswerPairs(next));
+  }
+  return (
+    <div className="sh-stack-sm">
+      {open > 0 && <p className="sh-note">{open} {open === 1 ? "answer needs" : "answers need"} filling in: look for ASK FIRST.</p>}
+      {pairs.map((p, i) => (
+        <div key={`${i}:${p.question}`} className={isOpenAnswer(p.answer) ? "lo-fail" : undefined}>
+          <p><strong>{p.question}</strong></p>
+          <textarea className="sh-textarea" rows={Math.min(8, Math.max(2, Math.ceil(p.answer.length / 80)))} value={p.answer} readOnly={locked} onChange={(e) => edit(i, e.target.value)} onBlur={() => void auto.flush()} aria-label={p.question} />
+          <CopyButton text={p.answer} label="Copy answer" />
+        </div>
+      ))}
+      <span className="sh-hint">{saveLabel(auto.state)}{auto.state === "error" && auto.error ? `: ${auto.error}` : ""}</span>
+    </div>
   );
 }
 
