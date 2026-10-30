@@ -1536,8 +1536,12 @@ export default defineSchema({
     allowHealthDisclosure: v.boolean(),
     lastSearchAt: v.optional(v.number()),
     lastSearchNote: v.optional(v.string()),
+    /** What each source gave at the last search, for the Overview. */
+    lastSearchSources: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), problem: v.optional(v.string()) }))),
     /** Which version of the listing reader last read this search's jobs. */
     scanVersion: v.optional(v.number()),
+    /** Which version of the default sources this search has been offered. */
+    sourcesVersion: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
 

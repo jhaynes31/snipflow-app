@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { FACT_KEYS, FACT_LABEL, INTERACTION_KINDS, INTERACTION_LABEL, MANUAL_MOVES, SCHEDULE_KINDS, SCHEDULE_LABEL, STATUS_LABEL, verificationNote, type Fact, type FactKey, type Facts, type Status } from "@/convex/lookout/pure";
 import { Btn, Card, CopyButton, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, type SourceKind } from "@/convex/lookout/sources";
 import { download, fileName, textToDocx } from "../docx";
 import { LOOKOUT } from "../Shell";
 
@@ -95,8 +96,8 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
         {job.applyUrl && job.applyUrl !== job.url ? <> · <a className="sh-link" href={job.applyUrl} target="_blank" rel="noopener noreferrer">The application page</a></> : null}
       </p>
       {job.alsoAt.length > 0 && <p className="sh-hint">Also seen at: {job.alsoAt.map((u) => <a key={u} className="sh-link" href={u} target="_blank" rel="noopener noreferrer">{new URL(u).hostname} </a>)}</p>}
-      {job.sourceKind === "remotive" && <p className="sh-hint">Found through <a className="sh-link" href="https://remotive.com" target="_blank" rel="noopener noreferrer">Remotive</a>.</p>}
-      {job.sourceKind === "himalayas" && <p className="sh-hint">Found through <a className="sh-link" href="https://himalayas.app" target="_blank" rel="noopener noreferrer">Himalayas</a>.</p>}
+      {BOARD_HOME[job.sourceKind as SourceKind] && <p className="sh-hint">Found through <a className="sh-link" href={BOARD_HOME[job.sourceKind as SourceKind]!.url} target="_blank" rel="noopener noreferrer">{BOARD_HOME[job.sourceKind as SourceKind]!.name}</a>.</p>}
+      <FollowEmployer job={job} />
       <div className="sh-row sh-wrap">
         {moves.map((m) => <Btn key={m} variant={m === "passed" ? "ghost" : "secondary"} disabled={busy} onClick={() => void run(() => setStatus({ jobId: job._id, status: m }))}>{m === "passed" ? "Not for me" : m === "preparing" ? "Prepare an application" : STATUS_LABEL[m]}</Btn>)}
         <Btn variant="ghost" disabled={busy} onClick={() => void run(async () => { const r = await recheck({ jobId: job._id }); setNote(r === "yes" ? "The listing page answered. That usually means it's still up; confirm on the page itself." : r === "no" ? "The listing looks closed." : "The listing page didn't give a clear answer. Open it to check."); })}>Is it still open?</Btn>
@@ -105,6 +106,24 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
       <ErrorNote error={error} />
       {!LOCKED.includes(status) && <button type="button" className="sh-link mt-3" disabled={busy} onClick={() => { if (window.confirm("Remove this job and its drafts?")) void run(async () => { await remove({ jobId: job._id }); router.push(`${LOOKOUT}/jobs`); }); }}>Remove this job</button>}
     </Card>
+  );
+}
+
+/** When a job's link is on an employer's own board the Lookout can read, offer to follow that employer. */
+function FollowEmployer({ job }: { job: Doc<"loJobs"> }) {
+  const settings = useQuery(api.lookout.data.settings);
+  const addBoard = useMutation(api.lookout.data.addBoard);
+  const { busy, error, run } = useAction();
+  const [done, setDone] = useState(false);
+  const link = [job.applyUrl, job.url].find((u) => u && boardFromUrl(u));
+  const board = link ? boardFromUrl(link) : null;
+  if (!settings || !board || EMPLOYER_KINDS.includes(job.sourceKind as SourceKind)) return null;
+  if (settings.sources.some((x) => x.kind === board.kind && x.token.toLowerCase() === board.token.toLowerCase() && x.enabled)) return null;
+  return (
+    <p className="sh-hint">
+      {done ? `Following ${job.employer}'s job board now.` : <>This job is on {job.employer}&apos;s own job board. <button type="button" className="sh-link" disabled={busy} onClick={() => void run(async () => { await addBoard({ url: link!, name: job.employer }); setDone(true); })}>Follow {job.employer}</button> to see their other openings at every search.</>}
+      <ErrorNote error={error} />
+    </p>
   );
 }
 

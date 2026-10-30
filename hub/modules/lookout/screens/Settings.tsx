@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_WEIGHTS, WEIGHT_LABEL, type Weights } from "@/convex/lookout/pure";
-import { SOURCE_KIND_LABEL, type SourceKind } from "@/convex/lookout/sources";
+import { EMPLOYER_KINDS, SOURCE_KIND_LABEL, type SourceKind } from "@/convex/lookout/sources";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
 import { download } from "../docx";
 
@@ -22,6 +22,9 @@ export function LookoutSettings() {
   const [weights, setWeights] = useState<Weights | null>(null);
   const [src, setSrc] = useState({ kind: "greenhouse" as SourceKind, token: "", name: "" });
   const [saved, setSaved] = useState(false);
+  const [follow, setFollow] = useState("");
+  const [followNote, setFollowNote] = useState<string | null>(null);
+  const addBoard = useMutation(api.lookout.data.addBoard);
   if (!s || !status) return <Spinner />;
   const owner = s.role === "owner";
   const w = weights ?? s.weights;
@@ -70,22 +73,41 @@ export function LookoutSettings() {
         <Field label="Extra title words to look for" hint="Comma separated. Added to the built in list (documentation, operations, order processing, quality, claims, records, and more).">
           <input className="sh-input" defaultValue={s.keywords.join(", ")} onBlur={(e) => { const k = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); if (k.join(",") !== s.keywords.join(",")) void run(async () => { await set({ keywords: k }); done(); }); }} />
         </Field>
-        <h3 className="sh-h3">Sources</h3>
-        <p className="sh-hint">Employers&apos; own boards come first: the board name is the last part of their jobs page address on Greenhouse (boards.greenhouse.io/<em>name</em>), Lever (jobs.lever.co/<em>name</em>), or Ashby (jobs.ashbyhq.com/<em>name</em>). Indeed and LinkedIn don&apos;t allow automated searching; paste jobs from there with Add a job.</p>
-        {s.sources.map((x, i) => (
-          <div key={`${x.kind}:${x.token}`} className="sh-row sh-wrap lo-entry">
-            <Toggle checked={x.enabled} onChange={(enabled) => void run(async () => { await set({ sources: s.sources.map((y, j) => (j === i ? { ...y, enabled } : y)) }); })} label={x.name} hint={`${SOURCE_KIND_LABEL[x.kind as SourceKind] ?? x.kind} · ${x.token}`} />
-            <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => set({ sources: s.sources.filter((_, j) => j !== i) }))}>Remove</button>
-          </div>
-        ))}
-        <div className="sh-row sh-wrap mt-3">
-          <select className="sh-input" value={src.kind} onChange={(e) => setSrc({ ...src, kind: e.target.value as SourceKind })} aria-label="Kind of source">
-            {(Object.keys(SOURCE_KIND_LABEL) as SourceKind[]).map((k) => <option key={k} value={k}>{SOURCE_KIND_LABEL[k]}</option>)}
-          </select>
-          <input className="sh-input" value={src.token} maxLength={80} onChange={(e) => setSrc({ ...src, token: e.target.value })} placeholder={src.kind === "remotive" ? "category, for example customer-support" : src.kind === "himalayas" ? "search words" : "board name"} aria-label="Board name or search" />
-          <input className="sh-input" value={src.name} maxLength={80} onChange={(e) => setSrc({ ...src, name: e.target.value })} placeholder="What to call it" aria-label="Name" />
-          <Btn disabled={busy || !src.token.trim() || !src.name.trim()} onClick={() => void run(async () => { await set({ sources: [...s.sources, { ...src, enabled: true }] }); setSrc({ kind: src.kind, token: "", name: "" }); done(); })}>Add source</Btn>
+        <h3 className="sh-h3">Follow a company</h3>
+        <p className="sh-hint">Paste a link to a company&apos;s careers page, or to any one of its job listings, and the Lookout will read that company&apos;s own job board every search. Works for companies using Greenhouse, Lever, Ashby, Workable, SmartRecruiters, or Recruitee (most job links show one of those names in the address).</p>
+        <div className="sh-row sh-wrap">
+          <input className="sh-input" value={follow} maxLength={500} onChange={(e) => setFollow(e.target.value)} placeholder="https://jobs.lever.co/companyname" aria-label="Careers page link" />
+          <Btn disabled={busy || !follow.trim()} onClick={() => void run(async () => { const r = await addBoard({ url: follow }); setFollow(""); setFollowNote(r.added ? `Following it now (${r.label}). It's read at the next search.` : "Already following that one; it's switched on."); })}>Follow</Btn>
         </div>
+        {followNote && <Note>{followNote}</Note>}
+
+        {(["boards", "employers"] as const).map((group) => {
+          const list = s.sources.map((x, i) => ({ x, i })).filter(({ x }) => (EMPLOYER_KINDS.includes(x.kind as SourceKind) ? "employers" : "boards") === group);
+          return (
+            <div key={group}>
+              <h3 className="sh-h3">{group === "boards" ? `Job sites (${list.filter(({ x }) => x.enabled).length} on)` : `Companies followed (${list.filter(({ x }) => x.enabled).length} on)`}</h3>
+              {group === "boards" && <p className="sh-hint">Remote job sites with open listing feeds. Indeed, LinkedIn, Glassdoor, and ZipRecruiter don&apos;t allow automated reading; paste jobs from there with Add a job.</p>}
+              {list.length === 0 && <p className="sh-muted">None yet.</p>}
+              {list.map(({ x, i }) => (
+                <div key={`${x.kind}:${x.token}`} className="sh-row sh-wrap lo-entry">
+                  <Toggle checked={x.enabled} onChange={(enabled) => void run(async () => { await set({ sources: s.sources.map((y, j) => (j === i ? { ...y, enabled } : y)) }); })} label={x.name} hint={`${SOURCE_KIND_LABEL[x.kind as SourceKind] ?? x.kind} · ${x.token}`} />
+                  <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => set({ sources: s.sources.filter((_, j) => j !== i) }))}>Remove</button>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        <details className="mt-3">
+          <summary className="sh-link">Add a source by hand</summary>
+          <div className="sh-row sh-wrap mt-3">
+            <select className="sh-input" value={src.kind} onChange={(e) => setSrc({ ...src, kind: e.target.value as SourceKind })} aria-label="Kind of source">
+              {(Object.keys(SOURCE_KIND_LABEL) as SourceKind[]).map((k) => <option key={k} value={k}>{SOURCE_KIND_LABEL[k]}</option>)}
+            </select>
+            <input className="sh-input" value={src.token} maxLength={80} onChange={(e) => setSrc({ ...src, token: e.target.value })} placeholder={EMPLOYER_KINDS.includes(src.kind) ? "board name" : "category or search words"} aria-label="Board name or search" />
+            <input className="sh-input" value={src.name} maxLength={80} onChange={(e) => setSrc({ ...src, name: e.target.value })} placeholder="What to call it" aria-label="Name" />
+            <Btn disabled={busy || !src.token.trim() || !src.name.trim()} onClick={() => void run(async () => { await set({ sources: [...s.sources, { ...src, enabled: true }] }); setSrc({ kind: src.kind, token: "", name: "" }); done(); })}>Add source</Btn>
+          </div>
+        </details>
       </Card>
 
       <Card>

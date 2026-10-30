@@ -49,10 +49,17 @@ The rules live in pure, unit-tested files: `pure.ts` (facts, hard filters, ranki
 
 | Source | How | Why |
 | --- | --- | --- |
-| Employer boards on **Greenhouse**, **Lever**, **Ashby** | Public posting APIs (`boards-api.greenhouse.io`, `api.lever.co/v0/postings`, `api.ashbyhq.com/posting-api`) | The employer's own official listing and application page. Highest priority. Add any employer by its board name. A few remote first examples are listed and off by default. |
-| **Remotive** | Public API (`remotive.com/api/remote-jobs`) | Specialist remote board. Its terms ask for a link back (shown on each job) and a few requests a day. |
-| **Himalayas** | Public API (`himalayas.app/jobs/api`) | Specialist remote board with salary and location restrictions. |
-| **Indeed, LinkedIn, Glassdoor, ZipRecruiter** | Pasted by hand | Their terms don't allow automated access. Add a job runs every check on a pasted listing, and asks for the employer's own page when there is one. |
+| Employer boards on **Greenhouse**, **Lever**, **Ashby**, **Workable**, **SmartRecruiters**, **Recruitee** | Each system's public posting API | The employer's own official listing and application page. Highest priority. Follow a company by pasting its careers page link or any of its job links (Settings, Follow a company; or "Follow" on a job found elsewhere). |
+| **Remotive** | Public API, by category | Remote board; asks for a link back (shown on each job) and a few requests a day. |
+| **Himalayas** | Public search API | Remote board with salary and location restrictions. |
+| **Remote OK** | Public API (newest jobs) | Remote board; asks for a link back. |
+| **We Work Remotely** | Public RSS feeds, by category | Remote board, US region noted per job. |
+| **Jobicy** | Public API, US only, by tag | Remote board with salaries. |
+| **Working Nomads** | Public API (newest jobs) | Remote board. |
+| **The Muse** | Public API, "Flexible / Remote", by category | Broad US employers, including non tech ones. |
+| **Indeed, LinkedIn, Glassdoor, ZipRecruiter** | Pasted by hand | Their terms don't allow automated reading. Add a job runs every check on a pasted listing, and offers to follow the employer when its link is on a readable board. |
+
+All sources are read at the same time, and the search keeps the newest fitting jobs from each site in turn (at most 80 a search), so one busy site can't crowd out the others. The Overview shows what each site gave at the last search. New default sources reach existing searches once (`SOURCES_VERSION`) without bringing back ones removed. "Search now" can run every two hours; the scheduled search once a day or week.
 
 Searches run at most once every twenty hours, keep only titles in his discovery categories (documentation, operations, back office, order processing, ticket and email support, quality, process improvement, records and data, content review, onboarding administration, claims and benefits, CRM data, coordination, administration), drop sales titles and other-country listings before storing anything, and keep at most sixty per search, newest first. **Before relying on the scheduled search, run Search now once and read the note it leaves; it names any source that didn't answer.** The source endpoints were written against each API's published format and tested with sample answers, not live calls from the build machine.
 

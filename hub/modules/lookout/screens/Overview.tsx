@@ -55,7 +55,7 @@ export function Overview() {
       <Card>
         <h2 className="sh-h2">Find jobs</h2>
         <p className="sh-hint">
-          {settings.lastSearchAt ? `Last searched ${timeAgo(settings.lastSearchAt)}. ${settings.lastSearchNote ?? ""}` : "Not searched yet."} Scheduled search: {settings.frequency === "off" ? "off" : settings.frequency}.
+          {settings.lastSearchAt ? `Last searched ${timeAgo(settings.lastSearchAt)}. ${(settings.lastSearchNote ?? "").split(". ").slice(0, 1).join("")}.` : "Not searched yet."} Scheduled search: {settings.frequency === "off" ? "off" : settings.frequency}.
         </p>
         <div className="sh-row sh-wrap">
           <Btn disabled={busy} onClick={() => void run(async () => { const r = await searchNow({}); setResult(r.note + (r.fresh ? ` ${r.fresh} new; each one is in the group below that fits it, including Set aside for any that fail a requirement.` : " Nothing new.")); })}>{busy ? "Searching…" : "Search now"}</Btn>
@@ -63,6 +63,15 @@ export function Overview() {
         </div>
         <ErrorNote error={error} />
         {result && <Note>{result}</Note>}
+        {settings.lastSearchSources.length > 0 && (
+          <details className="mt-3">
+            <summary className="sh-link">What each site gave last time</summary>
+            <ul className="sh-list sh-hint">
+              {settings.lastSearchSources.map((r) => <li key={r.name}>{r.name}: {r.problem ? r.problem : `${r.found} listings, ${r.kept} that fit`}</li>)}
+            </ul>
+            <p className="sh-hint">More sites and companies are under Settings, Searching.</p>
+          </details>
+        )}
       </Card>
 
       <Card>
