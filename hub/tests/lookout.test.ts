@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { INTAKE, MUST_HAVE_FOR_DOCUMENTS, nextQuestion } from "../convex/lookout/intake.ts";
 import { vetChange } from "../convex/lookout/adminPure.ts";
+import { AGENCIES, daysUntil, recruiterNote, searchLink } from "../convex/lookout/agencies.ts";
 import { chooseSearch, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
 import { boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
@@ -426,5 +427,31 @@ describe("more places to look", () => {
     assert.equal(parseSource(src("workable", "f"), { name: "F Co", jobs: [{ title: "Support Specialist", shortcode: "AB1", url: "https://apply.workable.com/f/j/AB1/", application_url: "https://apply.workable.com/f/j/AB1/apply", telecommuting: true, description: "<p>Remote</p>" }] })[0].employer, "F Co");
     assert.equal(parseSource(src("smartrecruiters", "G"), { content: [{ id: "55", name: "Order Specialist", company: { name: "G" }, location: { city: "Austin", country: "us", remote: true } }] })[0].url, "https://jobs.smartrecruiters.com/G/55");
     assert.equal(parseSource(src("recruitee", "h"), { offers: [{ id: 3, title: "Records Coordinator", careers_url: "https://h.recruitee.com/o/records", description: "<p>Remote</p>", remote: true, salary: { min: 25, max: 28, currency: "USD", period: "hour" } }] })[0].payLine, "Pay range: $25 to $28 USD per hour");
+  });
+});
+
+describe("staffing agencies", () => {
+  it("has the agencies that fit, each with a working search link", () => {
+    assert.equal(AGENCIES.length, 14);
+    assert.equal(new Set(AGENCIES.map((a) => a.key)).size, AGENCIES.length);
+    for (const a of AGENCIES) {
+      const link = searchLink(a, a.group === "healthcare");
+      assert.match(link, /^https:\/\/www\.google\.com\/search\?q=/);
+      if (a.site) assert.ok(decodeURIComponent(link).includes(`site:${a.site}`), a.name);
+    }
+  });
+  it("the recruiter note states the requirements and nothing private", () => {
+    const n = recruiterNote({ name: "Sam Rivers", minHourly: 25, maxHours: 35, homeState: "West Virginia" });
+    assert.match(n, /\$25 an hour/);
+    assert.match(n, /35 hours a week or fewer/);
+    assert.match(n, /West Virginia/);
+    assert.match(n, /No sales, cold calling/);
+    assert.doesNotMatch(n, /ADHD|autis|neurodiver|disab/i);
+  });
+  it("counts days to a follow up", () => {
+    const now = Date.UTC(2026, 9, 30, 12);
+    assert.equal(daysUntil(now + 3 * 86400000, now), 3);
+    assert.ok(daysUntil(now - 2 * 86400000, now)! < 0);
+    assert.equal(daysUntil(undefined, now), null);
   });
 });
