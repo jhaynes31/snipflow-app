@@ -86,8 +86,8 @@ export const SERIES_DESCRIPTIONS = [
   "Part one names the trap, part two shows the cost, part three hands over the loot.",
 ];
 
-/** Topic names from the fact bank, so slots use names the forge already knows. */
-export const TOPICS = ["Term Life Insurance", "Life Changes", "Life Insurance Amounts", "Beneficiaries", "Wills and Trusts", "Estate Planning", "Emergency Fund", "Budgeting", "Saving", "Paying Yourself First", "Getting Out of Debt", "Building Credit", "Retirement Planning", "Compound Growth", "Investments", "Home Buying", "Renting vs Buying", "Family and Kids", "College Savings", "Career Planning", "Health Coverage", "Disability Protection", "Taxes", "Financial Goals", "Net Worth", "Talking to Family About Money", "Financial Literacy"];
+/** Topic names from the fact bank (src/server/seed-facts.ts), so slots use names the forge already knows. Keep in step with TOPIC_BANK. */
+export const TOPICS = ["Paycheck to Paycheck", "Credit Card Interest", "The Minimum Payment Trap", "Buy Now Pay Later", "Medical Bills", "Student Loans", "Car Payments", "Rent and Housing Costs", "Childcare Costs", "Prices vs Paychecks", "Starting From Zero", "Where the Money Goes", "Bank Fees and Where You Keep Cash", "Getting Out of Debt", "Side Income", "Raises and Job Changes", "Benefits You Already Pay For", "Money Stress and Shame", "Scams That Target Stressed People", "Building Credit", "Term Life Insurance", "Life Insurance When Money Is Tight", "Life Insurance Amounts", "Life Insurance Riders", "Beneficiaries", "Wills and Trusts", "Healthcare Directives", "Estate Planning", "Disability Protection", "Health Coverage", "Family and Kids", "Life Changes", "Talking to Family About Money", "Retirement Planning", "Renting vs Buying", "Home Buying", "Taxes"];
 
 export const HOOK_ANGLES = [
   "The letter from HR nobody reads",

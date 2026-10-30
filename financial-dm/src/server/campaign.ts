@@ -5,7 +5,7 @@ import { requireAdmin } from "~/server/auth";
 import { QUEST_CONFIG, generatorById, type GeneratorId } from "~/lib/questConfig";
 import { isFinalPart, seriesOpener, teaseFor, type CampaignBrief, type CampaignContext } from "~/lib/campaign";
 import { scanCompliance } from "~/lib/compliance";
-import { buildTopicGroups, statFactFor } from "~/server/topics";
+import { DEFAULT_TOPIC, buildTopicGroups, statFactFor } from "~/server/topics";
 import { friendlyError } from "~/server/publicError";
 
 /**
@@ -27,22 +27,41 @@ const parseJson = <T,>(v: unknown, fallback: T): T => {
 const TOPIC_ALIASES: Array<[RegExp, string]> = [
   [/beneficiar/i, "Beneficiaries"],
   [/\bwill\b|trust|estate|probate/i, "Wills and Trusts"],
-  [/work coverage|through work|employer|group life|job|benefit|leave|quit|laid off|convert/i, "Life Changes"],
-  [/how much|amount|enough coverage|dime|size/i, "Life Insurance Amounts"],
+  [/directive|power of attorney/i, "Healthcare Directives"],
   [/rider/i, "Life Insurance Riders"],
+  [/how much|amount|enough coverage|dime|size/i, "Life Insurance Amounts"],
+  [/tight|afford|cheap|cost of (life|coverage)/i, "Life Insurance When Money Is Tight"],
+  [/work coverage|through work|group life|laid off|quit|convert/i, "Life Changes"],
   [/term life|life insurance|coverage|policy|premium|armor|shield/i, "Term Life Insurance"],
-  [/emergency|cushion|rainy day/i, "Emergency Fund"],
-  [/budget|spending|where the money goes/i, "Budgeting"],
-  [/debt|credit card|loan|payoff|interest rate|apr/i, "Getting Out of Debt"],
-  [/credit score|credit report/i, "Building Credit"],
-  [/retire|401|ira|compound/i, "Retirement Planning"],
-  [/invest|market|diversif/i, "Investments"],
-  [/college|education|tuition/i, "College Savings"],
-  [/home|mortgage|house|rent/i, "Home Buying"],
+  [/disab|injur|cannot work|can't work/i, "Disability Protection"],
+  [/health insurance|deductible|medicaid|marketplace/i, "Health Coverage"],
+  [/medical|hospital|doctor/i, "Medical Bills"],
+  [/student loan|\bsave plan\b|forgiveness|servicer/i, "Student Loans"],
+  [/buy now|pay later|bnpl|klarna|afterpay|affirm|installment/i, "Buy Now Pay Later"],
+  [/minimum payment/i, "The Minimum Payment Trap"],
+  [/apr|interest rate|late fee|credit card interest/i, "Credit Card Interest"],
+  [/debt|credit card|payoff|collections|consolidat/i, "Getting Out of Debt"],
+  [/credit score|credit report|credit histor/i, "Building Credit"],
+  [/\bcar\b|auto loan|vehicle|truck/i, "Car Payments"],
+  [/childcare|child care|daycare/i, "Childcare Costs"],
+  [/scam|fraud|imposter/i, "Scams That Target Stressed People"],
+  [/stress|shame|anxiety|overwhelm/i, "Money Stress and Shame"],
+  [/overdraft|bank fee|high yield|savings account|\bcd\b|checking/i, "Bank Fees and Where You Keep Cash"],
+  [/side hustle|side income|second job|gig/i, "Side Income"],
+  [/raise|negotiat|new job|switch(ing)? jobs|salary|career/i, "Raises and Job Changes"],
+  [/benefit|401|match|open enrollment|hsa|fsa|eap/i, "Benefits You Already Pay For"],
+  [/retire|ira|pension/i, "Retirement Planning"],
+  [/rent vs|renting|throwing money/i, "Renting vs Buying"],
+  [/mortgage|down payment|first home|buy(ing)? a (house|home)/i, "Home Buying"],
+  [/\brent\b|housing|landlord|lease/i, "Rent and Housing Costs"],
+  [/inflation|prices|grocer|cost of living|buying power/i, "Prices vs Paychecks"],
+  [/emergency|cushion|rainy day|\$500|first 500|starting from zero/i, "Starting From Zero"],
+  [/budget|spending|where the money goes|subscription/i, "Where the Money Goes"],
   [/baby|kid|child|family|parent|guardian/i, "Family and Kids"],
-  [/saving|save|paycheck/i, "Saving"],
-  [/tax/i, "Taxes"],
-  [/goal|net worth|freedom/i, "Financial Goals"],
+  [/talk|conversation|partner|spouse|couple/i, "Talking to Family About Money"],
+  [/marri|divorce|move|life change|life event/i, "Life Changes"],
+  [/tax|refund/i, "Taxes"],
+  [/paycheck|saving|save|broke|short every month/i, "Paycheck to Paycheck"],
 ];
 
 /** The best fitting verified fact from the topic bank for a planned topic. John can still edit it in the picker. */
@@ -71,7 +90,7 @@ function factForTopic(topic: string): { topic: string; fact: string } {
     }
   }
   if (best?.facts.length) return { topic: best.topic, fact: statFactFor(best.topic, "") ?? best.facts[0] };
-  const fallback = byName("Financial Literacy") ?? groups[0];
+  const fallback = byName(DEFAULT_TOPIC) ?? groups[0];
   return { topic, fact: fallback?.facts[0] ?? "" };
 }
 

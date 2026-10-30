@@ -24,7 +24,7 @@ import { friendlyError } from "~/server/publicError";
 
 // Topic rolling now lives in ./topics (one pool for every generator). These
 // re exports keep older imports working.
-export { EXTRA_TOPICS, getRandomTopics, type TopicPick } from "./topics";
+export { getRandomTopics, type TopicPick } from "./topics";
 
 // ── Types ──────────────────────────────────────────────────────────
 
