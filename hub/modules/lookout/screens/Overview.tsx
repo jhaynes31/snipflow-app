@@ -18,6 +18,7 @@ export function Overview() {
   const answers = useQuery(api.lookout.data.answers);
   const roles = useQuery(api.lookout.data.roles);
   const settings = useQuery(api.lookout.data.settings);
+  const agencies = useQuery(api.lookout.agencyData.list);
   const searchNow = useConvexAction(api.lookout.discover.searchNow);
   const refresh = useMutation(api.lookout.data.refreshReadings);
   useEffect(() => {
@@ -35,6 +36,7 @@ export function Overview() {
   const toCheck = live.filter((j) => j.verdict === "check" && ["new", "review", "saved"].includes(j.status)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
   const interviews = data.events.filter((e) => e.kind === "interview" && e.at && e.at > now - 3600000).sort((a, b) => a.at! - b.at!);
   const followUps = data.events.filter((e) => e.kind === "followUp" && e.at).sort((a, b) => a.at! - b.at!);
+  const agencyFollowUps = (agencies ?? []).filter((x) => !x.hidden && x.followUpAt && x.followUpAt <= now + 7 * 86400000).sort((a, b) => a.followUpAt! - b.followUpAt!);
   const rejectedCount = data.jobs.filter((j) => j.verdict === "rejected" && ["new", "review", "saved"].includes(j.status)).length;
 
   return (
@@ -88,10 +90,11 @@ export function Overview() {
         </Card>
       )}
 
-      {(interviews.length > 0 || followUps.length > 0) && (
+      {(interviews.length > 0 || followUps.length > 0 || agencyFollowUps.length > 0) && (
         <Card>
           <h2 className="sh-h2">Coming up</h2>
           {interviews.map((e) => <p key={e._id} className="lo-entry"><strong>Interview</strong> · {new Date(e.at!).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · <Link className="sh-link" href={`${LOOKOUT}/jobs/${e.jobId}`}>{e.employer}, {e.jobTitle}</Link></p>)}
+          {agencyFollowUps.map((x) => <p key={x.key} className="lo-entry"><strong>{x.followUpAt! <= now ? "Follow up now" : "Follow up"}</strong> · {new Date(x.followUpAt!).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · <Link className="sh-link" href={`${LOOKOUT}/agencies`}>{x.name}{x.recruiter ? `, ${x.recruiter}` : ""}</Link></p>)}
           {followUps.map((e) => <p key={e._id} className="lo-entry"><strong>{e.at! <= now ? "Follow up now" : "Follow up"}</strong> · {new Date(e.at!).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · <Link className="sh-link" href={`${LOOKOUT}/jobs/${e.jobId}`}>{e.employer}, {e.jobTitle}</Link></p>)}
         </Card>
       )}

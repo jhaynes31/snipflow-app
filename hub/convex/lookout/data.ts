@@ -186,7 +186,7 @@ export const setViewing = mutation({
 });
 
 /** Every Lookout table. Deleting a search clears its rows from all of them. */
-export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin"] as const;
+export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin", "loAgencies"] as const;
 
 /** Delete the search you own and everything in it. Only its owner can. */
 export const deleteMySearch = mutation({
@@ -747,7 +747,7 @@ export const exportAll = query({
   args: {},
   handler: async (ctx) => {
     const a = await requireLookout(ctx, true);
-    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports" | "loNotes" | "loAdmin">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
+    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports" | "loNotes" | "loAdmin" | "loAgencies">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
     return {
       exportedAt: new Date().toISOString(),
       settings: settingsView(await settingsOf(ctx, a.ownerId)),
@@ -760,6 +760,7 @@ export const exportAll = query({
       resumeImports: await by("loImports"),
       writerNotes: await by("loNotes"),
       assistant: await by("loAdmin"),
+      agencies: await by("loAgencies"),
     };
   },
 });

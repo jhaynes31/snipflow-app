@@ -4,6 +4,7 @@ import { Binoculars } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
 import { LookoutShell } from "./Shell";
 import { AddJob } from "./screens/AddJob";
+import { Agencies } from "./screens/Agencies";
 import { Assistant } from "./screens/Assistant";
 import { History } from "./screens/History";
 import { Interview } from "./screens/Interview";
@@ -45,6 +46,7 @@ export const lookout: ModuleManifest = {
     else if (first === "jobs" && second) screen = <JobDetail id={second} />;
     else if (first === "jobs") screen = <Jobs />;
     else if (first === "add") screen = <AddJob />;
+    else if (first === "agencies") screen = <Agencies />;
     else if (first === "interview") screen = <Interview />;
     else if (first === "history") screen = <History />;
     else if (first === "assistant") screen = <Assistant />;

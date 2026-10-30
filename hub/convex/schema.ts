@@ -1672,6 +1672,25 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
 
+  /** A staffing agency he's checking or working with: when it was last checked, the recruiter, the next follow up. */
+  loAgencies: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** A key from convex/lookout/agencies.ts, or "custom:<time>" for one added by hand. */
+    key: v.string(),
+    name: v.string(),
+    site: v.optional(v.string()),
+    focus: v.optional(v.string()),
+    lastCheckedAt: v.optional(v.number()),
+    signedUp: v.boolean(),
+    recruiter: v.optional(v.string()),
+    contact: v.optional(v.string()),
+    followUpAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    hidden: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
   /** Interviews, follow ups, and notes on a job, with a date when there is one. */
   loEvents: defineTable({
     ownerId: v.id("profiles"),
