@@ -70,6 +70,7 @@ export function JobDetail({ id }: { id: string }) {
       <FactsCard job={job} />
       <AskCard job={job} />
       <Documents job={job} docs={docs} status={status} />
+      <Applied job={job} status={status} application={application} />
       <Approval job={job} docs={docs} application={application} status={status} verdict={rank.verdict} owner={role === "owner"} />
       <Events job={job} events={events} />
       <Listing job={job} />
@@ -312,9 +313,7 @@ function DocExports({ text, name, onPrint }: { text: string; name: string; onPri
 function Approval({ job, docs, application, status, verdict, owner }: { job: Doc<"loJobs">; docs: Doc<"loDocs">[]; application: Doc<"loApplications"> | null; status: Status; verdict: string; owner: boolean }) {
   const ready = useMutation(api.lookout.data.markReady);
   const approve = useMutation(api.lookout.data.approve);
-  const submitted = useMutation(api.lookout.data.markSubmitted);
   const { busy, error, run } = useAction();
-  const [confirmation, setConfirmation] = useState("");
   const [sure, setSure] = useState(false);
   const blocked = docs.some((d) => d.issues.some((i) => i.level === "block"));
 
@@ -349,27 +348,84 @@ function Approval({ job, docs, application, status, verdict, owner }: { job: Doc
   return (
     <Card>
       <h2 className="sh-h2">The application on record</h2>
-      <p className="sh-hint">Approved {day(application.approvedAt)}.{application.submittedAt ? ` Submitted ${day(application.submittedAt)}: ${application.confirmation}` : " Not submitted yet."}</p>
+      <p className="sh-hint">{application.approvedAt ? `Approved ${day(application.approvedAt)}.` : "Applied without approving here first."}{application.submittedAt ? ` Submitted ${day(application.submittedAt)}.` : " Not submitted yet."}</p>
+      {application.resume || application.letter || application.answers ? (
       <details>
-        <summary className="sh-link">The exact resume{application.letter ? ", letter" : ""}{application.answers ? ", and answers" : ""} approved</summary>
+        <summary className="sh-link">The resume{application.letter ? ", letter" : ""}{application.answers ? ", and answers" : ""} on file for it</summary>
         <pre className="lo-doc" style={{ whiteSpace: "pre-wrap" }}>{application.resume}</pre>
         {application.letter && <pre className="lo-doc" style={{ whiteSpace: "pre-wrap" }}>{application.letter}</pre>}
         {application.answers && <pre className="lo-doc" style={{ whiteSpace: "pre-wrap" }}>{application.answers}</pre>}
       </details>
-      <p className="sh-hint mt-3">Word files and PDFs of these are in the documents above, which can no longer be edited.</p>
+      ) : null}
+      {application.approvedAt && <p className="sh-hint mt-3">Word files and PDFs of these are in the documents above, which can no longer be edited.</p>}
       {status === "approved" && (
         <div className="lo-entry">
           <h3 className="sh-h3">Submit it on the employer&apos;s page</h3>
           <p>
             <a className="sh-btn sh-btn-primary" href={job.applyUrl ?? job.url} target="_blank" rel="noopener noreferrer">Open the application page</a>
           </p>
-          <p className="sh-hint">Fill it in with the documents above. Don&apos;t give a Social Security number, bank details, or ID before an offer unless you&apos;re sure the page is the employer&apos;s own.</p>
-          <Field label="After it's sent: what confirms it went through?" hint="The confirmation message, a reference number, or the confirmation email's subject. It isn't marked submitted without one.">
-            <input className="sh-input" value={confirmation} maxLength={500} onChange={(e) => setConfirmation(e.target.value)} />
-          </Field>
-          <ErrorNote error={error} />
-          <Btn disabled={busy || !confirmation.trim()} onClick={() => void run(() => submitted({ jobId: job._id, confirmation }))}>It&apos;s submitted</Btn>
+          <p className="sh-hint">Fill it in with the documents above, then record it below. Don&apos;t give a Social Security number, bank details, or ID before an offer unless you&apos;re sure the page is the employer&apos;s own.</p>
         </div>
+      )}
+    </Card>
+  );
+}
+
+const HOW: { key: "email" | "page" | "unsure" | "other"; label: string }[] = [
+  { key: "email", label: "A confirmation email came" },
+  { key: "page", label: "The site showed a confirmation" },
+  { key: "unsure", label: "Not sure it went through yet" },
+  { key: "other", label: "Something else" },
+];
+
+/**
+ * "I applied to this": the Lookout never sends applications, so this is how
+ * it learns one went in on the employer's site. Works from any stage.
+ */
+function Applied({ job, status, application }: { job: Doc<"loJobs">; status: Status; application: Doc<"loApplications"> | null }) {
+  const mark = useMutation(api.lookout.data.markApplied);
+  const unmark = useMutation(api.lookout.data.unmarkApplied);
+  const { busy, error, run } = useAction();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ how: "email" as (typeof HOW)[number]["key"], note: "", day: "" });
+  if (status === "submitted" && application?.submittedAt) {
+    return (
+      <Card>
+        <h2 className="sh-h2">Applied {day(application.submittedAt)}</h2>
+        <p>{application.confirmation}</p>
+        {application.howKnown === "unsure" && <p className="sh-note">Not confirmed yet. Look for an email from {job.employer} (check the spam folder too). A reminder to check is on the list below.</p>}
+        {!application.resume && <p className="sh-hint">No resume was drafted here for this one, so there&apos;s no copy on file of what was sent.</p>}
+        <ErrorNote error={error} />
+        <button type="button" className="sh-link" disabled={busy} onClick={() => { if (window.confirm("Mark this as not applied after all?")) void run(() => unmark({ jobId: job._id })); }}>Not applied after all</button>
+      </Card>
+    );
+  }
+  if (!["new", "review", "saved", "preparing", "ready", "approved", "passed"].includes(status)) return null;
+  return (
+    <Card className={status === "approved" ? "lo-fail" : undefined}>
+      <h2 className="sh-h2">Applied already?</h2>
+      <p className="sh-hint">Applications are sent on the employer&apos;s own site, never from here. Once one is sent, record it so it shows as Submitted and the follow up is scheduled.</p>
+      {open ? (
+        <div className="sh-stack-sm">
+          <div className="sh-radio-list" role="radiogroup" aria-label="How you know it went through">
+            {HOW.map((h) => (
+              <label key={h.key} className="sh-radio">
+                <input type="radio" name={`how-${job._id}`} checked={f.how === h.key} onChange={() => setF({ ...f, how: h.key })} /> {h.label}
+              </label>
+            ))}
+          </div>
+          <div className="sh-row sh-wrap">
+            <Field label="Applied on (blank for today)"><input className="sh-input" type="date" value={f.day} onChange={(e) => setF({ ...f, day: e.target.value })} /></Field>
+            <Field label="Anything to note (optional)"><input className="sh-input" value={f.note} maxLength={400} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Reference number, which resume, who it went to" /></Field>
+          </div>
+          <ErrorNote error={error} />
+          <div className="sh-row">
+            <Btn disabled={busy} onClick={() => void run(async () => { await mark({ jobId: job._id, how: f.how, note: f.note || undefined, appliedOn: f.day || undefined }); setOpen(false); })}>Record it</Btn>
+            <Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
+          </div>
+        </div>
+      ) : (
+        <Btn variant="secondary" onClick={() => setOpen(true)}>I applied to this</Btn>
       )}
     </Card>
   );
