@@ -93,7 +93,7 @@ Later additions worth considering: USAJOBS (free key; federal remote roles), Adz
 
 ## Applications and status
 
-Status moves by hand only between neighboring stages. **Ready for approval** needs a resume with no blocking issue. **Approve** is his alone, needs every requirement to pass, asks him to confirm he read every document and that it's true, and freezes the exact texts used. **Submitted** is recorded only after approval and only with something that confirms it (a confirmation message or number). A follow up is suggested seven days later. Interviews, follow ups, notes, and how an interview went are kept per job. Nothing is ever submitted to an employer from The Shire.
+Status moves by hand only between neighboring stages. **Ready for approval** needs a resume with no blocking issue. **Approve** is his alone, needs every requirement to pass, asks him to confirm he read every document and that it's true, and freezes the exact texts used. **"I applied to this"** works from any stage (2026-10-30: John applied straight from two listings and nothing showed it): it records how it's known the application went through (a confirmation email, a confirmation page, "not sure yet", or something else), keeps whatever documents were on file, and moves the job to Submitted; "not sure yet" schedules a next-day reminder to look for the confirmation email. The Assistant can record it too ("he applied to the Acme job this morning"). "Not applied after all" puts it back. A follow up is suggested seven days later. Interviews, follow ups, notes, and how an interview went are kept per job. Nothing is ever submitted to an employer from The Shire.
 
 ## Privacy and security
 

@@ -8,7 +8,7 @@
  */
 import { MANUAL_MOVES, STATUSES, type Status } from "./pure.ts";
 
-export const CHANGE_KINDS = ["roleUpdate", "roleRemove", "roleAdd", "answerSet", "noteAdd", "noteRemove", "jobStatus", "jobNote"] as const;
+export const CHANGE_KINDS = ["roleUpdate", "roleRemove", "roleAdd", "answerSet", "noteAdd", "noteRemove", "jobStatus", "jobNote", "jobApplied"] as const;
 export type ChangeKind = (typeof CHANGE_KINDS)[number];
 
 /**
@@ -36,6 +36,10 @@ export interface Change {
   achievements: string;
   tools: string;
   sales: "unchanged" | "yes" | "no";
+  /** For jobApplied: how it's known that it went through. */
+  how: "email" | "page" | "unsure" | "other" | "";
+  /** For jobApplied: the day he applied, YYYY-MM-DD, when they say. */
+  date: string;
 }
 
 export const ADMIN_SYSTEM = `You are the Lookout's assistant. The Lookout is a private job search tool for one person; the people writing to you are that person or their partner, keeping the profile and job list up to date. Answer briefly and warmly in plain language.
@@ -44,7 +48,7 @@ You can make changes to:
 - the work history: roleUpdate (change fields of a job; to mark a job as ended set endAction "set" with end, to mark it current set endAction "current"), roleRemove, roleAdd;
 - interview answers: answerSet (key from the list given, the full new answer);
 - standing notes for the writer about how to present his history: noteAdd (text), noteRemove (noteId);
-- jobs being considered: jobStatus (jobId and one of the allowed next statuses listed for that job), jobNote (jobId, text to add to its notes).
+- jobs being considered: jobStatus (jobId and one of the allowed next statuses listed for that job), jobNote (jobId, text to add to its notes), jobApplied (he applied on the employer's site: jobId; how is "email" or "page" only if they say a confirmation email or page came, "unsure" if they don't say or aren't sure; date as YYYY-MM-DD only if they give the day, using today's date for "this morning" or "today"; text for any other detail). Match jobs by employer and title; if more than one could fit, or the job isn't in the list, ask (a job not in the list is added first with Add a job).
 
 Rules that are never broken:
 - Change only what the message actually says. Never invent dates, employers, titles, numbers, duties, or reasons. If something you need is missing or ambiguous (which job, what end date), make no change for it and ask a short, specific question in the reply.
@@ -57,7 +61,7 @@ Rules that are never broken:
 
 export function adminSchema() {
   const str = { type: "string" };
-  const fields = ["kind", "summary", "roleId", "jobId", "noteId", "key", "status", "text", "employer", "title", "start", "endAction", "end", "location", "duties", "achievements", "tools", "sales"];
+  const fields = ["kind", "summary", "roleId", "jobId", "noteId", "key", "status", "text", "employer", "title", "start", "endAction", "end", "location", "duties", "achievements", "tools", "sales", "how", "date"];
   return {
     type: "object",
     additionalProperties: false,
@@ -75,6 +79,7 @@ export function adminSchema() {
             kind: { type: "string", enum: [...CHANGE_KINDS] },
             endAction: { type: "string", enum: ["unchanged", "set", "current"] },
             sales: { type: "string", enum: ["unchanged", "yes", "no"] },
+            how: { type: "string", enum: ["", "email", "page", "unsure", "other"] },
           },
         },
       },
@@ -88,6 +93,9 @@ export interface AdminContext {
   notes: { id: string }[];
   jobs: { id: string; status: string }[];
 }
+
+/** Statuses a job can be in before it's recorded as applied. */
+export const BEFORE_APPLYING = ["new", "review", "saved", "preparing", "ready", "approved", "passed"];
 
 const DATE = /^\d{4}(-(0[1-9]|1[0-2]))?$/;
 const s = (x: unknown) => (typeof x === "string" ? x.trim() : "");
@@ -121,6 +129,8 @@ export function vetChange(raw: Record<string, unknown>, ctx: AdminContext): Chan
     achievements: s(raw.achievements).slice(0, 6000),
     tools: s(raw.tools).slice(0, 2000),
     sales,
+    how: (["email", "page", "unsure", "other"].includes(s(raw.how)) ? s(raw.how) : "") as Change["how"],
+    date: s(raw.date),
   };
   if (!c.summary) return null;
   if (c.start && !DATE.test(c.start)) return null;
@@ -150,6 +160,12 @@ export function vetChange(raw: Record<string, unknown>, ctx: AdminContext): Chan
       const job = ctx.jobs.find((j) => j.id === c.jobId);
       if (!job || !(STATUSES as readonly string[]).includes(c.status)) return null;
       return (MANUAL_MOVES[job.status as Status] ?? []).includes(c.status as Status) ? c : null;
+    }
+    case "jobApplied": {
+      const job = ctx.jobs.find((j) => j.id === c.jobId);
+      if (!job || !BEFORE_APPLYING.includes(job.status)) return null;
+      if (c.date && !/^\d{4}-\d{2}-\d{2}$/.test(c.date)) return null;
+      return { ...c, how: c.how || "unsure" };
     }
     case "jobNote":
       return ctx.jobs.some((j) => j.id === c.jobId) && c.text ? c : null;

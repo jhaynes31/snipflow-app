@@ -4,6 +4,7 @@ import { internalMutation, internalQuery, mutation, query, type MutationCtx } fr
 import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
+import { BEFORE_APPLYING } from "./adminPure";
 import { chooseSearch, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
 import { boardFromUrl, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
 import { blocking, findDashes, profileText, reviewDocument, scrubDashes } from "./writing";
@@ -687,24 +688,86 @@ export const markReady = mutation({
   },
 });
 
+export const HOW_KNOWN = { email: "A confirmation email came", page: "The site showed a confirmation", unsure: "Not sure it went through yet", other: "Other" } as const;
+export type HowKnown = keyof typeof HOW_KNOWN;
+const howKnownV = v.union(v.literal("email"), v.literal("page"), v.literal("unsure"), v.literal("other"));
+
 /**
- * Record a submission. Only after approval, and only with something that
- * confirms it went through: the confirmation page or email, a reference
- * number. Nothing is ever submitted from here; he submits on the employer's
- * own page.
+ * Record that he applied, on the employer's own site. Nothing is ever sent
+ * from here. It works from any stage before submitted, because people often
+ * apply straight from a listing (2026-10-30: John applied to two jobs that
+ * were never marked). The documents on file at that moment are kept with
+ * it, and the way it's known that it went through is recorded, "not sure
+ * yet" included, so nothing is called confirmed that isn't. Returns what to
+ * put back for an undo.
  */
+export async function recordApplication(ctx: MutationCtx, a: Access, job: Doc<"loJobs">, how: HowKnown, note: string | undefined, at: number) {
+  if (!BEFORE_APPLYING.includes(job.status)) throw new ConvexError("This one is already recorded as submitted.");
+  const confirmation = `${HOW_KNOWN[how]}${note ? `: ${note}` : ""}`.slice(0, 500);
+  const existing = await ctx.db.query("loApplications").withIndex("by_job", (q) => q.eq("jobId", job._id)).first();
+  let appId: Id<"loApplications">;
+  let created = false;
+  if (existing) {
+    await ctx.db.patch(existing._id, { submittedAt: at, confirmation, howKnown: how, recordedBy: a.me.profile._id });
+    appId = existing._id;
+  } else {
+    const docs = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", job._id)).collect();
+    appId = await ctx.db.insert("loApplications", { ownerId: a.ownerId, visibility: "private", jobId: job._id, resume: docs.find((d) => d.kind === "resume")?.text ?? "", letter: docs.find((d) => d.kind === "letter")?.text, answers: docs.find((d) => d.kind === "answers")?.text, submittedAt: at, confirmation, howKnown: how, recordedBy: a.me.profile._id });
+    created = true;
+  }
+  const prevStatus = { status: job.status, statusAt: job.statusAt };
+  await ctx.db.patch(job._id, { status: "submitted", statusAt: Date.now() });
+  const followUp = await ctx.db.insert("loEvents", {
+    ownerId: a.ownerId,
+    visibility: "private",
+    jobId: job._id,
+    kind: "followUp",
+    at: (how === "unsure" ? Date.now() + 86400000 : at + FOLLOW_UP_DAYS * 86400000),
+    text: how === "unsure" ? "Check for a confirmation email from this employer (and the spam folder). If none came, the application may need to be sent again." : "A short, polite check in on the application, if nothing has come back.",
+    done: false,
+    createdAt: Date.now(),
+  });
+  return { appId, created, prevStatus, followUp };
+}
+
+/** "I applied to this", from the job's page. */
+export const markApplied = mutation({
+  args: { jobId: v.id("loJobs"), how: howKnownV, note: v.optional(v.string()), appliedOn: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    let at = Date.now();
+    if (args.appliedOn) {
+      const t = Date.parse(`${args.appliedOn}T12:00:00`);
+      if (!Number.isFinite(t) || t > Date.now() + 86400000) throw new ConvexError("That date doesn't look right.");
+      at = t;
+    }
+    await recordApplication(ctx, a, j, args.how, optionalText(args.note, 400, "Note"), at);
+  },
+});
+
+/** Kept for the approval flow: record a submission after approving. */
 export const markSubmitted = mutation({
   args: { jobId: v.id("loJobs"), confirmation: v.string() },
   handler: async (ctx, args) => {
     const a = await requireLookout(ctx);
     const j = await loadJob(ctx, a, args.jobId);
+    await recordApplication(ctx, a, j, "other", cleanText(args.confirmation, 400, "What confirms it was submitted"), Date.now());
+  },
+});
+
+/** He hasn't really applied after all: put the job back where it was. Removes the record and its follow up. */
+export const unmarkApplied = mutation({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    if (j.status !== "submitted") throw new ConvexError("Only a job marked submitted can be put back.");
     const app = await ctx.db.query("loApplications").withIndex("by_job", (q) => q.eq("jobId", j._id)).first();
-    if (!app || j.status !== "approved") throw new ConvexError("An application is approved before it's submitted.");
-    const confirmation = cleanText(args.confirmation, 500, "What confirms it was submitted");
-    const now = Date.now();
-    await ctx.db.patch(app._id, { submittedAt: now, confirmation });
-    await ctx.db.patch(j._id, { status: "submitted", statusAt: now });
-    await ctx.db.insert("loEvents", { ownerId: a.ownerId, visibility: "private", jobId: j._id, kind: "followUp", at: now + FOLLOW_UP_DAYS * 86400000, text: "A short, polite check in on the application, if nothing has come back.", done: false, createdAt: now });
+    if (app?.approvedAt) await ctx.db.patch(app._id, { submittedAt: undefined, confirmation: undefined, howKnown: undefined });
+    else if (app) await ctx.db.delete(app._id);
+    for (const e of await ctx.db.query("loEvents").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect()) if (e.kind === "followUp" && !e.done) await ctx.db.delete(e._id);
+    await ctx.db.patch(j._id, { status: app?.approvedAt ? "approved" : "saved", statusAt: Date.now() });
   },
 });
 

@@ -1635,9 +1635,13 @@ export default defineSchema({
     resume: v.string(),
     letter: v.optional(v.string()),
     answers: v.optional(v.string()),
-    approvedAt: v.number(),
+    /** When it was approved here. Absent when he applied on the employer's site without approving here first. */
+    approvedAt: v.optional(v.number()),
     submittedAt: v.optional(v.number()),
     confirmation: v.optional(v.string()),
+    /** How it's known that the application went through. */
+    howKnown: v.optional(v.union(v.literal("email"), v.literal("page"), v.literal("unsure"), v.literal("other"))),
+    recordedBy: v.optional(v.id("profiles")),
   }).index("by_job", ["jobId"]),
 
   /** A resume uploaded to fill in the profile: what was read from it and what it added. */

@@ -348,7 +348,7 @@ describe("facts", () => {
 
 describe("the assistant", () => {
   const ctx = { roles: [{ id: "r1", employer: "Acme", title: "Rep", start: "2019-03", confirmed: true }], answerKeys: INTAKE.map((q) => q.key), notes: [{ id: "n1" }], jobs: [{ id: "j1", status: "new" }] };
-  const base = { summary: "x", roleId: "", jobId: "", noteId: "", key: "", status: "", text: "", employer: "", title: "", start: "", endAction: "unchanged", end: "", location: "", duties: "", achievements: "", tools: "", sales: "unchanged" };
+  const base = { summary: "x", roleId: "", jobId: "", noteId: "", key: "", status: "", text: "", employer: "", title: "", start: "", endAction: "unchanged", end: "", location: "", duties: "", achievements: "", tools: "", sales: "unchanged", how: "", date: "" };
   it("marks a job ended with a real date, and nothing without one", () => {
     assert.ok(vetChange({ ...base, kind: "roleUpdate", roleId: "r1", endAction: "set", end: "2025-06" }, ctx));
     assert.equal(vetChange({ ...base, kind: "roleUpdate", roleId: "r1", endAction: "set", end: "" }, ctx), null);
@@ -362,6 +362,13 @@ describe("the assistant", () => {
     assert.equal(vetChange({ ...base, kind: "answerSet", key: "disclose", text: "yes" }, ctx), null, "never the privacy answer");
     assert.equal(vetChange({ ...base, kind: "roleUpdate", roleId: "r1" }, ctx), null, "a change that changes nothing");
     assert.equal(vetChange({ ...base, kind: "bogus" }, ctx), null);
+  });
+  it("records that he applied, calling it unconfirmed unless they said a confirmation came", () => {
+    assert.equal(vetChange({ ...base, kind: "jobApplied", jobId: "j1" }, ctx)?.how, "unsure");
+    assert.equal(vetChange({ ...base, kind: "jobApplied", jobId: "j1", how: "email", date: "2026-10-30" }, ctx)?.how, "email");
+    assert.equal(vetChange({ ...base, kind: "jobApplied", jobId: "j1", date: "this morning" }, ctx), null);
+    assert.equal(vetChange({ ...base, kind: "jobApplied", jobId: "nope" }, { ...ctx }), null);
+    assert.equal(vetChange({ ...base, kind: "jobApplied", jobId: "j2" }, { ...ctx, jobs: [{ id: "j2", status: "submitted" }] }), null, "already recorded");
   });
 });
 

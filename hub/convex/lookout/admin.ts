@@ -3,7 +3,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx } from "../_generated/server";
 import { cleanText } from "../lib";
 import { vetChange, type AdminContext, type Change } from "./adminPure";
-import { requireLookout, type Access } from "./data";
+import { recordApplication, requireLookout, type Access } from "./data";
 import { INTAKE } from "./intake";
 import { MANUAL_MOVES, type Status } from "./pure";
 
@@ -90,7 +90,8 @@ type Undo =
   | { t: "delete"; table: "loRoles" | "loNotes" | "loAnswers"; id: string }
   | { t: "answerPatch"; id: Id<"loAnswers">; prev: Partial<Doc<"loAnswers">> }
   | { t: "noteRestore"; doc: Omit<Doc<"loNotes">, "_id" | "_creationTime"> }
-  | { t: "jobPatch"; id: Id<"loJobs">; prev: Partial<Doc<"loJobs">> };
+  | { t: "jobPatch"; id: Id<"loJobs">; prev: Partial<Doc<"loJobs">> }
+  | { t: "applied"; jobId: Id<"loJobs">; appId: Id<"loApplications">; created: boolean; prev: { status: string; statusAt: number }; followUp: Id<"loEvents"> };
 
 function strip<T extends { _id: unknown; _creationTime: unknown }>(doc: T): Omit<T, "_id" | "_creationTime"> {
   const { _id, _creationTime, ...rest } = doc;
@@ -150,6 +151,12 @@ async function apply(ctx: MutationCtx, a: Access, c: Change, now: number): Promi
       const j = (await ctx.db.get(c.jobId as Id<"loJobs">))!;
       await ctx.db.patch(j._id, { status: c.status, statusAt: now });
       return { t: "jobPatch", id: j._id, prev: { status: j.status, statusAt: j.statusAt } };
+    }
+    case "jobApplied": {
+      const j = (await ctx.db.get(c.jobId as Id<"loJobs">))!;
+      const at = c.date ? Date.parse(`${c.date}T12:00:00`) : now;
+      const r = await recordApplication(ctx, a, j, c.how || "unsure", c.text || undefined, Number.isFinite(at) && at <= now + 86400000 ? at : now);
+      return { t: "applied", jobId: j._id, appId: r.appId, created: r.created, prev: r.prevStatus, followUp: r.followUp };
     }
     case "jobNote": {
       const j = (await ctx.db.get(c.jobId as Id<"loJobs">))!;
@@ -216,6 +223,12 @@ export const undo = mutation({
         await ctx.db.insert("loNotes", undo.doc);
       } else if (undo.t === "jobPatch") {
         if (await ctx.db.get(undo.id)) await ctx.db.patch(undo.id, undo.prev);
+      } else if (undo.t === "applied") {
+        const app = await ctx.db.get(undo.appId);
+        if (app && undo.created) await ctx.db.delete(app._id);
+        else if (app) await ctx.db.patch(app._id, { submittedAt: undefined, confirmation: undefined, howKnown: undefined });
+        if (await ctx.db.get(undo.followUp)) await ctx.db.delete(undo.followUp);
+        if (await ctx.db.get(undo.jobId)) await ctx.db.patch(undo.jobId, undo.prev);
       }
     }
     await ctx.db.patch(m._id, { undoneAt: Date.now() });
