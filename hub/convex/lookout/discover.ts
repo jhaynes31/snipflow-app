@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { fingerprint } from "./pure";
-import { openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
+import { htmlToText, isFeed, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 
 /**
  * Finding and rechecking jobs. Only public posting APIs are called (see
@@ -16,52 +16,77 @@ import { openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posti
  */
 const UA = "TheShire-Lookout/1.0 (+private household job search; one request per source per day)";
 const MIN_GAP_MS = 20 * 60 * 60 * 1000;
+/** "Search now" by hand can run again after two hours, so a new source can be tried the same day. */
+const MANUAL_GAP_MS = 2 * 60 * 60 * 1000;
 
-async function getJson(url: string): Promise<{ ok: boolean; status: number; data: unknown }> {
+async function getJson(url: string, asText = false): Promise<{ ok: boolean; status: number; data: unknown }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25_000);
   try {
-    const res = await fetch(url, { signal: controller.signal, headers: { "user-agent": UA, accept: "application/json" } });
+    const res = await fetch(url, { signal: controller.signal, headers: { "user-agent": UA, accept: asText ? "application/rss+xml, application/xml, text/xml" : "application/json" } });
     if (!res.ok) return { ok: false, status: res.status, data: null };
-    return { ok: true, status: res.status, data: await res.json() };
+    return { ok: true, status: res.status, data: asText ? await res.text() : await res.json() };
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function search(ctx: ActionCtx, ownerId: Id<"profiles">, force: boolean): Promise<{ found: number; kept: number; fresh: number; note: string }> {
+/** SmartRecruiters lists jobs without their text; fetch it for the few that fit. */
+async function smartRecruitersDetail(p: Posting, token: string): Promise<Posting> {
+  try {
+    const res = await getJson(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(token)}/postings/${encodeURIComponent(p.sourceId)}`);
+    const sections = ((res.data as { jobAd?: { sections?: Record<string, { text?: string }> } } | null)?.jobAd?.sections) ?? {};
+    const text = Object.values(sections).map((x) => htmlToText(x?.text ?? "")).filter(Boolean).join("\n\n");
+    return text ? { ...p, description: `${p.description}\n\n${text}` } : p;
+  } catch {
+    return p;
+  }
+}
+
+interface SourceResult {
+  name: string;
+  found: number;
+  kept: Posting[];
+  problem?: string;
+}
+
+async function readSource(source: Source, keywords: string[]): Promise<SourceResult> {
+  const recent = Date.now() - 45 * 86400000;
+  try {
+    const res = await getJson(sourceUrl(source), isFeed(source.kind));
+    if (!res.ok) return { name: source.name, found: 0, kept: [], problem: `answered ${res.status}${res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
+    const postings = parseSource(source, res.data);
+    const kept: Posting[] = [];
+    for (const p of postings) {
+      if (!titleFits(p.title, keywords)) continue;
+      if (!usFriendly(p.location)) continue;
+      if (p.postedAt && p.postedAt < recent) continue;
+      kept.push(p);
+    }
+    const filled = source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : kept;
+    return { name: source.name, found: postings.length, kept: filled.map((p) => ({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") })), problem: postings.length === 0 ? "answered, but with no listings" : undefined };
+  } catch (err) {
+    return { name: source.name, found: 0, kept: [], problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
+  }
+}
+
+async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean): Promise<{ found: number; kept: number; fresh: number; note: string }> {
   const plan = await ctx.runQuery(internal.lookout.data.searchPlan, { ownerId });
   if (!plan) return { found: 0, kept: 0, fresh: 0, note: "The Lookout isn't set up." };
   const s = plan.settings;
-  if (!force && s.lastSearchAt && Date.now() - s.lastSearchAt < MIN_GAP_MS) return { found: 0, kept: 0, fresh: 0, note: "Searched in the last day already." };
-  const kept: Posting[] = [];
-  const notes: string[] = [];
-  let found = 0;
-  const recent = Date.now() - 45 * 86400000;
-  for (const source of s.sources.filter((x) => x.enabled) as Source[]) {
-    try {
-      const res = await getJson(sourceUrl(source));
-      if (!res.ok) {
-        notes.push(`${source.name}: answered ${res.status}${res.status === 404 ? " (check the board name)" : ""}.`);
-        continue;
-      }
-      const postings = parseSource(source, res.data);
-      found += postings.length;
-      for (const p of postings) {
-        if (!titleFits(p.title, s.keywords)) continue;
-        if (!usFriendly(p.location)) continue;
-        if (p.postedAt && p.postedAt < recent) continue;
-        kept.push({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") });
-      }
-    } catch (err) {
-      notes.push(`${source.name}: ${err instanceof Error ? err.message : "couldn't be reached"}.`);
-    }
-  }
-  // Newest first, and a ceiling so one search can't flood the list.
-  kept.sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
-  const batch = kept.slice(0, 60).map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline }));
-  const note = `Looked at ${found} listings, kept ${batch.length} that fit.${notes.length ? ` ${notes.join(" ")}` : ""}`;
-  const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note });
+  const gap = manual ? MANUAL_GAP_MS : MIN_GAP_MS;
+  if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, note: manual ? "Searched less than two hours ago, so the sites weren't asked again yet." : "Searched in the last day already." };
+  // Every source at once; each is a different site, asked once.
+  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords)));
+  const found = results.reduce((n, r) => n + r.found, 0);
+  const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
+  // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
+  const kept = takeInTurns(results.map((r) => [...r.kept].sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0))), 80);
+  const batch = kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline }));
+  const answered = results.filter((r) => r.found > 0).length;
+  const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit.${notes.length ? ` ${notes.join(" ")}` : ""}`;
+  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, problem: r.problem }));
+  const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
   return { found, kept: batch.length, fresh, note };
 }
 
@@ -85,12 +110,12 @@ async function recheckOne(ctx: ActionCtx, job: { id: Id<"loJobs">; url: string }
   return open;
 }
 
-/** "Search now". At most once every twenty hours unless he asks again after a change to sources. */
+/** "Search now", by hand. At most once every two hours, to stay light on the sites. */
 export const searchNow = action({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx, args): Promise<{ found: number; kept: number; fresh: number; note: string }> => {
+  handler: async (ctx): Promise<{ found: number; kept: number; fresh: number; note: string }> => {
     const who = await ctx.runQuery(internal.lookout.data.whoFor, {});
-    return await search(ctx, who.ownerId, args.force ?? false);
+    return await search(ctx, who.ownerId, true);
   },
 });
 

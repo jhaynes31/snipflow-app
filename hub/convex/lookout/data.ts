@@ -5,7 +5,7 @@ import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { chooseSearch, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
-import { DEFAULT_SOURCES } from "./sources";
+import { boardFromUrl, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
 import { blocking, findDashes, profileText, reviewDocument, scrubDashes } from "./writing";
 
 /**
@@ -90,7 +90,8 @@ async function ensureSettings(ctx: MutationCtx, ownerId: Id<"profiles">): Promis
     weights: DEFAULT_WEIGHTS,
     frequency: "off",
     keywords: [],
-    sources: DEFAULT_SOURCES,
+    sources: defaultSources(),
+    sourcesVersion: SOURCES_VERSION,
     allowHealthDisclosure: false,
     scanVersion: SCAN_VERSION,
     updatedAt: Date.now(),
@@ -107,10 +108,11 @@ function settingsView(row: Doc<"loSettings"> | null) {
     weights: row?.weights ?? DEFAULT_WEIGHTS,
     frequency: row?.frequency ?? ("off" as const),
     keywords: row?.keywords ?? [],
-    sources: row?.sources ?? DEFAULT_SOURCES,
+    sources: row?.sources ?? defaultSources(),
     allowHealthDisclosure: row?.allowHealthDisclosure ?? false,
     lastSearchAt: row?.lastSearchAt,
     lastSearchNote: row?.lastSearchNote,
+    lastSearchSources: row?.lastSearchSources ?? [],
   };
 }
 
@@ -231,8 +233,13 @@ export const refreshReadings = mutation({
   handler: async (ctx) => {
     const a = await lookoutAccess(ctx);
     if (!a) return 0;
+    const existing = await settingsOf(ctx, a.ownerId);
+    // Sources added to the defaults since this search was made join its list once.
+    if (existing && (existing.sourcesVersion ?? 1) < SOURCES_VERSION) {
+      await ctx.db.patch(existing._id, { sources: mergeNewDefaults(existing.sources as Source[], existing.sourcesVersion ?? 1), sourcesVersion: SOURCES_VERSION });
+    }
     // A search from before versions were kept has no number yet: read it again.
-    const version = (await settingsOf(ctx, a.ownerId))?.scanVersion ?? 1;
+    const version = existing?.scanVersion ?? 1;
     if (version >= SCAN_VERSION) return 0;
     const row = await ensureSettings(ctx, a.ownerId);
     const jobs = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect();
@@ -297,6 +304,26 @@ export const setSettings = mutation({
       patch.sources = args.sources.map((s) => ({ kind: s.kind, token: cleanText(s.token, 80, "Board name"), name: cleanText(s.name, 80, "Name"), enabled: s.enabled }));
     }
     await ctx.db.patch(row._id, patch);
+  },
+});
+
+/** Follow an employer's own job board, from a link to its careers page or one of its jobs. */
+export const addBoard = mutation({
+  args: { url: v.string(), name: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const board = boardFromUrl(args.url);
+    if (!board) throw new ConvexError("That link isn't on a job board the Lookout can read (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, or Recruitee). Add that company's jobs by hand instead.");
+    const row = await ensureSettings(ctx, a.ownerId);
+    const sources = row.sources as Source[];
+    if (sources.some((x) => x.kind === board.kind && x.token.toLowerCase() === board.token.toLowerCase())) {
+      await ctx.db.patch(row._id, { sources: sources.map((x) => (x.kind === board.kind && x.token.toLowerCase() === board.token.toLowerCase() ? { ...x, enabled: true } : x)), updatedAt: Date.now() });
+      return { added: false, label: SOURCE_KIND_LABEL[board.kind] };
+    }
+    if (sources.length >= 60) throw new ConvexError("That's a lot of sources. Remove one first.");
+    const name = optionalText(args.name, 80, "Name") ?? board.token.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    await ctx.db.patch(row._id, { sources: [...sources, { kind: board.kind, token: board.token, name, enabled: true }], updatedAt: Date.now() });
+    return { added: true, label: SOURCE_KIND_LABEL[board.kind] };
   },
 });
 
@@ -823,7 +850,7 @@ const postingV = v.object({ title: v.string(), employer: v.string(), url: v.stri
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
-  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string() },
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
     let fresh = 0;
@@ -831,7 +858,7 @@ export const storeFound = internalMutation({
       const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new");
       if (!r.duplicate) fresh++;
     }
-    await ctx.db.patch(s._id, { lastSearchAt: Date.now(), lastSearchNote: args.note.slice(0, 1000) });
+    await ctx.db.patch(s._id, { lastSearchAt: Date.now(), lastSearchNote: args.note.slice(0, 1000), lastSearchSources: args.bySource?.slice(0, 60) });
     return fresh;
   },
 });

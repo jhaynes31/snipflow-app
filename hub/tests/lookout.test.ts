@@ -5,7 +5,7 @@ import { INTAKE, MUST_HAVE_FOR_DOCUMENTS, nextQuestion } from "../convex/lookout
 import { vetChange } from "../convex/lookout/adminPure.ts";
 import { chooseSearch, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
-import { openFromPage, parseSource, titleFits, usFriendly } from "../convex/lookout/sources.ts";
+import { boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
 import { blocking, findDashes, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
 
 // Sample listings for the acceptance tests. Fictional employers; the shapes are what real postings look like.
@@ -371,5 +371,60 @@ describe("re-reading stored listings", () => {
     assert.equal(r.facts.hours?.state, "unknown");
     assert.equal(r.facts.travelOk?.source, "verified");
     assert.equal(r.facts.open?.state, "yes");
+  });
+});
+
+describe("more places to look", () => {
+  const src = (kind: SourceKind, token = "x") => ({ kind, token, name: kind, enabled: true });
+  it("starts with many job sites switched on, not one or two", () => {
+    const on = DEFAULT_SOURCES.filter((x) => x.enabled);
+    assert.ok(new Set(on.map((x) => x.kind)).size >= 7, "at least seven different sites");
+    for (const x of DEFAULT_SOURCES) assert.match(sourceUrl(x), /^https:\/\//);
+    for (const x of defaultSources()) assert.equal("since" in x, false, "the stored list has no version field");
+  });
+  it("adds new defaults to an existing search once, without bringing back removed ones", () => {
+    const old = [{ kind: "himalayas" as const, token: "operations", name: "H", enabled: true }];
+    const merged = mergeNewDefaults(old, 1);
+    assert.ok(merged.some((x) => x.kind === "remoteok"));
+    assert.ok(!merged.some((x) => x.kind === "remotive" && x.token === "customer-support"), "version 1 defaults he removed stay removed");
+    assert.equal(mergeNewDefaults(merged, 2).length, merged.length);
+  });
+  it("finds the employer's board from a careers page or job link", () => {
+    assert.deepEqual(boardFromUrl("https://boards.greenhouse.io/acme/jobs/123"), { kind: "greenhouse", token: "acme" });
+    assert.deepEqual(boardFromUrl("https://job-boards.greenhouse.io/embed/job_board?for=acme"), { kind: "greenhouse", token: "acme" });
+    assert.deepEqual(boardFromUrl("jobs.lever.co/acme/abc-123/apply"), { kind: "lever", token: "acme" });
+    assert.deepEqual(boardFromUrl("https://jobs.ashbyhq.com/acme"), { kind: "ashby", token: "acme" });
+    assert.deepEqual(boardFromUrl("https://apply.workable.com/acme/j/ABC123/"), { kind: "workable", token: "acme" });
+    assert.deepEqual(boardFromUrl("https://jobs.smartrecruiters.com/AcmeInc/7444"), { kind: "smartrecruiters", token: "AcmeInc" });
+    assert.deepEqual(boardFromUrl("https://acme.recruitee.com/o/support-specialist"), { kind: "recruitee", token: "acme" });
+    assert.equal(boardFromUrl("https://www.indeed.com/viewjob?jk=1"), null);
+    assert.equal(boardFromUrl("not a link at all"), null);
+  });
+  it("takes from each site in turn, so one can't crowd out the rest", () => {
+    assert.deepEqual(takeInTurns([[1, 2, 3, 4], [10], [20, 21]], 5), [1, 10, 20, 2, 21]);
+    assert.deepEqual(takeInTurns([[1], []], 10), [1]);
+  });
+  it("reads Remote OK, skipping its notice", () => {
+    const p = parseSource(src("remoteok"), [{ legal: "notice" }, { id: "9", position: "Support Specialist", company: "B", url: "https://remoteok.com/remote-jobs/9", description: "<p>Remote</p>", tags: ["support"], location: "USA", salary_min: 50000, date: "2026-10-28T00:00:00Z" }]);
+    assert.equal(p.length, 1);
+    assert.equal(p[0].title, "Support Specialist");
+    assert.match(p[0].payLine!, /50000/);
+  });
+  it("reads We Work Remotely's feed, splitting company from title", () => {
+    const xml = `<rss><channel><item><title><![CDATA[Acme: Customer Support Specialist]]></title><link>https://weworkremotely.com/remote-jobs/acme-support</link><pubDate>Tue, 28 Oct 2026 10:00:00 +0000</pubDate><region>USA Only</region><description><![CDATA[<p>Email support, 30 hours per week.</p>]]></description></item></channel></rss>`;
+    assert.equal(feedItems(xml).length, 1);
+    const p = parseSource(src("weworkremotely"), xml);
+    assert.equal(p[0].employer, "Acme");
+    assert.equal(p[0].title, "Customer Support Specialist");
+    assert.equal(p[0].location, "USA Only");
+    assert.match(p[0].description, /30 hours per week/);
+  });
+  it("reads Jobicy, Working Nomads, The Muse, Workable, SmartRecruiters, and Recruitee", () => {
+    assert.equal(parseSource(src("jobicy"), { jobs: [{ id: 1, url: "https://jobicy.com/jobs/1", jobTitle: "Data Entry Clerk", companyName: "C", jobGeo: "USA", jobDescription: "<p>Hi</p>", pubDate: "2026-10-27 10:00:00", annualSalaryMin: 52000 }] })[0].payLine, "Salary range: $52000 USD per year");
+    assert.equal(parseSource(src("workingnomads"), [{ url: "https://www.workingnomads.com/jobs/x", title: "Claims Processor", company_name: "D", description: "<p>Remote</p>", location: "USA", pub_date: "2026-10-27T00:00:00" }])[0].employer, "D");
+    assert.equal(parseSource(src("themuse"), { results: [{ id: 7, name: "Customer Care Associate", contents: "<p>Flexible</p>", company: { name: "E" }, refs: { landing_page: "https://www.themuse.com/jobs/e/7" }, locations: [{ name: "Flexible / Remote" }], publication_date: "2026-10-26T00:00:00Z" }] })[0].location, "Flexible / Remote");
+    assert.equal(parseSource(src("workable", "f"), { name: "F Co", jobs: [{ title: "Support Specialist", shortcode: "AB1", url: "https://apply.workable.com/f/j/AB1/", application_url: "https://apply.workable.com/f/j/AB1/apply", telecommuting: true, description: "<p>Remote</p>" }] })[0].employer, "F Co");
+    assert.equal(parseSource(src("smartrecruiters", "G"), { content: [{ id: "55", name: "Order Specialist", company: { name: "G" }, location: { city: "Austin", country: "us", remote: true } }] })[0].url, "https://jobs.smartrecruiters.com/G/55");
+    assert.equal(parseSource(src("recruitee", "h"), { offers: [{ id: 3, title: "Records Coordinator", careers_url: "https://h.recruitee.com/o/records", description: "<p>Remote</p>", remote: true, salary: { min: 25, max: 28, currency: "USD", period: "hour" } }] })[0].payLine, "Pay range: $25 to $28 USD per hour");
   });
 });
