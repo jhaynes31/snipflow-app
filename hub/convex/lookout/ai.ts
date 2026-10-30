@@ -90,13 +90,14 @@ export const draftLetter = action({
 });
 
 export const draftAnswers = action({
-  args: { jobId: v.id("loJobs"), questions: v.string() },
+  args: { jobId: v.id("loJobs"), questions: v.optional(v.string()) },
   handler: async (ctx, args): Promise<{ questions: string[] }> => {
-    const asked = args.questions.trim();
+    const d = await inputFor(ctx, args.jobId);
+    // The questions saved on the job are used when none are passed.
+    const asked = (args.questions ?? d.applicationQuestions).trim();
     if (!asked) throw new ConvexError("Paste the application's questions first.");
     if (asked.length > 12000) throw new ConvexError("That's a lot of questions. Paste them in two parts.");
-    const d = await inputFor(ctx, args.jobId);
-    const raw = (await ask(ANSWERS_SYSTEM, `${factsBlock(d)}\n\n${jobBlock(d)}\n\n<application_questions>\n${asked}\n</application_questions>\n\nDraft his answers.`, ANSWERS_SCHEMA)) as Record<string, unknown>;
+    const raw = (await ask(ANSWERS_SYSTEM, `${factsBlock(d)}\n\n${jobBlock(d)}\n\n${d.savedAnswers.length ? `<answers_he_gave_before>\nHis own answers to application questions he's seen before. Where a question here asks the same general thing (work authorization, availability, pay, schedule, experience), use his answer as written. Don't reuse an answer that was about a different employer.\n${d.savedAnswers.map((x) => `Q: ${x.question}\nA: ${x.answer}`).join("\n\n")}\n</answers_he_gave_before>\n\n` : ""}<application_questions>\n${asked}\n</application_questions>\n\nDraft his answers.`, ANSWERS_SCHEMA)) as Record<string, unknown>;
     const pairs = (Array.isArray(raw.answers) ? raw.answers : []).map((p) => p as Record<string, unknown>).filter((p) => typeof p.question === "string" && typeof p.answer === "string");
     const text = pairs.map((p) => `${p.question}\n${p.answer}`).join("\n\n");
     const questions = list(raw.questions);

@@ -287,3 +287,81 @@ export function profileText(parts: { answers: { question: string; answer: string
   for (const a of parts.answers) if (a.answer.trim()) lines.push(`${a.question} ${a.answer}`);
   return lines.join("\n");
 }
+
+// ---------- Application answers, one question at a time ----------
+
+export interface AnswerPair {
+  question: string;
+  answer: string;
+}
+
+/** The answers document as question and answer pairs: blocks split by a blank line, the first line the question. */
+export function parseAnswerPairs(text: string): AnswerPair[] {
+  return text
+    .replace(/\r/g, "")
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => {
+      const [first, ...rest] = block.split("\n");
+      return { question: first.trim(), answer: rest.join("\n").trim() };
+    });
+}
+
+export function joinAnswerPairs(pairs: AnswerPair[]): string {
+  return pairs.map((p) => `${p.question}\n${p.answer}`).join("\n\n");
+}
+
+/** A question's identity across applications: lower case, no punctuation or filler, so "Are you legally authorized to work in the US?" matches "Are you authorized to work in the United States". */
+export function questionKey(q: string): string {
+  return q
+    .toLowerCase()
+    .replace(/\bu\.?s\.?a?\b|\bunited states( of america)?\b/g, "us")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\b(?:please|kindly|the|a|an|do|you|your|are|is|of|to|in|for|currently|legally|required|optional|what|which|would|will|be|is)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** An answer still waiting for him. */
+export function isOpenAnswer(answer: string): boolean {
+  return !answer.trim() || /\bASK FIRST\b/.test(answer);
+}
+
+/**
+ * Questions whose answer belongs to one job only ("Why do you want to work
+ * here?", anything naming the employer). These are reused for the same job,
+ * never carried to another.
+ */
+export function jobSpecific(question: string, employer = ""): boolean {
+  const q = question.toLowerCase();
+  if (employer.trim() && q.includes(employer.trim().toLowerCase())) return true;
+  return /\bwhy\b|\binterest(?:ed|s)? (?:in|you)\b|\bthis (?:role|position|job|company|opportunity|team)\b|\bour (?:company|team|mission|product|customers|values)\b|\bwhat do you know about\b|\bcover letter\b/.test(q);
+}
+
+/**
+ * Fill answers from ones he already gave. Answers from this same job win
+ * and replace even a fresh draft, so drafting again never undoes his work;
+ * answers from other jobs fill only open answers, and only for questions
+ * that aren't specific to one job.
+ */
+export function fillFromSaved(pairs: AnswerPair[], sameJob: AnswerPair[], otherJobs: AnswerPair[], employer = ""): { pairs: AnswerPair[]; filled: number } {
+  const mine = new Map(sameJob.filter((s) => !isOpenAnswer(s.answer)).map((s) => [questionKey(s.question), s.answer]));
+  const bank = new Map(otherJobs.filter((s) => !isOpenAnswer(s.answer) && !jobSpecific(s.question)).map((s) => [questionKey(s.question), s.answer]));
+  let filled = 0;
+  const out = pairs.map((p) => {
+    const key = questionKey(p.question);
+    const here = mine.get(key);
+    if (here !== undefined) {
+      if (here !== p.answer) filled++;
+      return { ...p, answer: here };
+    }
+    const there = isOpenAnswer(p.answer) && !jobSpecific(p.question, employer) ? bank.get(key) : undefined;
+    if (there !== undefined) {
+      filled++;
+      return { ...p, answer: there };
+    }
+    return p;
+  });
+  return { pairs: out, filled };
+}

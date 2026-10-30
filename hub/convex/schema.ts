@@ -1608,6 +1608,8 @@ export default defineSchema({
     seenAt: v.optional(v.number()),
     /** Other places the same job was found. */
     alsoAt: v.array(v.string()),
+    /** The employer's application questions as pasted, kept so they're never pasted twice. */
+    applicationQuestions: v.optional(v.string()),
     notes: v.optional(v.string()),
   })
     .index("by_owner_status", ["ownerId", "status"])
@@ -1623,6 +1625,8 @@ export default defineSchema({
     text: v.string(),
     questions: v.array(v.string()),
     issues: v.array(v.object({ level: v.union(v.literal("block"), v.literal("fix"), v.literal("note")), text: v.string() })),
+    /** When the writer last drafted it; edits by a person don't change this. */
+    draftedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_job", ["jobId", "kind"]),
@@ -1643,6 +1647,18 @@ export default defineSchema({
     howKnown: v.optional(v.union(v.literal("email"), v.literal("page"), v.literal("unsure"), v.literal("other"))),
     recordedBy: v.optional(v.id("profiles")),
   }).index("by_job", ["jobId"]),
+
+  /** Answers he's given to application questions, kept so the same question is answered for him next time. */
+  loSavedAnswers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    question: v.string(),
+    /** questionKey(question), to match the same question worded a little differently. */
+    key: v.string(),
+    answer: v.string(),
+    jobId: v.optional(v.id("loJobs")),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerId", "key"]),
 
   /** A resume uploaded to fill in the profile: what was read from it and what it added. */
   loImports: defineTable({

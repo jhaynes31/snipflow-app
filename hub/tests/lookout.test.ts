@@ -7,7 +7,7 @@ import { AGENCIES, daysUntil, recruiterNote, searchLink } from "../convex/lookou
 import { chooseSearch, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
 import { boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
-import { blocking, findDashes, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
+import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, questionKey, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
 
 // Sample listings for the acceptance tests. Fictional employers; the shapes are what real postings look like.
 const GOOD = `Knowledge Base Specialist (Remote, US). Fully remote. We hire in all 50 states and you can work from anywhere in the US.
@@ -460,5 +460,35 @@ describe("staffing agencies", () => {
     assert.equal(daysUntil(now + 3 * 86400000, now), 3);
     assert.ok(daysUntil(now - 2 * 86400000, now)! < 0);
     assert.equal(daysUntil(undefined, now), null);
+  });
+});
+
+describe("application answers are never typed twice", () => {
+  const doc = "Are you legally authorized to work in the United States?\nYes\n\nWhy do you want to work at Wesco?\nASK FIRST\n\nWhat is your desired hourly pay?\nASK FIRST";
+  it("splits and joins answers without losing anything", () => {
+    const pairs = parseAnswerPairs(doc);
+    assert.equal(pairs.length, 3);
+    assert.equal(pairs[0].answer, "Yes");
+    assert.equal(joinAnswerPairs(pairs), doc);
+    assert.ok(isOpenAnswer(pairs[1].answer));
+  });
+  it("matches the same question worded a little differently", () => {
+    assert.equal(questionKey("Are you legally authorized to work in the United States?"), questionKey("Are you authorized to work in the US"));
+  });
+  it("keeps every answer already given for this job when drafting again", () => {
+    const fresh = parseAnswerPairs(doc);
+    const r = fillFromSaved(fresh, [{ question: "Why do you want to work at Wesco?", answer: "I like how Wesco supports its customers." }, { question: "What is your desired hourly pay?", answer: "$28 an hour" }], [], "Wesco");
+    assert.equal(r.pairs[1].answer, "I like how Wesco supports its customers.");
+    assert.equal(r.pairs[2].answer, "$28 an hour");
+  });
+  it("carries general answers to other jobs, but never one about a particular employer", () => {
+    const other = [{ question: "Why do you want to work at Wesco?", answer: "Wesco reasons" }, { question: "What is your desired hourly pay?", answer: "$28 an hour" }, { question: "Why are you interested in this role?", answer: "That role" }];
+    const next = parseAnswerPairs("Why do you want to work at Acme?\nASK FIRST\n\nDesired hourly pay\nASK FIRST\n\nWhy are you interested in this role?\nASK FIRST");
+    const r = fillFromSaved(next, [], other, "Acme");
+    assert.equal(r.pairs[0].answer, "ASK FIRST");
+    assert.equal(r.pairs[1].answer, "$28 an hour");
+    assert.equal(r.pairs[2].answer, "ASK FIRST");
+    assert.ok(jobSpecific("Why do you want to work at Wesco?"));
+    assert.ok(!jobSpecific("Are you available to start in two weeks?"));
   });
 });

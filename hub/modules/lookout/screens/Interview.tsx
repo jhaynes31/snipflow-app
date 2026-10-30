@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { INTAKE, nextQuestion, type IntakeQuestion } from "@/convex/lookout/intake";
 import { Btn, Card, ErrorNote, PageTitle, Spinner, useAction } from "@/core/ui";
+import { saveLabel, useAutosave } from "../useAutosave";
 
 const KIND_LABEL = { about: "About you", must: "A requirement", prefer: "A preference" };
 
@@ -19,6 +20,11 @@ export function Interview() {
   const { busy, error, run } = useAction();
   const [picked, setPicked] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
+  // Answers save as they're typed; the question on screen stays put until "Save and go on".
+  const auto = useAutosave(async (value) => {
+    const [key, ...rest] = value.split("\u0000");
+    await save({ key, answer: rest.join("\u0000"), skip: false });
+  });
   if (!answers || !settings) return <Spinner />;
 
   const byKey = new Map(answers.map((a) => [a.key, a]));
@@ -30,8 +36,15 @@ export function Interview() {
   const index = q ? INTAKE.findIndex((x) => x.key === q.key) : -1;
   const onlyOwner = q?.key === "disclose" && !owner;
 
+  function type(key: string, text: string) {
+    setDraft({ key, text });
+    setPicked(key);
+    if (text.trim()) auto.change(`${key}\u0000${text}`);
+  }
+
   async function commit(skip: boolean) {
     if (!q) return;
+    await auto.flush();
     await save({ key: q.key, answer: skip ? byKey.get(q.key)?.answer ?? "" : text, skip });
     setDraft(null);
     setPicked(null);
@@ -48,10 +61,11 @@ export function Interview() {
           {onlyOwner ? (
             <p className="sh-note">This one is only for the person looking for work to answer.</p>
           ) : q.short ? (
-            <input className="sh-input" value={text} maxLength={300} onChange={(e) => setDraft({ key: q.key, text: e.target.value })} aria-label={q.question} />
+            <input className="sh-input" value={text} maxLength={300} onChange={(e) => type(q.key, e.target.value)} onBlur={() => void auto.flush()} aria-label={q.question} />
           ) : (
-            <textarea className="sh-textarea" rows={6} value={text} onChange={(e) => setDraft({ key: q.key, text: e.target.value })} aria-label={q.question} />
+            <textarea className="sh-textarea" rows={6} value={text} onChange={(e) => type(q.key, e.target.value)} onBlur={() => void auto.flush()} aria-label={q.question} />
           )}
+          {!onlyOwner && <span className="sh-hint">{saveLabel(auto.state)}</span>}
           <ErrorNote error={error} />
           {!onlyOwner && (
             <div className="sh-row sh-wrap mt-3">
@@ -85,6 +99,45 @@ export function Interview() {
           );
         })}
       </Card>
+      <SavedAnswers />
     </div>
+  );
+}
+
+/** Answers to employers' application questions, kept so the same question is answered for him next time. */
+function SavedAnswers() {
+  const rows = useQuery(api.lookout.data.savedAnswers);
+  const update = useMutation(api.lookout.data.updateSavedAnswer);
+  const { busy, error, run } = useAction();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  if (!rows) return null;
+  return (
+    <Card>
+      <h2 className="sh-h2">Saved application answers</h2>
+      <p className="sh-hint">Answers given on job applications, kept so the same question is filled in on the next one. Answers about one particular job (like why that company) are only reused for that job.</p>
+      {rows.length === 0 && <p className="sh-muted">None yet. They&apos;re saved from each job&apos;s application answers.</p>}
+      {rows.map((r) => (
+        <div key={r._id} className="lo-entry">
+          <p><strong>{r.question}</strong></p>
+          {editing === r._id ? (
+            <>
+              <textarea className="sh-textarea" rows={3} value={text} onChange={(e) => setText(e.target.value)} aria-label={r.question} />
+              <div className="sh-row">
+                <Btn disabled={busy || !text.trim()} onClick={() => void run(async () => { await update({ id: r._id, answer: text }); setEditing(null); })}>Save</Btn>
+                <Btn variant="ghost" onClick={() => setEditing(null)}>Cancel</Btn>
+              </div>
+            </>
+          ) : (
+            <p style={{ whiteSpace: "pre-wrap" }}>{r.answer}</p>
+          )}
+          <div className="sh-row">
+            {editing !== r._id && <button type="button" className="sh-link" onClick={() => { setEditing(r._id); setText(r.answer); }}>Change</button>}
+            <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => update({ id: r._id, remove: true }))}>Forget it</button>
+          </div>
+        </div>
+      ))}
+      <ErrorNote error={error} />
+    </Card>
   );
 }

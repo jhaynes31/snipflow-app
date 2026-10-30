@@ -7,7 +7,7 @@ import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
 import { chooseSearch, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
 import { boardFromUrl, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
-import { blocking, findDashes, profileText, reviewDocument, scrubDashes } from "./writing";
+import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
 /**
  * The Lookout: a personal recruiter for the person looking for work.
@@ -187,7 +187,7 @@ export const setViewing = mutation({
 });
 
 /** Every Lookout table. Deleting a search clears its rows from all of them. */
-export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin", "loAgencies"] as const;
+export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin", "loAgencies", "loSavedAnswers"] as const;
 
 /** Delete the search you own and everything in it. Only its owner can. */
 export const deleteMySearch = mutation({
@@ -611,22 +611,59 @@ export const removeJob = mutation({
 
 // ---------- Documents ----------
 
-async function writeDoc(ctx: MutationCtx, a: { ownerId: Id<"profiles"> }, job: Doc<"loJobs">, kind: "resume" | "letter" | "answers", raw: string, questions: string[]): Promise<Id<"loDocs">> {
-  const text = scrubDashes(raw).slice(0, 30000);
+/**
+ * Answers a person wrote to application questions go in the answer bank,
+ * one row per question, so the same question on another application is
+ * answered for him. Drafted answers don't, until a person saves them.
+ */
+async function rememberAnswers(ctx: MutationCtx, ownerId: Id<"profiles">, job: Doc<"loJobs">, text: string) {
+  const now = Date.now();
+  const jobId = job._id;
+  for (const p of parseAnswerPairs(text)) {
+    if (!p.question || isOpenAnswer(p.answer)) continue;
+    const base = questionKey(p.question);
+    if (!base) continue;
+    // An answer about one job is kept for that job alone; a general one is shared by all.
+    const key = jobSpecific(p.question, job.employer) ? `${jobId}:${base}` : base;
+    const row = await ctx.db.query("loSavedAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", ownerId).eq("key", key)).first();
+    const fields = { question: p.question.slice(0, 500), answer: p.answer.slice(0, 4000), jobId, updatedAt: now };
+    if (row) {
+      if (row.answer !== fields.answer || row.question !== fields.question) await ctx.db.patch(row._id, fields);
+    } else await ctx.db.insert("loSavedAnswers", { ownerId, visibility: "private", key, ...fields });
+  }
+}
+
+async function savedAnswersOf(ctx: Ctx, ownerId: Id<"profiles">) {
+  return await ctx.db.query("loSavedAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", ownerId)).collect();
+}
+
+async function writeDoc(ctx: MutationCtx, a: { ownerId: Id<"profiles"> }, job: Doc<"loJobs">, kind: "resume" | "letter" | "answers", raw: string, questions: string[], opts: { byPerson: boolean } = { byPerson: false }): Promise<Id<"loDocs">> {
+  let text = scrubDashes(raw).slice(0, 30000);
+  if (kind === "answers") {
+    if (opts.byPerson) await rememberAnswers(ctx, a.ownerId, job, text);
+    else {
+      // A new draft keeps every answer he already gave for this job, and fills open ones he's answered on other applications.
+      const saved = await savedAnswersOf(ctx, a.ownerId);
+      text = joinAnswerPairs(fillFromSaved(parseAnswerPairs(text), saved.filter((x) => x.jobId === job._id), saved.filter((x) => x.jobId !== job._id), job.employer).pairs);
+    }
+  }
   const s = settingsView(await settingsOf(ctx, a.ownerId));
   const roles = await ctx.db.query("loRoles").withIndex("by_owner", (q) => q.eq("ownerId", a.ownerId)).collect();
   const answers = await ctx.db.query("loAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", a.ownerId)).collect();
   // The claim check reads his confirmed facts plus his contact lines, which are allowed on every document.
-  const source = `${await profileSource(ctx, a.ownerId)}\n${answers.filter((x) => ["phone", "email", "cityLine", "link", "name"].includes(x.key)).map((x) => x.answer).join("\n")}`;
+  // Answers he gave to application questions count too: they're his own words.
+  const bank = kind === "answers" ? (await savedAnswersOf(ctx, a.ownerId)).map((x) => x.answer).join("\n") : "";
+  const source = `${await profileSource(ctx, a.ownerId)}\n${answers.filter((x) => ["phone", "email", "cityLine", "link", "name"].includes(x.key)).map((x) => x.answer).join("\n")}\n${bank}`;
   const issues = reviewDocument(text, { sourceText: source, kind, employers: roles.filter((r) => r.confirmed).map((r) => r.employer), allowHealthDisclosure: s.allowHealthDisclosure, jobText: job.description });
   if (roles.some((r) => !r.confirmed)) issues.push({ level: "note", text: "Some work history is waiting for his confirmation and wasn't used." });
   const existing = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", job._id).eq("kind", kind)).first();
   const now = Date.now();
+  const drafted = opts.byPerson ? {} : { draftedAt: now };
   if (existing) {
-    await ctx.db.patch(existing._id, { text, questions, issues, updatedAt: now });
+    await ctx.db.patch(existing._id, { text, questions, issues, updatedAt: now, ...drafted });
     return existing._id;
   }
-  return await ctx.db.insert("loDocs", { ownerId: a.ownerId, visibility: "private", jobId: job._id, kind, text, questions, issues, createdAt: now, updatedAt: now });
+  return await ctx.db.insert("loDocs", { ownerId: a.ownerId, visibility: "private", jobId: job._id, kind, text, questions, issues, createdAt: now, updatedAt: now, ...drafted });
 }
 
 /** Save a person's own edit of a document. It is scrubbed and reviewed again like any draft. */
@@ -637,7 +674,38 @@ export const saveDoc = mutation({
     const j = await loadJob(ctx, a, args.jobId);
     if (["approved", "submitted", "interview", "offer", "rejected", "closed"].includes(j.status)) throw new ConvexError("This application is approved; its documents are kept exactly as they were.");
     const existing = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", j._id).eq("kind", args.kind)).first();
-    return await writeDoc(ctx, a, j, args.kind, args.text, existing?.questions ?? []);
+    return await writeDoc(ctx, a, j, args.kind, args.text, existing?.questions ?? [], { byPerson: true });
+  },
+});
+
+/** The employer's application questions for this job, saved as they're pasted. */
+export const saveApplicationQuestions = mutation({
+  args: { jobId: v.id("loJobs"), text: v.string() },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    if (args.text.length > 12000) throw new ConvexError("That's a lot of questions. Paste them in two parts.");
+    await ctx.db.patch(j._id, { applicationQuestions: args.text.trim() ? args.text : undefined });
+  },
+});
+
+/** His answers to application questions, kept across jobs. */
+export const savedAnswers = query({
+  args: {},
+  handler: async (ctx) => {
+    const a = await requireLookout(ctx);
+    return (await savedAnswersOf(ctx, a.ownerId)).sort((x, y) => y.updatedAt - x.updatedAt);
+  },
+});
+
+export const updateSavedAnswer = mutation({
+  args: { id: v.id("loSavedAnswers"), answer: v.optional(v.string()), remove: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const row = await ctx.db.get(args.id);
+    if (!row || row.ownerId !== a.ownerId) throw new ConvexError("That answer isn't here.");
+    if (args.remove) await ctx.db.delete(row._id);
+    else if (args.answer !== undefined) await ctx.db.patch(row._id, { answer: cleanText(args.answer, 4000, "Answer"), updatedAt: Date.now() });
   },
 });
 
@@ -810,7 +878,7 @@ export const exportAll = query({
   args: {},
   handler: async (ctx) => {
     const a = await requireLookout(ctx, true);
-    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports" | "loNotes" | "loAdmin" | "loAgencies">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
+    const by = <T extends "loAnswers" | "loRoles" | "loJobs" | "loDocs" | "loApplications" | "loEvents" | "loImports" | "loNotes" | "loAdmin" | "loAgencies" | "loSavedAnswers">(table: T) => ctx.db.query(table).collect().then((rows) => rows.filter((r) => r.ownerId === a.ownerId));
     return {
       exportedAt: new Date().toISOString(),
       settings: settingsView(await settingsOf(ctx, a.ownerId)),
@@ -824,6 +892,7 @@ export const exportAll = query({
       writerNotes: await by("loNotes"),
       assistant: await by("loAdmin"),
       agencies: await by("loAgencies"),
+      savedAnswers: await by("loSavedAnswers"),
     };
   },
 });
@@ -849,8 +918,11 @@ export const forDraft = internalQuery({
     const answers = (await ctx.db.query("loAnswers").withIndex("by_owner_key", (q) => q.eq("ownerId", a.ownerId)).collect()).filter((x) => x.confirmed && x.answer);
     const docs = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect();
     const notes = await ctx.db.query("loNotes").withIndex("by_owner", (q) => q.eq("ownerId", a.ownerId)).collect();
+    const saved = await savedAnswersOf(ctx, a.ownerId);
     return {
       notes: notes.map((n) => n.text),
+      savedAnswers: saved.map((x) => ({ question: x.question, answer: x.answer })),
+      applicationQuestions: j.applicationQuestions ?? "",
       job: { title: j.title, employer: j.employer, description: j.description, url: j.url, status: j.status },
       roles: roles.map((r) => ({ id: r._id as string, employer: r.employer, title: r.title, start: r.start, end: r.end, location: r.location, channels: r.channels, duties: r.duties, achievements: r.achievements, tools: r.tools, sales: r.sales })),
       // The disclosure answer is never sent to the writer; the setting decides.
