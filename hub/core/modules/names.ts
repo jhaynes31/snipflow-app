@@ -19,4 +19,5 @@ export const MODULE_NAMES: Record<string, string> = {
   orchard: "The Orchard",
   apothecary: "The Apothecary",
   hearth: "The Hearth", // the third door in Re-Centered (2026-09-23)
+  lookout: "The Lookout", // job search (2026-10-29)
 };

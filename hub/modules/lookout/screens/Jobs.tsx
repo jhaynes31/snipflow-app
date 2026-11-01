@@ -2,11 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, PageTitle, Spinner } from "@/core/ui";
 import { VIEWS } from "../views";
 import { JobLine } from "./Overview";
+import { QuickApplied } from "../QuickApplied";
 
 /** Every job, one view at a time, best first. */
 export function Jobs() {
@@ -32,8 +34,28 @@ export function Jobs() {
       </div>
       <Card>
         {rows.length === 0 && <p className="sh-muted">Nothing here.</p>}
-        {rows.map((j) => <JobLine key={j._id} j={j} />)}
+        {rows.map((j) => <JobRow key={j._id} j={j} />)}
       </Card>
+    </div>
+  );
+}
+
+/** One job in the list, with "I applied" right there for any job not yet marked. */
+function JobRow({ j }: { j: Parameters<typeof JobLine>[0]["j"] & { status: string; askApplied: boolean } }) {
+  const [open, setOpen] = useState(j.askApplied);
+  const before = ["new", "review", "saved", "preparing", "ready", "approved", "passed"].includes(j.status);
+  return (
+    <div className="lo-entry">
+      <JobLine j={j} />
+      {before && (open ? (
+        <div className="mt-3">
+          {j.askApplied && <p className="sh-hint">You opened the application page. Did you apply?</p>}
+          <QuickApplied jobId={j._id as Id<"loJobs">} onNotYet={j.askApplied} compact />
+          {!j.askApplied && <button type="button" className="sh-link" onClick={() => setOpen(false)}>Cancel</button>}
+        </div>
+      ) : (
+        <button type="button" className="sh-btn sh-btn-secondary mt-3" onClick={() => setOpen(true)}>I applied to this</button>
+      ))}
     </div>
   );
 }

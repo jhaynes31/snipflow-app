@@ -492,3 +492,19 @@ describe("application answers are never typed twice", () => {
     assert.ok(!jobSpecific("Are you available to start in two weeks?"));
   });
 });
+
+describe("every place has a page title and home screen icon", () => {
+  it("each place in the registry is in the server-safe name and brand lists", () => {
+    const registry = readFileSync(new URL("../core/modules/registry.ts", import.meta.url), "utf8");
+    const names = readFileSync(new URL("../core/modules/names.ts", import.meta.url), "utf8");
+    const brand = readFileSync(new URL("../core/modules/brand.ts", import.meta.url), "utf8");
+    const list = /MODULES: ModuleManifest\[\] = \[([^\]]*)\]/.exec(registry)![1].split(",").map((x) => x.trim()).filter(Boolean);
+    const idOf: Record<string, string> = { everyBox: "every-box", renewedMind: "renewed-mind", theWell: "the-well", keptWord: "kept-word", loveAndRelease: "love-and-release" };
+    for (const v of list) {
+      const id = idOf[v] ?? v;
+      const key = id.includes("-") ? `"${id}"` : id;
+      assert.ok(names.includes(`${key}:`), `${id} has no page title, so its tab reads "Not found"`);
+      assert.ok(brand.includes(`${key}:`), `${id} has no home screen icon`);
+    }
+  });
+});
