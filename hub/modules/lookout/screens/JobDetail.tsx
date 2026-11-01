@@ -11,6 +11,7 @@ import { Btn, Card, CopyButton, ErrorNote, Field, Note, PageTitle, Spinner, time
 import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, type SourceKind } from "@/convex/lookout/sources";
 import { isOpenAnswer, joinAnswerPairs, parseAnswerPairs } from "@/convex/lookout/writing";
 import { download, fileName, textToDocx } from "../docx";
+import { ApplyLink, QuickApplied } from "../QuickApplied";
 import { saveLabel, useAutosave } from "../useAutosave";
 import { LOOKOUT } from "../Shell";
 
@@ -41,6 +42,7 @@ export function JobDetail({ id }: { id: string }) {
       <PageTitle title={job.title} subtitle={`${job.employer}${job.location ? ` · ${job.location}` : ""}`} />
       {already && <Note>This job was already here, so you&apos;re looking at the one you have.</Note>}
       <Header job={job} status={status} />
+      <Applied job={job} status={status} application={application} />
       {job.warnings.length > 0 && (
         <Card className="lo-fail">
           <h2 className="sh-h2">Warnings</h2>
@@ -72,7 +74,6 @@ export function JobDetail({ id }: { id: string }) {
       <FactsCard job={job} />
       <AskCard job={job} />
       <Documents job={job} docs={docs} status={status} />
-      <Applied job={job} status={status} application={application} />
       <Approval job={job} docs={docs} application={application} status={status} verdict={rank.verdict} owner={role === "owner"} />
       <Events job={job} events={events} />
       <Listing job={job} />
@@ -80,7 +81,10 @@ export function JobDetail({ id }: { id: string }) {
   );
 }
 
+const BEFORE: Status[] = ["new", "review", "saved", "preparing", "ready", "approved", "passed"];
+
 function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
+  const opened = useMutation(api.lookout.data.noteApplyOpened);
   const setStatus = useMutation(api.lookout.data.setStatus);
   const remove = useMutation(api.lookout.data.removeJob);
   const recheck = useConvexAction(api.lookout.discover.recheck);
@@ -94,9 +98,14 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
       <p className="sh-hint">
         Found {day(job.discoveredAt)} via {job.sourceName}{job.postedAt ? ` · posted ${day(job.postedAt)}` : ""} · last verified {day(job.lastVerifiedAt)} · last checked {day(job.lastCheckedAt)}{job.deadline ? ` · apply by ${job.deadline}` : ""}{job.changedAt ? ` · the listing changed ${day(job.changedAt)}` : ""}
       </p>
-      <p>
-        <a className="sh-link" href={job.url} target="_blank" rel="noopener noreferrer">The original listing</a>
-        {job.applyUrl && job.applyUrl !== job.url ? <> · <a className="sh-link" href={job.applyUrl} target="_blank" rel="noopener noreferrer">The application page</a></> : null}
+      {BEFORE.includes(status) && (
+        <div className="sh-row sh-wrap">
+          <ApplyLink jobId={job._id} href={job.applyUrl ?? job.url} />
+        </div>
+      )}
+      <p className="mt-3">
+        <a className="sh-link" href={job.url} target="_blank" rel="noopener noreferrer" onClick={() => void opened({ jobId: job._id }).catch(() => undefined)}>The original listing</a>
+        {job.applyUrl && job.applyUrl !== job.url ? <> · <a className="sh-link" href={job.applyUrl} target="_blank" rel="noopener noreferrer" onClick={() => void opened({ jobId: job._id }).catch(() => undefined)}>The application page</a></> : null}
       </p>
       {job.alsoAt.length > 0 && <p className="sh-hint">Also seen at: {job.alsoAt.map((u) => <a key={u} className="sh-link" href={u} target="_blank" rel="noopener noreferrer">{new URL(u).hostname} </a>)}</p>}
       {BOARD_HOME[job.sourceKind as SourceKind] && <p className="sh-hint">Found through <a className="sh-link" href={BOARD_HOME[job.sourceKind as SourceKind]!.url} target="_blank" rel="noopener noreferrer">{BOARD_HOME[job.sourceKind as SourceKind]!.name}</a>.</p>}
@@ -412,9 +421,9 @@ function Approval({ job, docs, application, status, verdict, owner }: { job: Doc
         <div className="lo-entry">
           <h3 className="sh-h3">Submit it on the employer&apos;s page</h3>
           <p>
-            <a className="sh-btn sh-btn-primary" href={job.applyUrl ?? job.url} target="_blank" rel="noopener noreferrer">Open the application page</a>
+            <ApplyLink jobId={job._id} href={job.applyUrl ?? job.url} label="Open the application page" />
           </p>
-          <p className="sh-hint">Fill it in with the documents above, then record it below. Don&apos;t give a Social Security number, bank details, or ID before an offer unless you&apos;re sure the page is the employer&apos;s own.</p>
+          <p className="sh-hint">Fill it in with the documents above, then tap &quot;Yes, I applied&quot; at the top of this page. Don&apos;t give a Social Security number, bank details, or ID before an offer unless you&apos;re sure the page is the employer&apos;s own.</p>
         </div>
       )}
     </Card>
@@ -450,11 +459,12 @@ function Applied({ job, status, application }: { job: Doc<"loJobs">; status: Sta
       </Card>
     );
   }
-  if (!["new", "review", "saved", "preparing", "ready", "approved", "passed"].includes(status)) return null;
+  if (!BEFORE.includes(status)) return null;
+  const asking = !!job.applyOpenedAt && (!job.applyAskDismissedAt || job.applyAskDismissedAt < job.applyOpenedAt);
   return (
-    <Card className={status === "approved" ? "lo-fail" : undefined}>
-      <h2 className="sh-h2">Applied already?</h2>
-      <p className="sh-hint">Applications are sent on the employer&apos;s own site, never from here. Once one is sent, record it so it shows as Submitted and the follow up is scheduled.</p>
+    <Card className="lo-fail">
+      <h2 className="sh-h2" id="applied">{asking ? "Did you apply to this one?" : "Applied to this one?"}</h2>
+      <p className="sh-hint">{asking ? `You opened ${job.employer}'s application page ${timeAgo(job.applyOpenedAt!)}. If you sent it, tap below so it shows as Submitted and the follow up is set.` : "Applications are sent on the employer's own site. Once you've sent it, tap below so it shows as Submitted and the follow up is set."}</p>
       {open ? (
         <div className="sh-stack-sm">
           <div className="sh-radio-list" role="radiogroup" aria-label="How you know it went through">
@@ -475,7 +485,10 @@ function Applied({ job, status, application }: { job: Doc<"loJobs">; status: Sta
           </div>
         </div>
       ) : (
-        <Btn variant="secondary" onClick={() => setOpen(true)}>I applied to this</Btn>
+        <>
+          <QuickApplied jobId={job._id} onNotYet={asking} />
+          <button type="button" className="sh-link mt-3" onClick={() => setOpen(true)}>Applied on another day, or want to add a note?</button>
+        </>
       )}
     </Card>
   );

@@ -464,7 +464,8 @@ export const jobs = query({
     return {
       jobs: rows.map((j) => {
         const r = rankJob(j, s, profile);
-        return { _id: j._id, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
+        const askApplied = BEFORE_APPLYING.includes(j.status) && !!j.applyOpenedAt && Date.now() - j.applyOpenedAt < 14 * 86400000 && (!j.applyAskDismissedAt || j.applyAskDismissedAt < j.applyOpenedAt);
+        return { _id: j._id, askApplied, applyOpenedAt: j.applyOpenedAt, applyUrl: j.applyUrl, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
       }),
       events: events.filter((e) => !e.done).map((e) => ({ ...e, jobTitle: rows.find((j) => j._id === e.jobId)?.title ?? "", employer: rows.find((j) => j._id === e.jobId)?.employer ?? "" })),
     };
@@ -797,6 +798,26 @@ export async function recordApplication(ctx: MutationCtx, a: Access, job: Doc<"l
   });
   return { appId, created, prevStatus, followUp };
 }
+
+/** The application page was opened from here: remember it, so the Lookout can ask whether he applied. */
+export const noteApplyOpened = mutation({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    if (BEFORE_APPLYING.includes(j.status)) await ctx.db.patch(j._id, { applyOpenedAt: Date.now() });
+  },
+});
+
+/** "Not yet": stop asking until the application page is opened again. */
+export const dismissApplyAsk = mutation({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    await ctx.db.patch(j._id, { applyAskDismissedAt: Date.now() });
+  },
+});
 
 /** "I applied to this", from the job's page. */
 export const markApplied = mutation({

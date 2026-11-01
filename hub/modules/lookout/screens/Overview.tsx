@@ -8,6 +8,7 @@ import { Btn, Card, ErrorNote, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAc
 import { useEffect, useState } from "react";
 import { LOOKOUT } from "../Shell";
 import { VIEWS } from "../views";
+import { QuickApplied } from "../QuickApplied";
 
 /** The Overview's grid: every stage group from the Jobs page, so the two always count the same jobs. */
 const GRID = VIEWS.filter((v) => v.key !== "best" && v.key !== "check");
@@ -30,6 +31,7 @@ export function Overview() {
   if (!data || !answers || !roles || !settings) return <Spinner />;
 
   const answered = answers.filter((a) => a.answer.trim()).length;
+  const asking = data.jobs.filter((j) => j.askApplied).sort((a, b) => (b.applyOpenedAt ?? 0) - (a.applyOpenedAt ?? 0));
   const confirmedRoles = roles.filter((r) => r.confirmed).length;
   const live = data.jobs.filter((j) => !["rejected", "closed", "passed"].includes(j.status));
   const top = live.filter((j) => j.verdict === "eligible" && ["new", "review", "saved"].includes(j.status)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
@@ -42,6 +44,19 @@ export function Overview() {
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title="The Lookout" subtitle="The right job, not more jobs. Every opening is checked against your requirements before it's ranked." />
+
+      {asking.length > 0 && (
+        <Card className="lo-fail">
+          <h2 className="sh-h2">Did you apply?</h2>
+          <p className="sh-hint">You opened {asking.length === 1 ? "this application page" : "these application pages"} from the Lookout. If you sent one, tap Yes so it shows as Submitted and the follow up is set.</p>
+          {asking.map((j) => (
+            <div key={j._id} className="lo-entry">
+              <p><Link className="sh-link" href={`${LOOKOUT}/jobs/${j._id}`}><strong>{j.title}</strong></Link> <span className="sh-muted">· {j.employer}</span></p>
+              <QuickApplied jobId={j._id} onNotYet compact />
+            </div>
+          ))}
+        </Card>
+      )}
 
       {(answered < 8 || confirmedRoles === 0) && (
         <Card className="lo-fail">

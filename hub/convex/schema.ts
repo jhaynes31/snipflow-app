@@ -1608,6 +1608,10 @@ export default defineSchema({
     seenAt: v.optional(v.number()),
     /** Other places the same job was found. */
     alsoAt: v.array(v.string()),
+    /** When the employer's application page was last opened from here, so the Lookout can ask "Did you apply?". */
+    applyOpenedAt: v.optional(v.number()),
+    /** When he answered "not yet" to that question; it's asked again after the page is opened again. */
+    applyAskDismissedAt: v.optional(v.number()),
     /** The employer's application questions as pasted, kept so they're never pasted twice. */
     applicationQuestions: v.optional(v.string()),
     notes: v.optional(v.string()),
