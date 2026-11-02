@@ -15,7 +15,7 @@
  * reading, so jobs from there are pasted in by hand and get every check.
  */
 
-export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss";
+export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss" | "usajobs" | "adzuna";
 
 export interface Source {
   kind: SourceKind;
@@ -40,10 +40,12 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
   workingnomads: "Working Nomads (remote job board)",
   themuse: "The Muse (job board)",
   rss: "A job feed (RSS) from any site",
+  usajobs: "USAJOBS (federal jobs; needs the free API key in Settings)",
+  adzuna: "Adzuna (jobs from many sites; needs the free app ID and key in Settings)",
 };
 
 /** Job boards that only list remote jobs (The Muse is searched for "Flexible / Remote" only). */
-export const REMOTE_ONLY: Partial<Record<string, string>> = { remotive: "Remotive", himalayas: "Himalayas", remoteok: "Remote OK", weworkremotely: "We Work Remotely", jobicy: "Jobicy", workingnomads: "Working Nomads", themuse: "The Muse (remote search)" };
+export const REMOTE_ONLY: Partial<Record<string, string>> = { usajobs: "USAJOBS (remote search)", remotive: "Remotive", himalayas: "Himalayas", remoteok: "Remote OK", weworkremotely: "We Work Remotely", jobicy: "Jobicy", workingnomads: "Working Nomads", themuse: "The Muse (remote search)" };
 
 /** Kinds that are one employer's own board, as opposed to a job board listing many employers. */
 export const EMPLOYER_KINDS: SourceKind[] = ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "recruitee"];
@@ -57,6 +59,8 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
   jobicy: { name: "Jobicy", url: "https://jobicy.com" },
   workingnomads: { name: "Working Nomads", url: "https://www.workingnomads.com" },
   themuse: { name: "The Muse", url: "https://www.themuse.com" },
+  usajobs: { name: "USAJOBS", url: "https://www.usajobs.gov" },
+  adzuna: { name: "Adzuna", url: "https://www.adzuna.com" },
 };
 
 /**
@@ -66,7 +70,7 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
  * Example employer boards are off until turned on, because a board name can
  * change; the search note says when one doesn't answer.
  */
-export const SOURCES_VERSION = 3;
+export const SOURCES_VERSION = 5;
 export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "remotive", token: "customer-support", name: "Remotive: customer support", enabled: true, since: 1 },
   { kind: "remotive", token: "all-others", name: "Remotive: operations and other", enabled: true, since: 1 },
@@ -100,6 +104,17 @@ export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "jobicy", token: "administrative", name: "Jobicy: administrative", enabled: true, since: 3 },
   { kind: "weworkremotely", token: "remote-jobs", name: "We Work Remotely: all newest jobs", enabled: true, since: 3 },
   { kind: "rss", token: "https://www.realworkfromanywhere.com/rss.xml", name: "Real Work From Anywhere", enabled: true, since: 3 },
+  { kind: "usajobs", token: "claims", name: "USAJOBS: claims, remote", enabled: true, since: 4 },
+  { kind: "usajobs", token: "customer service", name: "USAJOBS: customer service, remote", enabled: true, since: 4 },
+  { kind: "usajobs", token: "administrative", name: "USAJOBS: administrative, remote", enabled: true, since: 4 },
+  { kind: "usajobs", token: "records", name: "USAJOBS: records and data, remote", enabled: true, since: 4 },
+  { kind: "usajobs", token: "benefits", name: "USAJOBS: benefits and billing, remote", enabled: true, since: 4 },
+  { kind: "adzuna", token: "customer service", name: "Adzuna: remote customer service", enabled: true, since: 5 },
+  { kind: "adzuna", token: "claims", name: "Adzuna: remote claims", enabled: true, since: 5 },
+  { kind: "adzuna", token: "data entry", name: "Adzuna: remote data entry", enabled: true, since: 5 },
+  { kind: "adzuna", token: "administrative assistant", name: "Adzuna: remote administrative", enabled: true, since: 5 },
+  { kind: "adzuna", token: "billing specialist", name: "Adzuna: remote billing", enabled: true, since: 5 },
+  { kind: "adzuna", token: "order processing", name: "Adzuna: remote order processing", enabled: true, since: 5 },
   { kind: "greenhouse", token: "gitlab", name: "GitLab", enabled: false, since: 1 },
   { kind: "ashby", token: "zapier", name: "Zapier", enabled: false, since: 1 },
   { kind: "greenhouse", token: "automatticcareers", name: "Automattic", enabled: false, since: 1 },
@@ -161,6 +176,8 @@ export const TITLE_WORDS = [
   "onboarding specialist", "onboarding coordinator", "implementation coordinator",
   "claims", "benefits administrator", "billing specialist", "accounts receivable", "payments specialist",
   "crm", "administrator", "administrative", "coordinator", "virtual assistant", "scheduler", "transcription",
+  // Federal titles for the same work.
+  "contact representative", "program support", "support assistant", "legal instruments examiner", "records technician", "office automation", "benefits advisor", "claims assistant", "claims examiner", "management assistant",
 ];
 
 /**
@@ -206,6 +223,12 @@ export function sourceUrl(s: Source): string {
       return s.token === "remote-jobs" ? "https://weworkremotely.com/remote-jobs.rss" : `https://weworkremotely.com/categories/${t}.rss`;
     case "rss":
       return s.token.trim();
+    case "adzuna":
+      // The app ID and key are added in discover.ts. Only the US, the last 30 days, "remote" in the search.
+      return `https://api.adzuna.com/v1/api/jobs/us/search/1?results_per_page=50&max_days_old=30&sort_by=date&what=${encodeURIComponent(`remote ${s.token.trim()}`)}&content-type=application/json`;
+    case "usajobs":
+      // Remote jobs only, newest first. Needs the Authorization-Key and User-Agent headers (discover.ts).
+      return `https://data.usajobs.gov/api/search?Keyword=${t}&RemoteIndicator=True&ResultsPerPage=100&SortField=opendate&SortDirection=desc`;
     case "jobicy":
       return `https://jobicy.com/api/v2/remote-jobs?count=50&geo=usa&tag=${t}`;
     case "workingnomads":
@@ -471,6 +494,45 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         location: item.region || undefined,
         description: htmlToText(item.description),
         postedAt: time(item.pubDate),
+      });
+    }
+  } else if (source.kind === "adzuna") {
+    for (const j of arr(obj(data).results).map(obj)) {
+      const min = Number(j.salary_min);
+      const max = Number(j.salary_max);
+      // Adzuna fills in an estimate when the employer gave no pay; only stated pay counts.
+      const stated = String(j.salary_is_predicted) === "0" && Number.isFinite(min) && min > 0;
+      out.push({
+        ...base,
+        sourceId: str(j.id),
+        title: htmlToText(str(j.title)),
+        employer: str(obj(j.company).display_name),
+        url: str(j.redirect_url),
+        location: str(obj(j.location).display_name) || undefined,
+        description: [htmlToText(str(j.description)), str(j.contract_time).replace("_", " "), str(j.contract_type)].filter(Boolean).join("\n\n"),
+        postedAt: time(j.created),
+        payLine: stated ? `Salary range: $${min}${Number.isFinite(max) && max > min ? ` to $${max}` : ""} ${min < 1000 ? "per hour" : "per year"}` : undefined,
+      });
+    }
+  } else if (source.kind === "usajobs") {
+    const items = arr(obj(obj(data).SearchResult).SearchResultItems).map((x) => obj(obj(x).MatchedObjectDescriptor));
+    for (const j of items) {
+      const pay = obj(arr(j.PositionRemuneration)[0]);
+      const unit = str(pay.RateIntervalCode) === "PH" ? "hour" : str(pay.RateIntervalCode) === "PA" ? "year" : "";
+      const details = obj(obj(j.UserArea).Details);
+      const schedule = arr(j.PositionSchedule).map((x) => str(obj(x).Name)).filter(Boolean).join(", ");
+      out.push({
+        ...base,
+        sourceId: str(j.PositionID) || str(j.PositionURI),
+        title: str(j.PositionTitle),
+        employer: [str(j.OrganizationName), str(j.DepartmentName)].filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).join(", "),
+        url: str(j.PositionURI),
+        applyUrl: str(arr(j.ApplyURI)[0]) || undefined,
+        location: str(j.PositionLocationDisplay) || undefined,
+        description: [str(details.JobSummary), arr(details.MajorDuties).map(str).join("\n"), str(j.QualificationSummary), schedule ? `Schedule: ${schedule}` : "", details.TeleworkEligible ? "Telework eligible" : "", str(details.RemoteIndicator) === "true" || details.RemoteIndicator === true ? "Remote job" : ""].filter(Boolean).join("\n\n"),
+        postedAt: time(j.PublicationStartDate),
+        deadline: str(j.ApplicationCloseDate).slice(0, 10) || undefined,
+        payLine: unit && Number(pay.MinimumRange) > 0 ? `Base pay range: $${Number(pay.MinimumRange)} to $${Number(pay.MaximumRange)} per ${unit}` : undefined,
       });
     }
   } else if (source.kind === "rss") {
