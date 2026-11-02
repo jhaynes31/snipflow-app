@@ -19,11 +19,11 @@ const MIN_GAP_MS = 20 * 60 * 60 * 1000;
 /** "Search now" or "Refresh" by hand can run again after half an hour, light enough on the sites. */
 const MANUAL_GAP_MS = 30 * 60 * 1000;
 
-async function getJson(url: string, asText = false): Promise<{ ok: boolean; status: number; data: unknown }> {
+async function getJson(url: string, asText = false, extra: Record<string, string> = {}): Promise<{ ok: boolean; status: number; data: unknown }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25_000);
   try {
-    const res = await fetch(url, { signal: controller.signal, headers: { "user-agent": UA, accept: asText ? "application/rss+xml, application/xml, text/xml" : "application/json" } });
+    const res = await fetch(url, { signal: controller.signal, headers: { "user-agent": UA, accept: asText ? "application/rss+xml, application/xml, text/xml" : "application/json", ...extra } });
     if (!res.ok) return { ok: false, status: res.status, data: null };
     return { ok: true, status: res.status, data: asText ? await res.text() : await res.json() };
   } finally {
@@ -52,11 +52,22 @@ interface SourceResult {
   problem?: string;
 }
 
-async function readSource(source: Source, keywords: string[], requirePay: boolean): Promise<SourceResult> {
+interface Creds {
+  usajobs: { email: string; key: string } | null;
+  adzuna: { appId: string; key: string } | null;
+}
+
+async function readSource(source: Source, keywords: string[], requirePay: boolean, creds: Creds): Promise<SourceResult> {
+  const { usajobs, adzuna } = creds;
   const recent = Date.now() - 45 * 86400000;
   try {
-    const res = await getJson(sourceUrl(source), isFeed(source.kind));
-    if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
+    // USAJOBS asks for its key and the email it was sent to on every request.
+    if (source.kind === "usajobs" && !usajobs) return { name: source.name, found: 0, kept: [], noPay: 0, problem: "waiting for the USAJOBS key (Settings, USAJOBS)" };
+    if (source.kind === "adzuna" && !adzuna) return { name: source.name, found: 0, kept: [], noPay: 0, problem: "waiting for the Adzuna app ID and key (Settings, Adzuna)" };
+    const headers: Record<string, string> = source.kind === "usajobs" && usajobs ? { "user-agent": usajobs.email, "authorization-key": usajobs.key } : {};
+    const url = source.kind === "adzuna" && adzuna ? `${sourceUrl(source)}&app_id=${encodeURIComponent(adzuna.appId)}&app_key=${encodeURIComponent(adzuna.key)}` : sourceUrl(source);
+    const res = await getJson(url, isFeed(source.kind), headers);
+    if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${source.kind === "usajobs" && (res.status === 401 || res.status === 403) ? " (check the USAJOBS key and email in Settings)" : source.kind === "adzuna" && (res.status === 401 || res.status === 403) ? " (check the Adzuna app ID and key in Settings)" : res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
     const postings = parseSource(source, res.data);
     const kept: Posting[] = [];
     for (const p of postings) {
@@ -80,8 +91,9 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const s = plan.settings;
   const gap = manual ? MANUAL_GAP_MS : MIN_GAP_MS;
   if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
+  const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay)));
+  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay, creds)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.

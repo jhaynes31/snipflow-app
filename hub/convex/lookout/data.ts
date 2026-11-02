@@ -112,6 +112,9 @@ function settingsView(row: Doc<"loSettings"> | null) {
     sources: row?.sources ?? defaultSources(),
     allowHealthDisclosure: row?.allowHealthDisclosure ?? false,
     requirePay: row?.requirePay ?? true,
+    // Only whether it's connected and the email; the key itself never leaves the server.
+    usajobsEmail: row?.usajobs?.email ?? null,
+    adzunaAppId: row?.adzuna?.appId ?? null,
     lastSearchAt: row?.lastSearchAt,
     lastSearchNote: row?.lastSearchNote,
     lastSearchSources: row?.lastSearchSources ?? [],
@@ -315,6 +318,51 @@ export const setSettings = mutation({
       patch.sources = args.sources.map((s) => ({ kind: s.kind, token: cleanText(s.token, s.kind === "rss" ? 400 : 80, "Board name"), name: cleanText(s.name, 80, "Name"), enabled: s.enabled }));
     }
     await ctx.db.patch(row._id, patch);
+  },
+});
+
+/** Connect USAJOBS: the free API key from developer.usajobs.gov and the email it was sent to. Blank clears it. */
+export const setUsajobs = mutation({
+  args: { email: v.string(), key: v.string() },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const row = await ensureSettings(ctx, a.ownerId);
+    const email = args.email.trim();
+    const key = args.key.trim();
+    if (!email && !key) {
+      await ctx.db.patch(row._id, { usajobs: undefined, updatedAt: Date.now() });
+      return;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ConvexError("Use the email address the key was sent to.");
+    if (!/^[A-Za-z0-9+/=_-]{20,200}$/.test(key)) throw new ConvexError("That doesn't look like a USAJOBS key. Copy the whole key from the email, with no spaces.");
+    await ctx.db.patch(row._id, { usajobs: { email: email.slice(0, 200), key }, updatedAt: Date.now() });
+  },
+});
+
+/** Connect Adzuna: the app ID and key from developer.adzuna.com. Blank clears it. */
+export const setAdzuna = mutation({
+  args: { appId: v.string(), key: v.string() },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const row = await ensureSettings(ctx, a.ownerId);
+    const appId = args.appId.trim();
+    const key = args.key.trim();
+    if (!appId && !key) {
+      await ctx.db.patch(row._id, { adzuna: undefined, updatedAt: Date.now() });
+      return;
+    }
+    if (!/^[A-Za-z0-9]{4,40}$/.test(appId)) throw new ConvexError("That doesn't look like an Adzuna Application ID. It's a short code of letters and numbers.");
+    if (!/^[A-Za-z0-9]{16,80}$/.test(key)) throw new ConvexError("That doesn't look like an Adzuna Application Key. Copy the whole key, with no spaces.");
+    await ctx.db.patch(row._id, { adzuna: { appId, key }, updatedAt: Date.now() });
+  },
+});
+
+/** For the search only: the USAJOBS and Adzuna keys, server side. */
+export const apiCreds = internalQuery({
+  args: { ownerId: v.id("profiles") },
+  handler: async (ctx, args) => {
+    const s = await settingsOf(ctx, args.ownerId);
+    return { usajobs: s?.usajobs ?? null, adzuna: s?.adzuna ?? null };
   },
 });
 

@@ -542,3 +542,30 @@ describe("search accuracy (2026-11-02 review)", () => {
     assert.equal(sourceUrl({ kind: "remotive", token: "search:claims", name: "x", enabled: true }), "https://remotive.com/api/remote-jobs?search=claims&limit=100");
   });
 });
+
+describe("USAJOBS", () => {
+  it("reads remote federal jobs with their pay, schedule, and deadline", () => {
+    const data = { SearchResult: { SearchResultItems: [{ MatchedObjectDescriptor: { PositionID: "VA-1", PositionTitle: "Contact Representative", PositionURI: "https://www.usajobs.gov/job/1", ApplyURI: ["https://www.usajobs.gov/job/1/apply"], PositionLocationDisplay: "Anywhere in the U.S. (remote job)", OrganizationName: "Veterans Benefits Administration", DepartmentName: "Department of Veterans Affairs", PositionRemuneration: [{ MinimumRange: "52000", MaximumRange: "68000", RateIntervalCode: "PA" }], PublicationStartDate: "2026-11-01T00:00:00", ApplicationCloseDate: "2026-11-15T23:59:59", PositionSchedule: [{ Name: "Full-Time" }], UserArea: { Details: { JobSummary: "Answer questions about benefits by phone.", MajorDuties: ["Respond to inquiries"] } } } }] } };
+    const p = parseSource({ kind: "usajobs", token: "claims", name: "USAJOBS", enabled: true }, data);
+    assert.equal(p.length, 1);
+    assert.equal(p[0].title, "Contact Representative");
+    assert.equal(p[0].deadline, "2026-11-15");
+    assert.equal(parsePay(p[0].payLine!)?.unit, "year");
+    assert.ok(titleFits("Contact Representative"));
+    assert.match(sourceUrl({ kind: "usajobs", token: "claims", name: "x", enabled: true }), /RemoteIndicator=True/);
+  });
+});
+
+describe("Adzuna", () => {
+  it("counts only pay the employer stated, not Adzuna's estimate", () => {
+    const data = { results: [
+      { id: "1", title: "Remote <strong>Claims</strong> Specialist", company: { display_name: "A" }, location: { display_name: "US" }, redirect_url: "https://www.adzuna.com/land/ad/1", description: "Remote claims work", created: "2026-11-01T00:00:00Z", salary_min: 50000, salary_max: 56000, salary_is_predicted: "0", contract_time: "full_time" },
+      { id: "2", title: "Data Entry Clerk", company: { display_name: "B" }, location: { display_name: "US" }, redirect_url: "https://www.adzuna.com/land/ad/2", description: "Remote", created: "2026-11-01T00:00:00Z", salary_min: 41000, salary_is_predicted: "1" },
+    ] };
+    const p = parseSource({ kind: "adzuna", token: "claims", name: "Adzuna", enabled: true }, data);
+    assert.equal(p[0].title, "Remote Claims Specialist");
+    assert.ok(p[0].payLine);
+    assert.equal(p[1].payLine, undefined, "an estimate isn't stated pay");
+    assert.match(sourceUrl({ kind: "adzuna", token: "claims", name: "x", enabled: true }), /what=remote%20claims/);
+  });
+});

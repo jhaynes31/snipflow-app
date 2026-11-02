@@ -111,6 +111,9 @@ export function LookoutSettings() {
         </details>
       </Card>
 
+      <UsajobsCard email={s.usajobsEmail} />
+      <AdzunaCard appId={s.adzunaAppId} />
+
       <Card>
         <h2 className="sh-h2">Privacy</h2>
         {owner ? (
@@ -140,5 +143,89 @@ export function LookoutSettings() {
         </Card>
       )}
     </div>
+  );
+}
+
+/**
+ * USAJOBS: federal jobs, read with the free API key from
+ * developer.usajobs.gov. The key is saved on the server and never shown
+ * again; only the email it was sent to is shown.
+ */
+function UsajobsCard({ email }: { email: string | null }) {
+  const save = useMutation(api.lookout.data.setUsajobs);
+  const { busy, error, run } = useAction();
+  const [f, setF] = useState({ email: email ?? "", key: "" });
+  const [changing, setChanging] = useState(!email);
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <Card>
+      <h2 className="sh-h2">USAJOBS (federal jobs)</h2>
+      {email && !changing ? (
+        <>
+          <p className="lo-verified">Connected with {email}.</p>
+          <p className="sh-hint">Remote federal jobs are searched for claims, customer service (often called Contact Representative), administrative, records, and benefits work. Most federal jobs are full time, so the hours check still applies.</p>
+          <div className="sh-row sh-wrap">
+            <Btn variant="secondary" onClick={() => setChanging(true)}>Change the key</Btn>
+            <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Disconnect USAJOBS?")) void run(async () => { await save({ email: "", key: "" }); setF({ email: "", key: "" }); setChanging(true); }); }}>Disconnect</Btn>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="sh-hint">Ask USAJOBS for a free key at <a className="sh-link" href="https://developer.usajobs.gov/apirequest/" target="_blank" rel="noopener noreferrer">developer.usajobs.gov/apirequest</a>. They email it to you. Then enter it here, with the email address it was sent to. It&apos;s kept on the server and never shown again.</p>
+          <div className="sh-stack-sm">
+            <Field label="Email the key was sent to"><input className="sh-input" type="email" value={f.email} maxLength={200} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="off" /></Field>
+            <Field label="USAJOBS API key"><input className="sh-input" type="password" value={f.key} maxLength={200} onChange={(e) => setF({ ...f, key: e.target.value })} autoComplete="off" placeholder="Paste the key from the email" /></Field>
+          </div>
+          <ErrorNote error={error} />
+          <div className="sh-row sh-wrap">
+            <Btn disabled={busy || !f.email.trim() || !f.key.trim()} onClick={() => void run(async () => { await save({ email: f.email, key: f.key }); setF({ ...f, key: "" }); setChanging(false); setNote("Saved. USAJOBS is searched from the next search on; the search log will show what it returned."); })}>Save and connect</Btn>
+            {email && <Btn variant="ghost" onClick={() => setChanging(false)}>Cancel</Btn>}
+          </div>
+        </>
+      )}
+      {note && <Note>{note}</Note>}
+    </Card>
+  );
+}
+
+/**
+ * Adzuna: one search across many job sites and company pages, read with
+ * the free app ID and key from developer.adzuna.com. The key is saved on
+ * the server and never shown again.
+ */
+function AdzunaCard({ appId }: { appId: string | null }) {
+  const save = useMutation(api.lookout.data.setAdzuna);
+  const { busy, error, run } = useAction();
+  const [f, setF] = useState({ appId: appId ?? "", key: "" });
+  const [changing, setChanging] = useState(!appId);
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <Card>
+      <h2 className="sh-h2">Adzuna (jobs from many sites)</h2>
+      {appId && !changing ? (
+        <>
+          <p className="lo-verified">Connected (app ID {appId}).</p>
+          <p className="sh-hint">Searched for remote customer service, claims, data entry, administrative, billing, and order processing jobs posted in the last 30 days. When Adzuna only estimates the pay, the job counts as not stating it.</p>
+          <div className="sh-row sh-wrap">
+            <Btn variant="secondary" onClick={() => setChanging(true)}>Change the key</Btn>
+            <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Disconnect Adzuna?")) void run(async () => { await save({ appId: "", key: "" }); setF({ appId: "", key: "" }); setChanging(true); }); }}>Disconnect</Btn>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="sh-hint">Sign in at <a className="sh-link" href="https://developer.adzuna.com/" target="_blank" rel="noopener noreferrer">developer.adzuna.com</a> and open the page that lists your application (often called Dashboard or API Access Details). Copy the Application ID and the Application Key into the boxes below. The key is kept on the server and never shown again.</p>
+          <div className="sh-stack-sm">
+            <Field label="Application ID"><input className="sh-input" value={f.appId} maxLength={40} onChange={(e) => setF({ ...f, appId: e.target.value })} autoComplete="off" /></Field>
+            <Field label="Application Key"><input className="sh-input" type="password" value={f.key} maxLength={80} onChange={(e) => setF({ ...f, key: e.target.value })} autoComplete="off" placeholder="Paste the key" /></Field>
+          </div>
+          <ErrorNote error={error} />
+          <div className="sh-row sh-wrap">
+            <Btn disabled={busy || !f.appId.trim() || !f.key.trim()} onClick={() => void run(async () => { await save({ appId: f.appId, key: f.key }); setF({ ...f, key: "" }); setChanging(false); setNote("Saved. Adzuna is searched from the next search on; the search log will show what it returned."); })}>Save and connect</Btn>
+            {appId && <Btn variant="ghost" onClick={() => setChanging(false)}>Cancel</Btn>}
+          </div>
+        </>
+      )}
+      {note && <Note>{note}</Note>}
+    </Card>
   );
 }

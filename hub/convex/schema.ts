@@ -1534,6 +1534,10 @@ export default defineSchema({
     keywords: v.array(v.string()),
     sources: v.array(v.object({ kind: v.string(), token: v.string(), name: v.string(), enabled: v.boolean() })),
     allowHealthDisclosure: v.boolean(),
+    /** The USAJOBS API key and the email it was requested with. Never sent to the browser. */
+    usajobs: v.optional(v.object({ email: v.string(), key: v.string() })),
+    /** The Adzuna app ID and key. Never sent to the browser. */
+    adzuna: v.optional(v.object({ appId: v.string(), key: v.string() })),
     /** Keep only found jobs that state their pay (Jen, 2026-11-02). Absent means yes. */
     requirePay: v.optional(v.boolean()),
     lastSearchAt: v.optional(v.number()),
