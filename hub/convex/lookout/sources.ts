@@ -15,7 +15,7 @@
  * reading, so jobs from there are pasted in by hand and get every check.
  */
 
-export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse";
+export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss";
 
 export interface Source {
   kind: SourceKind;
@@ -39,7 +39,11 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
   jobicy: "Jobicy (remote job board)",
   workingnomads: "Working Nomads (remote job board)",
   themuse: "The Muse (job board)",
+  rss: "A job feed (RSS) from any site",
 };
+
+/** Job boards that only list remote jobs (The Muse is searched for "Flexible / Remote" only). */
+export const REMOTE_ONLY: Partial<Record<string, string>> = { remotive: "Remotive", himalayas: "Himalayas", remoteok: "Remote OK", weworkremotely: "We Work Remotely", jobicy: "Jobicy", workingnomads: "Working Nomads", themuse: "The Muse (remote search)" };
 
 /** Kinds that are one employer's own board, as opposed to a job board listing many employers. */
 export const EMPLOYER_KINDS: SourceKind[] = ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "recruitee"];
@@ -62,7 +66,7 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
  * Example employer boards are off until turned on, because a board name can
  * change; the search note says when one doesn't answer.
  */
-export const SOURCES_VERSION = 2;
+export const SOURCES_VERSION = 3;
 export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "remotive", token: "customer-support", name: "Remotive: customer support", enabled: true, since: 1 },
   { kind: "remotive", token: "all-others", name: "Remotive: operations and other", enabled: true, since: 1 },
@@ -82,6 +86,20 @@ export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "themuse", token: "Customer Service", name: "The Muse: customer service, remote", enabled: true, since: 2 },
   { kind: "themuse", token: "Administration and Office", name: "The Muse: administration, remote", enabled: true, since: 2 },
   { kind: "themuse", token: "Data and Analytics", name: "The Muse: data and records, remote", enabled: true, since: 2 },
+  { kind: "remotive", token: "search:claims", name: "Remotive: claims", enabled: true, since: 3 },
+  { kind: "remotive", token: "search:billing", name: "Remotive: billing", enabled: true, since: 3 },
+  { kind: "remotive", token: "search:data entry", name: "Remotive: data entry", enabled: true, since: 3 },
+  { kind: "himalayas", token: "billing", name: "Himalayas: billing", enabled: true, since: 3 },
+  { kind: "himalayas", token: "insurance", name: "Himalayas: insurance", enabled: true, since: 3 },
+  { kind: "himalayas", token: "quality assurance specialist", name: "Himalayas: quality review", enabled: true, since: 3 },
+  { kind: "himalayas", token: "order", name: "Himalayas: order processing", enabled: true, since: 3 },
+  { kind: "himalayas", token: "documentation", name: "Himalayas: documentation", enabled: true, since: 3 },
+  { kind: "himalayas", token: "content moderator", name: "Himalayas: content review", enabled: true, since: 3 },
+  { kind: "jobicy", token: "claims", name: "Jobicy: claims", enabled: true, since: 3 },
+  { kind: "jobicy", token: "billing", name: "Jobicy: billing", enabled: true, since: 3 },
+  { kind: "jobicy", token: "administrative", name: "Jobicy: administrative", enabled: true, since: 3 },
+  { kind: "weworkremotely", token: "remote-jobs", name: "We Work Remotely: all newest jobs", enabled: true, since: 3 },
+  { kind: "rss", token: "https://www.realworkfromanywhere.com/rss.xml", name: "Real Work From Anywhere", enabled: true, since: 3 },
   { kind: "greenhouse", token: "gitlab", name: "GitLab", enabled: false, since: 1 },
   { kind: "ashby", token: "zapier", name: "Zapier", enabled: false, since: 1 },
   { kind: "greenhouse", token: "automatticcareers", name: "Automattic", enabled: false, since: 1 },
@@ -145,11 +163,19 @@ export const TITLE_WORDS = [
   "crm", "administrator", "administrative", "coordinator", "virtual assistant", "scheduler", "transcription",
 ];
 
+/**
+ * Titles that are some other line of work even when a word above matches
+ * ("Systems Administrator", "Stock Administrator", "People Operations
+ * Coordinator", "Clinical Data Coordinator"). Dropped before reading further.
+ */
+export const OTHER_WORK_TITLE = /\b(?:engineer(?:ing)?|developer|software|devops|sre|programmer|architect|data scientist|machine learning|designer|ux|ui|product manager|marketing|seo|nurse|rn|lpn|cna|physician|therapist|pharmac\w*|clinical|clinician|counselor|social worker|teacher|tutor|instructor|driver|warehouse|forklift|field technician|mechanic|electrician|director|vice president|vp|head of|chief|attorney|lawyer|accountant|cpa|financial analyst|investment|equity|stock|tax|people operations|human resources|hr|talent|payroll manager|(?:systems?|database|network|salesforce|it|cloud|security) administrator|(?:systems?|network|security) analyst)\b/i;
+
 /** Titles that point to sales work, dropped before any further reading. */
 export const SALES_TITLE = /\b(?:account executive|sales|business development|bdr|sdr|closer|inside sales|account manager|lead generation|telemarket|appointment setter|recruiter)\b/i;
 
 export function titleFits(title: string, extra: string[] = []): boolean {
   if (SALES_TITLE.test(title)) return false;
+  if (OTHER_WORK_TITLE.test(title) && !extra.some((w) => w && title.toLowerCase().includes(w.toLowerCase()))) return false;
   const t = title.toLowerCase();
   return [...TITLE_WORDS, ...extra.map((w) => w.toLowerCase())].some((w) => t.includes(w));
 }
@@ -170,13 +196,16 @@ export function sourceUrl(s: Source): string {
     case "recruitee":
       return `https://${t}.recruitee.com/api/offers/`;
     case "remotive":
-      return `https://remotive.com/api/remote-jobs?category=${t}&limit=100`;
+      // "search:words" searches every category; anything else is a category.
+      return s.token.startsWith("search:") ? `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(s.token.slice(7).trim())}&limit=100` : `https://remotive.com/api/remote-jobs?category=${t}&limit=100`;
     case "himalayas":
       return `https://himalayas.app/jobs/api/search?q=${t}&country=US&sort=recent`;
     case "remoteok":
       return "https://remoteok.com/api";
     case "weworkremotely":
-      return `https://weworkremotely.com/categories/${t}.rss`;
+      return s.token === "remote-jobs" ? "https://weworkremotely.com/remote-jobs.rss" : `https://weworkremotely.com/categories/${t}.rss`;
+    case "rss":
+      return s.token.trim();
     case "jobicy":
       return `https://jobicy.com/api/v2/remote-jobs?count=50&geo=usa&tag=${t}`;
     case "workingnomads":
@@ -188,7 +217,7 @@ export function sourceUrl(s: Source): string {
 
 /** RSS feeds are read as text; everything else is JSON. */
 export function isFeed(kind: SourceKind): boolean {
-  return kind === "weworkremotely";
+  return kind === "weworkremotely" || kind === "rss";
 }
 
 /** One listing as every source is turned into. */
@@ -444,6 +473,22 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         postedAt: time(item.pubDate),
       });
     }
+  } else if (source.kind === "rss") {
+    for (const item of feedItems(typeof data === "string" ? data : "")) {
+      // Feeds write titles as "Company: Title", "Title at Company", or just the title.
+      const colon = item.title.indexOf(": ");
+      const at = / at ([^,]+)$/.exec(item.title);
+      out.push({
+        ...base,
+        sourceId: item.link,
+        title: colon > 0 ? item.title.slice(colon + 2) : at ? item.title.slice(0, at.index) : item.title,
+        employer: colon > 0 ? item.title.slice(0, colon) : at ? at[1] : "",
+        url: item.link,
+        location: item.region || undefined,
+        description: htmlToText(item.description),
+        postedAt: time(item.pubDate),
+      });
+    }
   }
   return out.filter((p) => p.title && p.url);
 }
@@ -464,8 +509,9 @@ export function feedItems(xml: string): { title: string; link: string; pubDate: 
 export function usFriendly(location: string | undefined): boolean {
   if (!location) return true;
   const l = location.toLowerCase();
-  if (/\b(?:us|usa|u\.s\.|united states|americas|north america|worldwide|anywhere|global|remote)\b/.test(l)) return true;
-  return !/\b(?:uk|united kingdom|europe|emea|germany|canada only|india|philippines|latam|apac|australia|brazil|mexico)\b/.test(l);
+  // Anything naming the US (or anywhere) is fine; "remote" alone says nothing about the country.
+  if (/\b(?:us|usa|u\.s\.a?\.?|united states|america|americas|north america|worldwide|anywhere|global)\b/.test(l)) return true;
+  return !/\b(?:canada|uk|united kingdom|england|scotland|ireland|europe|eu|emea|germany|france|spain|portugal|italy|netherlands|poland|romania|ukraine|india|philippines|pakistan|bangladesh|nigeria|kenya|south africa|egypt|latam|latin america|apac|asia|australia|new zealand|brazil|mexico|argentina|colombia|chile|peru|japan|singapore|israel|turkey|vietnam|indonesia|malaysia)\b/.test(l);
 }
 
 /** Words a listing page shows once the job is gone. */

@@ -1534,10 +1534,14 @@ export default defineSchema({
     keywords: v.array(v.string()),
     sources: v.array(v.object({ kind: v.string(), token: v.string(), name: v.string(), enabled: v.boolean() })),
     allowHealthDisclosure: v.boolean(),
+    /** Keep only found jobs that state their pay (Jen, 2026-11-02). Absent means yes. */
+    requirePay: v.optional(v.boolean()),
     lastSearchAt: v.optional(v.number()),
     lastSearchNote: v.optional(v.string()),
+    /** The last searches, newest first, each with what every site actually returned. */
+    searchLog: v.optional(v.array(v.object({ at: v.number(), found: v.number(), kept: v.number(), fresh: v.number(), sources: v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), problem: v.optional(v.string()) })) }))),
     /** What each source gave at the last search, for the Overview. */
-    lastSearchSources: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), problem: v.optional(v.string()) }))),
+    lastSearchSources: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), problem: v.optional(v.string()) }))),
     /** Which version of the listing reader last read this search's jobs. */
     scanVersion: v.optional(v.number()),
     /** Which version of the default sources this search has been offered. */
@@ -1608,6 +1612,8 @@ export default defineSchema({
     seenAt: v.optional(v.number()),
     /** Other places the same job was found. */
     alsoAt: v.array(v.string()),
+    /** When it was moved out of the way by "Refresh the list" or "Hide"; it stays under Earlier finds. */
+    shelvedAt: v.optional(v.number()),
     /** When the employer's application page was last opened from here, so the Lookout can ask "Did you apply?". */
     applyOpenedAt: v.optional(v.number()),
     /** When he answered "not yet" to that question; it's asked again after the page is opened again. */

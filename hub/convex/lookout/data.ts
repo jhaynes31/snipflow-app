@@ -5,8 +5,8 @@ import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
-import { chooseSearch, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
-import { boardFromUrl, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
+import { chooseSearch, remoteBoardFact, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
+import { boardFromUrl, REMOTE_ONLY, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
 /**
@@ -111,9 +111,11 @@ function settingsView(row: Doc<"loSettings"> | null) {
     keywords: row?.keywords ?? [],
     sources: row?.sources ?? defaultSources(),
     allowHealthDisclosure: row?.allowHealthDisclosure ?? false,
+    requirePay: row?.requirePay ?? true,
     lastSearchAt: row?.lastSearchAt,
     lastSearchNote: row?.lastSearchNote,
     lastSearchSources: row?.lastSearchSources ?? [],
+    searchLog: row?.searchLog ?? [],
   };
 }
 
@@ -245,9 +247,12 @@ export const refreshReadings = mutation({
     const row = await ensureSettings(ctx, a.ownerId);
     const jobs = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect();
     for (const j of jobs) {
-      const r = rescanFacts(j.facts as Facts, `${j.title}\n${j.location ?? ""}\n${j.description}`, row.homeState);
+      // Earlier finds that the tighter title and country checks would now leave out move out of the way.
+      if (UNSAVED.includes(j.status) && !j.shelvedAt && j.sourceKind !== "manual" && (!titleFits(j.title, row.keywords) || !usFriendly(j.location))) await ctx.db.patch(j._id, { shelvedAt: Date.now() });
+      const r = rescanFacts(j.facts as Facts, `${j.title}\n${j.location ?? ""}\n${j.description}`, row.homeState, REMOTE_ONLY[j.sourceKind]);
       await ctx.db.patch(j._id, { facts: r.facts, warnings: r.warnings });
     }
+    if (row.requirePay ?? true) await shelveUnpaid(ctx, a.ownerId);
     await ctx.db.patch(row._id, { scanVersion: SCAN_VERSION });
     return jobs.length;
   },
@@ -270,6 +275,7 @@ export const setSettings = mutation({
   args: {
     partnerAccess: v.optional(v.boolean()),
     allowHealthDisclosure: v.optional(v.boolean()),
+    requirePay: v.optional(v.boolean()),
     minHourly: v.optional(v.number()),
     maxHours: v.optional(v.number()),
     homeState: v.optional(v.string()),
@@ -285,6 +291,10 @@ export const setSettings = mutation({
     const patch: Partial<Doc<"loSettings">> = { updatedAt: Date.now() };
     if (args.partnerAccess !== undefined) patch.partnerAccess = args.partnerAccess;
     if (args.allowHealthDisclosure !== undefined) patch.allowHealthDisclosure = args.allowHealthDisclosure;
+    if (args.requirePay !== undefined) {
+      patch.requirePay = args.requirePay;
+      if (args.requirePay) await shelveUnpaid(ctx, a.ownerId);
+    }
     if (args.minHourly !== undefined) {
       if (!Number.isFinite(args.minHourly) || args.minHourly < 7.25 || args.minHourly > 500) throw new ConvexError("Minimum pay is dollars per hour, from 7.25 to 500.");
       patch.minHourly = Math.round(args.minHourly * 100) / 100;
@@ -302,7 +312,7 @@ export const setSettings = mutation({
     if (args.keywords !== undefined) patch.keywords = args.keywords.map((k) => k.trim()).filter(Boolean).slice(0, 30).map((k) => k.slice(0, 60));
     if (args.sources !== undefined) {
       if (args.sources.length > 60) throw new ConvexError("That's a lot of sources. Keep it to 60.");
-      patch.sources = args.sources.map((s) => ({ kind: s.kind, token: cleanText(s.token, 80, "Board name"), name: cleanText(s.name, 80, "Name"), enabled: s.enabled }));
+      patch.sources = args.sources.map((s) => ({ kind: s.kind, token: cleanText(s.token, s.kind === "rss" ? 400 : 80, "Board name"), name: cleanText(s.name, 80, "Name"), enabled: s.enabled }));
     }
     await ctx.db.patch(row._id, patch);
   },
@@ -465,7 +475,7 @@ export const jobs = query({
       jobs: rows.map((j) => {
         const r = rankJob(j, s, profile);
         const askApplied = BEFORE_APPLYING.includes(j.status) && !!j.applyOpenedAt && Date.now() - j.applyOpenedAt < 14 * 86400000 && (!j.applyAskDismissedAt || j.applyAskDismissedAt < j.applyOpenedAt);
-        return { _id: j._id, askApplied, applyOpenedAt: j.applyOpenedAt, applyUrl: j.applyUrl, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
+        return { _id: j._id, shelved: !!j.shelvedAt, askApplied, applyOpenedAt: j.applyOpenedAt, applyUrl: j.applyUrl, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
       }),
       events: events.filter((e) => !e.done).map((e) => ({ ...e, jobTitle: rows.find((j) => j._id === e.jobId)?.title ?? "", employer: rows.find((j) => j._id === e.jobId)?.employer ?? "" })),
     };
@@ -504,6 +514,8 @@ async function insertJob(
   }
   const text = `${p.title}\n${p.location ?? ""}\n${p.description}`;
   const scan = scanListing(text, homeState);
+  const board = REMOTE_ONLY[p.sourceKind];
+  if (board && !scan.facts.remote) scan.facts.remote = remoteBoardFact(board);
   const now = Date.now();
   const id = await ctx.db.insert("loJobs", {
     ownerId,
@@ -575,7 +587,8 @@ export const setStatus = mutation({
     if (!(STATUSES as readonly string[]).includes(args.status)) throw new ConvexError("That isn't a status.");
     const allowed = MANUAL_MOVES[j.status as Status] ?? [];
     if (!allowed.includes(args.status as Status)) throw new ConvexError("That step isn't available from here.");
-    await ctx.db.patch(j._id, { status: args.status, statusAt: Date.now() });
+    // Saving or working on a job brings it back from Earlier finds.
+    await ctx.db.patch(j._id, { status: args.status, statusAt: Date.now(), ...(UNSAVED.includes(args.status) || args.status === "passed" ? {} : { shelvedAt: undefined }) });
   },
 });
 
@@ -799,6 +812,60 @@ export async function recordApplication(ctx: MutationCtx, a: Access, job: Doc<"l
   return { appId, created, prevStatus, followUp };
 }
 
+/** Finds that haven't been saved or worked on: the ones "Refresh the list" moves to Earlier finds. */
+const UNSAVED = ["new", "review"];
+
+/** Whether a job states its pay: a guaranteed figure was read or verified. */
+export function statesPay(facts: Facts): boolean {
+  const f = facts.payMin;
+  return !!f && f.state === "yes" && Number(f.value) > 0;
+}
+
+/** Found jobs that don't state their pay move to Earlier finds. Jobs added by hand, saved, or being worked on stay. */
+async function shelveUnpaid(ctx: MutationCtx, ownerId: Id<"profiles">): Promise<number> {
+  let moved = 0;
+  for (const status of UNSAVED) {
+    for (const j of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", ownerId).eq("status", status)).collect()) {
+      if (j.shelvedAt || j.sourceKind === "manual" || statesPay(j.facts as Facts)) continue;
+      await ctx.db.patch(j._id, { shelvedAt: Date.now() });
+      moved++;
+    }
+  }
+  return moved;
+}
+
+/**
+ * "Refresh the list": every find that hasn't been saved or worked on moves
+ * to Earlier finds, so only new ones show. Nothing is deleted; anything
+ * saved, being prepared, or applied to stays where it is.
+ */
+export const shelveFinds = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const a = await requireLookout(ctx);
+    const now = Date.now();
+    let moved = 0;
+    for (const status of UNSAVED) {
+      for (const j of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId).eq("status", status)).collect()) {
+        if (j.shelvedAt) continue;
+        await ctx.db.patch(j._id, { shelvedAt: now });
+        moved++;
+      }
+    }
+    return moved;
+  },
+});
+
+/** Hide one job from the lists (it stays under Earlier finds), or bring it back. */
+export const setShelved = mutation({
+  args: { jobId: v.id("loJobs"), shelved: v.boolean() },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    await ctx.db.patch(j._id, { shelvedAt: args.shelved ? Date.now() : undefined });
+  },
+});
+
 /** The application page was opened from here: remember it, so the Lookout can ask whether he applied. */
 export const noteApplyOpened = mutation({
   args: { jobId: v.id("loJobs") },
@@ -1007,7 +1074,7 @@ const postingV = v.object({ title: v.string(), employer: v.string(), url: v.stri
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
-  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), problem: v.optional(v.string()) }))) },
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
     let fresh = 0;
@@ -1015,7 +1082,9 @@ export const storeFound = internalMutation({
       const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new");
       if (!r.duplicate) fresh++;
     }
-    await ctx.db.patch(s._id, { lastSearchAt: Date.now(), lastSearchNote: args.note.slice(0, 1000), lastSearchSources: args.bySource?.slice(0, 60) });
+    const bySource = args.bySource?.slice(0, 60) ?? [];
+    const entry = { at: Date.now(), found: bySource.reduce((n, x) => n + x.found, 0), kept: args.postings.length, fresh, sources: bySource };
+    await ctx.db.patch(s._id, { lastSearchAt: Date.now(), lastSearchNote: args.note.slice(0, 1000), lastSearchSources: bySource, searchLog: [entry, ...(s.searchLog ?? [])].slice(0, 10) });
     return fresh;
   },
 });
@@ -1026,7 +1095,7 @@ export const toRecheck = internalQuery({
   handler: async (ctx, args) => {
     const rows = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", args.ownerId)).collect();
     const live = ["new", "review", "saved", "preparing", "ready", "approved"];
-    return rows.filter((j) => live.includes(j.status) && (!j.lastCheckedAt || Date.now() - j.lastCheckedAt > 20 * 3600000)).slice(0, 40).map((j) => ({ id: j._id, url: j.url, sourceKind: j.sourceKind }));
+    return rows.filter((j) => live.includes(j.status) && !j.shelvedAt && (!j.lastCheckedAt || Date.now() - j.lastCheckedAt > 20 * 3600000)).slice(0, 40).map((j) => ({ id: j._id, url: j.url, sourceKind: j.sourceKind }));
   },
 });
 

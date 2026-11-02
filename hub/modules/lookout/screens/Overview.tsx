@@ -22,6 +22,7 @@ export function Overview() {
   const agencies = useQuery(api.lookout.agencyData.list);
   const searchNow = useConvexAction(api.lookout.discover.searchNow);
   const refresh = useMutation(api.lookout.data.refreshReadings);
+  const shelve = useMutation(api.lookout.data.shelveFinds);
   useEffect(() => {
     void refresh({}).catch(() => undefined);
   }, [refresh]);
@@ -75,18 +76,27 @@ export function Overview() {
           {settings.lastSearchAt ? `Last searched ${timeAgo(settings.lastSearchAt)}. ${(settings.lastSearchNote ?? "").split(". ").slice(0, 1).join("")}.` : "Not searched yet."} Scheduled search: {settings.frequency === "off" ? "off" : settings.frequency}.
         </p>
         <div className="sh-row sh-wrap">
-          <Btn disabled={busy} onClick={() => void run(async () => { const r = await searchNow({}); setResult(r.note + (r.fresh ? ` ${r.fresh} new; each one is in the group below that fits it, including Set aside for any that fail a requirement.` : " Nothing new.")); })}>{busy ? "Searching…" : "Search now"}</Btn>
-          <LinkBtn href={`${LOOKOUT}/add`} variant="secondary">Add one I found</LinkBtn>
+          <Btn disabled={busy} onClick={() => void run(async () => { const moved = await shelve({}); const r = await searchNow({}); setResult(`${moved ? `Moved ${moved} earlier ${moved === 1 ? "find" : "finds"} out of the way (they're under Jobs, Earlier finds). ` : ""}${describe(r)}`); })}>{busy ? "Working…" : "Refresh the list"}</Btn>
+          <Btn variant="secondary" disabled={busy} onClick={() => void run(async () => setResult(describe(await searchNow({}))))}>{busy ? "Searching…" : "Search now, keep the list"}</Btn>
+          <LinkBtn href={`${LOOKOUT}/add`} variant="ghost">Add one I found</LinkBtn>
         </div>
+        <p className="sh-hint">Refresh moves the finds you haven&apos;t saved out of the way, then looks for new ones. Anything saved, being prepared, or applied to stays put, and nothing is deleted.</p>
         <ErrorNote error={error} />
         {result && <Note>{result}</Note>}
-        {settings.lastSearchSources.length > 0 && (
+        {settings.searchLog.length > 0 && (
           <details className="mt-3">
-            <summary className="sh-link">What each site gave last time</summary>
-            <ul className="sh-list sh-hint">
-              {settings.lastSearchSources.map((r) => <li key={r.name}>{r.name}: {r.problem ? r.problem : `${r.found} listings, ${r.kept} that fit`}</li>)}
-            </ul>
-            <p className="sh-hint">More sites and companies are under Settings, Searching.</p>
+            <summary className="sh-link">Search log: what each site returned</summary>
+            {settings.searchLog.map((entry, i) => (
+              <div key={entry.at} className="lo-entry">
+                <p className="sh-hint"><strong>{new Date(entry.at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>: {entry.sources.length} sites asked, {entry.sources.filter((x) => x.found > 0).length} answered with listings, {entry.found} listings read, {entry.kept} fit, {entry.fresh} new</p>
+                {i === 0 && (
+                  <ul className="sh-list sh-hint">
+                    {entry.sources.map((r) => <li key={r.name}>{r.name}: {r.problem ? r.problem : `${r.found} listings, ${r.kept} that fit${r.noPay ? `, ${r.noPay} more left out for not stating pay` : ""}`}</li>)}
+                  </ul>
+                )}
+              </div>
+            ))}
+            <p className="sh-hint">These numbers come straight from each site&apos;s answer. Every job links to its original listing, so any one can be opened and checked. More sites and companies are under Settings, Searching.</p>
           </details>
         )}
       </Card>
@@ -132,6 +142,11 @@ export function Overview() {
       </Card>
     </div>
   );
+}
+
+function describe(r: { note: string; fresh: number; skipped?: boolean; closed?: number }): string {
+  if (r.skipped) return r.note;
+  return `${r.note} ${r.fresh ? `${r.fresh} new, each in the group below that fits it.` : "Nothing new this time."}${r.closed ? ` ${r.closed} saved or listed ${r.closed === 1 ? "job has" : "jobs have"} closed and moved to Closed.` : ""}`;
 }
 
 export function JobLine({ j }: { j: { _id: string; title: string; employer: string; score: number | null; verdict: string; uncertain: number; sourceName: string; discoveredAt: number; seen: boolean; changedAt?: number; warnings: string[]; fails: string[] } }) {

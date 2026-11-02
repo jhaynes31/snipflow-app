@@ -473,8 +473,8 @@ const MISLEADING: { re: RegExp; warning: string }[] = [
 
 /** Dollar amounts with what they are per. Returns the lowest guaranteed figure stated. */
 export function parsePay(text: string): { min: number; max?: number; unit: "hour" | "year" | "month" | "week"; quote: string } | null {
-  const range = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)\s*(k)?\s*(?:-|–|—|to)\s*\$?\s?(\d[\d,]*(?:\.\d{1,2})?)\s*(k)?\s*(?:(?:\/|per|an?|USD)\s*)*(hour|hr|year|yr|annually|annual|month|mo|week|wk)?/i;
-  const single = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)\s*(k)?\s*(?:(?:\/|per|an?|USD)\s*)+(hour|hr|year|yr|annually|annual|month|mo|week|wk)\b/i;
+  const range = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)\s*(k)?\s*(?:-|–|—|to)\s*\$?\s?(\d[\d,]*(?:\.\d{1,2})?)\s*(k)?\s*(?:(?:\/|per|an?|USD)\s*)*(hour|hr|year|yr|annually|annual|month|mo|week|wk)?/gi;
+  const single = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)\s*(k)?\s*(?:(?:\/|per|an?|USD)\s*)+(hour|hr|year|yr|annually|annual|month|mo|week|wk)\b/gi;
   const num = (s: string, k?: string) => Number(s.replace(/,/g, "")) * (k ? 1000 : 1);
   const unitOf = (u: string | undefined, n: number): "hour" | "year" | "month" | "week" => {
     const x = (u ?? "").toLowerCase();
@@ -484,16 +484,24 @@ export function parsePay(text: string): { min: number; max?: number; unit: "hour
     if (x.startsWith("y") || x.startsWith("ann")) return "year";
     return n >= 1000 ? "year" : "hour";
   };
-  const r = range.exec(text);
-  if (r) {
+  // A dollar figure that isn't pay: company size, funding, a bonus, a stipend, a budget.
+  const notPay = (m: RegExpExecArray) => {
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + 40).toLowerCase();
+    const before = text.slice(Math.max(0, m.index - 40), m.index).toLowerCase();
+    return /^\s*(?:m\b|mm\b|b\b|million|billion)|\b(?:bonus|stipend|allowance|budget|reimburse\w*|arr|revenue|in funding|valuation|referral)\b/.test(after) || /\b(?:raised|funding|valued at|revenue of|bonus of|stipend of|budget of|allowance of|up to)\s*$/.test(before);
+  };
+  for (const r of text.matchAll(range)) {
+    if (notPay(r)) continue;
     const min = num(r[1], r[2]);
     const max = num(r[3], r[4] ?? r[2]);
+    if (!(min > 0) || max < min) continue;
     return { min, max, unit: unitOf(r[5], min), quote: r[0].trim() };
   }
-  const s = single.exec(text);
-  if (s) {
-    const min = num(s[1], s[2]);
-    return { min, unit: unitOf(s[3], min), quote: s[0].trim() };
+  for (const m of text.matchAll(single)) {
+    if (notPay(m)) continue;
+    const min = num(m[1], m[2]);
+    if (!(min > 0)) continue;
+    return { min, unit: unitOf(m[3], min), quote: m[0].trim() };
   }
   return null;
 }
@@ -740,20 +748,26 @@ export function chooseSearch(o: { mine: boolean; partnerOpen: boolean; want?: "s
 
 // ---------- Re-reading after the rules change ----------
 
-/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. */
-export const SCAN_VERSION = 2;
+/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. */
+export const SCAN_VERSION = 3;
 
 /**
  * Re-read a stored listing: facts the scanner wrote are replaced by a fresh
  * reading; facts a person verified, the assistant read with a quote, or a
  * recheck found (whether it's still open) are kept as they are.
  */
-export function rescanFacts(old: Facts, text: string, homeState: string): { facts: Facts; warnings: string[] } {
+export function rescanFacts(old: Facts, text: string, homeState: string, remoteBoard?: string): { facts: Facts; warnings: string[] } {
   const scan = scanListing(text, homeState);
+  if (remoteBoard && !scan.facts.remote) scan.facts.remote = remoteBoardFact(remoteBoard);
   const kept: Facts = {};
   for (const key of FACT_KEYS) {
     const f = old[key];
     if (f && (f.source !== "listing" || key === "open")) kept[key] = f;
   }
   return { facts: mergeFacts(scan.facts, kept), warnings: scan.warnings };
+}
+
+/** A job listed on a remote-only job board is remote, unless its own words say hybrid or on site (the scanner reads those first). */
+export function remoteBoardFact(boardName: string): Fact {
+  return { state: "yes", source: "listing", note: `Listed on ${boardName}, a remote only job board.` };
 }

@@ -40,6 +40,7 @@ export function LookoutSettings() {
       <Card>
         <h2 className="sh-h2">Hard requirements</h2>
         <p className="sh-hint">A job that fails one of these is set aside, whatever else it offers. No cold calling, no commission only pay, and no office or relocation are always on.</p>
+        <Toggle checked={s.requirePay} onChange={(requirePay) => void run(async () => { await set({ requirePay }); done(); })} label="Only bring in jobs that state their pay" hint="Found jobs that don't say what they pay are left out of searches, and ones already found move to Earlier finds. Jobs you add by hand are always kept." />
         <div className="sh-row sh-wrap">
           <Field label="Lowest guaranteed pay, per hour"><input className="sh-input sh-input-sm" type="number" min={7.25} step={0.5} defaultValue={s.minHourly} onBlur={(e) => { const n = Number(e.target.value); if (n !== s.minHourly) void run(async () => { await set({ minHourly: n }); done(); }); }} /></Field>
           <Field label="Most hours a week"><input className="sh-input sh-input-sm" type="number" min={5} max={60} defaultValue={s.maxHours} onBlur={(e) => { const n = Number(e.target.value); if (n !== s.maxHours) void run(async () => { await set({ maxHours: n }); done(); }); }} /></Field>
