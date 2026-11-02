@@ -508,3 +508,37 @@ describe("every place has a page title and home screen icon", () => {
     }
   });
 });
+
+describe("search accuracy (2026-11-02 review)", () => {
+  it("a remote job limited to another country is left out; a US one isn't", () => {
+    assert.equal(usFriendly("Remote, India"), false);
+    assert.equal(usFriendly("Remote (Canada only)"), false);
+    assert.equal(usFriendly("Remote - Philippines"), false);
+    assert.ok(usFriendly("Remote, US or Canada"));
+    assert.ok(usFriendly("Remote"));
+    assert.ok(usFriendly("Anywhere in the United States"));
+  });
+  it("other lines of work are left out even when a broad word matches", () => {
+    for (const t of ["Stock Administrator", "People Operations Coordinator", "Systems Administrator", "Clinical Data Coordinator", "Senior Software Engineer, Support Tools", "Director of Customer Support"]) assert.equal(titleFits(t), false, t);
+    for (const t of ["Senior Specialist, Customer Care", "Health Claims Specialist", "Administrative Coordinator", "Billing Specialist", "Records Administrator"]) assert.ok(titleFits(t), t);
+    assert.ok(titleFits("People Operations Coordinator", ["people operations"]), "his own extra words win");
+  });
+  it("pay is read from pay, not from funding, bonuses, or stipends", () => {
+    assert.equal(parsePay("We raised $5 to $10 million last year. Pay: $26 to $30 per hour.")?.min, 26);
+    assert.equal(parsePay("$500 per month stipend for your home office. Base pay $28 per hour.")?.min, 28);
+    assert.equal(parsePay("A $2,000 signing bonus."), null);
+  });
+  it("jobs from remote-only boards count as remote, unless the listing says hybrid", () => {
+    const r = rescanFacts({}, "Order Specialist. Process orders by email.", "West Virginia", "Remotive");
+    assert.equal(r.facts.remote?.state, "yes");
+    const h = rescanFacts({}, "Order Specialist. Hybrid, 2 days in office.", "West Virginia", "Remotive");
+    assert.equal(h.facts.remote?.state, "no");
+  });
+  it("reads any job feed, splitting the company from the title", () => {
+    const xml = `<rss><channel><item><title>Claims Specialist at Acme Health</title><link>https://example.com/j/1</link><pubDate>Mon, 02 Nov 2026 10:00:00 +0000</pubDate><description>Remote, $27 per hour</description></item></channel></rss>`;
+    const p = parseSource({ kind: "rss", token: "https://example.com/rss.xml", name: "Example", enabled: true }, xml);
+    assert.equal(p[0].title, "Claims Specialist");
+    assert.equal(p[0].employer, "Acme Health");
+    assert.equal(sourceUrl({ kind: "remotive", token: "search:claims", name: "x", enabled: true }), "https://remotive.com/api/remote-jobs?search=claims&limit=100");
+  });
+});

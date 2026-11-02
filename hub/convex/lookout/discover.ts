@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
-import { fingerprint } from "./pure";
+import { fingerprint, parsePay } from "./pure";
 import { htmlToText, isFeed, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 
 /**
@@ -16,8 +16,8 @@ import { htmlToText, isFeed, takeInTurns, openFromPage, parseSource, sourceUrl, 
  */
 const UA = "TheShire-Lookout/1.0 (+private household job search; one request per source per day)";
 const MIN_GAP_MS = 20 * 60 * 60 * 1000;
-/** "Search now" by hand can run again after two hours, so a new source can be tried the same day. */
-const MANUAL_GAP_MS = 2 * 60 * 60 * 1000;
+/** "Search now" or "Refresh" by hand can run again after half an hour, light enough on the sites. */
+const MANUAL_GAP_MS = 30 * 60 * 1000;
 
 async function getJson(url: string, asText = false): Promise<{ ok: boolean; status: number; data: unknown }> {
   const controller = new AbortController();
@@ -47,14 +47,16 @@ interface SourceResult {
   name: string;
   found: number;
   kept: Posting[];
+  /** Listings that fit but don't state pay, left out when pay is required. */
+  noPay: number;
   problem?: string;
 }
 
-async function readSource(source: Source, keywords: string[]): Promise<SourceResult> {
+async function readSource(source: Source, keywords: string[], requirePay: boolean): Promise<SourceResult> {
   const recent = Date.now() - 45 * 86400000;
   try {
     const res = await getJson(sourceUrl(source), isFeed(source.kind));
-    if (!res.ok) return { name: source.name, found: 0, kept: [], problem: `answered ${res.status}${res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
+    if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
     const postings = parseSource(source, res.data);
     const kept: Posting[] = [];
     for (const p of postings) {
@@ -63,29 +65,32 @@ async function readSource(source: Source, keywords: string[]): Promise<SourceRes
       if (p.postedAt && p.postedAt < recent) continue;
       kept.push(p);
     }
-    const filled = source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : kept;
-    return { name: source.name, found: postings.length, kept: filled.map((p) => ({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") })), problem: postings.length === 0 ? "answered, but with no listings" : undefined };
+    const filled = (source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : kept).map((p) => ({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") }));
+    // Jobs that don't say what they pay are left out (Jen, 2026-11-02), and counted so the log shows it.
+    const paid = requirePay ? filled.filter((p) => parsePay(p.description)) : filled;
+    return { name: source.name, found: postings.length, kept: paid, noPay: filled.length - paid.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
   } catch (err) {
-    return { name: source.name, found: 0, kept: [], problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
+    return { name: source.name, found: 0, kept: [], noPay: 0, problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
   }
 }
 
-async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean): Promise<{ found: number; kept: number; fresh: number; note: string }> {
+async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean): Promise<{ found: number; kept: number; fresh: number; note: string; skipped?: boolean }> {
   const plan = await ctx.runQuery(internal.lookout.data.searchPlan, { ownerId });
   if (!plan) return { found: 0, kept: 0, fresh: 0, note: "The Lookout isn't set up." };
   const s = plan.settings;
   const gap = manual ? MANUAL_GAP_MS : MIN_GAP_MS;
-  if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, note: manual ? "Searched less than two hours ago, so the sites weren't asked again yet." : "Searched in the last day already." };
+  if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords)));
+  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
   const kept = takeInTurns(results.map((r) => [...r.kept].sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0))), 80);
   const batch = kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline }));
   const answered = results.filter((r) => r.found > 0).length;
-  const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit.${notes.length ? ` ${notes.join(" ")}` : ""}`;
-  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, problem: r.problem }));
+  const noPay = results.reduce((n, r) => n + r.noPay, 0);
+  const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
+  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, problem: r.problem }));
   const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
   return { found, kept: batch.length, fresh, note };
 }
@@ -110,12 +115,24 @@ async function recheckOne(ctx: ActionCtx, job: { id: Id<"loJobs">; url: string }
   return open;
 }
 
-/** "Search now", by hand. At most once every two hours, to stay light on the sites. */
+/**
+ * "Search now" and "Refresh", by hand: at most once every half hour. After
+ * the search, the jobs being kept are checked to see they're still open,
+ * so closed ones drop out on their own.
+ */
 export const searchNow = action({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx): Promise<{ found: number; kept: number; fresh: number; note: string }> => {
+  handler: async (ctx): Promise<{ found: number; kept: number; fresh: number; note: string; skipped?: boolean; closed?: number }> => {
     const who = await ctx.runQuery(internal.lookout.data.whoFor, {});
-    return await search(ctx, who.ownerId, true);
+    const result = await search(ctx, who.ownerId, true);
+    if (result.skipped) return result;
+    const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId: who.ownerId });
+    let closed = 0;
+    for (let i = 0; i < jobs.length; i += 8) {
+      const answers = await Promise.all(jobs.slice(i, i + 8).map((j) => recheckOne(ctx, j)));
+      closed += answers.filter((x) => x === "no").length;
+    }
+    return { ...result, closed };
   },
 });
 
