@@ -69,6 +69,8 @@ import type * as reCentered_entries from "../reCentered/entries.js";
 import type * as reCentered_pure from "../reCentered/pure.js";
 import type * as reCentered_room from "../reCentered/room.js";
 import type * as rooms from "../rooms.js";
+import type * as rooted_entries from "../rooted/entries.js";
+import type * as rooted_pure from "../rooted/pure.js";
 import type * as safetyPlan from "../safetyPlan.js";
 import type * as hearth_entries from "../hearth/entries.js";
 import type * as seasons_collect from "../seasons/collect.js";
@@ -165,6 +167,8 @@ declare const fullApi: ApiFromModules<{
   "reCentered/pure": typeof reCentered_pure;
   "reCentered/room": typeof reCentered_room;
   rooms: typeof rooms;
+  "rooted/entries": typeof rooted_entries;
+  "rooted/pure": typeof rooted_pure;
   safetyPlan: typeof safetyPlan;
   "hearth/entries": typeof hearth_entries;
   "seasons/collect": typeof seasons_collect;

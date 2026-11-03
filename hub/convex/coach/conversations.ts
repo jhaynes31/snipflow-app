@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { failSafesText, leanOf, readRootedSettings } from "../rooted/pure";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { access, cleanText, requireMe, requireOwned } from "../lib";
 import { roomOwner as reCenteredOwner } from "../reCentered/room";
@@ -144,7 +145,14 @@ export const contextFor = internalQuery({
       .map((b) => b.newLine);
     const feltRows = await ctx.db.query("felt").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(5);
     const felt = feltRows.map((r) => `${new Date(r.createdAt).toISOString().slice(0, 10)}: ${r.feelings.join(", ") || "no words"}${r.body.length ? `; body: ${r.body.map((b) => `${b.area}${b.words.length ? ` (${b.words.join(", ")})` : ""}`).join(", ")}` : ""}${r.note ? `; ${r.note}` : ""}`);
-    const kept = (await ctx.db.query("mantel").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(30)).map((k) => k.text);
+    // Mantel lines wear out when they come back every conversation (Jen, 2026-11-03).
+    // A line the coach, Dad or Mom already handed back in the last two weeks, in any
+    // conversation, stays off the list; the rest go in a fresh order each time.
+    const keptRows = await ctx.db.query("mantel").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(40);
+    const recentConvos = await ctx.db.query("coachConversations").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(25);
+    const since = Date.now() - 14 * 86_400_000;
+    const recentReplies = recentConvos.flatMap((c) => c.messages.filter((m) => m.role === "assistant" && m.at >= since).map((m) => m.content.toLowerCase()));
+    const kept = shuffleByDay(keptRows.map((k) => k.text).filter((t) => !usedRecently(t, recentReplies))).slice(0, 12);
     const hhOwner = await roomOwnerOf(ctx, "hearth");
     const atHearth = hhOwner?.ownerId === me.profile._id;
     const known = atHearth
@@ -156,7 +164,14 @@ export const contextFor = internalQuery({
     const rcOwner = await reCenteredOwner(ctx);
     const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id, hearth: atHearth };
     const orchardSignals = row.module === "orchard" ? signalsFor((me.profile.moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown }).map((s) => `${s.name}: tell, ${s.tell} Test, ${s.test} Response, ${s.response}`) : [];
+    const rootedSettings = readRootedSettings(me.profile.moduleSettings);
+    const lastCheck = await ctx.db.query("rtChecks").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").first();
+    const rooted = {
+      failSafes: failSafesText(rootedSettings),
+      latest: lastCheck ? `${new Date(lastCheck.createdAt).toISOString().slice(0, 10)}, leaning ${leanOf(lastCheck)}${lastCheck.pulled.length ? `; pulled by: ${lastCheck.pulled.join(", ")}` : ""}${lastCheck.steadied.length ? `; steadied by: ${lastCheck.steadied.join(", ")}` : ""}${lastCheck.note ? `; ${lastCheck.note.slice(0, 300)}` : ""}` : null,
+    };
     return {
+      rooted,
       felt,
       kept,
       known,
@@ -200,3 +215,19 @@ export const append = internalMutation({
     });
   },
 });
+
+/** True when a mantel line (its first clause) already appeared in a recent reply. */
+function usedRecently(line: string, replies: string[]): boolean {
+  const key = line.toLowerCase().replace(/[*_]/g, "").split(/[.!?;\n]/)[0]?.trim().slice(0, 48) ?? "";
+  if (key.length < 12) return false;
+  return replies.some((r) => r.includes(key));
+}
+
+/** A different order each day, so the same few lines don't always lead the list. */
+function shuffleByDay(items: string[]): string[] {
+  const seed = Math.floor(Date.now() / 86_400_000);
+  return items
+    .map((t, i) => ({ t, k: ((i + 1) * 2654435761 + seed * 40503) % 2147483647 }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.t);
+}

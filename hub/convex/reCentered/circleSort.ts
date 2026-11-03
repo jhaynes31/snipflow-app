@@ -29,7 +29,7 @@ export const sort = action({
         thinking: { type: "adaptive" },
         output_config: { effort: "medium" },
         system,
-        messages: [{ role: "user", content: circleText({ name: entry.name, text: entry.text, green: entry.green, red: entry.red }) }],
+        messages: [{ role: "user", content: circleText({ name: entry.name, text: entry.text, green: entry.green, red: entry.red, tripwires: entry.tripwires }) }],
       });
       if (response.stop_reason === "refusal") throw new ConvexError("The coach couldn't sort this one. If anything in it is about being unsafe, open Need help now.");
       text = response.content

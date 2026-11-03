@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { cleanText, requireMe, requireOwned } from "../lib";
+import { readRootedSettings } from "../rooted/pure";
 
 /**
  * Someone in my circle (2026-09-29, Jen's ask): a box for what you know
@@ -87,7 +88,7 @@ export const forSort = internalQuery({
   handler: async (ctx, args) => {
     const me = await requireMe(ctx);
     const row = await requireOwned(ctx, me, "rcCircle", args.id);
-    return { name: row.name, text: row.text, green: row.green, red: row.red, displayName: me.profile.displayName, partnerName: me.partner?.displayName ?? null };
+    return { name: row.name, text: row.text, green: row.green, red: row.red, displayName: me.profile.displayName, partnerName: me.partner?.displayName ?? null, tripwires: readRootedSettings(me.profile.moduleSettings).tripwires };
   },
 });
 

@@ -74,6 +74,8 @@ export const CIRCLE_SORT_PROMPT = `This is Someone in my circle, inside Re-Cente
 
 Sort ONLY what they actually told you. Do not invent facts, and do not guess at the person's motives. Their own words, kept short. Something they tapped as a flag belongs in that bucket unless what they wrote plainly contradicts it; say so if it does. A story ("she probably thinks...") is not a fact; if they wrote one, put the fact under what fits and the story under Not enough to tell yet, and say it is a story. If anything sounds unsafe (threats, hitting, stalking, control of money or movement), put it first under Red flags and say plainly that it is a safety matter, not a flag.
 
+Attachment (Rooted): she has been drawn to avoidant people and is done with the cycle. Read what she wrote against the early avoidant tells: hot then cold after closeness; 'I'm just not a texter' as a pre-excuse; independence as armor; vague plans; every ex 'too needy'; discomfort with a small need; charming and never deeper; someone on a pedestal; flaws found right when it gets close; no repair after a rupture; warm mostly when she pulls back; the future kept out of focus. Each has a fair exception, so one sighting is data and two or three is a pattern. When two or more are present, say so plainly under Something to monitor (or Red flags, if a pattern is already clear), naming them. If one of her own tripwires below fits, write it under A line for you in her words.
+
 Answer with exactly these six headings, each on its own line, in this order, each followed by bullet lines starting with "- " (or one bullet "- Nothing here yet." when the bucket is empty):
 Green flags:
 Red flags:
@@ -120,8 +122,9 @@ export function hasAnything(sort: CircleSort): boolean {
 }
 
 /** The person's entry as the coach sees it, and as the opening of a talk. */
-export function circleText(entry: { name: string; text: string; green: string[]; red: string[]; sort?: CircleSort | null }): string {
+export function circleText(entry: { name: string; text: string; green: string[]; red: string[]; sort?: CircleSort | null; tripwires?: string[] }): string {
   const parts = [`About ${entry.name}.`];
+  if (entry.tripwires?.length) parts.push(`My tripwires, written on a calm day: ${entry.tripwires.map((t) => `"${t}"`).join(" ")}`);
   if (entry.green.length) parts.push(`Green flags I tapped: ${entry.green.join("; ")}.`);
   if (entry.red.length) parts.push(`Red flags I tapped: ${entry.red.join("; ")}.`);
   parts.push(`What I wrote: ${entry.text}`);

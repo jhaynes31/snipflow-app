@@ -48,6 +48,10 @@ function Talk() {
     convoModule = "apothecary";
     task = "apothecary.ask";
     subtitle = "In The Apothecary. Describe what's going on in your body; the answer comes in six parts, and says 'a person, today' only when it's true.";
+  } else if (place === "rooted") {
+    convoModule = "rooted";
+    task = "rooted.talk";
+    subtitle = "In Rooted. The coach knows the four styles, the early avoidant tells, and your fail safes, and steadies you before it names anything.";
   } else if (place === "orchard") {
     convoModule = "orchard";
     task = "orchard.compass";

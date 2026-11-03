@@ -90,6 +90,14 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rc.landed", "Let it land", "Re-Centered, John and me", "/love-and-release/john/landed", "You didn't fix it. Write that down.", ["let it land", "didn't fix", "held back", "let it be"], "re-centered"),
   T("rc.security", "Where I stand", "Re-Centered, John and me", "/love-and-release/john/security", "One tap: where your security is sitting today.", ["security", "where i stand", "steady", "secure", "insecure"], "re-centered"),
   T("rc.ownLife", "My own life", "Re-Centered, John and me", "/love-and-release/john/own-life", "The things that are yours, and a way back into them.", ["my own life", "my things", "lost myself", "hobby", "what's mine"], "re-centered"),
+  // Rooted (2026-11-03): attachment work.
+  T("rt.learn", "The four styles", "Rooted", "/rooted/learn", "Secure, anxious, avoidant, disorganized: where each comes from and what it does under stress.", ["attachment", "attachment style", "anxious attachment", "avoidant", "disorganized", "fearful avoidant", "secure attachment", "why do i"]),
+  T("rt.today", "Where I am today", "Rooted", "/rooted/today", "A short read of which pattern showed this week, and what pulled and steadied you.", ["where am i", "activated", "triggered", "my pattern", "how secure", "check my attachment"]),
+  T("rt.secure", "Becoming secure", "Rooted", "/rooted/secure", "Protest behaviors with the secure move beside each, daily practices, and scripts for when you go blank.", ["becoming secure", "protest", "chasing", "about to text", "double text", "keep checking", "reassurance", "secure move", "what do i say"]),
+  T("rt.read", "The avoidant read", "Rooted", "/rooted/read", "Early tells of an avoidant pattern, each with its fair exception, and what to watch by when.", ["avoidant", "pulling away", "hot and cold", "went quiet", "not a texter", "is he avoidant", "is she avoidant", "mixed signals", "breadcrumbs", "distant"]),
+  T("rt.failsafes", "My fail safes", "Rooted", "/rooted/fail-safes", "Your pacing vow and tripwires, written on a calm day, read back on a shaky one.", ["fail safe", "tripwire", "my vow", "pacing", "before i invest", "don't get attached", "walk away early"]),
+  T("rt.people", "The map of past people", "Rooted", "/rooted/people", "The people who shaped the pattern: what each cost, what each taught.", ["past people", "my exes", "pattern of people", "every time", "same person again", "history with avoidants"]),
+  T("rt.talk", "Talk it through in Rooted", "Rooted", "/rooted/talk", "The coach, with attachment knowledge and your fail safes in hand.", ["talk about attachment", "am i chasing", "read this person", "help me not chase"]),
   T("rc.circle", "Someone in my circle", "Re-Centered", "/love-and-release/circle", "Write what you know about someone you're letting in; tap green and red flags; the coach sorts it.", ["circle", "new person", "letting in", "let them in", "green flag", "red flag", "green flags", "red flags", "confront", "monitor", "trust them", "should i trust", "sort them out"]),
   T("rc.boundaries", "My word to me", "Re-Centered, John and me", "/love-and-release/john/boundaries", "What you will and won't do, and your if-then plan.", ["boundary with john", "my word to me", "if then", "i won't", "what i will do"], "re-centered"),
 
@@ -248,6 +256,8 @@ export const DOORS_HER: Door[] = [
   { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "I'm adding someone to my circle", toolKey: "rc.circle" },
+  { label: "Someone pulled away and I want to chase", toolKey: "rt.secure" },
+  { label: "Is this person avoidant?", toolKey: "rt.read" },
   { label: "I'm lonely", toolKey: "orchard.lonely" },
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },

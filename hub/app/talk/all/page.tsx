@@ -23,6 +23,7 @@ const DEFAULT_TASK: Record<string, string> = {
   "re-centered": "reCentered.talk",
   apothecary: "apothecary.ask",
   orchard: "orchard.compass",
+  rooted: "rooted.talk",
   metamorphosis: "metamorphosis.mentor",
   hearth: "hearth.mother",
   "the-well": "well.passage",

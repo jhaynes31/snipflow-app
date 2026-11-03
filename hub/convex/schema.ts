@@ -1513,4 +1513,36 @@ export default defineSchema({
     sortedAt: v.optional(v.number()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /**
+   * Rooted (2026-11-03, Jen's ask): attachment work. "Where I am today"
+   * reads and the map of past people. Private to the person who wrote them.
+   */
+  rtChecks: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** How much of each showed this week, 0 to 3. */
+    secure: v.number(),
+    anxious: v.number(),
+    avoidant: v.number(),
+    disorganized: v.number(),
+    pulled: v.array(v.string()),
+    steadied: v.array(v.string()),
+    note: v.optional(v.string()),
+    felt: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  rtPeople: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    when: v.string(),
+    theirPattern: v.union(v.literal("secure"), v.literal("anxious"), v.literal("avoidant"), v.literal("disorganized"), v.literal("unsure")),
+    tells: v.array(v.string()),
+    cost: v.string(),
+    taught: v.string(),
+    ended: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });
