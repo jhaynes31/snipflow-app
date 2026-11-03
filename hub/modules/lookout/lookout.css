@@ -1,0 +1,146 @@
+/* The Lookout: a watchtower over open country. Calm, plain, one thing at a time. */
+.lo-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.lo-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.lo-subnav a[aria-current="page"],
+.lo-chip-on {
+  background: var(--tile-accent) !important;
+  color: var(--tile-on-accent) !important;
+  border-color: transparent !important;
+}
+.lo-entry + .lo-entry {
+  border-top: 1px solid var(--border);
+  padding-top: 0.7rem;
+  margin-top: 0.7rem;
+}
+.lo-job {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.lo-job:hover .lo-job-title {
+  text-decoration: underline;
+}
+.lo-job-title {
+  font-weight: 700;
+}
+.lo-score {
+  display: inline-block;
+  min-width: 2.6rem;
+  text-align: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+.lo-check {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+}
+.lo-check + .lo-check {
+  border-top: 1px dashed var(--border);
+}
+.lo-mark {
+  font-weight: 700;
+  text-align: center;
+}
+.lo-pass .lo-mark {
+  color: var(--accent);
+}
+.lo-fail {
+  border-left: 4px solid var(--secondary);
+  padding-left: 0.5rem;
+}
+.lo-doc {
+  width: 100%;
+  min-height: 22rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.lo-facts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.lo-facts td,
+.lo-facts th {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.4rem 0.3rem;
+  border-top: 1px solid var(--border);
+}
+.lo-source {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.lo-verified {
+  color: var(--accent);
+  font-weight: 700;
+}
+.lo-question {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.3rem;
+  line-height: 1.35;
+}
+.lo-count {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.6rem;
+}
+.lo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.6rem;
+}
+.lo-grid a {
+  display: block;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .lo-print,
+  .lo-print * {
+    visibility: visible;
+  }
+  .lo-print {
+    position: absolute;
+    inset: 0;
+    white-space: pre-wrap;
+    font-family: Georgia, serif;
+    font-size: 11pt;
+    padding: 0.6in;
+  }
+}
+.lo-print {
+  display: none;
+}
+@media print {
+  .lo-print {
+    display: block;
+  }
+}

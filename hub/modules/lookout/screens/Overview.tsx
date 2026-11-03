@@ -1,0 +1,167 @@
+"use client";
+
+import Link from "next/link";
+import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { INTAKE } from "@/convex/lookout/intake";
+import { Btn, Card, ErrorNote, LinkBtn, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
+import { useEffect, useState } from "react";
+import { LOOKOUT } from "../Shell";
+import { VIEWS } from "../views";
+import { QuickApplied } from "../QuickApplied";
+
+/** The Overview's grid: every stage group from the Jobs page, so the two always count the same jobs. */
+const GRID = VIEWS.filter((v) => v.key !== "best" && v.key !== "check");
+
+/** The dashboard: setup, the best matches, what's waiting, and what's coming up. */
+export function Overview() {
+  const data = useQuery(api.lookout.data.jobs);
+  const answers = useQuery(api.lookout.data.answers);
+  const roles = useQuery(api.lookout.data.roles);
+  const settings = useQuery(api.lookout.data.settings);
+  const agencies = useQuery(api.lookout.agencyData.list);
+  const searchNow = useConvexAction(api.lookout.discover.searchNow);
+  const refresh = useMutation(api.lookout.data.refreshReadings);
+  const shelve = useMutation(api.lookout.data.shelveFinds);
+  useEffect(() => {
+    void refresh({}).catch(() => undefined);
+  }, [refresh]);
+  const { busy, error, run } = useAction();
+  const [result, setResult] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
+  if (!data || !answers || !roles || !settings) return <Spinner />;
+
+  const answered = answers.filter((a) => a.answer.trim()).length;
+  const asking = data.jobs.filter((j) => j.askApplied).sort((a, b) => (b.applyOpenedAt ?? 0) - (a.applyOpenedAt ?? 0));
+  const confirmedRoles = roles.filter((r) => r.confirmed).length;
+  const live = data.jobs.filter((j) => !["rejected", "closed", "passed"].includes(j.status));
+  const top = live.filter((j) => j.verdict === "eligible" && ["new", "review", "saved"].includes(j.status)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
+  const toCheck = live.filter((j) => j.verdict === "check" && ["new", "review", "saved"].includes(j.status)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
+  const interviews = data.events.filter((e) => e.kind === "interview" && e.at && e.at > now - 3600000).sort((a, b) => a.at! - b.at!);
+  const followUps = data.events.filter((e) => e.kind === "followUp" && e.at).sort((a, b) => a.at! - b.at!);
+  const agencyFollowUps = (agencies ?? []).filter((x) => !x.hidden && x.followUpAt && x.followUpAt <= now + 7 * 86400000).sort((a, b) => a.followUpAt! - b.followUpAt!);
+  const rejectedCount = data.jobs.filter((j) => j.verdict === "rejected" && ["new", "review", "saved"].includes(j.status)).length;
+
+  return (
+    <div className="sh-container sh-narrow">
+      <PageTitle title="The Lookout" subtitle="The right job, not more jobs. Every opening is checked against your requirements before it's ranked." />
+
+      {asking.length > 0 && (
+        <Card className="lo-fail">
+          <h2 className="sh-h2">Did you apply?</h2>
+          <p className="sh-hint">You opened {asking.length === 1 ? "this application page" : "these application pages"} from the Lookout. If you sent one, tap Yes so it shows as Submitted and the follow up is set.</p>
+          {asking.map((j) => (
+            <div key={j._id} className="lo-entry">
+              <p><Link className="sh-link" href={`${LOOKOUT}/jobs/${j._id}`}><strong>{j.title}</strong></Link> <span className="sh-muted">· {j.employer}</span></p>
+              <QuickApplied jobId={j._id} onNotYet compact />
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {(answered < 8 || confirmedRoles === 0) && (
+        <Card className="lo-fail">
+          <h2 className="sh-h2">First, the interview</h2>
+          <p>Resumes and letters are written only from what you&apos;ve told the Lookout and confirmed. {answered} of {INTAKE.length} questions answered; {confirmedRoles} {confirmedRoles === 1 ? "job" : "jobs"} in your confirmed work history.</p>
+          <div className="sh-row sh-wrap">
+            <LinkBtn href={`${LOOKOUT}/interview`}>Continue the interview</LinkBtn>
+            <LinkBtn href={`${LOOKOUT}/history`} variant="secondary">Add work history</LinkBtn>
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <h2 className="sh-h2">Find jobs</h2>
+        <p className="sh-hint">
+          {settings.lastSearchAt ? `Last searched ${timeAgo(settings.lastSearchAt)}. ${(settings.lastSearchNote ?? "").split(". ").slice(0, 1).join("")}.` : "Not searched yet."} Scheduled search: {settings.frequency === "off" ? "off" : settings.frequency}.
+        </p>
+        <div className="sh-row sh-wrap">
+          <Btn disabled={busy} onClick={() => void run(async () => { const moved = await shelve({}); const r = await searchNow({}); setResult(`${moved ? `Moved ${moved} earlier ${moved === 1 ? "find" : "finds"} out of the way (they're under Jobs, Earlier finds). ` : ""}${describe(r)}`); })}>{busy ? "Working…" : "Refresh the list"}</Btn>
+          <Btn variant="secondary" disabled={busy} onClick={() => void run(async () => setResult(describe(await searchNow({}))))}>{busy ? "Searching…" : "Search now, keep the list"}</Btn>
+          <LinkBtn href={`${LOOKOUT}/add`} variant="ghost">Add one I found</LinkBtn>
+        </div>
+        <p className="sh-hint">Refresh moves the finds you haven&apos;t saved out of the way, then looks for new ones. Anything saved, being prepared, or applied to stays put, and nothing is deleted.</p>
+        <ErrorNote error={error} />
+        {result && <Note>{result}</Note>}
+        {settings.searchLog.length > 0 && (
+          <details className="mt-3">
+            <summary className="sh-link">Search log: what each site returned</summary>
+            {settings.searchLog.map((entry, i) => (
+              <div key={entry.at} className="lo-entry">
+                <p className="sh-hint"><strong>{new Date(entry.at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>: {entry.sources.length} sites asked, {entry.sources.filter((x) => x.found > 0).length} answered with listings, {entry.found} listings read, {entry.kept} fit, {entry.fresh} new</p>
+                {i === 0 && (
+                  <ul className="sh-list sh-hint">
+                    {entry.sources.map((r) => <li key={r.name}>{r.name}: {r.problem ? r.problem : `${r.found} listings, ${r.kept} that fit${r.noPay ? `, ${r.noPay} more left out for not stating pay` : ""}`}</li>)}
+                  </ul>
+                )}
+              </div>
+            ))}
+            <p className="sh-hint">These numbers come straight from each site&apos;s answer. Every job links to its original listing, so any one can be opened and checked. More sites and companies are under Settings, Searching.</p>
+          </details>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="sh-h2">Top matches</h2>
+        {top.length === 0 && <p className="sh-muted">None that pass every requirement yet. Jobs that still need a fact checked are below.</p>}
+        {top.map((j) => <JobLine key={j._id} j={j} />)}
+      </Card>
+
+      {toCheck.length > 0 && (
+        <Card>
+          <h2 className="sh-h2">Promising, but something needs checking</h2>
+          <p className="sh-hint">A requirement that isn&apos;t known is never assumed. Open one to see what to ask.</p>
+          {toCheck.map((j) => <JobLine key={j._id} j={j} />)}
+        </Card>
+      )}
+
+      {(interviews.length > 0 || followUps.length > 0 || agencyFollowUps.length > 0) && (
+        <Card>
+          <h2 className="sh-h2">Coming up</h2>
+          {interviews.map((e) => <p key={e._id} className="lo-entry"><strong>Interview</strong> · {new Date(e.at!).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · <Link className="sh-link" href={`${LOOKOUT}/jobs/${e.jobId}`}>{e.employer}, {e.jobTitle}</Link></p>)}
+          {agencyFollowUps.map((x) => <p key={x.key} className="lo-entry"><strong>{x.followUpAt! <= now ? "Follow up now" : "Follow up"}</strong> · {new Date(x.followUpAt!).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · <Link className="sh-link" href={`${LOOKOUT}/agencies`}>{x.name}{x.recruiter ? `, ${x.recruiter}` : ""}</Link></p>)}
+          {followUps.map((e) => <p key={e._id} className="lo-entry"><strong>{e.at! <= now ? "Follow up now" : "Follow up"}</strong> · {new Date(e.at!).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · <Link className="sh-link" href={`${LOOKOUT}/jobs/${e.jobId}`}>{e.employer}, {e.jobTitle}</Link></p>)}
+        </Card>
+      )}
+
+      <Card>
+        <h2 className="sh-h2">Where everything is</h2>
+        <div className="lo-grid">
+          {GRID.map((g) => {
+            const n = data.jobs.filter(g.test).length;
+            return (
+              <Link key={g.key} href={`${LOOKOUT}/jobs?show=${g.key}`}>
+                <span className="lo-count">{n}</span>
+                <br />
+                {g.label}
+              </Link>
+            );
+          })}
+        </div>
+        {rejectedCount > 0 && <p className="sh-hint mt-3">{rejectedCount} found {rejectedCount === 1 ? "job was" : "jobs were"} set aside because {rejectedCount === 1 ? "it fails" : "they fail"} a requirement. Open Set aside to see each reason.</p>}
+      </Card>
+    </div>
+  );
+}
+
+function describe(r: { note: string; fresh: number; skipped?: boolean; closed?: number }): string {
+  if (r.skipped) return r.note;
+  return `${r.note} ${r.fresh ? `${r.fresh} new, each in the group below that fits it.` : "Nothing new this time."}${r.closed ? ` ${r.closed} saved or listed ${r.closed === 1 ? "job has" : "jobs have"} closed and moved to Closed.` : ""}`;
+}
+
+export function JobLine({ j }: { j: { _id: string; title: string; employer: string; score: number | null; verdict: string; uncertain: number; sourceName: string; discoveredAt: number; seen: boolean; changedAt?: number; warnings: string[]; fails: string[] } }) {
+  return (
+    <Link href={`${LOOKOUT}/jobs/${j._id}`} className="lo-job lo-entry">
+      <span className="lo-job-title">{j.title}</span> <span className="sh-muted">· {j.employer}</span>
+      <br />
+      <span className="sh-hint">
+        {j.score !== null ? <span className="lo-score" title="Match score out of 100">{j.score}</span> : null}{" "}
+        {j.verdict === "eligible" ? "Passes every requirement" : j.verdict === "check" ? `${j.uncertain} ${j.uncertain === 1 ? "thing" : "things"} to check` : `Set aside: ${j.fails[0] ?? "fails a requirement"}`}
+        {" · "}found {timeAgo(j.discoveredAt)} via {j.sourceName}
+        {!j.seen ? " · new to you" : ""}
+        {j.changedAt ? " · the listing changed" : ""}
+        {j.warnings.length ? ` · ${j.warnings.length} warning${j.warnings.length === 1 ? "" : "s"}` : ""}
+      </span>
+    </Link>
+  );
+}

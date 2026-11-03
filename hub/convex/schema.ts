@@ -1545,4 +1545,227 @@ export default defineSchema({
     ended: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  // ---------- The Lookout (job search for one person; docs/lookout-spec.md) ----------
+  // Every row's ownerId is the person the search is for, even when their
+  // partner helps and writes it. Each person can have one search.
+
+  /** His settings: hard requirements, ranking weights, sources, helper access. */
+  loSettings: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** Old switch from before partner access was on by default; no longer read. */
+    helper: v.optional(v.boolean()),
+    /** Whether the partner may see and help: edit everything except approval, privacy, and deletion. Absent means yes. */
+    partnerAccess: v.optional(v.boolean()),
+    minHourly: v.number(),
+    maxHours: v.number(),
+    homeState: v.string(),
+    weights: v.object({ schedule: v.number(), interaction: v.number(), location: v.number(), pay: v.number(), independent: v.number(), skills: v.number() }),
+    frequency: v.union(v.literal("off"), v.literal("daily"), v.literal("weekly")),
+    keywords: v.array(v.string()),
+    sources: v.array(v.object({ kind: v.string(), token: v.string(), name: v.string(), enabled: v.boolean() })),
+    allowHealthDisclosure: v.boolean(),
+    /** The USAJOBS API key and the email it was requested with. Never sent to the browser. */
+    usajobs: v.optional(v.object({ email: v.string(), key: v.string() })),
+    /** The Adzuna app ID and key. Never sent to the browser. */
+    adzuna: v.optional(v.object({ appId: v.string(), key: v.string() })),
+    /** Keep only found jobs that state their pay (Jen, 2026-11-02). Absent means yes. */
+    requirePay: v.optional(v.boolean()),
+    lastSearchAt: v.optional(v.number()),
+    lastSearchNote: v.optional(v.string()),
+    /** The last searches, newest first, each with what every site actually returned. */
+    searchLog: v.optional(v.array(v.object({ at: v.number(), found: v.number(), kept: v.number(), fresh: v.number(), sources: v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), problem: v.optional(v.string()) })) }))),
+    /** What each source gave at the last search, for the Overview. */
+    lastSearchSources: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), problem: v.optional(v.string()) }))),
+    /** Which version of the listing reader last read this search's jobs. */
+    scanVersion: v.optional(v.number()),
+    /** Which version of the default sources this search has been offered. */
+    sourcesVersion: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** One interview answer, in his words. */
+  loAnswers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    answer: v.string(),
+    skipped: v.boolean(),
+    confirmed: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerId", "key"]),
+
+  /** One job in his work history: the source of truth for every resume. */
+  loRoles: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    employer: v.string(),
+    title: v.string(),
+    start: v.string(),
+    end: v.optional(v.string()),
+    location: v.optional(v.string()),
+    channels: v.array(v.string()),
+    duties: v.string(),
+    achievements: v.string(),
+    tools: v.string(),
+    /** Why he left, for his eyes. Only an approved transition answer is ever used in writing. */
+    leftNote: v.optional(v.string()),
+    sales: v.boolean(),
+    confirmed: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** A job opening: where it came from, what it says, what has been checked. */
+  loJobs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    employer: v.string(),
+    url: v.string(),
+    applyUrl: v.optional(v.string()),
+    sourceKind: v.string(),
+    sourceName: v.string(),
+    sourceId: v.optional(v.string()),
+    dedupeKey: v.string(),
+    urlKey: v.string(),
+    location: v.optional(v.string()),
+    description: v.string(),
+    fingerprint: v.string(),
+    /** The listing page's own fingerprint at the last recheck, to notice a change. */
+    pageFingerprint: v.optional(v.string()),
+    facts: v.record(v.string(), v.object({ state: v.union(v.literal("yes"), v.literal("no"), v.literal("unknown")), value: v.optional(v.string()), source: v.union(v.literal("none"), v.literal("listing"), v.literal("ai"), v.literal("verified")), note: v.optional(v.string()) })),
+    warnings: v.array(v.string()),
+    status: v.string(),
+    statusAt: v.number(),
+    postedAt: v.optional(v.number()),
+    deadline: v.optional(v.string()),
+    discoveredAt: v.number(),
+    lastVerifiedAt: v.optional(v.number()),
+    lastCheckedAt: v.optional(v.number()),
+    changedAt: v.optional(v.number()),
+    seenAt: v.optional(v.number()),
+    /** Other places the same job was found. */
+    alsoAt: v.array(v.string()),
+    /** When it was moved out of the way by "Refresh the list" or "Hide"; it stays under Earlier finds. */
+    shelvedAt: v.optional(v.number()),
+    /** When the employer's application page was last opened from here, so the Lookout can ask "Did you apply?". */
+    applyOpenedAt: v.optional(v.number()),
+    /** When he answered "not yet" to that question; it's asked again after the page is opened again. */
+    applyAskDismissedAt: v.optional(v.number()),
+    /** The employer's application questions as pasted, kept so they're never pasted twice. */
+    applicationQuestions: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  })
+    .index("by_owner_status", ["ownerId", "status"])
+    .index("by_owner_dedupe", ["ownerId", "dedupeKey"])
+    .index("by_owner_url", ["ownerId", "urlKey"]),
+
+  /** A drafted resume, cover letter, or set of application answers for one job. Editable until approved. */
+  loDocs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    jobId: v.id("loJobs"),
+    kind: v.union(v.literal("resume"), v.literal("letter"), v.literal("answers")),
+    text: v.string(),
+    questions: v.array(v.string()),
+    issues: v.array(v.object({ level: v.union(v.literal("block"), v.literal("fix"), v.literal("note")), text: v.string() })),
+    /** When the writer last drafted it; edits by a person don't change this. */
+    draftedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_job", ["jobId", "kind"]),
+
+  /** An application: the exact documents he approved, frozen, and what happened. */
+  loApplications: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    jobId: v.id("loJobs"),
+    resume: v.string(),
+    letter: v.optional(v.string()),
+    answers: v.optional(v.string()),
+    /** When it was approved here. Absent when he applied on the employer's site without approving here first. */
+    approvedAt: v.optional(v.number()),
+    submittedAt: v.optional(v.number()),
+    confirmation: v.optional(v.string()),
+    /** How it's known that the application went through. */
+    howKnown: v.optional(v.union(v.literal("email"), v.literal("page"), v.literal("unsure"), v.literal("other"))),
+    recordedBy: v.optional(v.id("profiles")),
+  }).index("by_job", ["jobId"]),
+
+  /** Answers he's given to application questions, kept so the same question is answered for him next time. */
+  loSavedAnswers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    question: v.string(),
+    /** questionKey(question), to match the same question worded a little differently. */
+    key: v.string(),
+    answer: v.string(),
+    jobId: v.optional(v.id("loJobs")),
+    updatedAt: v.number(),
+  }).index("by_owner_key", ["ownerId", "key"]),
+
+  /** A resume uploaded to fill in the profile: what was read from it and what it added. */
+  loImports: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    fileName: v.string(),
+    rolesAdded: v.number(),
+    answersAdded: v.number(),
+    notes: v.array(v.string()),
+    importedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** Standing notes for the writer about how to present his history ("don't lead with the sales jobs"). */
+  loNotes: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    authorId: v.id("profiles"),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** The assistant's conversation for a search: what was said, what it changed, and how to undo each change. */
+  loAdmin: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    authorId: v.id("profiles"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    text: v.string(),
+    applied: v.array(v.object({ summary: v.string(), undo: v.any() })),
+    undoneAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** A staffing agency he's checking or working with: when it was last checked, the recruiter, the next follow up. */
+  loAgencies: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    /** A key from convex/lookout/agencies.ts, or "custom:<time>" for one added by hand. */
+    key: v.string(),
+    name: v.string(),
+    site: v.optional(v.string()),
+    focus: v.optional(v.string()),
+    lastCheckedAt: v.optional(v.number()),
+    signedUp: v.boolean(),
+    recruiter: v.optional(v.string()),
+    contact: v.optional(v.string()),
+    followUpAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    hidden: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  /** Interviews, follow ups, and notes on a job, with a date when there is one. */
+  loEvents: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    jobId: v.id("loJobs"),
+    kind: v.union(v.literal("interview"), v.literal("followUp"), v.literal("note"), v.literal("feedback")),
+    at: v.optional(v.number()),
+    text: v.string(),
+    done: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_owner_at", ["ownerId", "at"]).index("by_job", ["jobId"]),
 });

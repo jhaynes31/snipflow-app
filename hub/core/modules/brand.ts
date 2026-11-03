@@ -16,6 +16,7 @@ export const MODULE_BRAND: Record<string, { accent: string; mark: string }> = {
   apothecary: { accent: "#8A5A2B", mark: "A" },
   metamorphosis: { accent: "#3D5A73", mark: "M" },
   storehouse: { accent: "#7A5C2E", mark: "S" },
+  lookout: { accent: "#2F5D62", mark: "L" },
   crossroads: { accent: "#5B6B3A", mark: "X" },
   seasons: { accent: "#4F6F3A", mark: "Se" },
   fitness: { accent: "#B8860B", mark: "H" },

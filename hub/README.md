@@ -13,7 +13,8 @@ Deploying is a Vercel project with **Root Directory** `hub` and one variable,
 `CONVEX_DEPLOY_KEY`; the build configures the login keys on Convex by itself.
 The AI coach needs one more variable on the Convex deployment itself (not Vercel):
 `ANTHROPIC_API_KEY`. Without it every other part of The Shire still works; only
-Talk It Out says the coach isn't connected yet.
+Talk It Out says the coach isn't connected yet. The Lookout (job search, `docs/lookout-spec.md`)
+uses the same key to draft resumes and letters.
 For local development:
 
 ```bash

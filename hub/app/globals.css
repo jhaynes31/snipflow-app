@@ -742,6 +742,27 @@ html[data-contrast="high"] {
 /* Module frame and planned screens */
 .sh-module {
   border-radius: var(--radius);
+  /* The place's own accent. Set here, where ModuleFrame defines --module-*,
+     because the :root definitions can't see them. */
+  --tile-tint: var(--module-tint);
+  --tile-accent: var(--module-accent);
+  --tile-on-accent: var(--module-on-accent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sh-module {
+    --tile-tint: var(--module-tint-dark);
+    --tile-accent: var(--module-accent-dark);
+    --tile-on-accent: var(--module-on-accent-dark);
+  }
+}
+:root[data-theme="dark"] .sh-module {
+  --tile-tint: var(--module-tint-dark);
+  --tile-accent: var(--module-accent-dark);
+  --tile-on-accent: var(--module-on-accent-dark);
+}
+html[data-quiet="on"] .sh-module {
+  --tile-accent: var(--primary);
+  --tile-on-accent: var(--on-primary);
 }
 .sh-planned {
   text-align: center;
