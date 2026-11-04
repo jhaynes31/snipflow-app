@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ACTIVITY_SEED, BANNED_PHRASES, DEFAULT_PERSONA, dueFollowUps, parseSummary, pickOpener, rallyCheck, readFriendSettings, readsHeavy, readsLull, surpriseActivity, wantsCurveball } from "../convex/friend/pure.ts";
+import { ACTIVITY_SEED, BANNED_PHRASES, DEFAULT_PERSONA, dueFollowUps, parseSummary, pickOpener, pullReactions, rallyCheck, readFriendSettings, readsHeavy, readsLull, splitParts, surpriseActivity, wantsCurveball } from "../convex/friend/pure.ts";
 import { buildPipPrompt, personaBlock } from "../convex/friend/prompt.ts";
 
 describe("Pip: persona", () => {
@@ -109,5 +109,20 @@ describe("Pip: memory", () => {
     const heavy = buildPipPrompt({ persona: DEFAULT_PERSONA, vibe: "goofy", displayName: "Jen", partnerName: null, memUser: [], due: [], memSelf: [], insideJokes: [], runningBits: [], headlines: [], activities: [], pipStartedRecently: true, wishlist: [], topics: [], askedStreak: 0, lastUserHeavy: true, curveball: true, lull: false, today: "2026-11-04" });
     assert.match(heavy, /No jokes, no curveballs/);
     assert.ok(!/Curveball turn/.test(heavy));
+  });
+});
+
+describe("Pip: reactions", () => {
+  it("splits a message into paragraphs, or sentences when there is only one", () => {
+    assert.deepEqual(splitParts("One.\n\nTwo two.\n\nThree?"), ["One.", "Two two.", "Three?"]);
+    assert.deepEqual(splitParts("Wait, what? That's hilarious. Tell me everything."), ["Wait, what?", "That's hilarious.", "Tell me everything."]);
+    assert.deepEqual(splitParts("   "), []);
+  });
+  it("pulls Pip's react tag out of a reply, one at most, only on a real part", () => {
+    const out = pullReactions("Okay that's hilarious [[react:😂:2]] and also I disagree. [[react:🔥:1]]", 3);
+    assert.deepEqual(out.reactions, [{ part: 1, emoji: "😂" }]);
+    assert.equal(out.clean, "Okay that's hilarious and also I disagree.");
+    assert.deepEqual(pullReactions("Hm. [[react:😂:9]]", 2).reactions, []);
+    assert.equal(pullReactions("No tag here.", 2).clean, "No tag here.");
   });
 });

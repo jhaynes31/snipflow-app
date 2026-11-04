@@ -1778,7 +1778,15 @@ export default defineSchema({
     visibility: visibilityValidator,
     vibe: v.string(),
     openerType: v.optional(v.string()),
-    messages: v.array(v.object({ role: v.union(v.literal("user"), v.literal("assistant")), content: v.string(), at: v.number() })),
+    messages: v.array(
+      v.object({
+        role: v.union(v.literal("user"), v.literal("assistant")),
+        content: v.string(),
+        at: v.number(),
+        /** Her emoji reactions to parts of a Pip message (2026-11-04): part index per splitParts, one emoji each. */
+        reactions: v.optional(v.array(v.object({ part: v.number(), emoji: v.string() }))),
+      }),
+    ),
     /** Turns in a row that ended in a question, for the rally rule. */
     askedStreak: v.number(),
     summary: v.optional(v.string()),

@@ -6,7 +6,7 @@ import { cleanText, optionalText, requireMe, requireOwned, type Me } from "../li
 import { notify } from "../push/notify";
 import { hourIn, isQuietHour } from "../push/pure";
 import { requireRoomOf, roomOwnerOf } from "../rooms";
-import { ACTIVITY_SEED, dueFollowUps, pickOpener, pickVibe, readFriendSettings, surpriseActivity, todayKey, type MemoryCategory, type OpenerType, type SummaryOut } from "./pure";
+import { ACTIVITY_SEED, dueFollowUps, pickOpener, pickVibe, readFriendSettings, splitParts, surpriseActivity, todayKey, type MemoryCategory, type OpenerType, type SummaryOut } from "./pure";
 
 /**
  * Pip, the Friend (2026-11-04): one person's room. Conversations, both
@@ -72,17 +72,38 @@ export const start = internalMutation({
 });
 
 export const append = internalMutation({
-  args: { id: v.id("frConversations"), userMessage: v.optional(v.string()), assistantMessage: v.string(), endedWithQuestion: v.boolean() },
+  args: { id: v.id("frConversations"), userMessage: v.optional(v.string()), assistantMessage: v.string(), endedWithQuestion: v.boolean(), pipReactions: v.optional(v.array(v.object({ part: v.number(), emoji: v.string() }))) },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.id);
     if (!row) throw new ConvexError("That conversation is gone.");
     const now = Date.now();
     const messages = [...row.messages];
-    if (args.userMessage) messages.push({ role: "user", content: args.userMessage, at: now });
+    if (args.userMessage) messages.push({ role: "user", content: args.userMessage, at: now, reactions: args.pipReactions?.length ? args.pipReactions : undefined });
     messages.push({ role: "assistant", content: args.assistantMessage, at: now + 1 });
     await ctx.db.patch(row._id, { messages, updatedAt: now, askedStreak: args.endedWithQuestion ? row.askedStreak + 1 : 0 });
     // Summarize once it has been quiet for fifteen minutes.
     await ctx.scheduler.runAfter(15 * 60 * 1000, internal.friend.chat.summarize, { id: row._id, updatedAt: now });
+  },
+});
+
+/** A reaction on one part of one Pip message: tap again with the same emoji to take it off. */
+export const react = mutation({
+  args: { id: v.id("frConversations"), index: v.number(), part: v.number(), emoji: v.string() },
+  handler: async (ctx, args) => {
+    const me = await room(ctx);
+    const row = await requireOwned(ctx, me, "frConversations", args.id);
+    const emoji = args.emoji.trim().slice(0, 8);
+    if (!emoji) throw new ConvexError("Pick an emoji.");
+    const messages = [...row.messages];
+    const m = messages[args.index];
+    if (!m || m.role !== "assistant") throw new ConvexError("That isn't one of Pip's messages.");
+    const parts = splitParts(m.content);
+    if (!Number.isInteger(args.part) || args.part < 0 || args.part >= parts.length) throw new ConvexError("That part isn't there.");
+    const current = m.reactions ?? [];
+    const same = current.find((r) => r.part === args.part && r.emoji === emoji);
+    const reactions = same ? current.filter((r) => !(r.part === args.part && r.emoji === emoji)) : [...current.filter((r) => r.part !== args.part), { part: args.part, emoji }];
+    messages[args.index] = { ...m, reactions: reactions.length ? reactions : undefined };
+    await ctx.db.patch(row._id, { messages });
   },
 });
 

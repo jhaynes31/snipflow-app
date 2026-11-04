@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { readFriendSettings } from "@/convex/friend/pure";
+import { REACTION_EMOJI, readFriendSettings, splitParts } from "@/convex/friend/pure";
 import { KeepLine } from "@/core/mantel/KeepLine";
 import { CrisisCard, CrisisNotice } from "@/core/safety/CrisisNotice";
 import { useHub } from "@/core/shell/HubContext";
@@ -40,6 +40,7 @@ export function Chat() {
   const seed = useMutation(api.friend.entries.seedActivities);
   const startActivity = useMutation(api.friend.entries.startActivity);
   const addActivity = useMutation(api.friend.entries.addActivity);
+  const react = useMutation(api.friend.entries.react);
   const activities = useQuery(api.friend.entries.activities);
   const { busy, error, run } = useAction();
   const [id, setId] = useState<Id<"frConversations"> | null>(null);
@@ -120,11 +121,18 @@ export function Chat() {
           {!row && !typing && <Spinner />}
           {shown.map((m, i) => (
             <div key={i} className={`fr-msg ${m.role === "user" ? "fr-msg-user" : "fr-msg-pip"}`}>
-              {m.role === "user" ? <Rich text={m.content} /> : (
+              {m.role === "user" ? (
+                <UserParts text={m.content} reactions={m.reactions ?? []} />
+              ) : (
                 <>
                   <PipAvatar size={26} />
-                  <div style={{ minWidth: 0 }}>
-                    <PipText text={m.content} activities={activities ?? []} onInvite={(aid, yes, title) => void run(async () => { await startActivity({ id: aid as Id<"frActivities">, startedBy: "pip", accepted: yes }); submit(yes ? `I'm in. Let's do ${title}.` : "Not now, maybe later."); })} onIdea={(title, yes) => void run(async () => { if (yes) await addActivity({ title, addedBy: "pip" }); submit(yes ? `Yes, add "${title}" to our list.` : "Not that one, I think."); })} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <PipParts
+                      text={m.content}
+                      reactions={m.reactions ?? []}
+                      onReact={(part, emoji) => activeId && void run(() => react({ id: activeId, index: i, part, emoji }))}
+                      render={(part) => <PipText text={part} activities={activities ?? []} onInvite={(aid, yes, title) => void run(async () => { await startActivity({ id: aid as Id<"frActivities">, startedBy: "pip", accepted: yes }); submit(yes ? `I'm in. Let's do ${title}.` : "Not now, maybe later."); })} onIdea={(title, yes) => void run(async () => { if (yes) await addActivity({ title, addedBy: "pip" }); submit(yes ? `Yes, add "${title}" to our list.` : "Not that one, I think."); })} />}
+                    />
                     {i === shown.length - 1 && <KeepLine reply={m.content} task="friend.chat" />}
                   </div>
                 </>
@@ -147,11 +155,82 @@ export function Chat() {
           {activeId && <Btn type="button" variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Delete this conversation? Pip keeps only what's already in its memory.")) void run(async () => { await remove({ id: activeId }); setId(null); opening.current = false; }); }}>Delete</Btn>}
           <button type="button" className="sh-link" onClick={() => setShowEarlier((s) => !s)}>{showEarlier ? "Hide earlier" : "Earlier conversations"}</button>
         </div>
-        <p className="sh-hint">Enter sends; Shift+Enter for a new line. Pip is an AI and says so if you ask. Private to you; no other place in The Shire can read this. <Link href="/friend/stuff" className="sh-link">What Pip knows</Link> is yours to edit.</p>
+        <p className="sh-hint">Enter sends; Shift+Enter for a new line. Hold down on any part of what Pip says (or right-click) to react with an emoji; Pip can do the same on yours. Pip is an AI and says so if you ask. Private to you; no other place in The Shire can read this. <Link href="/friend/stuff" className="sh-link">What Pip knows</Link> is yours to edit.</p>
       </form>
       {showEarlier && <Earlier onPick={(cid) => { setId(cid); setShowEarlier(false); }} />}
       <p className="fr-neighbor"><JuniperAvatar /> Juniper <BrambleAvatar /> Bramble <span>live next door. Ask Pip what they&apos;ve been up to.</span></p>
     </div>
+  );
+}
+
+/**
+ * Pip's message in parts, each one holdable (or right-clickable) to react
+ * with an emoji. Her reactions sit under the part; tap one to take it off.
+ */
+function PipParts({ text, reactions, onReact, render }: { text: string; reactions: { part: number; emoji: string }[]; onReact: (part: number, emoji: string) => void; render: (part: string) => React.ReactNode }) {
+  const parts = splitParts(text);
+  const [open, setOpen] = useState<number | null>(null);
+  const [custom, setCustom] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const start = (k: number) => {
+    timer.current = setTimeout(() => { setOpen(k); if (navigator.vibrate) navigator.vibrate(12); }, 420);
+  };
+  const cancel = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
+  return (
+    <>
+      {parts.map((part, k) => {
+        const mine = reactions.filter((r) => r.part === k);
+        return (
+          <div key={k} className="fr-part-wrap">
+            <div
+              className={`fr-part ${open === k ? "is-open" : ""}`}
+              role="button"
+              tabIndex={0}
+              aria-label="Hold to react"
+              onPointerDown={(e) => { if (e.button === 0) start(k); }}
+              onPointerUp={cancel}
+              onPointerLeave={cancel}
+              onPointerCancel={cancel}
+              onPointerMove={(e) => { if (e.pressure === 0 && e.pointerType === "mouse") return; }}
+              onContextMenu={(e) => { e.preventDefault(); cancel(); setOpen(open === k ? null : k); }}
+              onKeyDown={(e) => { if (e.key === "Enter") setOpen(open === k ? null : k); if (e.key === "Escape") setOpen(null); }}
+            >
+              {render(part)}
+            </div>
+            {open === k && (
+              <div className="fr-picker" role="group" aria-label="React">
+                {REACTION_EMOJI.map((e) => <button key={e} type="button" className="fr-emoji" onClick={() => { onReact(k, e); setOpen(null); }}>{e}</button>)}
+                <input className="fr-emoji-input" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="any" maxLength={4} aria-label="Another emoji" onKeyDown={(e) => { if (e.key === "Enter" && custom.trim()) { onReact(k, custom.trim()); setCustom(""); setOpen(null); } }} />
+                <button type="button" className="sh-link" onClick={() => setOpen(null)}>close</button>
+              </div>
+            )}
+            {mine.length > 0 && (
+              <div className="fr-reactions">
+                {mine.map((r) => <button key={r.emoji} type="button" className="fr-reaction" title="Tap to remove" onClick={() => onReact(k, r.emoji)}>{r.emoji}</button>)}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** Her message in parts, with Pip's reactions shown under the part it reacted to. */
+function UserParts({ text, reactions }: { text: string; reactions: { part: number; emoji: string }[] }) {
+  const parts = reactions.length ? splitParts(text) : [text];
+  return (
+    <>
+      {parts.map((part, k) => {
+        const theirs = reactions.filter((r) => r.part === k);
+        return (
+          <div key={k} className="fr-part-wrap">
+            <div className="fr-part fr-part-user"><Rich text={part} /></div>
+            {theirs.length > 0 && <div className="fr-reactions fr-reactions-pip">{theirs.map((r) => <span key={r.emoji} className="fr-reaction" title="Pip reacted"><PipAvatar size={14} /> {r.emoji}</span>)}</div>}
+          </div>
+        );
+      })}
+    </>
   );
 }
 
