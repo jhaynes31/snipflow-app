@@ -748,8 +748,8 @@ export function chooseSearch(o: { mine: boolean; partnerOpen: boolean; want?: "s
 
 // ---------- Re-reading after the rules change ----------
 
-/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. */
-export const SCAN_VERSION = 3;
+/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. 4: management and (by default) senior titles, and listings that manage people, are left out. */
+export const SCAN_VERSION = 4;
 
 /**
  * Re-read a stored listing: facts the scanner wrote are replaced by a fresh

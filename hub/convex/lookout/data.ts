@@ -6,7 +6,7 @@ import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
 import { chooseSearch, remoteBoardFact, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
-import { boardFromUrl, REMOTE_ONLY, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
+import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
 /**
@@ -112,6 +112,7 @@ function settingsView(row: Doc<"loSettings"> | null) {
     sources: row?.sources ?? defaultSources(),
     allowHealthDisclosure: row?.allowHealthDisclosure ?? false,
     requirePay: row?.requirePay ?? true,
+    allowSenior: row?.allowSenior ?? false,
     // Only whether it's connected and the email; the key itself never leaves the server.
     usajobsEmail: row?.usajobs?.email ?? null,
     adzunaAppId: row?.adzuna?.appId ?? null,
@@ -251,7 +252,7 @@ export const refreshReadings = mutation({
     const jobs = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect();
     for (const j of jobs) {
       // Earlier finds that the tighter title and country checks would now leave out move out of the way.
-      if (UNSAVED.includes(j.status) && !j.shelvedAt && j.sourceKind !== "manual" && (!titleFits(j.title, row.keywords) || !usFriendly(j.location))) await ctx.db.patch(j._id, { shelvedAt: Date.now() });
+      if (UNSAVED.includes(j.status) && !j.shelvedAt && j.sourceKind !== "manual" && (!titleFits(j.title, row.keywords, row.allowSenior ?? false) || !usFriendly(j.location) || MANAGES_PEOPLE.test(j.description))) await ctx.db.patch(j._id, { shelvedAt: Date.now() });
       const r = rescanFacts(j.facts as Facts, `${j.title}\n${j.location ?? ""}\n${j.description}`, row.homeState, REMOTE_ONLY[j.sourceKind]);
       await ctx.db.patch(j._id, { facts: r.facts, warnings: r.warnings });
     }
@@ -279,6 +280,7 @@ export const setSettings = mutation({
     partnerAccess: v.optional(v.boolean()),
     allowHealthDisclosure: v.optional(v.boolean()),
     requirePay: v.optional(v.boolean()),
+    allowSenior: v.optional(v.boolean()),
     minHourly: v.optional(v.number()),
     maxHours: v.optional(v.number()),
     homeState: v.optional(v.string()),
@@ -294,6 +296,10 @@ export const setSettings = mutation({
     const patch: Partial<Doc<"loSettings">> = { updatedAt: Date.now() };
     if (args.partnerAccess !== undefined) patch.partnerAccess = args.partnerAccess;
     if (args.allowHealthDisclosure !== undefined) patch.allowHealthDisclosure = args.allowHealthDisclosure;
+    if (args.allowSenior !== undefined) {
+      patch.allowSenior = args.allowSenior;
+      if (!args.allowSenior) await shelveTooSenior(ctx, a.ownerId, false, row.keywords);
+    }
     if (args.requirePay !== undefined) {
       patch.requirePay = args.requirePay;
       if (args.requirePay) await shelveUnpaid(ctx, a.ownerId);
@@ -372,7 +378,7 @@ export const addBoard = mutation({
   handler: async (ctx, args) => {
     const a = await requireLookout(ctx);
     const board = boardFromUrl(args.url);
-    if (!board) throw new ConvexError("That link isn't on a job board the Lookout can read (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, or Recruitee). Add that company's jobs by hand instead.");
+    if (!board) throw new ConvexError("That link isn't on a job board the Lookout can read (Greenhouse, Lever, Ashby, Workday, Workable, SmartRecruiters, BambooHR, Breezy, or Recruitee). Add that company's jobs by hand instead.");
     const row = await ensureSettings(ctx, a.ownerId);
     const sources = row.sources as Source[];
     if (sources.some((x) => x.kind === board.kind && x.token.toLowerCase() === board.token.toLowerCase())) {
@@ -869,6 +875,20 @@ export function statesPay(facts: Facts): boolean {
   return !!f && f.state === "yes" && Number(f.value) > 0;
 }
 
+/** Found jobs above his level (management, or senior when that's off) move to Earlier finds. */
+async function shelveTooSenior(ctx: MutationCtx, ownerId: Id<"profiles">, allowSenior: boolean, keywords: string[]): Promise<number> {
+  let moved = 0;
+  for (const status of UNSAVED) {
+    for (const j of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", ownerId).eq("status", status)).collect()) {
+      if (j.shelvedAt || j.sourceKind === "manual") continue;
+      if (titleFits(j.title, keywords, allowSenior) && !MANAGES_PEOPLE.test(j.description)) continue;
+      await ctx.db.patch(j._id, { shelvedAt: Date.now() });
+      moved++;
+    }
+  }
+  return moved;
+}
+
 /** Found jobs that don't state their pay move to Earlier finds. Jobs added by hand, saved, or being worked on stay. */
 async function shelveUnpaid(ctx: MutationCtx, ownerId: Id<"profiles">): Promise<number> {
   let moved = 0;
@@ -1122,7 +1142,7 @@ const postingV = v.object({ title: v.string(), employer: v.string(), url: v.stri
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
-  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), problem: v.optional(v.string()) }))) },
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
     let fresh = 0;

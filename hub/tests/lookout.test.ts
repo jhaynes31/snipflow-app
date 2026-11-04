@@ -6,7 +6,7 @@ import { vetChange } from "../convex/lookout/adminPure.ts";
 import { AGENCIES, daysUntil, recruiterNote, searchLink } from "../convex/lookout/agencies.ts";
 import { chooseSearch, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
-import { boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
+import { MANAGES_PEOPLE, workdayPosted, boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, questionKey, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
 
 // Sample listings for the acceptance tests. Fictional employers; the shapes are what real postings look like.
@@ -520,7 +520,8 @@ describe("search accuracy (2026-11-02 review)", () => {
   });
   it("other lines of work are left out even when a broad word matches", () => {
     for (const t of ["Stock Administrator", "People Operations Coordinator", "Systems Administrator", "Clinical Data Coordinator", "Senior Software Engineer, Support Tools", "Director of Customer Support"]) assert.equal(titleFits(t), false, t);
-    for (const t of ["Senior Specialist, Customer Care", "Health Claims Specialist", "Administrative Coordinator", "Billing Specialist", "Records Administrator"]) assert.ok(titleFits(t), t);
+    for (const t of ["Health Claims Specialist", "Administrative Coordinator", "Billing Specialist", "Records Administrator"]) assert.ok(titleFits(t), t);
+    assert.ok(titleFits("Senior Specialist, Customer Care", [], true), "senior titles come in when allowed");
     assert.ok(titleFits("People Operations Coordinator", ["people operations"]), "his own extra words win");
   });
   it("pay is read from pay, not from funding, bonuses, or stipends", () => {
@@ -567,5 +568,41 @@ describe("Adzuna", () => {
     assert.ok(p[0].payLine);
     assert.equal(p[1].payLine, undefined, "an estimate isn't stated pay");
     assert.match(sourceUrl({ kind: "adzuna", token: "claims", name: "x", enabled: true }), /what=remote%20claims/);
+  });
+});
+
+describe("seniority (2026-11-04)", () => {
+  it("leaves out management always, and senior titles unless allowed", () => {
+    for (const t of ["Customer Support Manager", "Claims Supervisor", "Team Lead, Customer Care", "Director of Operations", "Head of Support", "Principal Support Specialist", "Customer Experience Consultant"]) {
+      assert.equal(titleFits(t), false, t);
+      assert.equal(titleFits(t, [], true), false, `${t} even with senior allowed`);
+    }
+    for (const t of ["Senior Customer Support Specialist", "Sr. Claims Specialist", "Lead Billing Specialist", "Claims Specialist III"]) {
+      assert.equal(titleFits(t), false, t);
+      assert.ok(titleFits(t, [], true), `${t} when senior is allowed`);
+    }
+    for (const t of ["Customer Support Specialist", "Claims Specialist II", "Order Processing Associate"]) assert.ok(titleFits(t), t);
+  });
+  it("catches management described in the listing", () => {
+    assert.ok(MANAGES_PEOPLE.test("You will have 6 direct reports."));
+    assert.ok(MANAGES_PEOPLE.test("5+ years of supervisory experience required."));
+    assert.ok(MANAGES_PEOPLE.test("Lead a team of 12 agents."));
+    assert.equal(MANAGES_PEOPLE.test("Work independently and report to the support manager."), false);
+  });
+});
+
+describe("Workday, BambooHR, and Breezy boards", () => {
+  it("finds the board from a careers link", () => {
+    assert.deepEqual(boardFromUrl("https://wesco.wd5.myworkdayjobs.com/en-US/WESCO/job/Remote/Senior-Specialist_R123"), { kind: "workday", token: "wesco.wd5.myworkdayjobs.com|wesco|WESCO" });
+    assert.deepEqual(boardFromUrl("https://acme.bamboohr.com/careers/42"), { kind: "bamboohr", token: "acme" });
+    assert.deepEqual(boardFromUrl("https://acme.breezy.hr/p/abc-support"), { kind: "breezy", token: "acme" });
+  });
+  it("reads each board's list", () => {
+    const wd = parseSource({ kind: "workday", token: "acme.wd1.myworkdayjobs.com|acme|Careers", name: "Acme", enabled: true }, { jobPostings: [{ title: "Order Specialist", externalPath: "/job/Remote/Order-Specialist_R1", locationsText: "Remote, USA", postedOn: "Posted 3 Days Ago" }] });
+    assert.equal(wd[0].url, "https://acme.wd1.myworkdayjobs.com/Careers/job/Remote/Order-Specialist_R1");
+    assert.ok(wd[0].postedAt! < Date.now() - 2 * 86400000);
+    assert.equal(parseSource({ kind: "bamboohr", token: "acme", name: "Acme", enabled: true }, { result: [{ id: "42", jobOpeningName: "Claims Coordinator", isRemote: true, location: { city: "Austin", state: "Texas" } }] })[0].url, "https://acme.bamboohr.com/careers/42");
+    assert.equal(parseSource({ kind: "breezy", token: "acme", name: "Acme", enabled: true }, [{ id: "1", name: "Support Specialist", url: "https://acme.breezy.hr/p/1", location: { name: "Remote", is_remote: true }, salary: "$26 to $29 per hour" }])[0].title, "Support Specialist");
+    assert.equal(workdayPosted("Posted Today", 1000), 1000);
   });
 });

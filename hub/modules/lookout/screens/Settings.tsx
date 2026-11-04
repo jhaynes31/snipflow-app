@@ -40,6 +40,7 @@ export function LookoutSettings() {
       <Card>
         <h2 className="sh-h2">Hard requirements</h2>
         <p className="sh-hint">A job that fails one of these is set aside, whatever else it offers. No cold calling, no commission only pay, and no office or relocation are always on.</p>
+        <Toggle checked={s.allowSenior} onChange={(allowSenior) => void run(async () => { await set({ allowSenior }); done(); })} label="Include Senior and Lead titles" hint="Off: titles with Senior, Sr., Lead, or level III and up are left out, and so are found ones already listed. On: those are included (like the Senior Specialist, Customer Care role at Wesco). Manager, supervisor, director, and jobs that manage people are always left out." />
         <Toggle checked={s.requirePay} onChange={(requirePay) => void run(async () => { await set({ requirePay }); done(); })} label="Only bring in jobs that state their pay" hint="Found jobs that don't say what they pay are left out of searches, and ones already found move to Earlier finds. Jobs you add by hand are always kept." />
         <div className="sh-row sh-wrap">
           <Field label="Lowest guaranteed pay, per hour"><input className="sh-input sh-input-sm" type="number" min={7.25} step={0.5} defaultValue={s.minHourly} onBlur={(e) => { const n = Number(e.target.value); if (n !== s.minHourly) void run(async () => { await set({ minHourly: n }); done(); }); }} /></Field>
@@ -75,7 +76,7 @@ export function LookoutSettings() {
           <input className="sh-input" defaultValue={s.keywords.join(", ")} onBlur={(e) => { const k = e.target.value.split(",").map((x) => x.trim()).filter(Boolean); if (k.join(",") !== s.keywords.join(",")) void run(async () => { await set({ keywords: k }); done(); }); }} />
         </Field>
         <h3 className="sh-h3">Follow a company</h3>
-        <p className="sh-hint">Paste a link to a company&apos;s careers page, or to any one of its job listings, and the Lookout will read that company&apos;s own job board every search. Works for companies using Greenhouse, Lever, Ashby, Workable, SmartRecruiters, or Recruitee (most job links show one of those names in the address).</p>
+        <p className="sh-hint">Paste a link to a company&apos;s careers page, or to any one of its job listings, and the Lookout will read that company&apos;s own job board every search. Works for companies using Greenhouse, Lever, Ashby, Workday, Workable, SmartRecruiters, BambooHR, Breezy, or Recruitee (most job links show one of those names in the address).</p>
         <div className="sh-row sh-wrap">
           <input className="sh-input" value={follow} maxLength={500} onChange={(e) => setFollow(e.target.value)} placeholder="https://jobs.lever.co/companyname" aria-label="Careers page link" />
           <Btn disabled={busy || !follow.trim()} onClick={() => void run(async () => { const r = await addBoard({ url: follow }); setFollow(""); setFollowNote(r.added ? `Following it now (${r.label}). It's read at the next search.` : "Already following that one; it's switched on."); })}>Follow</Btn>
