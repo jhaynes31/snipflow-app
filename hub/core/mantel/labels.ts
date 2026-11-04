@@ -1,13 +1,14 @@
 /** Plain words for the mantel's tags and speakers. Pure; tested. */
 export type MantelKind = "takeaway" | "quote" | "prayer" | "forPartner";
-export type MantelSpeaker = "coach" | "dad" | "mom" | "me";
+export type MantelSpeaker = "coach" | "dad" | "mom" | "me" | "pip";
 
 export const KIND_LABEL: Record<MantelKind, string> = { takeaway: "A takeaway", quote: "A line to keep", prayer: "A prayer", forPartner: "For my partner" };
-export const SPEAKER_LABEL: Record<MantelSpeaker, string> = { coach: "The coach", dad: "Dad", mom: "Mom", me: "Me" };
+export const SPEAKER_LABEL: Record<MantelSpeaker, string> = { coach: "The coach", dad: "Dad", mom: "Mom", me: "Me", pip: "Pip" };
 
 /** Who spoke, from the coach task a reply came out of. */
 export function speakerForTask(task: string | undefined): MantelSpeaker {
   if (!task) return "coach";
+  if (task.startsWith("friend.")) return "pip";
   if (task.startsWith("hearth.father") || task.startsWith("hearth.eyes") || task.startsWith("hearth.told")) return "dad";
   if (task.startsWith("hearth.")) return "mom";
   return "coach";
@@ -17,6 +18,7 @@ export function speakerForTask(task: string | undefined): MantelSpeaker {
 export function sourceForTask(task: string | undefined): string | undefined {
   const names: Record<string, string> = {
     "hub.talk": "Talk it through",
+    "friend.chat": "Pip",
     "tend.talkItOut": "Talk It Out",
     "tend.repair": "Repair",
     "reCentered.talk": "Re-Centered",

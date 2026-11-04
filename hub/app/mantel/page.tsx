@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { TellPip } from "@/core/friend/TellPip";
 import { KIND_LABEL, SPEAKER_LABEL, type MantelKind } from "@/core/mantel/labels";
 import { useHub } from "@/core/shell/HubContext";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, Toggle, useAction } from "@/core/ui";
@@ -85,7 +86,7 @@ function MantelRow({ row, partnerName }: { row: Doc<"mantel">; partnerName: stri
   const alreadyAnchor = anchorsBody.includes(row.text);
   return (
     <Card>
-      <p className="sh-eyebrow">{KIND_LABEL[row.kind]} · {SPEAKER_LABEL[row.speaker]}{row.source ? `, ${row.source}` : ""} · {timeAgo(row.createdAt)}{row.visibility === "shared" ? ` · shared with ${partnerName}` : ""}</p>
+      <p className="sh-eyebrow">{KIND_LABEL[row.kind]} · {SPEAKER_LABEL[row.speaker]}{row.source ? `, ${row.source}` : ""} · {timeAgo(row.createdAt)}{row.visibility === "shared" ? ` · shared with ${partnerName}` : ""} <TellPip sourceTab="mantel" headline={`A line she kept on her mantel: "${row.text.slice(0, 160)}"`} /></p>
       {editing ? (
         <>
           <RichTextarea className="sh-input sh-textarea" rows={4} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />

@@ -15,4 +15,7 @@ crons.daily("metamorphosis: field guide feeds", { hourUTC: 12, minuteUTC: 40 }, 
 crons.hourly("every box: box reminders", { minuteUTC: 5 }, internal.everyBox.reminders.tick);
 // The Lookout: his scheduled job search, only when he turned it on (daily or weekly; the action checks which).
 crons.daily("lookout: scheduled job search", { hourUTC: 11, minuteUTC: 15 }, internal.lookout.discover.tick);
+// Pip (the Friend): a nudge at most once a day, mid-afternoon in the US; weekly headlines from the other places on Monday morning.
+crons.daily("friend: pip reaches out", { hourUTC: 20, minuteUTC: 10 }, internal.friend.entries.nudgeTick);
+crons.weekly("friend: weekly headlines", { dayOfWeek: "monday", hourUTC: 12, minuteUTC: 30 }, internal.friend.headlines.weekly);
 export default crons;
