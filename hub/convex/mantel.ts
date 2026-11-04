@@ -9,7 +9,7 @@ import { cleanText, optionalText, requireMe, requireOwned } from "./lib";
  * can be shared with the partner. Nothing is counted.
  */
 const KIND = v.union(v.literal("takeaway"), v.literal("quote"), v.literal("prayer"), v.literal("forPartner"));
-const SPEAKER = v.union(v.literal("coach"), v.literal("dad"), v.literal("mom"), v.literal("me"));
+const SPEAKER = v.union(v.literal("coach"), v.literal("dad"), v.literal("mom"), v.literal("me"), v.literal("pip"));
 
 export const mine = query({
   args: {},

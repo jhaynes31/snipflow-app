@@ -91,6 +91,9 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rc.security", "Where I stand", "Re-Centered, John and me", "/love-and-release/john/security", "One tap: where your security is sitting today.", ["security", "where i stand", "steady", "secure", "insecure"], "re-centered"),
   T("rc.ownLife", "My own life", "Re-Centered, John and me", "/love-and-release/john/own-life", "The things that are yours, and a way back into them.", ["my own life", "my things", "lost myself", "hobby", "what's mine"], "re-centered"),
   // Rooted (2026-11-03): attachment work.
+  // Friend (2026-11-04): Pip.
+  T("fr.chat", "Hang out with Pip", "Friend", "/friend", "A friend, not a coach: trades, teases, has opinions, and hangs out while you play.", ["pip", "friend", "hang out", "bored", "chat with someone", "just talk", "company", "keep me company", "game night"]),
+  T("fr.library", "Things to do with Pip", "Friend", "/friend/library", "Games, deep talks, stories, trivia, plans. Either of you can start one.", ["something to do", "play a game", "would you rather", "trivia", "story together", "bored"]),
   T("rt.learn", "The four styles", "Rooted", "/rooted/learn", "Secure, anxious, avoidant, disorganized: where each comes from and what it does under stress.", ["attachment", "attachment style", "anxious attachment", "avoidant", "disorganized", "fearful avoidant", "secure attachment", "why do i"]),
   T("rt.today", "Where I am today", "Rooted", "/rooted/today", "A short read of which pattern showed this week, and what pulled and steadied you.", ["where am i", "activated", "triggered", "my pattern", "how secure", "check my attachment"]),
   T("rt.secure", "Becoming secure", "Rooted", "/rooted/secure", "Protest behaviors with the secure move beside each, daily practices, and scripts for when you go blank.", ["becoming secure", "protest", "chasing", "about to text", "double text", "keep checking", "reassurance", "secure move", "what do i say"]),
@@ -262,6 +265,7 @@ export const DOORS_HER: Door[] = [
   { label: "We need to repair", toolKey: "tend.repair" },
   { label: "Money worry", toolKey: "storehouse.worries" },
   { label: "I need comfort", toolKey: "lr.comfort" },
+  { label: "I just want company", toolKey: "fr.chat" },
   { label: "Just checking in", toolKey: "hub.checkIn" },
 ];
 

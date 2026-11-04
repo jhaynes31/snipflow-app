@@ -1424,7 +1424,7 @@ export default defineSchema({
     text: v.string(),
     kind: v.union(v.literal("takeaway"), v.literal("quote"), v.literal("prayer"), v.literal("forPartner")),
     /** Who said it: the coach, Dad, Mom, or me. */
-    speaker: v.union(v.literal("coach"), v.literal("dad"), v.literal("mom"), v.literal("me")),
+    speaker: v.union(v.literal("coach"), v.literal("dad"), v.literal("mom"), v.literal("me"), v.literal("pip")),
     /** Where it was kept from, as people see it ("Ask her", "Talk it through"). */
     source: v.optional(v.string()),
     createdAt: v.number(),
@@ -1768,4 +1768,126 @@ export default defineSchema({
     done: v.boolean(),
     createdAt: v.number(),
   }).index("by_owner_at", ["ownerId", "at"]).index("by_job", ["jobId"]),
+
+  // ---------- Pip, the Friend (2026-11-04, docs/friend-spec.md) ----------
+  // One person's room (moduleOwners "friend"). Everything here is that person's
+  // own and never visible to the other account. Other places never read it.
+
+  frConversations: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    vibe: v.string(),
+    openerType: v.optional(v.string()),
+    messages: v.array(v.object({ role: v.union(v.literal("user"), v.literal("assistant")), content: v.string(), at: v.number() })),
+    /** Turns in a row that ended in a question, for the rally rule. */
+    askedStreak: v.number(),
+    summary: v.optional(v.string()),
+    summarizedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "updatedAt"]),
+
+  /** What Pip knows about her. Viewable, editable, deletable by her. */
+  frMemoryUser: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    category: v.string(),
+    learnedAt: v.number(),
+    lastReferenced: v.optional(v.number()),
+    followUpAfter: v.optional(v.string()),
+    followedUp: v.optional(v.boolean()),
+    doNotRaise: v.boolean(),
+  }).index("by_owner", ["ownerId", "learnedAt"]),
+
+  /** What Pip has said about itself: opinions, interests, threads. A change of mind is a new row. */
+  frMemorySelf: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    kind: v.union(v.literal("opinion"), v.literal("interest"), v.literal("thread")),
+    text: v.string(),
+    createdAt: v.number(),
+    supersededBy: v.optional(v.id("frMemorySelf")),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+
+  /** Inside jokes, running bits (the neighbors' saga), milestones. One row per person. */
+  frRelationship: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    insideJokes: v.array(v.object({ text: v.string(), at: v.number(), pinned: v.boolean() })),
+    runningBits: v.array(v.object({ text: v.string(), at: v.number(), retired: v.boolean() })),
+    milestones: v.array(v.object({ text: v.string(), at: v.number() })),
+  }).index("by_owner", ["ownerId"]),
+
+  frActivities: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    title: v.string(),
+    category: v.string(),
+    description: v.string(),
+    energy: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    duration: v.union(v.literal(5), v.literal(15), v.literal(30)),
+    needsScreen: v.boolean(),
+    addedBy: v.union(v.literal("jen"), v.literal("pip"), v.literal("seed")),
+    favorite: v.boolean(),
+    timesDone: v.number(),
+    lastDoneAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+
+  frActivityLog: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    activityId: v.id("frActivities"),
+    startedBy: v.union(v.literal("jen"), v.literal("pip")),
+    startedAt: v.number(),
+    accepted: v.boolean(),
+    notes: v.optional(v.string()),
+  }).index("by_owner_time", ["ownerId", "startedAt"]),
+
+  frWishlist: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    addedBy: v.union(v.literal("jen"), v.literal("pip")),
+    done: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+
+  frTopics: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    pinned: v.boolean(),
+    lastDiscussed: v.number(),
+  }).index("by_owner", ["ownerId", "lastDiscussed"]),
+
+  frIdeas: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    addedBy: v.union(v.literal("jen"), v.literal("pip")),
+    sorted: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+
+  /** One-line headlines from other places: weekly, or one thing she chose to tell Pip. */
+  frHeadlines: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    sourceTab: v.string(),
+    week: v.string(),
+    headline: v.string(),
+    sharedVia: v.union(v.literal("weekly"), v.literal("tellPip")),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** The last nudge Pip sent, so there is at most one a day. */
+  frNudges: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    text: v.string(),
+    day: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_day", ["ownerId", "day"]),
 });

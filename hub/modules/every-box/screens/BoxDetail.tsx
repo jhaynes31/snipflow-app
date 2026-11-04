@@ -18,6 +18,7 @@ import { Btn, Spinner } from "@/modules/every-box/components/ui";
 import { RemindMe } from "@/modules/every-box/components/RemindMe";
 import { useNow } from "@/modules/every-box/components/useNow";
 import { Rich } from "@/core/text/RichText";
+import { TellPip } from "@/core/friend/TellPip";
 
 function formatWhen(ts: number): string {
   return new Date(ts).toLocaleString(undefined, {
@@ -86,6 +87,7 @@ export function BoxDetail({ id }: { id: string }) {
           tended by {tenderText}
         </p>
         {category.archivedAt && <span className="eb-chip">Resting</span>}
+        <TellPip sourceTab="every-box" headline={`She's been keeping an eye on "${category.name}" in Every Box (${describeLastTended(category.lastTendedAt, now).toLowerCase()}).`} />
       </section>
 
       {!category.archivedAt && <RemindMe categoryId={category._id} cadenceDays={category.idealCadenceDays} />}

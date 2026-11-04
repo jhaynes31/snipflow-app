@@ -21,6 +21,7 @@ export const MODULE_BRAND: Record<string, { accent: string; mark: string }> = {
   seasons: { accent: "#4F6F3A", mark: "Se" },
   fitness: { accent: "#B8860B", mark: "H" },
   rooted: { accent: "#6E4B3A", mark: "R" },
+  friend: { accent: "#8A5A3C", mark: "P" },
 };
 
 /** The places a person can put on the phone's home screen on their own. */
