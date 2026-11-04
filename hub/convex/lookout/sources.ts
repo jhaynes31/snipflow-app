@@ -15,7 +15,7 @@
  * reading, so jobs from there are pasted in by hand and get every check.
  */
 
-export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss" | "usajobs" | "adzuna";
+export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss" | "usajobs" | "adzuna" | "workday" | "bamboohr" | "breezy";
 
 export interface Source {
   kind: SourceKind;
@@ -42,13 +42,16 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
   rss: "A job feed (RSS) from any site",
   usajobs: "USAJOBS (federal jobs; needs the free API key in Settings)",
   adzuna: "Adzuna (jobs from many sites; needs the free app ID and key in Settings)",
+  workday: "Employer board on Workday",
+  bamboohr: "Employer board on BambooHR",
+  breezy: "Employer board on Breezy",
 };
 
 /** Job boards that only list remote jobs (The Muse is searched for "Flexible / Remote" only). */
 export const REMOTE_ONLY: Partial<Record<string, string>> = { usajobs: "USAJOBS (remote search)", remotive: "Remotive", himalayas: "Himalayas", remoteok: "Remote OK", weworkremotely: "We Work Remotely", jobicy: "Jobicy", workingnomads: "Working Nomads", themuse: "The Muse (remote search)" };
 
 /** Kinds that are one employer's own board, as opposed to a job board listing many employers. */
-export const EMPLOYER_KINDS: SourceKind[] = ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "recruitee"];
+export const EMPLOYER_KINDS: SourceKind[] = ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "recruitee", "workday", "bamboohr", "breezy"];
 
 /** Where each site's public listing page is, for the link back several of them ask for. */
 export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string }>> = {
@@ -70,7 +73,7 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
  * Example employer boards are off until turned on, because a board name can
  * change; the search note says when one doesn't answer.
  */
-export const SOURCES_VERSION = 5;
+export const SOURCES_VERSION = 6;
 export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "remotive", token: "customer-support", name: "Remotive: customer support", enabled: true, since: 1 },
   { kind: "remotive", token: "all-others", name: "Remotive: operations and other", enabled: true, since: 1 },
@@ -115,6 +118,20 @@ export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "adzuna", token: "administrative assistant", name: "Adzuna: remote administrative", enabled: true, since: 5 },
   { kind: "adzuna", token: "billing specialist", name: "Adzuna: remote billing", enabled: true, since: 5 },
   { kind: "adzuna", token: "order processing", name: "Adzuna: remote order processing", enabled: true, since: 5 },
+  { kind: "adzuna", token: "customer care", name: "Adzuna: remote customer care", enabled: true, since: 6 },
+  { kind: "adzuna", token: "insurance verification", name: "Adzuna: remote insurance verification", enabled: true, since: 6 },
+  { kind: "adzuna", token: "prior authorization", name: "Adzuna: remote prior authorization", enabled: true, since: 6 },
+  { kind: "adzuna", token: "medical billing", name: "Adzuna: remote medical billing", enabled: true, since: 6 },
+  { kind: "adzuna", token: "quality assurance analyst customer", name: "Adzuna: remote quality review", enabled: true, since: 6 },
+  { kind: "adzuna", token: "email support", name: "Adzuna: remote email support", enabled: true, since: 6 },
+  { kind: "adzuna", token: "back office", name: "Adzuna: remote back office", enabled: true, since: 6 },
+  { kind: "usajobs", token: "contact representative", name: "USAJOBS: contact representative, remote", enabled: true, since: 6 },
+  { kind: "usajobs", token: "legal instruments examiner", name: "USAJOBS: legal instruments examiner, remote", enabled: true, since: 6 },
+  { kind: "usajobs", token: "program support assistant", name: "USAJOBS: program support assistant, remote", enabled: true, since: 6 },
+  { kind: "himalayas", token: "customer care", name: "Himalayas: customer care", enabled: true, since: 6 },
+  { kind: "himalayas", token: "email support", name: "Himalayas: email support", enabled: true, since: 6 },
+  { kind: "remotive", token: "search:customer service", name: "Remotive: customer service", enabled: true, since: 6 },
+  { kind: "jobicy", token: "customer service", name: "Jobicy: customer service", enabled: true, since: 6 },
   { kind: "greenhouse", token: "gitlab", name: "GitLab", enabled: false, since: 1 },
   { kind: "ashby", token: "zapier", name: "Zapier", enabled: false, since: 1 },
   { kind: "greenhouse", token: "automatticcareers", name: "Automattic", enabled: false, since: 1 },
@@ -159,6 +176,16 @@ export function boardFromUrl(input: string): { kind: SourceKind; token: string }
   if (host === "jobs.ashbyhq.com" && ok(first)) return { kind: "ashby", token: first };
   if (host === "apply.workable.com" && ok(first) && first !== "api") return { kind: "workable", token: first };
   if ((host === "jobs.smartrecruiters.com" || host === "careers.smartrecruiters.com") && ok(first)) return { kind: "smartrecruiters", token: seg[0] };
+  const wd = /^([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com$/.exec(host);
+  if (wd) {
+    // The path may start with a language ("en-US") before the board's own name.
+    const site = seg.find((x) => !/^[a-z]{2}-[a-z]{2}$/i.test(x) && x !== "wday" && x !== "cxs" && x !== wd[1] && !/^job$|^details$/i.test(x));
+    return site && ok(site) ? { kind: "workday", token: `${host}|${wd[1]}|${site}` } : null;
+  }
+  const bamboo = /^([a-z0-9-]+)\.bamboohr\.com$/.exec(host);
+  if (bamboo && bamboo[1] !== "www") return { kind: "bamboohr", token: bamboo[1] };
+  const breezy = /^([a-z0-9-]+)\.breezy\.hr$/.exec(host);
+  if (breezy && breezy[1] !== "www" && breezy[1] !== "app") return { kind: "breezy", token: breezy[1] };
   const rec = /^([a-z0-9-]+)\.recruitee\.com$/.exec(host);
   if (rec && rec[1] !== "www") return { kind: "recruitee", token: rec[1] };
   return null;
@@ -190,8 +217,28 @@ export const OTHER_WORK_TITLE = /\b(?:engineer(?:ing)?|developer|software|devops
 /** Titles that point to sales work, dropped before any further reading. */
 export const SALES_TITLE = /\b(?:account executive|sales|business development|bdr|sdr|closer|inside sales|account manager|lead generation|telemarket|appointment setter|recruiter)\b/i;
 
-export function titleFits(title: string, extra: string[] = []): boolean {
+/**
+ * Seniority (Jen, 2026-11-04: the jobs coming in were too senior for him).
+ * Management and leadership titles are always left out. Senior, lead,
+ * principal, staff, and level III and up are left out unless Settings
+ * lets "Senior" titles in (he did apply to a Senior Specialist role).
+ */
+export const MANAGEMENT_TITLE = /\b(?:manager|management|supervisor|superintendent|director|head|vp|vice president|chief|executive|officer|president|owner|founder|partner|principal|staff|architect|strategist|consultant)\b|\bteam lead\b/i;
+export const SENIOR_TITLE = /\b(?:senior|sr|lead|iii|iv|v|level [3-5])\b/i;
+
+export function seniorityFits(title: string, allowSenior = false): boolean {
+  if (MANAGEMENT_TITLE.test(title)) return false;
+  if (!allowSenior && SENIOR_TITLE.test(title.replace(/\./g, ""))) return false;
+  return true;
+}
+
+/** Listings that are management in all but the title: direct reports, running a team, years of supervising. */
+export const MANAGES_PEOPLE = /\b(?:direct reports|manage (?:a|the|our) team|people management|people leader|supervis(?:e|ing) (?:a |the )?(?:team|staff|agents|representatives)|lead(?:ing)? a team of|hire, train,? (?:and )?(?:manage|coach|develop)|performance reviews for (?:your|the) team|\d+\+? years (?:of )?(?:people |team )?(?:management|leadership|supervisory)(?: experience)?)\b/i;
+
+export function titleFits(title: string, extra: string[] = [], allowSenior = false): boolean {
   if (SALES_TITLE.test(title)) return false;
+  const own = extra.some((w) => w && title.toLowerCase().includes(w.toLowerCase()));
+  if (!own && !seniorityFits(title, allowSenior)) return false;
   if (OTHER_WORK_TITLE.test(title) && !extra.some((w) => w && title.toLowerCase().includes(w.toLowerCase()))) return false;
   const t = title.toLowerCase();
   return [...TITLE_WORDS, ...extra.map((w) => w.toLowerCase())].some((w) => t.includes(w));
@@ -223,6 +270,15 @@ export function sourceUrl(s: Source): string {
       return s.token === "remote-jobs" ? "https://weworkremotely.com/remote-jobs.rss" : `https://weworkremotely.com/categories/${t}.rss`;
     case "rss":
       return s.token.trim();
+    case "workday": {
+      // token is "host|tenant|site"; the list is a POST (discover.ts sends the body).
+      const [host, tenant, site] = s.token.split("|");
+      return `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+    }
+    case "bamboohr":
+      return `https://${t}.bamboohr.com/careers/list`;
+    case "breezy":
+      return `https://${t}.breezy.hr/json`;
     case "adzuna":
       // The app ID and key are added in discover.ts. Only the US, the last 30 days, "remote" in the search.
       return `https://api.adzuna.com/v1/api/jobs/us/search/1?results_per_page=50&max_days_old=30&sort_by=date&what=${encodeURIComponent(`remote ${s.token.trim()}`)}&content-type=application/json`;
@@ -496,6 +552,51 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         postedAt: time(item.pubDate),
       });
     }
+  } else if (source.kind === "workday") {
+    const [host, , site] = source.token.split("|");
+    for (const j of arr(obj(data).jobPostings).map(obj)) {
+      const path = str(j.externalPath);
+      if (!path) continue;
+      out.push({
+        ...base,
+        sourceId: path,
+        title: str(j.title),
+        employer: source.name,
+        url: `https://${host}/${site}${path}`,
+        location: str(j.locationsText) || undefined,
+        // Filled in from the job's own page for the ones that fit (discover.ts).
+        description: [str(j.locationsText), arr(j.bulletFields).map(str).join(", ")].filter(Boolean).join("\n"),
+        postedAt: workdayPosted(str(j.postedOn)),
+      });
+    }
+  } else if (source.kind === "bamboohr") {
+    for (const j of arr(obj(data).result).map(obj)) {
+      const loc = obj(j.location);
+      const id = str(j.id);
+      out.push({
+        ...base,
+        sourceId: id,
+        title: str(j.jobOpeningName),
+        employer: source.name,
+        url: `https://${source.token}.bamboohr.com/careers/${id}`,
+        location: [str(loc.city), str(loc.state), j.isRemote ? "Remote" : str(j.locationType) === "1" ? "Remote" : ""].filter(Boolean).join(", ") || undefined,
+        description: [str(j.departmentLabel), str(j.employmentStatusLabel), j.isRemote ? "Remote" : ""].filter(Boolean).join("\n"),
+      });
+    }
+  } else if (source.kind === "breezy") {
+    for (const j of arr(data).map(obj)) {
+      const loc = obj(j.location);
+      out.push({
+        ...base,
+        sourceId: str(j.id) || str(j.friendly_id),
+        title: str(j.name),
+        employer: str(obj(j.company).name) || source.name,
+        url: str(j.url),
+        location: [str(loc.name), loc.is_remote ? "Remote" : ""].filter(Boolean).join(", ") || undefined,
+        description: [htmlToText(str(j.description)), str(obj(j.type).name), loc.is_remote ? "Remote" : "", str(j.salary) ? `Pay: ${str(j.salary)}` : ""].filter(Boolean).join("\n\n"),
+        postedAt: time(j.published_date),
+      });
+    }
   } else if (source.kind === "adzuna") {
     for (const j of arr(obj(data).results).map(obj)) {
       const min = Number(j.salary_min);
@@ -605,4 +706,13 @@ export function takeInTurns<T>(lists: T[][], limit: number): T[] {
     if (!any) break;
   }
   return out;
+}
+
+/** Workday says "Posted Today", "Posted Yesterday", "Posted 3 Days Ago", or "Posted 30+ Days Ago". */
+export function workdayPosted(text: string, now = Date.now()): number | undefined {
+  const t = text.toLowerCase();
+  if (t.includes("today")) return now;
+  if (t.includes("yesterday")) return now - 86400000;
+  const m = /(\d+)\+?\s*days?/.exec(t);
+  return m ? now - Number(m[1]) * 86400000 : undefined;
 }

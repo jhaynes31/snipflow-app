@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { fingerprint, parsePay } from "./pure";
-import { htmlToText, isFeed, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
+import { htmlToText, isFeed, MANAGES_PEOPLE, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 
 /**
  * Finding and rechecking jobs. Only public posting APIs are called (see
@@ -19,11 +19,11 @@ const MIN_GAP_MS = 20 * 60 * 60 * 1000;
 /** "Search now" or "Refresh" by hand can run again after half an hour, light enough on the sites. */
 const MANUAL_GAP_MS = 30 * 60 * 1000;
 
-async function getJson(url: string, asText = false, extra: Record<string, string> = {}): Promise<{ ok: boolean; status: number; data: unknown }> {
+async function getJson(url: string, asText = false, extra: Record<string, string> = {}, post?: unknown): Promise<{ ok: boolean; status: number; data: unknown }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25_000);
   try {
-    const res = await fetch(url, { signal: controller.signal, headers: { "user-agent": UA, accept: asText ? "application/rss+xml, application/xml, text/xml" : "application/json", ...extra } });
+    const res = await fetch(url, { signal: controller.signal, method: post === undefined ? "GET" : "POST", body: post === undefined ? undefined : JSON.stringify(post), headers: { "user-agent": UA, accept: asText ? "application/rss+xml, application/xml, text/xml" : "application/json", ...(post === undefined ? {} : { "content-type": "application/json" }), ...extra } });
     if (!res.ok) return { ok: false, status: res.status, data: null };
     return { ok: true, status: res.status, data: asText ? await res.text() : await res.json() };
   } finally {
@@ -43,12 +43,44 @@ async function smartRecruitersDetail(p: Posting, token: string): Promise<Posting
   }
 }
 
+async function workdayList(url: string): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const first = await getJson(url, false, {}, { appliedFacets: {}, limit: 20, offset: 0, searchText: "" });
+  if (!first.ok) return first;
+  const second = await getJson(url, false, {}, { appliedFacets: {}, limit: 20, offset: 20, searchText: "" });
+  const jobs = [...(((first.data as { jobPostings?: unknown[] }) ?? {}).jobPostings ?? []), ...(second.ok ? (((second.data as { jobPostings?: unknown[] }) ?? {}).jobPostings ?? []) : [])];
+  return { ok: true, status: first.status, data: { jobPostings: jobs } };
+}
+
+/** Workday and BambooHR list jobs without their text; fetch it for the ones that fit. */
+async function boardDetail(p: Posting, source: Source): Promise<Posting> {
+  try {
+    if (source.kind === "workday") {
+      const [host, tenant, site] = source.token.split("|");
+      const res = await getJson(`https://${host}/wday/cxs/${tenant}/${site}${p.sourceId}`);
+      const info = ((res.data as { jobPostingInfo?: Record<string, unknown> } | null)?.jobPostingInfo) ?? {};
+      const text = [htmlToText(String(info.jobDescription ?? "")), String(info.timeType ?? ""), String(info.remoteType ?? ""), String(info.location ?? "")].filter((x) => x && x !== "undefined").join("\n\n");
+      return text ? { ...p, description: `${p.description}\n\n${text}` } : p;
+    }
+    if (source.kind === "bamboohr") {
+      const res = await getJson(`https://${encodeURIComponent(source.token)}.bamboohr.com/careers/${encodeURIComponent(p.sourceId)}/detail`);
+      const job = ((res.data as { result?: { jobOpening?: Record<string, unknown> } } | null)?.result?.jobOpening) ?? {};
+      const text = [htmlToText(String(job.description ?? "")), job.compensation ? `Pay: ${String(job.compensation)}` : ""].filter(Boolean).join("\n\n");
+      return text ? { ...p, description: `${p.description}\n\n${text}` } : p;
+    }
+  } catch {
+    // The list entry is kept as it is.
+  }
+  return p;
+}
+
 interface SourceResult {
   name: string;
   found: number;
   kept: Posting[];
   /** Listings that fit but don't state pay, left out when pay is required. */
   noPay: number;
+  /** Listings left out because they manage people. */
+  senior?: number;
   problem?: string;
 }
 
@@ -57,7 +89,7 @@ interface Creds {
   adzuna: { appId: string; key: string } | null;
 }
 
-async function readSource(source: Source, keywords: string[], requirePay: boolean, creds: Creds): Promise<SourceResult> {
+async function readSource(source: Source, keywords: string[], requirePay: boolean, creds: Creds, allowSenior: boolean): Promise<SourceResult> {
   const { usajobs, adzuna } = creds;
   const recent = Date.now() - 45 * 86400000;
   try {
@@ -66,20 +98,23 @@ async function readSource(source: Source, keywords: string[], requirePay: boolea
     if (source.kind === "adzuna" && !adzuna) return { name: source.name, found: 0, kept: [], noPay: 0, problem: "waiting for the Adzuna app ID and key (Settings, Adzuna)" };
     const headers: Record<string, string> = source.kind === "usajobs" && usajobs ? { "user-agent": usajobs.email, "authorization-key": usajobs.key } : {};
     const url = source.kind === "adzuna" && adzuna ? `${sourceUrl(source)}&app_id=${encodeURIComponent(adzuna.appId)}&app_key=${encodeURIComponent(adzuna.key)}` : sourceUrl(source);
-    const res = await getJson(url, isFeed(source.kind), headers);
+    // Workday's list is a POST, twenty at a time; two pages are read.
+    const res = source.kind === "workday" ? await workdayList(url) : await getJson(url, isFeed(source.kind), headers);
     if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${source.kind === "usajobs" && (res.status === 401 || res.status === 403) ? " (check the USAJOBS key and email in Settings)" : source.kind === "adzuna" && (res.status === 401 || res.status === 403) ? " (check the Adzuna app ID and key in Settings)" : res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
     const postings = parseSource(source, res.data);
     const kept: Posting[] = [];
     for (const p of postings) {
-      if (!titleFits(p.title, keywords)) continue;
+      if (!titleFits(p.title, keywords, allowSenior)) continue;
       if (!usFriendly(p.location)) continue;
       if (p.postedAt && p.postedAt < recent) continue;
       kept.push(p);
     }
-    const filled = (source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : kept).map((p) => ({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") }));
+    const filled = (source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : source.kind === "workday" || source.kind === "bamboohr" ? await Promise.all(kept.slice(0, 20).map((p) => boardDetail(p, source))) : kept).map((p) => ({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") }));
     // Jobs that don't say what they pay are left out (Jen, 2026-11-02), and counted so the log shows it.
-    const paid = requirePay ? filled.filter((p) => parsePay(p.description)) : filled;
-    return { name: source.name, found: postings.length, kept: paid, noPay: filled.length - paid.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
+    // Listings that manage people are above his level whatever the title says.
+    const level = filled.filter((p) => !MANAGES_PEOPLE.test(p.description));
+    const paid = requirePay ? level.filter((p) => parsePay(p.description)) : level;
+    return { name: source.name, found: postings.length, kept: paid, noPay: level.length - paid.length, senior: filled.length - level.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
   } catch (err) {
     return { name: source.name, found: 0, kept: [], noPay: 0, problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
   }
@@ -93,7 +128,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
   const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay, creds)));
+  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay, creds, s.allowSenior)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
@@ -102,7 +137,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const answered = results.filter((r) => r.found > 0).length;
   const noPay = results.reduce((n, r) => n + r.noPay, 0);
   const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
-  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, problem: r.problem }));
+  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, problem: r.problem }));
   const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
   return { found, kept: batch.length, fresh, note };
 }
