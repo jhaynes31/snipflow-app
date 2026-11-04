@@ -28,6 +28,8 @@ export interface PipInput {
   lull: boolean;
   openerType?: OpenerType;
   today: string;
+  /** The parts of her latest message, numbered from 1, so Pip can react to one. */
+  userParts?: string[];
 }
 
 function level(n: number, lo: string, mid: string, hi: string): string {
@@ -100,6 +102,7 @@ export function buildPipPrompt(i: PipInput): string {
     const fav = i.activities.filter((a) => a.favorite).map((a) => a.title);
     parts.push(`The activity library you share. To invite her to one, write its tag in place of its name, exactly once, as [[activity:ID]]; the app turns it into a card with "I'm in" and "Not now". Offer one only in a lull, when it's light, or when she seems bored; always an invitation; a "not now" is accepted cheerfully and not repeated this conversation.${fav.length ? ` Her favorites: ${fav.join(", ")}.` : ""}${i.pipStartedRecently ? "" : " You haven't started anything in a while; if a natural moment comes, you start one."}\n${i.activities.slice(0, 40).map((a) => `${a.id}: ${a.title} (${a.category}; ${a.energy} energy; ${a.duration} min)`).join("\n")}\nTo propose a brand-new idea for the library, write [[idea:a short title]] once; the app asks her to approve it before it's saved.`);
   }
+  if (i.userParts && i.userParts.length) parts.push(`You may also react to one part of what she just said with an emoji, the way a friend taps a heart or a laugh on a message, by writing [[react:EMOJI:N]] anywhere in your reply (the app removes the tag and puts the emoji on that part). Her parts: ${i.userParts.map((t, k) => `${k + 1}: "${t.slice(0, 80)}"`).join(" | ")}. Occasional, not every turn; at most one; never on something heavy unless it's a ❤️ or 🙏. A reaction is not a reply; still write the reply.`);
   if (i.lastUserHeavy) parts.push("Her last message reads heavy. No jokes, no curveballs, no games. Slow down, be with her, one plain sentence at a time, and ask whether she wants company or ideas.");
   else if (i.curveball) parts.push("Curveball turn: when it fits, take a small tangent ('random, but…'), tell a short story from your inner life or the neighbors' saga, start a mini game, or push back on something. One move, lightly.");
   if (i.lull) parts.push("She just gave a short, low-energy reply. Don't push on it. Serve something new of your own.");

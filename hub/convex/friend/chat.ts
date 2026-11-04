@@ -8,7 +8,7 @@ import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { COACH_MODEL } from "../coach/prompt";
 import { crisisReply, detectCrisis } from "../coach/safety";
 import { buildPipPrompt, SUMMARIZER_PROMPT } from "./prompt";
-import { countQuestions, parseSummary, rallyCheck, readsHeavy, readsLull, todayKey, wantsCurveball, type OpenerType, type Vibe } from "./pure";
+import { countQuestions, parseSummary, rallyCheck, readsHeavy, readsLull, pullReactions, REACT_TAG, splitParts, todayKey, wantsCurveball, type OpenerType, type Vibe } from "./pure";
 
 /**
  * Pip's engine. One model call per turn, then the cheap rally guard; on a
@@ -25,6 +25,13 @@ async function ask(c: Anthropic, system: string, messages: Anthropic.MessagePara
   const response = await c.messages.create({ model: COACH_MODEL, max_tokens: maxTokens, thinking: { type: "adaptive" }, output_config: { effort: "low" }, system, messages });
   if (response.stop_reason === "refusal") return "";
   return response.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
+}
+
+/** "(She reacted 😂 to: 'the pie line…')", or nothing. Not a message to answer; a friend just notices. */
+function reactionNote(content: string, reactions: { part: number; emoji: string }[] | undefined): string {
+  if (!reactions?.length) return "";
+  const parts = splitParts(content);
+  return reactions.map((r) => `(She reacted ${r.emoji} to the part of your last message that goes: "${(parts[r.part] ?? "").slice(0, 60)}")`).join(" ");
 }
 
 function strip(text: string): string {
@@ -63,14 +70,29 @@ async function reply(ctx: ActionCtx, id: Id<"frConversations">, userMessage: str
     lull: userMessage ? readsLull(userMessage) : false,
     openerType: openerType ?? undefined,
     today: todayKey(),
+    userParts: userMessage ? splitParts(userMessage) : undefined,
   });
-  const history: Anthropic.MessageParam[] = c.row.messages.slice(-30).map((m) => ({ role: m.role, content: m.content }));
-  if (userMessage) history.push({ role: "user", content: userMessage });
+  // Her reactions ride along as a note on the next thing she said; a reaction on the latest reply goes to the system prompt.
+  const recent = c.row.messages.slice(-30);
+  const history: Anthropic.MessageParam[] = [];
+  let pendingNote = "";
+  for (const m of recent) {
+    if (m.role === "assistant") {
+      history.push({ role: "assistant", content: m.content });
+      pendingNote = reactionNote(m.content, m.reactions);
+    } else {
+      history.push({ role: "user", content: pendingNote ? `${pendingNote}\n${m.content}` : m.content });
+      pendingNote = "";
+    }
+  }
+  if (userMessage) history.push({ role: "user", content: pendingNote ? `${pendingNote}\n${userMessage}` : userMessage });
+
   if (history.length === 0) history.push({ role: "user", content: "(She just opened the door. You speak first.)" });
   const cl = client();
   let text = strip(await ask(cl, system, history));
+  const userPartCount = userMessage ? splitParts(userMessage).length : 0;
   if (!text) text = userMessage ? "Hm. Lost my train of thought mid-hoot. Say that again?" : "Hey you. What kind of day is it?";
-  const check = rallyCheck(text, lastUser || "hi", { askedStreak: c.row.askedStreak });
+  const check = rallyCheck(text.replace(REACT_TAG, ""), lastUser || "hi", { askedStreak: c.row.askedStreak });
   if (!check.ok) {
     const retry = strip(await ask(cl, system + `\n\nYour previous draft broke the rally rules (${check.reasons.join("; ")}). Write it again, fixing exactly that, same warmth.`, [...history, { role: "assistant", content: text }, { role: "user", content: "(That broke the rally rules. Try again, same reply, fixed.)" }]));
     if (retry && rallyCheck(retry, lastUser || "hi", { askedStreak: c.row.askedStreak }).ok) text = retry;
@@ -80,7 +102,9 @@ async function reply(ctx: ActionCtx, id: Id<"frConversations">, userMessage: str
     const mentioned = c.due.filter((d) => text.toLowerCase().includes(d.text.toLowerCase().split(" ").slice(0, 3).join(" ")));
     if (mentioned.length) await ctx.runMutation(internal.friend.entries.markFollowedUp, { ids: mentioned.map((d) => d.id) });
   }
-  await ctx.runMutation(internal.friend.entries.append, { id, userMessage: userMessage ?? undefined, assistantMessage: text, endedWithQuestion: /\?\s*$/.test(text) });
+  const { clean, reactions } = pullReactions(text, userPartCount);
+  text = clean;
+  await ctx.runMutation(internal.friend.entries.append, { id, userMessage: userMessage ?? undefined, assistantMessage: text, endedWithQuestion: /\?\s*$/.test(text), pipReactions: reactions });
   return { reply: text, crisis: false };
 }
 
@@ -112,7 +136,7 @@ export const summarize = internalAction({
     const row = await ctx.runQuery(internal.friend.entries.rowForSummary, { id: args.id });
     if (!row || row.updatedAt !== args.updatedAt || row.messages.length < 2) return;
     if (row.summarizedAt && row.summarizedAt >= row.updatedAt) return;
-    const transcript = row.messages.map((m) => `${m.role === "user" ? "Her" : "Pip"}: ${m.content}`).join("\n").slice(-12000);
+    const transcript = row.messages.map((m) => `${m.role === "user" ? "Her" : "Pip"}: ${m.content}${m.role === "assistant" && m.reactions?.length ? `\nHer: ${reactionNote(m.content, m.reactions)}` : ""}`).join("\n").slice(-12000);
     const text = await ask(client(), SUMMARIZER_PROMPT + `\nToday is ${todayKey()}.`, [{ role: "user", content: transcript }], 1200);
     const out = parseSummary(text);
     await ctx.runMutation(internal.friend.entries.absorb, { id: args.id, out });

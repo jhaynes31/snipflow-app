@@ -39,3 +39,16 @@
 }
 :root[data-theme="dark"] .fr-msg-pip { background: rgba(255,255,255,0.06); }
 :root[data-theme="dark"] .fr-invite { background: rgba(201,163,106,0.12); }
+
+/* Reactions (2026-11-04): hold a part to react; chips under it. */
+.fr-part-wrap + .fr-part-wrap { margin-top: 0.35rem; }
+.fr-part { border-radius: 0.5rem; padding: 0.05rem 0.25rem; margin: 0 -0.25rem; cursor: default; user-select: text; -webkit-touch-callout: none; }
+.fr-part:active, .fr-part.is-open { background: rgba(201,163,106,0.18); }
+.fr-part-user:active { background: transparent; }
+.fr-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin: 0.3rem 0; padding: 0.3rem 0.4rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+.fr-emoji { font-size: 1.25rem; line-height: 1; background: none; border: 0; padding: 0.15rem 0.3rem; border-radius: 999px; cursor: pointer; }
+.fr-emoji:hover { background: rgba(201,163,106,0.22); transform: scale(1.15); }
+.fr-emoji-input { width: 3.2rem; font: inherit; padding: 0.15rem 0.4rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: inherit; }
+.fr-reactions { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.15rem; }
+.fr-reaction { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.95rem; line-height: 1; padding: 0.15rem 0.45rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.fr-reactions-pip .fr-reaction { cursor: default; background: rgba(255,255,255,0.85); color: #2f2a24; }

@@ -279,3 +279,35 @@ export function surpriseActivity<T extends { _id: string; energy: Energy; durati
 export function todayKey(now: number = Date.now()): string {
   return new Date(now).toISOString().slice(0, 10);
 }
+
+// ---------- Parts of a message, for reactions ----------
+
+/**
+ * The pieces of a Pip message she can react to: paragraphs when there are
+ * two or more, otherwise sentences. The same split runs in the browser and
+ * on the server so a reaction's part index means the same thing in both.
+ */
+export function splitParts(text: string): string[] {
+  const paras = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  if (paras.length >= 2) return paras;
+  const one = paras[0] ?? text.trim();
+  if (!one) return [];
+  const sentences = one.split(/(?<=[.!?…])\s+(?=[^\s])/).map((p) => p.trim()).filter(Boolean);
+  return sentences.length ? sentences : [one];
+}
+
+export const REACTION_EMOJI = ["😂", "❤️", "😮", "😢", "🙄", "👍", "🔥", "🙏"];
+
+export const REACT_TAG = /\[\[\s*react:\s*([^\]:]+?)\s*:\s*(\d+)\s*\]\]/g;
+
+/** Pip's [[react:EMOJI:N]] tags out of the reply, as a reaction on part N-1 of her message. One at most. */
+export function pullReactions(text: string, partCount: number): { clean: string; reactions: { part: number; emoji: string }[] } {
+  const reactions: { part: number; emoji: string }[] = [];
+  const clean = text.replace(REACT_TAG, (_m, emoji: string, n: string) => {
+    const part = Number(n) - 1;
+    if (reactions.length === 0 && part >= 0 && part < partCount && emoji.trim()) reactions.push({ part, emoji: emoji.trim().slice(0, 8) });
+    return "";
+  }).replace(/[ \t]{2,}/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return { clean, reactions };
+}
+
