@@ -48,7 +48,10 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
   // Coming back to the same place picks up the conversation from the last day
   // (2026-09-29, Jen's ask), unless this chat opens with its own context or
   // they asked for a new one. Nothing is lost either way; the rest are listed below.
-  const resumed = !id && !initialId && !opening && !fresh ? earlier?.find((c) => c.count > 0 && openedAt - c.updatedAt < RESUME_WINDOW) ?? null : null;
+  // Only the same voice resumes (Dad's chair never reopens Mom's table; Jen, 2026-11-05),
+  // and The Hearth always starts fresh: a visit to a parent is its own conversation.
+  const resumable = !module.startsWith("hearth");
+  const resumed = resumable && !id && !initialId && !opening && !fresh ? earlier?.find((c) => c.count > 0 && (c.task ?? null) === task && openedAt - c.updatedAt < RESUME_WINDOW) ?? null : null;
   const activeId = id ?? resumed?._id ?? null;
   const row = useQuery(api.coach.conversations.get, activeId ? { id: activeId } : "skip");
   const { busy, error, run } = useAction();
@@ -148,11 +151,11 @@ export function CoachChat({ module, task, opening, placeholder = "Ask in your ow
           )}
         </div>
       </form>
-      {earlier && earlier.filter((c) => c._id !== activeId && c.count > 0).length > 0 && (
+      {earlier && earlier.filter((c) => c._id !== activeId && c.count > 0 && (c.task ?? null) === task).length > 0 && (
         <details className="sh-menu mt-3">
-          <summary>Earlier conversations here ({earlier.filter((c) => c._id !== activeId && c.count > 0).length})</summary>
+          <summary>Earlier conversations here ({earlier.filter((c) => c._id !== activeId && c.count > 0 && (c.task ?? null) === task).length})</summary>
           <ul className="sh-list" style={{ marginTop: "0.5rem" }}>
-            {earlier.filter((c) => c._id !== activeId && c.count > 0).map((c) => (
+            {earlier.filter((c) => c._id !== activeId && c.count > 0 && (c.task ?? null) === task).map((c) => (
               <li key={c._id} className="sh-row sh-wrap">
                 <button type="button" className="sh-link" style={{ background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer" }} onClick={() => { setId(c._id); setFresh(false); setCrisis(false); }}>
                   {c.firstLine || "Empty conversation"}
