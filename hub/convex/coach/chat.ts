@@ -62,7 +62,7 @@ export const send = action({
       known: args.task?.startsWith("hearth.") ? [] : context.known,
       kept: context.kept,
       felt: context.felt,
-      rooted: args.task?.startsWith("rooted.") || args.task?.startsWith("orchard.") || args.task === "reCentered.circle" || args.task === "reCentered.talk" || args.task?.startsWith("hearth.") ? context.rooted : null,
+      rooted: args.task?.startsWith("rooted.") || args.task?.startsWith("orchard.") || args.task === "reCentered.circle" || args.task === "reCentered.talk" || args.task?.startsWith("hearth.") || args.task === "tend.repair" || args.task === "tend.talkItOut" ? context.rooted : null,
     });
 
     const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });

@@ -11,6 +11,7 @@ import { Read } from "./screens/Read";
 import { Secure } from "./screens/Secure";
 import { Talk } from "./screens/Talk";
 import { Today } from "./screens/Today";
+import { Us } from "./screens/Us";
 
 /**
  * Rooted (2026-11-03, Jen's ask): attachment work. Learn the four styles,
@@ -46,6 +47,7 @@ export const rooted: ModuleManifest = {
     else if (first === "fail-safes") screen = <FailSafes />;
     else if (first === "people") screen = <People />;
     else if (first === "talk") screen = <Talk />;
+    else if (first === "us") screen = <Us page={second ?? null} />;
     else screen = <Home />;
     return <Shell>{screen}</Shell>;
   },

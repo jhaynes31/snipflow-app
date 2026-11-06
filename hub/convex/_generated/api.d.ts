@@ -71,6 +71,7 @@ import type * as reCentered_room from "../reCentered/room.js";
 import type * as rooms from "../rooms.js";
 import type * as rooted_entries from "../rooted/entries.js";
 import type * as rooted_pure from "../rooted/pure.js";
+import type * as rooted_us from "../rooted/us.js";
 import type * as safetyPlan from "../safetyPlan.js";
 import type * as friend_chat from "../friend/chat.js";
 import type * as friend_entries from "../friend/entries.js";
@@ -185,6 +186,7 @@ declare const fullApi: ApiFromModules<{
   rooms: typeof rooms;
   "rooted/entries": typeof rooted_entries;
   "rooted/pure": typeof rooted_pure;
+  "rooted/us": typeof rooted_us;
   safetyPlan: typeof safetyPlan;
   "friend/chat": typeof friend_chat;
   "friend/entries": typeof friend_entries;
