@@ -1900,4 +1900,40 @@ export default defineSchema({
     day: v.string(),
     createdAt: v.number(),
   }).index("by_owner_day", ["ownerId", "day"]),
+
+  /**
+   * Us (2026-11-06, Jen's ask): the anxious–avoidant dance in their marriage.
+   * rtUs is one shared row per couple that both edit: the loop map and the
+   * agreements. rtSide is each person's private self-discovery, shareable one
+   * answer at a time. rtCatches is each person's private accountability log.
+   */
+  rtUs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    trigger: v.string(),
+    steps: v.array(v.object({ who: v.id("profiles"), does: v.string(), feels: v.string(), thinks: v.string(), needs: v.string() })),
+    ends: v.string(),
+    agreements: v.record(v.string(), v.string()),
+    signed: v.array(v.id("profiles")),
+    updatedAt: v.number(),
+    updatedBy: v.id("profiles"),
+  }).index("by_owner", ["ownerId"]),
+
+  rtSide: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    key: v.string(),
+    text: v.string(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId", "key"]),
+
+  rtCatches: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    role: v.string(),
+    what: v.string(),
+    instead: v.optional(v.string()),
+    next: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
 });

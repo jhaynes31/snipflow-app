@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Compass, Eye, MessageCircle, ShieldCheck, Sprout, Sun, Users } from "lucide-react";
+import { BookOpen, Compass, Eye, HeartHandshake, MessageCircle, ShieldCheck, Sprout, Sun, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import "./rooted.css";
 
@@ -15,6 +15,7 @@ const NAV = [
   { href: `${ROUTE}/read`, label: "The avoidant read", icon: Eye },
   { href: `${ROUTE}/fail-safes`, label: "Fail safes", icon: ShieldCheck },
   { href: `${ROUTE}/people`, label: "Past people", icon: Users },
+  { href: `${ROUTE}/us`, label: "Us", icon: HeartHandshake },
   { href: `${ROUTE}/talk`, label: "Talk", icon: MessageCircle },
 ];
 

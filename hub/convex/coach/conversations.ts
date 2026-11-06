@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { failSafesText, leanOf, readRootedSettings } from "../rooted/pure";
+import { usContext } from "../rooted/us";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { access, cleanText, requireMe, requireOwned } from "../lib";
 import { roomOwner as reCenteredOwner } from "../reCentered/room";
@@ -167,6 +168,7 @@ export const contextFor = internalQuery({
     const rootedSettings = readRootedSettings(me.profile.moduleSettings);
     const lastCheck = await ctx.db.query("rtChecks").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").first();
     const rooted = {
+      us: row.task === "rooted.us" || row.task === "tend.repair" || row.task === "tend.talkItOut" ? await usContext(ctx, me) : [],
       failSafes: failSafesText(rootedSettings),
       latest: lastCheck ? `${new Date(lastCheck.createdAt).toISOString().slice(0, 10)}, leaning ${leanOf(lastCheck)}${lastCheck.pulled.length ? `; pulled by: ${lastCheck.pulled.join(", ")}` : ""}${lastCheck.steadied.length ? `; steadied by: ${lastCheck.steadied.join(", ")}` : ""}${lastCheck.note ? `; ${lastCheck.note.slice(0, 300)}` : ""}` : null,
     };

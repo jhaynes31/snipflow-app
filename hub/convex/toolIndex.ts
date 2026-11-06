@@ -100,6 +100,10 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rt.read", "The avoidant read", "Rooted", "/rooted/read", "Early tells of an avoidant pattern, each with its fair exception, and what to watch by when.", ["avoidant", "pulling away", "hot and cold", "went quiet", "not a texter", "is he avoidant", "is she avoidant", "mixed signals", "breadcrumbs", "distant"]),
   T("rt.failsafes", "My fail safes", "Rooted", "/rooted/fail-safes", "Your pacing vow and tripwires, written on a calm day, read back on a shaky one.", ["fail safe", "tripwire", "my vow", "pacing", "before i invest", "don't get attached", "walk away early"]),
   T("rt.people", "The map of past people", "Rooted", "/rooted/people", "The people who shaped the pattern: what each cost, what each taught.", ["past people", "my exes", "pattern of people", "every time", "same person again", "history with avoidants"]),
+  T("rt.us", "Us: the loop", "Rooted", "/rooted/us", "The anxious–avoidant dance in your marriage: see it together, own your part, choose different moves.", ["our loop", "pursue", "withdraw", "he shuts down", "she chases", "push and pull", "we're in it", "the cycle", "our dynamic", "marriage pattern"]),
+  T("rt.usInstead", "Instead: the moves", "Rooted", "/rooted/us/instead", "Alternative moves by role: the soft thing under the sharp thing, two more minutes, the pause by the rules.", ["what do i do instead", "about to chase him", "about to shut down", "instead of", "different move"]),
+  T("rt.usAgreements", "Our agreements", "Rooted", "/rooted/us/agreements", "The pause word, how long, how we come back, the weekly fifteen minutes.", ["pause word", "our agreement", "time out", "come back", "weekly check in"]),
+  T("rt.usCaught", "I caught it", "Rooted", "/rooted/us/caught", "Your own log: the loop, your part, what you did instead.", ["i caught it", "i pursued", "i withdrew", "my part", "accountability"]),
   T("rt.talk", "Talk it through in Rooted", "Rooted", "/rooted/talk", "The coach, with attachment knowledge and your fail safes in hand.", ["talk about attachment", "am i chasing", "read this person", "help me not chase"]),
   T("rc.circle", "Someone in my circle", "Re-Centered", "/love-and-release/circle", "Write what you know about someone you're letting in; tap green and red flags; the coach sorts it.", ["circle", "new person", "letting in", "let them in", "green flag", "red flag", "green flags", "red flags", "confront", "monitor", "trust them", "should i trust", "sort them out"]),
   T("rc.boundaries", "My word to me", "Re-Centered, John and me", "/love-and-release/john/boundaries", "What you will and won't do, and your if-then plan.", ["boundary with john", "my word to me", "if then", "i won't", "what i will do"], "re-centered"),
@@ -259,6 +263,7 @@ export const DOORS_HER: Door[] = [
   { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "I'm adding someone to my circle", toolKey: "rc.circle" },
+  { label: "John and I are in the loop", toolKey: "rt.us" },
   { label: "Someone pulled away and I want to chase", toolKey: "rt.secure" },
   { label: "Is this person avoidant?", toolKey: "rt.read" },
   { label: "I'm lonely", toolKey: "orchard.lonely" },
@@ -271,6 +276,7 @@ export const DOORS_HER: Door[] = [
 
 export const DOORS_JOHN: Door[] = [
   { label: "I don't know what I'm feeling", toolKey: "hub.felt" },
+  { label: "We're in the loop", toolKey: "rt.us" },
   { label: "Walk me through it", toolKey: "hub.paths" },
   { label: "Something I'm learning", toolKey: "hub.mantel" },
   { label: "I can't get started", toolKey: "tend.smallestStep" },
