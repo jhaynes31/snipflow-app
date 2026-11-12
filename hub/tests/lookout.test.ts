@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { INTAKE, MUST_HAVE_FOR_DOCUMENTS, nextQuestion } from "../convex/lookout/intake.ts";
 import { vetChange } from "../convex/lookout/adminPure.ts";
 import { AGENCIES, daysUntil, recruiterNote, searchLink } from "../convex/lookout/agencies.ts";
-import { chooseSearch, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
+import { chooseSearch, requiresDegree, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
 import { MANAGES_PEOPLE, workdayPosted, boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, questionKey, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
@@ -604,5 +604,19 @@ describe("Workday, BambooHR, and Breezy boards", () => {
     assert.equal(parseSource({ kind: "bamboohr", token: "acme", name: "Acme", enabled: true }, { result: [{ id: "42", jobOpeningName: "Claims Coordinator", isRemote: true, location: { city: "Austin", state: "Texas" } }] })[0].url, "https://acme.bamboohr.com/careers/42");
     assert.equal(parseSource({ kind: "breezy", token: "acme", name: "Acme", enabled: true }, [{ id: "1", name: "Support Specialist", url: "https://acme.breezy.hr/p/1", location: { name: "Remote", is_remote: true }, salary: "$26 to $29 per hour" }])[0].title, "Support Specialist");
     assert.equal(workdayPosted("Posted Today", 1000), 1000);
+  });
+});
+
+describe("degree requirements (2026-11-12)", () => {
+  it("catches a bachelor's degree or higher made a must", () => {
+    for (const t of ["Requirements:\n• Bachelor's degree in business or related field\n• 2 years customer service", "Bachelor's degree required.", "Must have a BA/BS.", "Minimum qualifications\nBachelor's degree\n3+ years experience", "Master's degree required.", "What you'll need\nA four-year college degree\nGreat writing"]) assert.ok(requiresDegree(t), t);
+  });
+  it("lets through a degree that's preferred or replaceable, and an associate's", () => {
+    for (const t of ["Bachelor's degree preferred.", "Bachelor's degree or equivalent experience.", "Requirements:\n• Bachelor's degree or 4 years of relevant experience", "Preferred qualifications:\n• Bachelor's degree", "Associate's degree required.", "High school diploma or GED required. Bachelor's degree a plus.", "Education may be substituted for experience: a bachelor's degree."]) assert.equal(requiresDegree(t), null, t);
+  });
+  it("a required degree fails the job, unless Settings lets degree jobs in", () => {
+    const f: Facts = { ...verifiedGood, ...scanListing("Requirements:\n• Bachelor's degree required").facts };
+    assert.equal(rank(f).verdict, "rejected");
+    assert.notEqual(rank(f, { req: { minHourly: 25, maxHours: 35, homeState: "West Virginia", allowDegree: true } }).verdict, "rejected");
   });
 });

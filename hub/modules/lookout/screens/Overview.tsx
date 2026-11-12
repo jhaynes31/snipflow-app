@@ -91,7 +91,7 @@ export function Overview() {
                 <p className="sh-hint"><strong>{new Date(entry.at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>: {entry.sources.length} sites asked, {entry.sources.filter((x) => x.found > 0).length} answered with listings, {entry.found} listings read, {entry.kept} fit, {entry.fresh} new</p>
                 {i === 0 && (
                   <ul className="sh-list sh-hint">
-                    {entry.sources.map((r) => <li key={r.name}>{r.name}: {r.problem ? r.problem : `${r.found} listings, ${r.kept} that fit${r.noPay ? `, ${r.noPay} more left out for not stating pay` : ""}${r.senior ? `, ${r.senior} left out as management` : ""}`}</li>)}
+                    {entry.sources.map((r) => <li key={r.name}>{r.name}: {r.problem ? r.problem : `${r.found} listings, ${r.kept} that fit${r.noPay ? `, ${r.noPay} more left out for not stating pay` : ""}${r.senior ? `, ${r.senior} left out as management` : ""}${r.degree ? `, ${r.degree} left out for requiring a bachelor's degree` : ""}`}</li>)}
                   </ul>
                 )}
               </div>

@@ -113,6 +113,7 @@ function settingsView(row: Doc<"loSettings"> | null) {
     allowHealthDisclosure: row?.allowHealthDisclosure ?? false,
     requirePay: row?.requirePay ?? true,
     allowSenior: row?.allowSenior ?? false,
+    allowDegree: row?.allowDegree ?? false,
     // Only whether it's connected and the email; the key itself never leaves the server.
     usajobsEmail: row?.usajobs?.email ?? null,
     adzunaAppId: row?.adzuna?.appId ?? null,
@@ -140,7 +141,7 @@ async function profileSource(ctx: Ctx, ownerId: Id<"profiles">): Promise<string>
 }
 
 function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile: string) {
-  return rank(job.facts as Facts, { req: { minHourly: s.minHourly, maxHours: s.maxHours, homeState: s.homeState }, weights: s.weights, jobText: `${job.title}\n${job.description}`, profileText: profile });
+  return rank(job.facts as Facts, { req: { minHourly: s.minHourly, maxHours: s.maxHours, homeState: s.homeState, allowDegree: s.allowDegree }, weights: s.weights, jobText: `${job.title}\n${job.description}`, profileText: profile });
 }
 
 // ---------- Whose search ----------
@@ -281,6 +282,7 @@ export const setSettings = mutation({
     allowHealthDisclosure: v.optional(v.boolean()),
     requirePay: v.optional(v.boolean()),
     allowSenior: v.optional(v.boolean()),
+    allowDegree: v.optional(v.boolean()),
     minHourly: v.optional(v.number()),
     maxHours: v.optional(v.number()),
     homeState: v.optional(v.string()),
@@ -296,6 +298,7 @@ export const setSettings = mutation({
     const patch: Partial<Doc<"loSettings">> = { updatedAt: Date.now() };
     if (args.partnerAccess !== undefined) patch.partnerAccess = args.partnerAccess;
     if (args.allowHealthDisclosure !== undefined) patch.allowHealthDisclosure = args.allowHealthDisclosure;
+    if (args.allowDegree !== undefined) patch.allowDegree = args.allowDegree;
     if (args.allowSenior !== undefined) {
       patch.allowSenior = args.allowSenior;
       if (!args.allowSenior) await shelveTooSenior(ctx, a.ownerId, false, row.keywords);
@@ -1142,7 +1145,7 @@ const postingV = v.object({ title: v.string(), employer: v.string(), url: v.stri
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
-  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), problem: v.optional(v.string()) }))) },
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
     let fresh = 0;

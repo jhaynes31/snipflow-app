@@ -40,6 +40,7 @@ export const READ_SYSTEM = `You read a job listing for a person with firm requir
 
 For each fact, answer only from what the listing actually says. "unknown" is the right answer whenever the listing doesn't say. Quote the listing's own words in "quote" (under 200 characters) whenever you answer yes or no; leave quote empty for unknown. Never guess from the company's reputation.
 - value: for payMin and payMax a plain number; payUnit one of hour, week, month, year; hours a number of hours per week; employment "employee" or "contractor"; schedule one of ${SCHEDULE_KINDS.join(", ")}; interaction one of ${INTERACTION_KINDS.join(", ")}. Otherwise empty.
+- degreeRequired: "yes" only when the listing makes a bachelor's degree or higher a must (required, minimum, must have, or listed under required qualifications with no softener). "no" when it says the degree is preferred, a plus, or replaceable by equivalent experience, or asks for an associate's degree or less. "unknown" when it doesn't mention one.
 - state "yes" for a fact means the listing says it is true. For coldCalling, salesQuota, commissionOnly, phoneHeavy, meetingsFrequent, realtimeConstant, and weekendsOrOnCall, "yes" means the listing includes that thing.`;
 
 /** The facts the reader may report. Legitimacy and whether it's open are checked by people and pages, not read. */
