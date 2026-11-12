@@ -50,6 +50,7 @@ export const FACT_KEYS = [
   "weekendsOrOnCall",
   "legitimate",
   "open",
+  "degreeRequired",
 ] as const;
 export type FactKey = (typeof FACT_KEYS)[number];
 export type Facts = Partial<Record<FactKey, Fact>>;
@@ -79,6 +80,7 @@ export const FACT_LABEL: Record<FactKey, string> = {
   weekendsOrOnCall: "Weekends, on call, or mandatory overtime",
   legitimate: "Employer checked out as real",
   open: "Vacancy still open",
+  degreeRequired: "Requires a bachelor's degree or higher",
 };
 
 /** The facts a job cannot be approved without. An unknown here means "check this". */
@@ -131,6 +133,8 @@ export function mergeFacts(old: Facts, incoming: Facts): Facts {
 export interface Requirements {
   /** Lowest guaranteed base pay, dollars per hour. */
   minHourly: number;
+  /** Let in jobs that require a bachelor's degree or higher. Off unless set. */
+  allowDegree?: boolean;
   /** Most hours a week, including any required overtime. */
   maxHours: number;
   homeState: string;
@@ -281,6 +285,10 @@ export function hardChecks(facts: Facts, req: Requirements = DEFAULT_REQUIREMENT
 
   const open = fact(facts, "open");
   if (no(open)) add("open", "Still open", "fail", "The listing has closed.");
+
+  // A required bachelor's degree or higher sets the job aside (Jen, 2026-11-12). Unknown is fine: most listings don't say.
+  const degree = fact(facts, "degreeRequired");
+  if (yes(degree) && !req.allowDegree) add("degree", "No bachelor's degree required", "fail", `It requires a bachelor's degree or higher${sourceNote(degree)}.`);
 
   return checks;
 }
@@ -582,6 +590,8 @@ export function scanListing(text: string, homeState = "West Virginia"): { facts:
     }
   }
   if (facts.commissionOnly?.state === "yes") set("payGuaranteed", { state: "no", source: "listing", note: facts.commissionOnly.note }, facts.commissionOnly.note ?? "");
+  const degree = requiresDegree(text);
+  if (degree) set("degreeRequired", { state: "yes", source: "listing", note: degree }, degree);
   const hours = parseHours(text);
   if (hours) set("hours", { state: "yes", value: String(hours.hours), source: "listing", note: hours.quote }, hours.quote);
   else {
@@ -748,8 +758,8 @@ export function chooseSearch(o: { mine: boolean; partnerOpen: boolean; want?: "s
 
 // ---------- Re-reading after the rules change ----------
 
-/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. 4: management and (by default) senior titles, and listings that manage people, are left out. */
-export const SCAN_VERSION = 4;
+/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. 4: management and (by default) senior titles, and listings that manage people, are left out. 5: a required bachelor's degree or higher sets a job aside. */
+export const SCAN_VERSION = 5;
 
 /**
  * Re-read a stored listing: facts the scanner wrote are replaced by a fresh
@@ -770,4 +780,41 @@ export function rescanFacts(old: Facts, text: string, homeState: string, remoteB
 /** A job listed on a remote-only job board is remote, unless its own words say hybrid or on site (the scanner reads those first). */
 export function remoteBoardFact(boardName: string): Fact {
   return { state: "yes", source: "listing", note: `Listed on ${boardName}, a remote only job board.` };
+}
+
+// ---------- Degree requirements ----------
+
+/** A bachelor's degree or higher, however a listing writes it. An associate's degree isn't one. */
+const DEGREE = /\b(?:bachelor'?s?|baccalaureate|b\.?\s?a\.?(?=[\s,/])|b\.?\s?s\.?(?=[\s,/])|ba\/bs|bs\/ba|four[\s-]year (?:college |university )?degree|4[\s-]year (?:college |university )?degree|college degree|university degree|undergraduate degree|master'?s|mba|ph\.?\s?d|doctorate|graduate degree)\b/i;
+/** Wording that makes the degree optional. */
+const OPTIONAL = /\b(?:preferred|preferably|a plus|is a plus|nice to have|desired|desirable|bonus|ideally|or equivalent|or an equivalent|equivalent (?:combination|work|professional|practical|relevant)? ?experience|equivalent combination|in lieu|substitute|substituted|or relevant (?:work )?experience|or (?:\d+|one|two|three|four|five) (?:\+ )?years?|or comparable experience|not required|isn't required|is not required|no degree)\b/i;
+/** Wording that makes it a must. */
+const MANDATORY = /\b(?:required|requires|require|must have|must possess|must hold|mandatory|minimum|at least|is a must|needed|need to have)\b/i;
+/** Section headings that list what's required, and ones that list what's preferred. */
+const REQUIRED_HEADING = /\b(?:requirements?|required|qualifications|minimum|basic qualifications|must haves?|what you(?:'ll)? need|what we(?:'re)? looking for|who you are|you have|education)\b/i;
+const PREFERRED_HEADING = /\b(?:preferred|nice to have|bonus|a plus|plus if you|extra credit)\b/i;
+
+/**
+ * Whether a listing makes a bachelor's degree or higher a must. Read line by
+ * line under its section headings: a degree with "preferred", "or
+ * equivalent experience", or a substitute is optional; one with "required"
+ * or "must", or listed under a requirements heading without a softener, is
+ * required. Returns the line that says so, or null.
+ */
+export function requiresDegree(text: string): string | null {
+  let heading = "";
+  for (const raw of text.replace(/\r/g, "").split(/\n|(?<=[.;])\s+(?=[A-Z•])/)) {
+    const line = raw.replace(/^[\s•*\-–—]+/, "").trim();
+    if (!line) continue;
+    // A short line without a full stop, or one ending in a colon, is a heading.
+    if ((line.length < 60 && !/[.;]$/.test(line) && !DEGREE.test(line)) || /:$/.test(line)) {
+      heading = line;
+      if (!/:$/.test(line) || !DEGREE.test(line)) continue;
+    }
+    if (!DEGREE.test(line)) continue;
+    if (OPTIONAL.test(line)) continue;
+    if (MANDATORY.test(line)) return line.slice(0, 200);
+    if (REQUIRED_HEADING.test(heading) && !PREFERRED_HEADING.test(heading)) return line.slice(0, 200);
+  }
+  return null;
 }

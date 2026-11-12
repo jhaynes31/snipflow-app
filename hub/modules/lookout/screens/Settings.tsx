@@ -40,6 +40,7 @@ export function LookoutSettings() {
       <Card>
         <h2 className="sh-h2">Hard requirements</h2>
         <p className="sh-hint">A job that fails one of these is set aside, whatever else it offers. No cold calling, no commission only pay, and no office or relocation are always on.</p>
+        <Toggle checked={!s.allowDegree} onChange={(on) => void run(async () => { await set({ allowDegree: !on }); done(); })} label="Leave out jobs that require a bachelor's degree or higher" hint="On: jobs that make a bachelor's, master's, or other four year degree a must are left out of searches, and ones already found are set aside with the reason. A degree that's only preferred, or that equivalent experience can replace, doesn't count." />
         <Toggle checked={s.allowSenior} onChange={(allowSenior) => void run(async () => { await set({ allowSenior }); done(); })} label="Include Senior and Lead titles" hint="Off: titles with Senior, Sr., Lead, or level III and up are left out, and so are found ones already listed. On: those are included (like the Senior Specialist, Customer Care role at Wesco). Manager, supervisor, director, and jobs that manage people are always left out." />
         <Toggle checked={s.requirePay} onChange={(requirePay) => void run(async () => { await set({ requirePay }); done(); })} label="Only bring in jobs that state their pay" hint="Found jobs that don't say what they pay are left out of searches, and ones already found move to Earlier finds. Jobs you add by hand are always kept." />
         <div className="sh-row sh-wrap">

@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
-import { fingerprint, parsePay } from "./pure";
+import { fingerprint, parsePay, requiresDegree } from "./pure";
 import { htmlToText, isFeed, MANAGES_PEOPLE, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 
 /**
@@ -81,6 +81,8 @@ interface SourceResult {
   noPay: number;
   /** Listings left out because they manage people. */
   senior?: number;
+  /** Listings left out because they require a bachelor's degree or higher. */
+  degree?: number;
   problem?: string;
 }
 
@@ -89,7 +91,7 @@ interface Creds {
   adzuna: { appId: string; key: string } | null;
 }
 
-async function readSource(source: Source, keywords: string[], requirePay: boolean, creds: Creds, allowSenior: boolean): Promise<SourceResult> {
+async function readSource(source: Source, keywords: string[], requirePay: boolean, creds: Creds, allowSenior: boolean, allowDegree: boolean): Promise<SourceResult> {
   const { usajobs, adzuna } = creds;
   const recent = Date.now() - 45 * 86400000;
   try {
@@ -113,8 +115,10 @@ async function readSource(source: Source, keywords: string[], requirePay: boolea
     // Jobs that don't say what they pay are left out (Jen, 2026-11-02), and counted so the log shows it.
     // Listings that manage people are above his level whatever the title says.
     const level = filled.filter((p) => !MANAGES_PEOPLE.test(p.description));
-    const paid = requirePay ? level.filter((p) => parsePay(p.description)) : level;
-    return { name: source.name, found: postings.length, kept: paid, noPay: level.length - paid.length, senior: filled.length - level.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
+    // Jobs that require a bachelor's degree or higher are left out (Jen, 2026-11-12).
+    const noDegree = allowDegree ? level : level.filter((p) => !requiresDegree(`${p.title}\n${p.description}`));
+    const paid = requirePay ? noDegree.filter((p) => parsePay(p.description)) : noDegree;
+    return { name: source.name, found: postings.length, kept: paid, noPay: noDegree.length - paid.length, senior: filled.length - level.length, degree: level.length - noDegree.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
   } catch (err) {
     return { name: source.name, found: 0, kept: [], noPay: 0, problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
   }
@@ -128,7 +132,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
   const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay, creds, s.allowSenior)));
+  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay, creds, s.allowSenior, s.allowDegree)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
@@ -137,7 +141,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const answered = results.filter((r) => r.found > 0).length;
   const noPay = results.reduce((n, r) => n + r.noPay, 0);
   const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
-  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, problem: r.problem }));
+  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, degree: r.degree, problem: r.problem }));
   const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
   return { found, kept: batch.length, fresh, note };
 }
