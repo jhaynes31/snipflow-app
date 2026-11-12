@@ -5,7 +5,7 @@ import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
-import { chooseSearch, remoteBoardFact, rescanFacts, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
+import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
 import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
@@ -117,6 +117,7 @@ function settingsView(row: Doc<"loSettings"> | null) {
     // Only whether it's connected and the email; the key itself never leaves the server.
     usajobsEmail: row?.usajobs?.email ?? null,
     adzunaAppId: row?.adzuna?.appId ?? null,
+    joobleConnected: !!row?.jooble,
     lastSearchAt: row?.lastSearchAt,
     lastSearchNote: row?.lastSearchNote,
     lastSearchSources: row?.lastSearchSources ?? [],
@@ -251,9 +252,10 @@ export const refreshReadings = mutation({
     if (version >= SCAN_VERSION) return 0;
     const row = await ensureSettings(ctx, a.ownerId);
     const jobs = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect();
+    const profile = await profileSource(ctx, a.ownerId);
     for (const j of jobs) {
       // Earlier finds that the tighter title and country checks would now leave out move out of the way.
-      if (UNSAVED.includes(j.status) && !j.shelvedAt && j.sourceKind !== "manual" && (!titleFits(j.title, row.keywords, row.allowSenior ?? false) || !usFriendly(j.location) || MANAGES_PEOPLE.test(j.description))) await ctx.db.patch(j._id, { shelvedAt: Date.now() });
+      if (UNSAVED.includes(j.status) && !j.shelvedAt && j.sourceKind !== "manual" && (!titleFits(j.title, row.keywords, row.allowSenior ?? false) || !usFriendly(j.location) || MANAGES_PEOPLE.test(j.description) || (!(row.allowSenior ?? false) && seniorInText(j.description)) || missingExperience(j.description, profile))) await ctx.db.patch(j._id, { shelvedAt: Date.now() });
       const r = rescanFacts(j.facts as Facts, `${j.title}\n${j.location ?? ""}\n${j.description}`, row.homeState, REMOTE_ONLY[j.sourceKind]);
       await ctx.db.patch(j._id, { facts: r.facts, warnings: r.warnings });
     }
@@ -366,12 +368,28 @@ export const setAdzuna = mutation({
   },
 });
 
-/** For the search only: the USAJOBS and Adzuna keys, server side. */
+/** Connect Jooble: the API key from jooble.org/api/about. Blank clears it. */
+export const setJooble = mutation({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const row = await ensureSettings(ctx, a.ownerId);
+    const key = args.key.trim();
+    if (!key) {
+      await ctx.db.patch(row._id, { jooble: undefined, updatedAt: Date.now() });
+      return;
+    }
+    if (!/^[A-Za-z0-9-]{16,80}$/.test(key)) throw new ConvexError("That doesn't look like a Jooble key. Copy the whole key from the email or page, with no spaces.");
+    await ctx.db.patch(row._id, { jooble: { key }, updatedAt: Date.now() });
+  },
+});
+
+/** For the search only: the USAJOBS, Adzuna, and Jooble keys, server side. */
 export const apiCreds = internalQuery({
   args: { ownerId: v.id("profiles") },
   handler: async (ctx, args) => {
     const s = await settingsOf(ctx, args.ownerId);
-    return { usajobs: s?.usajobs ?? null, adzuna: s?.adzuna ?? null };
+    return { usajobs: s?.usajobs ?? null, adzuna: s?.adzuna ?? null, jooble: s?.jooble ?? null };
   },
 });
 
@@ -1125,7 +1143,7 @@ export const searchPlan = internalQuery({
     if (!ownerId) ownerId = (await requireLookout(ctx)).ownerId;
     if (!(await hasSearch(ctx, ownerId))) return null;
     const s = settingsView(await settingsOf(ctx, ownerId));
-    return { ownerId, settings: s };
+    return { ownerId, settings: s, profile: await profileSource(ctx, ownerId) };
   },
 });
 
@@ -1145,7 +1163,7 @@ const postingV = v.object({ title: v.string(), employer: v.string(), url: v.stri
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
-  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) }))) },
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
     let fresh = 0;

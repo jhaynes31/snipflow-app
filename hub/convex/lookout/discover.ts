@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
-import { fingerprint, parsePay, requiresDegree } from "./pure";
+import { fingerprint, missingExperience, parsePay, requiresDegree, seniorInText } from "./pure";
 import { htmlToText, isFeed, MANAGES_PEOPLE, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 
 /**
@@ -81,6 +81,8 @@ interface SourceResult {
   noPay: number;
   /** Listings left out because they manage people. */
   senior?: number;
+  /** Listings left out because they ask for years of experience in something he hasn't done. */
+  experience?: number;
   /** Listings left out because they require a bachelor's degree or higher. */
   degree?: number;
   problem?: string;
@@ -89,20 +91,37 @@ interface SourceResult {
 interface Creds {
   usajobs: { email: string; key: string } | null;
   adzuna: { appId: string; key: string } | null;
+  jooble: { key: string } | null;
 }
 
-async function readSource(source: Source, keywords: string[], requirePay: boolean, creds: Creds, allowSenior: boolean, allowDegree: boolean): Promise<SourceResult> {
-  const { usajobs, adzuna } = creds;
+/** What a search leaves out besides title and country, set in Settings. */
+interface Rules {
+  requirePay: boolean;
+  allowSenior: boolean;
+  allowDegree: boolean;
+  /** His confirmed history and answers, for the experience check. */
+  profile: string;
+}
+
+async function readSource(source: Source, keywords: string[], rules: Rules, creds: Creds): Promise<SourceResult> {
+  const { usajobs, adzuna, jooble } = creds;
+  const { requirePay, allowSenior, allowDegree, profile } = rules;
   const recent = Date.now() - 45 * 86400000;
   try {
     // USAJOBS asks for its key and the email it was sent to on every request.
     if (source.kind === "usajobs" && !usajobs) return { name: source.name, found: 0, kept: [], noPay: 0, problem: "waiting for the USAJOBS key (Settings, USAJOBS)" };
     if (source.kind === "adzuna" && !adzuna) return { name: source.name, found: 0, kept: [], noPay: 0, problem: "waiting for the Adzuna app ID and key (Settings, Adzuna)" };
+    if (source.kind === "jooble" && !jooble) return { name: source.name, found: 0, kept: [], noPay: 0, problem: "waiting for the Jooble key (Settings, Jooble)" };
     const headers: Record<string, string> = source.kind === "usajobs" && usajobs ? { "user-agent": usajobs.email, "authorization-key": usajobs.key } : {};
     const url = source.kind === "adzuna" && adzuna ? `${sourceUrl(source)}&app_id=${encodeURIComponent(adzuna.appId)}&app_key=${encodeURIComponent(adzuna.key)}` : sourceUrl(source);
     // Workday's list is a POST, twenty at a time; two pages are read.
-    const res = source.kind === "workday" ? await workdayList(url) : await getJson(url, isFeed(source.kind), headers);
-    if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${source.kind === "usajobs" && (res.status === 401 || res.status === 403) ? " (check the USAJOBS key and email in Settings)" : source.kind === "adzuna" && (res.status === 401 || res.status === 403) ? " (check the Adzuna app ID and key in Settings)" : res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
+    const res =
+      source.kind === "workday"
+        ? await workdayList(url)
+        : source.kind === "jooble" && jooble
+          ? await getJson(`${url}${encodeURIComponent(jooble.key)}`, false, {}, { keywords: `remote ${source.token}`, location: "United States", page: "1" })
+          : await getJson(url, isFeed(source.kind), headers);
+    if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${source.kind === "usajobs" && (res.status === 401 || res.status === 403) ? " (check the USAJOBS key and email in Settings)" : source.kind === "adzuna" && (res.status === 401 || res.status === 403) ? " (check the Adzuna app ID and key in Settings)" : source.kind === "jooble" && (res.status === 401 || res.status === 403 || res.status === 404) ? " (check the Jooble key in Settings)" : res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
     const postings = parseSource(source, res.data);
     const kept: Posting[] = [];
     for (const p of postings) {
@@ -111,14 +130,17 @@ async function readSource(source: Source, keywords: string[], requirePay: boolea
       if (p.postedAt && p.postedAt < recent) continue;
       kept.push(p);
     }
-    const filled = (source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : source.kind === "workday" || source.kind === "bamboohr" ? await Promise.all(kept.slice(0, 20).map((p) => boardDetail(p, source))) : kept).map((p) => ({ ...p, description: [p.description, p.payLine].filter(Boolean).join("\n\n") }));
+    const filled = (source.kind === "smartrecruiters" ? await Promise.all(kept.slice(0, 20).map((p) => smartRecruitersDetail(p, source.token))) : source.kind === "workday" || source.kind === "bamboohr" ? await Promise.all(kept.slice(0, 20).map((p) => boardDetail(p, source))) : kept).map((p) => ({ ...p, description: [p.description, p.payLine, p.seniority ? (/^gs-/i.test(p.seniority) ? `Grade: ${p.seniority}` : `Level: ${p.seniority}`) : ""].filter(Boolean).join("\n\n") }));
     // Jobs that don't say what they pay are left out (Jen, 2026-11-02), and counted so the log shows it.
     // Listings that manage people are above his level whatever the title says.
-    const level = filled.filter((p) => !MANAGES_PEOPLE.test(p.description));
+    // Above his level: managing people, or marked senior by the site or the listing's own words.
+    const level = filled.filter((p) => !MANAGES_PEOPLE.test(p.description) && (allowSenior || !seniorInText(p.description)));
+    // Years of experience in something he hasn't done (Jen, 2026-11-13).
+    const able = level.filter((p) => !missingExperience(p.description, profile));
     // Jobs that require a bachelor's degree or higher are left out (Jen, 2026-11-12).
-    const noDegree = allowDegree ? level : level.filter((p) => !requiresDegree(`${p.title}\n${p.description}`));
+    const noDegree = allowDegree ? able : able.filter((p) => !requiresDegree(`${p.title}\n${p.description}`));
     const paid = requirePay ? noDegree.filter((p) => parsePay(p.description)) : noDegree;
-    return { name: source.name, found: postings.length, kept: paid, noPay: noDegree.length - paid.length, senior: filled.length - level.length, degree: level.length - noDegree.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
+    return { name: source.name, found: postings.length, kept: paid, noPay: noDegree.length - paid.length, senior: filled.length - level.length, experience: level.length - able.length, degree: able.length - noDegree.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
   } catch (err) {
     return { name: source.name, found: 0, kept: [], noPay: 0, problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
   }
@@ -130,9 +152,10 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const s = plan.settings;
   const gap = manual ? MANUAL_GAP_MS : MIN_GAP_MS;
   if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
-  const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null };
+  const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna" || x.kind === "jooble")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null, jooble: null };
+  const rules: Rules = { requirePay: s.requirePay, allowSenior: s.allowSenior, allowDegree: s.allowDegree, profile: plan.profile };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, s.requirePay, creds, s.allowSenior, s.allowDegree)));
+  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, rules, creds)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
@@ -141,7 +164,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const answered = results.filter((r) => r.found > 0).length;
   const noPay = results.reduce((n, r) => n + r.noPay, 0);
   const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
-  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, degree: r.degree, problem: r.problem }));
+  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, experience: r.experience, degree: r.degree, problem: r.problem }));
   const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
   return { found, kept: batch.length, fresh, note };
 }

@@ -758,8 +758,8 @@ export function chooseSearch(o: { mine: boolean; partnerOpen: boolean; want?: "s
 
 // ---------- Re-reading after the rules change ----------
 
-/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. 4: management and (by default) senior titles, and listings that manage people, are left out. 5: a required bachelor's degree or higher sets a job aside. */
-export const SCAN_VERSION = 5;
+/** Bump when scanListing reads differently, so stored jobs are read again. 2: "full time" alone is a question, not 40 hours. 3: pay figures that are funding, bonuses, or stipends are skipped; remote job boards count as remote. 4: management and (by default) senior titles, and listings that manage people, are left out. 5: a required bachelor's degree or higher sets a job aside. 6: senior levels given by the site or the text, and years of experience in something he hasn't done, set a find aside. */
+export const SCAN_VERSION = 6;
 
 /**
  * Re-read a stored listing: facts the scanner wrote are replaced by a fresh
@@ -815,6 +815,72 @@ export function requiresDegree(text: string): string | null {
     if (OPTIONAL.test(line)) continue;
     if (MANDATORY.test(line)) return line.slice(0, 200);
     if (REQUIRED_HEADING.test(heading) && !PREFERRED_HEADING.test(heading)) return line.slice(0, 200);
+  }
+  return null;
+}
+
+// ---------- Level and experience (2026-11-13) ----------
+
+/**
+ * A job marked senior somewhere other than its title: the level the site
+ * gives it (written into the description as "Level: Senior" or "Grade:
+ * GS-12" when found), or the listing's own words ("senior-level", "mid-senior").
+ * Federal GS-11 and up asks for specialized experience at the level below.
+ */
+export const SENIOR_TEXT = /\b(?:senior[\s-]level|mid[\s-]senior(?:[\s-]level)?|seniority(?: level)?:?\s*(?:senior|lead|director|executive|principal)|experience level:?\s*(?:senior|expert|lead|director|executive)|level:\s*(?:senior|lead|principal|manager|director|executive|expert)|grade:\s*gs-(?:1[1-5]))\b/i;
+
+export function seniorInText(text: string): string | null {
+  const m = SENIOR_TEXT.exec(text);
+  return m ? m[0] : null;
+}
+
+/** Words that describe experience he has by definition (ten years of customer service) or that say nothing specific. */
+const GENERAL_WORDS = new Set("customer customers service services support client clients consumer office administrative admin clerical professional work working relevant related experience experiences environment environments setting settings role roles position positions business communication communications computer computers remote team teams fast paced high volume phone phones telephone email emails chat inbound call calls center centre contact public facing customer-facing similar equivalent field fields industry industries company companies corporate organization organizations general overall previous prior total combined least minimum including such like other any etc front desk retail hospitality".split(" "));
+const EXP_STOP = new Set("a an and or the of in with as for to on at by using working doing within from into via plus more than least years year yrs yr experience exp including such".split(" "));
+const OPTIONAL_LINE = /\b(?:preferred|preferably|a plus|is a plus|nice to have|desired|desirable|bonus|ideally|helpful|advantageous|beneficial)\b/i;
+
+/** "3+ years of experience in X", "2 years with X", "4 years of X experience": the years and the X. */
+export function experienceAsks(text: string): { years: number; subject: string; quote: string }[] {
+  const out: { years: number; subject: string; quote: string }[] = [];
+  const lines = text.replace(/\r/g, "").split(/\n|(?<=[.;])\s+/);
+  const forms = [
+    /(\d+)\s*(?:\+|plus|or more)?\s*(?:(?:-|–|to)\s*\d+\s*)?(?:years?|yrs?)\s*(?:of\s+)?(?:(?:professional|relevant|related|direct|hands[\s-]on|recent|progressive|proven|demonstrated|prior|previous)\s+)*(?:experience|exp\.?)?\s*(?:in|with|as an?|as|using|working (?:in|with|as an?|as)|doing|supporting|performing|within|handling|managing)\s+([^.;:\n()]{3,90})/i,
+    /(\d+)\s*(?:\+|plus|or more)?\s*(?:(?:-|–|to)\s*\d+\s*)?(?:years?|yrs?)\s+of\s+([^.;:\n()]{3,70}?)\s+experience\b/i,
+  ];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || OPTIONAL_LINE.test(line)) continue;
+    for (const re of forms) {
+      const m = re.exec(line);
+      if (m) {
+        out.push({ years: Number(m[1]), subject: m[2].trim(), quote: line.slice(0, 200) });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * The first required "N years of experience in X" he doesn't have: two or
+ * more years in something that appears nowhere in his confirmed history or
+ * interview answers. General asks (customer service, office, relevant
+ * experience) never count against him. Null when his profile is empty, so
+ * an unfinished interview doesn't hide every job.
+ */
+export function missingExperience(text: string, profileText: string): string | null {
+  if (profileText.trim().length < 40) return null;
+  // Singular forms, and six-letter stems so "billing" meets "bill" and "processing" meets "processed", without "sales" meeting "salesforce".
+  const one = (w: string) => w.replace(/(?:ies)$/, "y").replace(/(?<=[a-z]{3})s$/, "");
+  const mine = profileText.toLowerCase().replace(/[^a-z0-9+#\s]/g, " ").split(/\s+/).filter(Boolean).map(one);
+  const have = new Set(mine);
+  const stems = new Set(mine.filter((w) => w.length >= 6).map((w) => w.slice(0, 6)));
+  for (const ask of experienceAsks(text)) {
+    if (ask.years < 2) continue;
+    const words = ask.subject.toLowerCase().replace(/[^a-z0-9+#\s]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !EXP_STOP.has(w) && !GENERAL_WORDS.has(w));
+    if (words.length === 0) continue;
+    const known = words.map(one).some((w) => have.has(w) || (w.length >= 6 && stems.has(w.slice(0, 6))));
+    if (!known) return ask.quote;
   }
   return null;
 }
