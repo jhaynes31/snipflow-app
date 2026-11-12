@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { INTAKE, MUST_HAVE_FOR_DOCUMENTS, nextQuestion } from "../convex/lookout/intake.ts";
 import { vetChange } from "../convex/lookout/adminPure.ts";
 import { AGENCIES, daysUntil, recruiterNote, searchLink } from "../convex/lookout/agencies.ts";
-import { chooseSearch, requiresDegree, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
+import { chooseSearch, missingExperience, seniorInText, requiresDegree, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
 import { MANAGES_PEOPLE, workdayPosted, boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, questionKey, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
@@ -618,5 +618,26 @@ describe("degree requirements (2026-11-12)", () => {
     const f: Facts = { ...verifiedGood, ...scanListing("Requirements:\n• Bachelor's degree required").facts };
     assert.equal(rank(f).verdict, "rejected");
     assert.notEqual(rank(f, { req: { minHourly: 25, maxHours: 35, homeState: "West Virginia", allowDegree: true } }).verdict, "rejected");
+  });
+});
+
+describe("level and experience (2026-11-13)", () => {
+  const profile = "Customer Service Representative at Mountain Supply, 2014 to 2024. Channels: Phone, Email, Tickets. Answered billing questions, processed returns and refunds, handled complaints. Tools: Zendesk, Excel, Shopify. Sales Associate at Acme 2025.";
+  it("leaves out years of experience in something he hasn't done", () => {
+    for (const t of ["Requirements: 3+ years of experience in healthcare revenue cycle management.", "3 years of Salesforce Marketing Cloud experience required.", "4 years of experience as an insurance adjuster."]) assert.ok(missingExperience(t, profile), t);
+  });
+  it("keeps general asks, things he has done, one year asks, preferred ones, and an empty profile", () => {
+    for (const t of ["2+ years of customer service experience.", "3+ years of experience with Zendesk or a similar ticketing system.", "5+ years of relevant professional experience.", "1 year of experience in medical billing.", "2 years of experience in billing or collections.", "Must be at least 18 years of age.", "3+ years of experience in a call center environment.", "Experience with Epic EHR (2+ years) preferred."]) assert.equal(missingExperience(t, profile), null, t);
+    assert.equal(missingExperience("3+ years of experience in healthcare revenue cycle.", ""), null, "no profile yet, no judgement");
+  });
+  it("sees senior levels the site or the listing gives", () => {
+    for (const t of ["Level: Senior", "Seniority level: Mid-Senior level", "Grade: GS-12", "This is a senior-level role."]) assert.ok(seniorInText(t), t);
+    for (const t of ["Grade: GS-07", "Level: Mid-level", "Work with senior leaders"]) assert.equal(seniorInText(t), null, t);
+  });
+  it("reads Jooble and the levels Himalayas, Jobicy, and USAJOBS give", () => {
+    const jb = parseSource({ kind: "jooble", token: "claims", name: "Jooble", enabled: true }, { totalCount: 1, jobs: [{ id: 7, title: "Claims Processor", company: "Acme", location: "Remote", snippet: "<b>Remote</b> claims", salary: "$25 - $28 per hour", link: "https://jooble.org/desc/7", updated: "2026-11-10T00:00:00", type: "Full-time", source: "acme.com" }] });
+    assert.equal(jb[0].payLine, "Pay: $25 - $28 per hour");
+    assert.equal(parseSource({ kind: "himalayas", token: "x", name: "H", enabled: true }, { jobs: [{ title: "Support Specialist", companyName: "C", applicationLink: "https://c.example/a", seniority: ["Senior"] }] })[0].seniority, "Senior");
+    assert.equal(parseSource({ kind: "jobicy", token: "x", name: "J", enabled: true }, { jobs: [{ id: 1, url: "https://jobicy.com/jobs/1", jobTitle: "Billing Specialist", companyName: "D", jobLevel: "Midweight" }] })[0].seniority, "Midweight");
   });
 });

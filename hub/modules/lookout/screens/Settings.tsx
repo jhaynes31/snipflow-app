@@ -41,7 +41,7 @@ export function LookoutSettings() {
         <h2 className="sh-h2">Hard requirements</h2>
         <p className="sh-hint">A job that fails one of these is set aside, whatever else it offers. No cold calling, no commission only pay, and no office or relocation are always on.</p>
         <Toggle checked={!s.allowDegree} onChange={(on) => void run(async () => { await set({ allowDegree: !on }); done(); })} label="Leave out jobs that require a bachelor's degree or higher" hint="On: jobs that make a bachelor's, master's, or other four year degree a must are left out of searches, and ones already found are set aside with the reason. A degree that's only preferred, or that equivalent experience can replace, doesn't count." />
-        <Toggle checked={s.allowSenior} onChange={(allowSenior) => void run(async () => { await set({ allowSenior }); done(); })} label="Include Senior and Lead titles" hint="Off: titles with Senior, Sr., Lead, or level III and up are left out, and so are found ones already listed. On: those are included (like the Senior Specialist, Customer Care role at Wesco). Manager, supervisor, director, and jobs that manage people are always left out." />
+        <Toggle checked={s.allowSenior} onChange={(allowSenior) => void run(async () => { await set({ allowSenior }); done(); })} label="Include Senior and Lead titles" hint="Off: titles with Senior, Sr., Lead, or level III and up are left out, and so are jobs the site or the listing marks as senior level (and federal grade GS-11 and up). Found ones already listed move to Earlier finds. On: those are included (like the Senior Specialist, Customer Care role at Wesco). Manager, supervisor, director, and jobs that manage people are always left out." />
         <Toggle checked={s.requirePay} onChange={(requirePay) => void run(async () => { await set({ requirePay }); done(); })} label="Only bring in jobs that state their pay" hint="Found jobs that don't say what they pay are left out of searches, and ones already found move to Earlier finds. Jobs you add by hand are always kept." />
         <div className="sh-row sh-wrap">
           <Field label="Lowest guaranteed pay, per hour"><input className="sh-input sh-input-sm" type="number" min={7.25} step={0.5} defaultValue={s.minHourly} onBlur={(e) => { const n = Number(e.target.value); if (n !== s.minHourly) void run(async () => { await set({ minHourly: n }); done(); }); }} /></Field>
@@ -115,6 +115,7 @@ export function LookoutSettings() {
 
       <UsajobsCard email={s.usajobsEmail} />
       <AdzunaCard appId={s.adzunaAppId} />
+      <JoobleCard connected={s.joobleConnected} />
 
       <Card>
         <h2 className="sh-h2">Privacy</h2>
@@ -224,6 +225,44 @@ function AdzunaCard({ appId }: { appId: string | null }) {
           <div className="sh-row sh-wrap">
             <Btn disabled={busy || !f.appId.trim() || !f.key.trim()} onClick={() => void run(async () => { await save({ appId: f.appId, key: f.key }); setF({ ...f, key: "" }); setChanging(false); setNote("Saved. Adzuna is searched from the next search on; the search log will show what it returned."); })}>Save and connect</Btn>
             {appId && <Btn variant="ghost" onClick={() => setChanging(false)}>Cancel</Btn>}
+          </div>
+        </>
+      )}
+      {note && <Note>{note}</Note>}
+    </Card>
+  );
+}
+
+/**
+ * Jooble: one search across many job sites, read with the free API key
+ * from jooble.org/api/about. The key is saved on the server and never shown again.
+ */
+function JoobleCard({ connected }: { connected: boolean }) {
+  const save = useMutation(api.lookout.data.setJooble);
+  const { busy, error, run } = useAction();
+  const [key, setKey] = useState("");
+  const [changing, setChanging] = useState(!connected);
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <Card>
+      <h2 className="sh-h2">Jooble (jobs from many sites)</h2>
+      {connected && !changing ? (
+        <>
+          <p className="lo-verified">Connected.</p>
+          <p className="sh-hint">Searched for remote customer service, customer support, claims, data entry, billing, administrative, order processing, insurance verification, and email and chat support jobs in the United States.</p>
+          <div className="sh-row sh-wrap">
+            <Btn variant="secondary" onClick={() => setChanging(true)}>Change the key</Btn>
+            <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Disconnect Jooble?")) void run(async () => { await save({ key: "" }); setChanging(true); }); }}>Disconnect</Btn>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="sh-hint">Ask Jooble for a free key at <a className="sh-link" href="https://jooble.org/api/about" target="_blank" rel="noopener noreferrer">jooble.org/api/about</a> (fill in the short form; the key is shown or emailed to you). Paste it below. It&apos;s kept on the server and never shown again.</p>
+          <Field label="Jooble API key"><input className="sh-input" type="password" value={key} maxLength={80} onChange={(e) => setKey(e.target.value)} autoComplete="off" placeholder="Paste the key" /></Field>
+          <ErrorNote error={error} />
+          <div className="sh-row sh-wrap">
+            <Btn disabled={busy || !key.trim()} onClick={() => void run(async () => { await save({ key }); setKey(""); setChanging(false); setNote("Saved. Jooble is searched from the next search on; the search log will show what it returned."); })}>Save and connect</Btn>
+            {connected && <Btn variant="ghost" onClick={() => setChanging(false)}>Cancel</Btn>}
           </div>
         </>
       )}

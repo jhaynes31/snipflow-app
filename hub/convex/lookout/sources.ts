@@ -15,7 +15,7 @@
  * reading, so jobs from there are pasted in by hand and get every check.
  */
 
-export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss" | "usajobs" | "adzuna" | "workday" | "bamboohr" | "breezy";
+export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss" | "usajobs" | "adzuna" | "workday" | "bamboohr" | "breezy" | "jooble";
 
 export interface Source {
   kind: SourceKind;
@@ -45,6 +45,7 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
   workday: "Employer board on Workday",
   bamboohr: "Employer board on BambooHR",
   breezy: "Employer board on Breezy",
+  jooble: "Jooble (jobs from many sites; needs the free API key in Settings)",
 };
 
 /** Job boards that only list remote jobs (The Muse is searched for "Flexible / Remote" only). */
@@ -64,6 +65,7 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
   themuse: { name: "The Muse", url: "https://www.themuse.com" },
   usajobs: { name: "USAJOBS", url: "https://www.usajobs.gov" },
   adzuna: { name: "Adzuna", url: "https://www.adzuna.com" },
+  jooble: { name: "Jooble", url: "https://jooble.org" },
 };
 
 /**
@@ -73,7 +75,7 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
  * Example employer boards are off until turned on, because a board name can
  * change; the search note says when one doesn't answer.
  */
-export const SOURCES_VERSION = 6;
+export const SOURCES_VERSION = 7;
 export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "remotive", token: "customer-support", name: "Remotive: customer support", enabled: true, since: 1 },
   { kind: "remotive", token: "all-others", name: "Remotive: operations and other", enabled: true, since: 1 },
@@ -132,6 +134,15 @@ export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "himalayas", token: "email support", name: "Himalayas: email support", enabled: true, since: 6 },
   { kind: "remotive", token: "search:customer service", name: "Remotive: customer service", enabled: true, since: 6 },
   { kind: "jobicy", token: "customer service", name: "Jobicy: customer service", enabled: true, since: 6 },
+  { kind: "jooble", token: "customer service", name: "Jooble: remote customer service", enabled: true, since: 7 },
+  { kind: "jooble", token: "customer support specialist", name: "Jooble: remote customer support", enabled: true, since: 7 },
+  { kind: "jooble", token: "claims processor", name: "Jooble: remote claims", enabled: true, since: 7 },
+  { kind: "jooble", token: "data entry", name: "Jooble: remote data entry", enabled: true, since: 7 },
+  { kind: "jooble", token: "billing specialist", name: "Jooble: remote billing", enabled: true, since: 7 },
+  { kind: "jooble", token: "administrative assistant", name: "Jooble: remote administrative", enabled: true, since: 7 },
+  { kind: "jooble", token: "order processing", name: "Jooble: remote order processing", enabled: true, since: 7 },
+  { kind: "jooble", token: "insurance verification", name: "Jooble: remote insurance verification", enabled: true, since: 7 },
+  { kind: "jooble", token: "chat support", name: "Jooble: remote email and chat support", enabled: true, since: 7 },
   { kind: "greenhouse", token: "gitlab", name: "GitLab", enabled: false, since: 1 },
   { kind: "ashby", token: "zapier", name: "Zapier", enabled: false, since: 1 },
   { kind: "greenhouse", token: "automatticcareers", name: "Automattic", enabled: false, since: 1 },
@@ -279,6 +290,9 @@ export function sourceUrl(s: Source): string {
       return `https://${t}.bamboohr.com/careers/list`;
     case "breezy":
       return `https://${t}.breezy.hr/json`;
+    case "jooble":
+      // A POST to jooble.org/api/<key>; discover.ts adds the key and the body.
+      return "https://jooble.org/api/";
     case "adzuna":
       // The app ID and key are added in discover.ts. Only the US, the last 30 days, "remote" in the search.
       return `https://api.adzuna.com/v1/api/jobs/us/search/1?results_per_page=50&max_days_old=30&sort_by=date&what=${encodeURIComponent(`remote ${s.token.trim()}`)}&content-type=application/json`;
@@ -314,6 +328,8 @@ export interface Posting {
   deadline?: string;
   /** Structured pay when the source gives it. Appended to the description so the scanner reads it too. */
   payLine?: string;
+  /** The level the site itself gives the job ("Senior", "Mid-level", "GS-11"), when it gives one. */
+  seniority?: string;
 }
 
 /** HTML to readable text: block tags become line breaks, entities decoded, tags dropped. */
@@ -428,6 +444,7 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         postedAt: time(j.pubDate),
         deadline: j.expiryDate ? new Date(time(j.expiryDate) ?? 0).toISOString().slice(0, 10) : undefined,
         payLine: Number.isFinite(min) && min > 0 ? `Salary range: $${min}${Number.isFinite(max) && max > 0 ? ` to $${max}` : ""} ${str(j.currency) || "USD"} per year` : undefined,
+        seniority: arr(j.seniority).map(str).join(", ") || str(j.seniority) || undefined,
       });
     }
   } else if (source.kind === "workable") {
@@ -509,6 +526,7 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         description: [htmlToText(str(j.jobDescription) || str(j.jobExcerpt)), arr(j.jobType).map(str).join(", ")].filter(Boolean).join("\n\n"),
         postedAt: time(j.pubDate),
         payLine: Number.isFinite(min) && min > 0 ? `Salary range: $${min}${Number.isFinite(max) && max > 0 ? ` to $${max}` : ""} ${str(j.salaryCurrency) || "USD"} per year` : undefined,
+        seniority: str(j.jobLevel) || undefined,
       });
     }
   } else if (source.kind === "workingnomads") {
@@ -597,6 +615,21 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         postedAt: time(j.published_date),
       });
     }
+  } else if (source.kind === "jooble") {
+    for (const j of arr(obj(data).jobs).map(obj)) {
+      const salary = str(j.salary);
+      out.push({
+        ...base,
+        sourceId: str(j.id) || str(j.link),
+        title: htmlToText(str(j.title)),
+        employer: str(j.company),
+        url: str(j.link),
+        location: str(j.location) || undefined,
+        description: [htmlToText(str(j.snippet)), str(j.type), str(j.source) ? `Found by Jooble on ${str(j.source)}` : ""].filter(Boolean).join("\n\n"),
+        postedAt: time(j.updated),
+        payLine: salary ? `Pay: ${salary}` : undefined,
+      });
+    }
   } else if (source.kind === "adzuna") {
     for (const j of arr(obj(data).results).map(obj)) {
       const min = Number(j.salary_min);
@@ -621,6 +654,7 @@ export function parseSource(source: Source, data: unknown): Posting[] {
       const pay = obj(arr(j.PositionRemuneration)[0]);
       const unit = str(pay.RateIntervalCode) === "PH" ? "hour" : str(pay.RateIntervalCode) === "PA" ? "year" : "";
       const details = obj(obj(j.UserArea).Details);
+      const grade = str(details.LowGrade) ? `${str(obj(arr(j.JobGrade)[0]).Code) || "GS"}-${str(details.LowGrade)}` : "";
       const schedule = arr(j.PositionSchedule).map((x) => str(obj(x).Name)).filter(Boolean).join(", ");
       out.push({
         ...base,
@@ -634,6 +668,7 @@ export function parseSource(source: Source, data: unknown): Posting[] {
         postedAt: time(j.PublicationStartDate),
         deadline: str(j.ApplicationCloseDate).slice(0, 10) || undefined,
         payLine: unit && Number(pay.MinimumRange) > 0 ? `Base pay range: $${Number(pay.MinimumRange)} to $${Number(pay.MaximumRange)} per ${unit}` : undefined,
+        seniority: grade || undefined,
       });
     }
   } else if (source.kind === "rss") {
