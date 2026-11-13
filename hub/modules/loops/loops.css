@@ -1,0 +1,46 @@
+/* The Loop Map / The Chrysalis Loop: handmade, cozy, paper-textured. */
+.lp { --lp-paper: #f6f1e7; --lp-accent: #4F6B3A; position: relative; }
+.lp[data-theme="chrysalis"] { --lp-paper: #eef2f5; --lp-accent: #3D5A73; }
+.lp-paper { background:
+  radial-gradient(ellipse at 15% 10%, rgba(255,255,255,0.55), transparent 40%),
+  repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0 2px, transparent 2px 4px),
+  var(--surface);
+  border: 1px solid var(--border); border-radius: 1.2rem; padding: 1rem; box-shadow: 0 6px 18px rgba(40,30,20,0.06); }
+.lp-subnav { display: flex; gap: 0.35rem; overflow-x: auto; padding: 0.5rem 0 0; scrollbar-width: thin; }
+.lp-subnav a, .lp-subnav button { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; padding: 0.4rem 0.75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.9rem; text-decoration: none; cursor: pointer; font: inherit; }
+.lp-subnav a[aria-current="page"], .lp-subnav button[aria-pressed="true"] { background: var(--tile-accent); color: var(--tile-on-accent); border-color: transparent; }
+.lp-ring { width: 100%; max-width: 520px; margin: 0 auto; display: block; touch-action: manipulation; }
+.lp-node { cursor: pointer; }
+.lp-node:focus-visible { outline: none; }
+.lp-node:focus-visible .lp-node-shape { stroke-width: 4; }
+.lp-ramp { pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-marker-glow { animation: lp-pulse 2.4s ease-in-out infinite; transform-origin: center; }
+  .lp-arrow { animation: lp-drift 6s linear infinite; }
+}
+@keyframes lp-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.95; transform: scale(1.12); } }
+@keyframes lp-drift { to { stroke-dashoffset: -24; } }
+.lp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.8rem; }
+.lp-thumb { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.8rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--surface); color: inherit; text-decoration: none; }
+.lp-thumb strong { text-align: center; }
+.lp-big { font-size: 1.1rem; padding: 0.9rem 1.2rem; }
+.lp-stage-detail { border-top: 1px solid var(--border); margin-top: 0.8rem; padding-top: 0.8rem; }
+.lp-exit { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.4rem 0; border-top: 1px dashed var(--border); }
+.lp-exit:first-child { border-top: 0; }
+.lp-exit .lp-exit-text { flex: 1; }
+.lp-card { border-radius: 1rem; padding: 1rem 1.1rem; border: 1px solid var(--border); background: var(--surface); }
+.lp-card[data-lens="brain"] { border-left: 5px solid #7a9b6a; }
+.lp-card[data-lens="mind"] { border-left: 5px solid #8b7f9c; }
+.lp-card[data-lens="faith"] { border-left: 5px solid #c9a36a; }
+.lp-sowhat { font-weight: 600; margin-top: 0.5rem; }
+.lp-from { font-size: 0.78rem; color: var(--text-muted); }
+.lp-three { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.8rem; }
+.lp-deck { font-family: var(--font-heading), Georgia, serif; font-size: 1.35rem; line-height: 1.4; text-align: center; padding: 1.4rem 1rem; }
+.lp-footer { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 1.5rem; }
+.lp-footer details { display: inline-block; text-align: left; }
+.lp-slider { width: 100%; }
+.lp-dots { display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: flex-end; min-height: 3rem; }
+.lp-dot { width: 0.8rem; border-radius: 999px; }
+.lp-flag { font-size: 0.78rem; color: var(--text-muted); }
+.lp-entry + .lp-entry { border-top: 1px solid var(--border); margin-top: 0.6rem; padding-top: 0.6rem; }
+.lp-signal { font-size: 1.6rem; text-align: center; }

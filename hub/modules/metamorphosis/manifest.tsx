@@ -1,6 +1,7 @@
 "use client";
 
 import { Mountain } from "lucide-react";
+import { LoopsScreen } from "@/modules/loops";
 import type { ModuleManifest } from "@/core/modules/types";
 import { Shell } from "./Shell";
 import { Charter } from "./screens/Charter";
@@ -40,6 +41,7 @@ export const metamorphosis: ModuleManifest = {
     const [first, second] = path;
     let screen: React.ReactNode;
     if (!first) screen = <Home />;
+    else if (first === "loops") return <LoopsScreen path={path.slice(1)} theme="chrysalis" />;
     else if (first === "mirror") screen = <Mirror />;
     else if (first === "sheet") screen = <Sheet />;
     else if (first === "map") screen = <MapScreen />;

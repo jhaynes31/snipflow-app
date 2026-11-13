@@ -18,4 +18,6 @@ crons.daily("lookout: scheduled job search", { hourUTC: 11, minuteUTC: 15 }, int
 // Pip (the Friend): a nudge at most once a day, mid-afternoon in the US; weekly headlines from the other places on Monday morning.
 crons.daily("friend: pip reaches out", { hourUTC: 20, minuteUTC: 10 }, internal.friend.entries.nudgeTick);
 crons.weekly("friend: weekly headlines", { dayOfWeek: "monday", hourUTC: 12, minuteUTC: 30 }, internal.friend.headlines.weekly);
+// The Loop Map: tripwire check-ins at each person's own risky times, checked hourly.
+crons.hourly("loops: tripwire check-ins", { minuteUTC: 12 }, internal.loops.entries.tripwireTick);
 export default crons;

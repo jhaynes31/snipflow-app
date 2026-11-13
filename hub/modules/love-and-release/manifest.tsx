@@ -5,6 +5,7 @@ import type { ModuleManifest } from "@/core/modules/types";
 import { hearth } from "@/modules/hearth/manifest";
 import { reCentered } from "@/modules/re-centered/manifest";
 import { Circle } from "./screens/Circle";
+import { LoopsScreen } from "@/modules/loops";
 import { Open } from "./screens/Open";
 
 /**
@@ -44,6 +45,7 @@ export const loveAndRelease: ModuleManifest = {
       return <Room path={rest} />;
     }
     if (first === "circle") return <Circle />;
+    if (first === "loops") return <LoopsScreen path={rest} theme="shire" />;
     if (first === "hearth") {
       const Room = hearth.Screen;
       return <Room path={rest} />;
