@@ -42,6 +42,7 @@ export function Home() {
         </Card>
       )}
       <div className="sh-tiles">
+        <Link href="/metamorphosis/loops" className="sh-tile"><span className="sh-tile-name">The Chrysalis Loop</span><span className="sh-tile-tagline">Your loops as a vine. Mark where you are, find the branches out, catch it earlier each time.</span></Link>
         <Link href="/metamorphosis/mirror" className="sh-tile"><span className="sh-tile-name">The Mirror</span><span className="sh-tile-tagline">Name it. What&apos;s under it. What do I want.</span></Link>
         <Link href="/metamorphosis/map" className="sh-tile"><span className="sh-tile-name">The Map</span><span className="sh-tile-tagline">Zoom out from the one thing.</span></Link>
         <Link href="/metamorphosis/knowing" className="sh-tile"><span className="sh-tile-name">Getting to know him</span><span className="sh-tile-tagline">One story of Jesus at a time. Relationship, not religion.</span></Link>

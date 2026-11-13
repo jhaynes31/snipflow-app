@@ -1940,4 +1940,147 @@ export default defineSchema({
     next: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  // ---------- The Loop Map / The Chrysalis Loop (2026-11-13, docs/loops-spec.md) ----------
+  // One shared module, mounted in Re-Centered and in Metamorphosis. Every row is
+  // its owner's. Sharing is per loop: private (nothing), sharedSummary (name
+  // only), shared (name plus "I'm in it" signals). The spouse never edits.
+
+  lpLoops: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    name: v.string(),
+    templateType: v.string(),
+    stages: v.array(v.object({ id: v.string(), key: v.string(), name: v.string(), prompt: v.string(), description: v.string(), needs: v.array(v.string()), healthierWay: v.string() })),
+    signalToken: v.optional(v.string()),
+    pinnedBeliefId: v.optional(v.id("lpBeliefs")),
+    truthVerse: v.optional(v.string()),
+    stageOfChange: v.optional(v.string()),
+    howOld: v.optional(v.string()),
+    familyOrigin: v.optional(v.string()),
+    passDown: v.optional(v.string()),
+    kidPlacement: v.optional(v.object({ child: v.optional(v.string()), teen: v.optional(v.string()) })),
+    spiral: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId", "createdAt"]),
+
+  lpExits: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    stageId: v.string(),
+    text: v.string(),
+    isCustom: v.boolean(),
+    isPinned: v.boolean(),
+    isHidden: v.boolean(),
+    used: v.number(),
+    helpful: v.number(),
+  }).index("by_loop", ["loopId", "stageId"]),
+
+  lpCheckIns: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    stageId: v.string(),
+    intensity: v.number(),
+    note: v.optional(v.string()),
+    firstNoticedStageId: v.optional(v.string()),
+    exitedStageId: v.optional(v.string()),
+    exitUsedId: v.optional(v.id("lpExits")),
+    outcome: v.optional(v.union(v.literal("out"), v.literal("around"), v.literal("still"))),
+    kind: v.union(v.literal("live"), v.literal("retro")),
+    at: v.number(),
+    resolvedAt: v.optional(v.number()),
+  }).index("by_loop_time", ["loopId", "at"]).index("by_owner_time", ["ownerId", "at"]),
+
+  lpBeliefs: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    text: v.string(),
+    initialRating: v.number(),
+    origin: v.string(),
+    evidenceFor: v.string(),
+    evidenceAgainst: v.string(),
+    friendResponse: v.string(),
+    protectsFrom: v.string(),
+    truerBelief: v.string(),
+    scripture: v.optional(v.string()),
+    finalRating: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_loop", ["loopId", "createdAt"]),
+
+  lpInnerKids: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    age: v.union(v.literal("child"), v.literal("teen")),
+    need: v.string(),
+    learned: v.string(),
+    rule: v.string(),
+    message: v.string(),
+    newAgreement: v.string(),
+    updatedAt: v.number(),
+  }).index("by_loop", ["loopId", "age"]),
+
+  lpGuardrails: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    type: v.union(v.literal("body"), v.literal("thought"), v.literal("behavior"), v.literal("situation"), v.literal("ifThen"), v.literal("tripwire")),
+    text: v.string(),
+    /** Tripwires: days 0-6 (Sunday 0) and the hour, in the owner's time zone. */
+    schedule: v.optional(v.object({ days: v.array(v.number()), hour: v.number() })),
+    snoozedUntil: v.optional(v.number()),
+    lastFiredAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_loop", ["loopId", "type"]).index("by_type", ["type"]),
+
+  lpHabits: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    text: v.string(),
+    practiced: v.array(v.number()),
+    createdAt: v.number(),
+  }).index("by_loop", ["loopId", "createdAt"]),
+
+  lpPrayers: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    text: v.string(),
+    answeredAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_loop", ["loopId", "createdAt"]),
+
+  lpReviews: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    showed: v.string(),
+    caught: v.string(),
+    exit: v.string(),
+    guardrail: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]),
+
+  /** Cards the person added to the encouragement deck, and Learn cards they starred. */
+  lpCards: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    kind: v.union(v.literal("encouragement"), v.literal("saved")),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId", "kind"]),
+
+  /** "I'm in it" sent to the spouse for a loop shared with signal, and their one kind reply. */
+  lpSignals: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    loopId: v.id("lpLoops"),
+    at: v.number(),
+    response: v.optional(v.string()),
+    respondedAt: v.optional(v.number()),
+  }).index("by_owner_time", ["ownerId", "at"]),
 });

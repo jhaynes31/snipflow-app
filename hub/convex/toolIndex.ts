@@ -105,6 +105,9 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rt.usAgreements", "Our agreements", "Rooted", "/rooted/us/agreements", "The pause word, how long, how we come back, the weekly fifteen minutes.", ["pause word", "our agreement", "time out", "come back", "weekly check in"]),
   T("rt.usCaught", "I caught it", "Rooted", "/rooted/us/caught", "Your own log: the loop, your part, what you did instead.", ["i caught it", "i pursued", "i withdrew", "my part", "accountability"]),
   T("rt.talk", "Talk it through in Rooted", "Rooted", "/rooted/talk", "The coach, with attachment knowledge and your fail safes in hand.", ["talk about attachment", "am i chasing", "read this person", "help me not chase"]),
+  // The Loop Map (Re-Centered) / The Chrysalis Loop (Metamorphosis), 2026-11-13.
+  T("lp.her", "The Loop Map", "Re-Centered", "/love-and-release/loops", "Your loops as a ring: mark where you are, find the doors out, catch it earlier each time.", ["loop", "my loop", "spiral", "in the loop", "same pattern", "doing it again", "caught myself", "where am i in the loop", "exit"], "re-centered"),
+  T("lp.him", "The Chrysalis Loop", "Metamorphosis", "/metamorphosis/loops", "Your loops as a vine: mark where you are, find the branches out, catch it earlier each time.", ["loop", "my loop", "spiral", "in the loop", "same pattern", "doing it again", "caught myself", "where am i in the loop", "exit"], "metamorphosis"),
   T("rc.circle", "Someone in my circle", "Re-Centered", "/love-and-release/circle", "Write what you know about someone you're letting in; tap green and red flags; the coach sorts it.", ["circle", "new person", "letting in", "let them in", "green flag", "red flag", "green flags", "red flags", "confront", "monitor", "trust them", "should i trust", "sort them out"]),
   T("rc.boundaries", "My word to me", "Re-Centered, John and me", "/love-and-release/john/boundaries", "What you will and won't do, and your if-then plan.", ["boundary with john", "my word to me", "if then", "i won't", "what i will do"], "re-centered"),
 
@@ -263,6 +266,7 @@ export const DOORS_HER: Door[] = [
   { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "I'm adding someone to my circle", toolKey: "rc.circle" },
+  { label: "I'm in one of my loops", toolKey: "lp.her" },
   { label: "John and I are in the loop", toolKey: "rt.us" },
   { label: "Someone pulled away and I want to chase", toolKey: "rt.secure" },
   { label: "Is this person avoidant?", toolKey: "rt.read" },
@@ -277,6 +281,7 @@ export const DOORS_HER: Door[] = [
 export const DOORS_JOHN: Door[] = [
   { label: "I don't know what I'm feeling", toolKey: "hub.felt" },
   { label: "We're in the loop", toolKey: "rt.us" },
+  { label: "I'm in one of my loops", toolKey: "lp.him" },
   { label: "Walk me through it", toolKey: "hub.paths" },
   { label: "Something I'm learning", toolKey: "hub.mantel" },
   { label: "I can't get started", toolKey: "tend.smallestStep" },

@@ -107,6 +107,10 @@ export function Open() {
             </span>
           </Link>
         )}
+        <Link href="/love-and-release/loops" className="sh-tile">
+          <span className="sh-tile-name">The Loop Map</span>
+          <span className="sh-tile-tagline">See your loops as a ring, mark where you are, find the doors out at every stage, and notice earlier each time around.</span>
+        </Link>
         <Link href="/love-and-release/circle" className="sh-tile">
           <span className="sh-tile-name">Someone in my circle</span>
           <span className="sh-tile-tagline">

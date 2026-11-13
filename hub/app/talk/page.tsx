@@ -68,7 +68,8 @@ function Talk() {
     subtitle = "Your room. Say it plainly; he'll say it back plainly.";
   }
   const placeName = MODULE_NAMES[place] ?? null;
-  const opening = placeName && convoModule === "hub" ? `I'm in ${placeName} right now.` : undefined;
+  const about = params.get("about")?.trim().slice(0, 400);
+  const opening = about ? `Context from the app: ${about}` : placeName && convoModule === "hub" ? `I'm in ${placeName} right now.` : undefined;
 
   return (
     <div className="sh-container sh-narrow">
