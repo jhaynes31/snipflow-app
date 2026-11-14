@@ -4,7 +4,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useHub } from "@/core/shell/HubContext";
 import { ErrorNote, useAction } from "@/core/ui";
-import { BACKGROUNDS, readBackground } from "./backgrounds";
+import { BACKGROUNDS, gradientCss, readBackground } from "./backgrounds";
 
 /** A row of color swatches. Each person's pick is their own; the partner's screen never changes. */
 export function BackgroundPicker() {
@@ -29,7 +29,7 @@ export function BackgroundPicker() {
             role="radio"
             aria-checked={current === b.key}
             className="sh-swatch"
-            style={{ "--swatch": dark ? b.dark : b.light } as React.CSSProperties}
+            style={{ "--swatch": b.gradient ? gradientCss(dark ? b.gradient.dark : b.gradient.light) : dark ? b.dark : b.light } as React.CSSProperties}
             onClick={() => void choose(b.key)}
             title={b.name}
           >
