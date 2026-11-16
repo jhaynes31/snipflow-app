@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { Anchor, Compass, Feather, Home, Leaf, PauseCircle, Scale } from "lucide-react";
+import { Anchor, Compass, Feather, Heart, Home, Leaf, PauseCircle, Scale } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@/convex/_generated/api";
 import { useHub } from "@/core/shell/HubContext";
@@ -19,6 +19,7 @@ const NAV = [
   { href: `${ROUTE}/security`, label: "Where I stand", icon: Compass },
   { href: `${ROUTE}/own-life`, label: "My own life", icon: Leaf },
   { href: `${ROUTE}/boundaries`, label: "My word to me", icon: Anchor },
+  { href: `${ROUTE}/noticed`, label: "Noticed", icon: Heart },
 ];
 
 /**

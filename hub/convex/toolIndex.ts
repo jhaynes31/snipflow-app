@@ -109,6 +109,7 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("lp.her", "The Loop Map", "Re-Centered", "/love-and-release/loops", "Your loops as a ring: mark where you are, find the doors out, catch it earlier each time.", ["loop", "my loop", "spiral", "in the loop", "same pattern", "doing it again", "caught myself", "where am i in the loop", "exit"], "re-centered"),
   T("lp.him", "The Chrysalis Loop", "Metamorphosis", "/metamorphosis/loops", "Your loops as a vine: mark where you are, find the branches out, catch it earlier each time.", ["loop", "my loop", "spiral", "in the loop", "same pattern", "doing it again", "caught myself", "where am i in the loop", "exit"], "metamorphosis"),
   T("rc.circle", "Someone in my circle", "Re-Centered", "/love-and-release/circle", "Write what you know about someone you're letting in; tap green and red flags; the coach sorts it.", ["circle", "new person", "letting in", "let them in", "green flag", "red flag", "green flags", "red flags", "confront", "monitor", "trust them", "should i trust", "sort them out"]),
+  T("rc.noticed", "Noticed", "Re-Centered, John and me", "/love-and-release/john/noticed", "What he does well, how he showed love today, what you're grateful for about us. Evidence for a hard day.", ["noticed", "grateful for john", "gratitude", "he did well", "showed love", "evidence he cares", "good things about him", "appreciate him"], "re-centered"),
   T("rc.boundaries", "My word to me", "Re-Centered, John and me", "/love-and-release/john/boundaries", "What you will and won't do, and your if-then plan.", ["boundary with john", "my word to me", "if then", "i won't", "what i will do"], "re-centered"),
 
   // Re-Centered: the app ("Everyone, and me"; one copy per person on the device)
@@ -266,6 +267,7 @@ export const DOORS_HER: Door[] = [
   { label: "Something's wrong in my body", toolKey: "apothecary.ask" },
   { label: "I met someone and I'm excited", toolKey: "orchard.new" },
   { label: "I'm adding someone to my circle", toolKey: "rc.circle" },
+  { label: "Something good John did", toolKey: "rc.noticed" },
   { label: "I'm in one of my loops", toolKey: "lp.her" },
   { label: "John and I are in the loop", toolKey: "rt.us" },
   { label: "Someone pulled away and I want to chase", toolKey: "rt.secure" },

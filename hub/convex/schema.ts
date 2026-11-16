@@ -2083,4 +2083,22 @@ export default defineSchema({
     response: v.optional(v.string()),
     respondedAt: v.optional(v.number()),
   }).index("by_owner_time", ["ownerId", "at"]),
+
+  /**
+   * Noticed (2026-11-16, Jen's ask): a gratitude journal and evidence log
+   * about her husband and their marriage, inside her Re-Centered room.
+   * Private; one entry can be sent to him on purpose. Nothing is counted.
+   */
+  rcNoticed: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    day: v.string(),
+    ways: v.array(v.string()),
+    didWell: v.optional(v.string()),
+    grateful: v.optional(v.string()),
+    /** The old line this is evidence against, in her words. */
+    evidenceAgainst: v.optional(v.string()),
+    sharedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_owner_time", ["ownerId", "createdAt"]).index("by_owner_day", ["ownerId", "day"]),
 });

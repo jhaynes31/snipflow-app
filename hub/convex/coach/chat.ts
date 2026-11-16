@@ -61,6 +61,7 @@ export const send = action({
       hearth: args.task?.startsWith("hearth.") ? { voice: hearthVoiceFor(args.task), known: context.known, style: context.hearthStyle, little: args.task === "hearth.girl" ? context.littleNotes.girl : args.task === "hearth.teen" ? context.littleNotes.teen : null } : null,
       known: args.task?.startsWith("hearth.") ? [] : context.known,
       kept: context.kept,
+      noticed: context.noticed,
       felt: context.felt,
       rooted: args.task?.startsWith("rooted.") || args.task?.startsWith("orchard.") || args.task === "reCentered.circle" || args.task === "reCentered.talk" || args.task?.startsWith("hearth.") || args.task === "tend.repair" || args.task === "tend.talkItOut" ? context.rooted : null,
     });

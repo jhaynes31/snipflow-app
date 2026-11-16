@@ -66,6 +66,8 @@ import type * as reCentered_circle from "../reCentered/circle.js";
 import type * as reCentered_circlePure from "../reCentered/circlePure.js";
 import type * as reCentered_circleSort from "../reCentered/circleSort.js";
 import type * as reCentered_entries from "../reCentered/entries.js";
+import type * as reCentered_noticed from "../reCentered/noticed.js";
+import type * as reCentered_noticedPure from "../reCentered/noticedPure.js";
 import type * as reCentered_pure from "../reCentered/pure.js";
 import type * as reCentered_room from "../reCentered/room.js";
 import type * as rooms from "../rooms.js";
@@ -184,6 +186,8 @@ declare const fullApi: ApiFromModules<{
   "reCentered/circlePure": typeof reCentered_circlePure;
   "reCentered/circleSort": typeof reCentered_circleSort;
   "reCentered/entries": typeof reCentered_entries;
+  "reCentered/noticed": typeof reCentered_noticed;
+  "reCentered/noticedPure": typeof reCentered_noticedPure;
   "reCentered/pure": typeof reCentered_pure;
   "reCentered/room": typeof reCentered_room;
   rooms: typeof rooms;
