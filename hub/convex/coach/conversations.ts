@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { failSafesText, leanOf, readRootedSettings } from "../rooted/pure";
 import { usContext } from "../rooted/us";
+import { entryLine } from "../reCentered/noticedPure";
 import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { access, cleanText, requireMe, requireOwned } from "../lib";
 import { roomOwner as reCenteredOwner } from "../reCentered/room";
@@ -165,6 +166,8 @@ export const contextFor = internalQuery({
     const rcOwner = await reCenteredOwner(ctx);
     const rooms = { metamorphosis: mmOwner?.ownerId === me.profile._id, reCentered: rcOwner?.ownerId === me.profile._id, hearth: atHearth };
     const orchardSignals = row.module === "orchard" ? signalsFor((me.profile.moduleSettings?.orchard ?? {}) as { off?: unknown; custom?: unknown }).map((s) => `${s.name}: tell, ${s.tell} Test, ${s.test} Response, ${s.response}`) : [];
+    const noticedRows = rcOwner?.ownerId === me.profile._id ? await ctx.db.query("rcNoticed").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").take(40) : [];
+    const noticed = shuffleByDay(noticedRows.map((n) => `${n.day}: ${entryLine(n)}`).filter((t) => t.length > 12)).slice(0, 8);
     const rootedSettings = readRootedSettings(me.profile.moduleSettings);
     const lastCheck = await ctx.db.query("rtChecks").withIndex("by_owner_time", (q) => q.eq("ownerId", me.profile._id)).order("desc").first();
     const rooted = {
@@ -173,6 +176,7 @@ export const contextFor = internalQuery({
       latest: lastCheck ? `${new Date(lastCheck.createdAt).toISOString().slice(0, 10)}, leaning ${leanOf(lastCheck)}${lastCheck.pulled.length ? `; pulled by: ${lastCheck.pulled.join(", ")}` : ""}${lastCheck.steadied.length ? `; steadied by: ${lastCheck.steadied.join(", ")}` : ""}${lastCheck.note ? `; ${lastCheck.note.slice(0, 300)}` : ""}` : null,
     };
     return {
+      noticed,
       rooted,
       felt,
       kept,

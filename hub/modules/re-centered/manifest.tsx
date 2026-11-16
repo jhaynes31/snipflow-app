@@ -4,6 +4,7 @@ import { Compass } from "lucide-react";
 import type { ModuleManifest } from "@/core/modules/types";
 import { ReCenteredShell } from "./ReCenteredShell";
 import { Boundaries } from "./screens/Boundaries";
+import { Noticed } from "./screens/Noticed";
 import { Landed } from "./screens/Landed";
 import { Now } from "./screens/Now";
 import { OwnLife } from "./screens/OwnLife";
@@ -48,6 +49,7 @@ export const reCentered: ModuleManifest = {
     else if (first === "security") screen = <Security />;
     else if (first === "own-life") screen = <OwnLife />;
     else if (first === "boundaries") screen = <Boundaries />;
+    else if (first === "noticed") screen = <Noticed />;
     else screen = <Now />;
     return <ReCenteredShell>{screen}</ReCenteredShell>;
   },

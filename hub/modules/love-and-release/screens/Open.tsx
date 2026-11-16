@@ -88,7 +88,7 @@ export function Open() {
           <Link href="/love-and-release/john" className="sh-tile">
             <span className="sh-tile-name">{partnerName}, and me</span>
             <span className="sh-tile-tagline">
-              Whose is this, the pause before rescuing, let it land, where I stand, my own life, my word to me.
+              Whose is this, the pause before rescuing, let it land, where I stand, my own life, my word to me, and Noticed: what he does well.
               {room.state === "unclaimed" ? " For one person; the first to open it keeps it." : ""}
             </span>
           </Link>

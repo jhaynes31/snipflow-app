@@ -42,6 +42,8 @@ export interface PromptInput {
   known?: string[];
   /** Lines this person kept on The Mantel, from any voice or their own words. */
   kept?: string[];
+  /** Noticed: what she wrote about her husband doing well, for a hard day. */
+  noticed?: string[];
   /** Rooted: her fail safes in her words, and her latest read, when the conversation is about people or attachment. */
   rooted?: { failSafes: string[]; latest: string | null; us?: string[] } | null;
   /** The last few Felt entries: feelings from the wheel and where they sat in the body. */
@@ -139,6 +141,9 @@ export function buildSystemPrompt(input: PromptInput): string {
     if (input.rooted.failSafes.length > 0) parts.push(`What she wrote for herself in Rooted, on a calm day, to be read back on a shaky one:\n${input.rooted.failSafes.map((f) => `- ${f}`).join("\n")}`);
     if (input.rooted.latest) parts.push(`Her latest "where I am today" read in Rooted: ${input.rooted.latest}`);
     if (input.rooted.us?.length) parts.push(`Us, their marriage's loop work in Rooted (shared where it says so; otherwise this person's own words):\n${input.rooted.us.map((u) => `- ${u}`).join("\n")}`);
+  }
+  if (input.noticed && input.noticed.length > 0) {
+    parts.push(`Things she noticed about her husband and their marriage, in her own words, written on ordinary days (from Noticed, in her Re-Centered room). When the old story about him is loud, you may hand one back, word for word, as something she herself wrote; rarely, at most one per conversation, and never to argue her out of a real grievance:\n${input.noticed.map((n) => `- ${n}`).join("\n")}`);
   }
   if (input.kept && input.kept.length > 0) {
     parts.push(
