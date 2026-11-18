@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { entryLine, letterDraft, monthKey, pickHardDay, WAYS } from "../convex/reCentered/noticedPure.ts";
+import { cleanEvidence, entryLine, evidenceOf, letterDraft, monthKey, pickHardDay, WAYS } from "../convex/reCentered/noticedPure.ts";
 
 describe("Noticed", () => {
   const rows = Array.from({ length: 30 }, (_, i) => ({ day: `2026-10-${String(i + 1).padStart(2, "0")}`, ways: [WAYS[i % WAYS.length]], didWell: i % 3 === 0 ? `did well ${i}` : undefined, grateful: i % 5 === 0 ? `grateful ${i}` : undefined, createdAt: i * 86_400_000 }));
@@ -23,6 +23,14 @@ describe("Noticed", () => {
     assert.match(letter, /did well 27/);
     assert.match(letter, /I see you/);
     assert.equal(monthKey(Date.UTC(2026, 10, 16)), "2026-11");
+  });
+  it("carries several old lines, each with how it went against them", () => {
+    const e = { day: "d", ways: [], didWell: "Came back", evidence: [{ line: "he doesn't care", note: "He drove home early to sit with me" }, { line: "I'm too much" }], createdAt: 0 };
+    assert.equal(entryLine(e), 'Came back. Against "he doesn\'t care": He drove home early to sit with me');
+    assert.deepEqual(evidenceOf({ evidenceAgainst: "old", evidence: [{ line: "new" }] }).map((x) => x.line), ["old", "new"]);
+    assert.deepEqual(evidenceOf({ evidenceAgainst: "same", evidence: [{ line: "same", note: "n" }] }), [{ line: "same", note: "n" }]);
+    assert.deepEqual(cleanEvidence([{ line: " a ", note: " " }, { line: "a" }, { line: "", note: "x" }, { line: "b", note: " why " }]), [{ line: "a" }, { line: "b", note: "why" }]);
+    assert.equal(cleanEvidence(undefined), undefined);
   });
   it("has no scorekeeping words in the ways", () => {
     for (const w of WAYS) assert.ok(!/points|score|streak|count/i.test(w), w);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { entryLine, letterDraft, WAYS } from "@/convex/reCentered/noticedPure";
+import { entryLine, evidenceOf, letterDraft, WAYS, type Evidence } from "@/convex/reCentered/noticedPure";
 import { useHub } from "@/core/shell/HubContext";
 import { Rich } from "@/core/text/RichText";
 import { RichTextarea } from "@/core/text/RichTextarea";
@@ -29,10 +29,13 @@ export function Noticed() {
   const [own, setOwn] = useState("");
   const [didWell, setDidWell] = useState("");
   const [grateful, setGrateful] = useState("");
-  const [against, setAgainst] = useState("");
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [ownLine, setOwnLine] = useState("");
   const [view, setView] = useState<"write" | "hard" | "month">("write");
   const [saved, setSaved] = useState(false);
   const flip = (w: string) => setWays(ways.includes(w) ? ways.filter((x) => x !== w) : [...ways, w]);
+  const flipLine = (l: string) => setEvidence(evidence.some((x) => x.line === l) ? evidence.filter((x) => x.line !== l) : [...evidence, { line: l }]);
+  const noteFor = (l: string, note: string) => setEvidence(evidence.map((x) => (x.line === l ? { line: l, note: note || undefined } : x)));
 
   return (
     <div className="sh-container sh-narrow sh-stack">
@@ -62,15 +65,23 @@ export function Noticed() {
             <Field label="What I'm grateful for about us" hint="The marriage, not only him.">
               <RichTextarea className="sh-input sh-textarea" rows={2} value={grateful} onChange={(e) => setGrateful(e.target.value)} maxLength={2000} />
             </Field>
-            <Field label="Evidence against an old line (optional)" hint="File this under a line you're working on, so the evidence column fills itself.">
+            <Field label="Evidence against an old line (optional)" hint="Tap every line this goes against, so the evidence column fills itself. Add one of your own below.">
               <div className="sh-chips">
-                {(oldLines ?? []).map((l) => <button key={l} type="button" className="sh-chip" aria-pressed={against === l} onClick={() => setAgainst(against === l ? "" : l)}>{l.length > 48 ? `${l.slice(0, 46)}…` : l}</button>)}
+                {[...(oldLines ?? []), ...evidence.map((x) => x.line).filter((l) => !(oldLines ?? []).includes(l))].map((l) => <button key={l} type="button" className="sh-chip" aria-pressed={evidence.some((x) => x.line === l)} onClick={() => flipLine(l)}>{l.length > 48 ? `${l.slice(0, 46)}…` : l}</button>)}
               </div>
-              <input className="sh-input mt-2" value={against} onChange={(e) => setAgainst(e.target.value)} maxLength={300} placeholder={'Or type one: "he doesn\'t care"'} />
+              <div className="sh-row mt-2" style={{ gap: "0.4rem" }}>
+                <input className="sh-input" value={ownLine} onChange={(e) => setOwnLine(e.target.value)} maxLength={300} placeholder={'Another one: "he doesn\'t care"'} onKeyDown={(e) => { if (e.key === "Enter" && ownLine.trim()) { e.preventDefault(); flipLine(ownLine.trim()); setOwnLine(""); } }} />
+                <Btn variant="secondary" disabled={!ownLine.trim()} onClick={() => { flipLine(ownLine.trim()); setOwnLine(""); }}>Add</Btn>
+              </div>
             </Field>
+            {evidence.map((x) => (
+              <Field key={x.line} label={`How this went against “${x.line}”`} hint="The specifics. What he actually did, and why the line can't hold next to it.">
+                <RichTextarea className="sh-input sh-textarea" rows={3} value={x.note ?? ""} onChange={(e) => noteFor(x.line, e.target.value)} maxLength={3000} placeholder="Today, he…" />
+              </Field>
+            ))}
             <ErrorNote error={error} />
             <div className="sh-row sh-wrap" style={{ gap: "0.5rem" }}>
-              <Btn big disabled={busy || (!ways.length && !didWell.trim() && !grateful.trim())} onClick={() => void run(async () => { await add({ ways, didWell: didWell || undefined, grateful: grateful || undefined, evidenceAgainst: against || undefined }); setWays([]); setDidWell(""); setGrateful(""); setAgainst(""); setSaved(true); setTimeout(() => setSaved(false), 1800); })}>Noticed</Btn>
+              <Btn big disabled={busy || (!ways.length && !didWell.trim() && !grateful.trim())} onClick={() => void run(async () => { await add({ ways, didWell: didWell || undefined, grateful: grateful || undefined, evidence: evidence.length ? evidence : undefined }); setWays([]); setDidWell(""); setGrateful(""); setEvidence([]); setOwnLine(""); setSaved(true); setTimeout(() => setSaved(false), 1800); })}>Noticed</Btn>
               {saved && <Note>Kept.</Note>}
             </div>
           </Card>
@@ -90,8 +101,9 @@ export function Noticed() {
   );
 }
 
-function Entry({ e, him, busy, onShare, onRemove, onEdit }: { e: { _id: string; day: string; ways: string[]; didWell?: string; grateful?: string; evidenceAgainst?: string; sharedAt?: number; createdAt: number }; him: string; busy: boolean; onShare: () => void; onRemove: () => void; onEdit: (patch: { didWell?: string; grateful?: string }) => void }) {
+function Entry({ e, him, busy, onShare, onRemove, onEdit }: { e: { _id: string; day: string; ways: string[]; didWell?: string; grateful?: string; evidenceAgainst?: string; evidence?: Evidence[]; sharedAt?: number; createdAt: number }; him: string; busy: boolean; onShare: () => void; onRemove: () => void; onEdit: (patch: { didWell?: string; grateful?: string; evidence?: Evidence[] }) => void }) {
   const [open, setOpen] = useState(false);
+  const lines = evidenceOf(e);
   return (
     <div className="rc-entry">
       <p className="sh-hint">{new Date(e.day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}{e.sharedAt ? ` · told ${him} ${timeAgo(e.sharedAt)}` : ""}</p>
@@ -100,6 +112,9 @@ function Entry({ e, him, busy, onShare, onRemove, onEdit }: { e: { _id: string; 
         <>
           <RichTextarea className="sh-input sh-textarea" rows={2} defaultValue={e.didWell ?? ""} maxLength={2000} placeholder="What he did well" onBlur={(ev) => ev.target.value !== (e.didWell ?? "") && onEdit({ didWell: ev.target.value })} />
           <RichTextarea className="sh-input sh-textarea mt-2" rows={2} defaultValue={e.grateful ?? ""} maxLength={2000} placeholder="What I'm grateful for about us" onBlur={(ev) => ev.target.value !== (e.grateful ?? "") && onEdit({ grateful: ev.target.value })} />
+          {lines.map((x) => (
+            <RichTextarea key={x.line} className="sh-input sh-textarea mt-2" rows={3} defaultValue={x.note ?? ""} maxLength={3000} placeholder={`How this went against “${x.line}”`} onBlur={(ev) => ev.target.value !== (x.note ?? "") && onEdit({ evidence: lines.map((y) => (y.line === x.line ? { line: y.line, note: ev.target.value || undefined } : y)) })} />
+          ))}
         </>
       ) : (
         <>
@@ -107,7 +122,12 @@ function Entry({ e, him, busy, onShare, onRemove, onEdit }: { e: { _id: string; 
           {e.grateful && <p className="sh-muted"><Rich text={e.grateful} /></p>}
         </>
       )}
-      {e.evidenceAgainst && <p className="sh-hint">Evidence against: &ldquo;{e.evidenceAgainst}&rdquo;</p>}
+      {lines.map((x) => (
+        <div key={x.line}>
+          <p className="sh-hint">Evidence against: &ldquo;{x.line}&rdquo;</p>
+          {!open && x.note && <p><Rich text={x.note} /></p>}
+        </div>
+      ))}
       <p className="sh-hint">
         <button type="button" className="sh-link" onClick={() => setOpen(!open)}>{open ? "done" : "edit"}</button> ·{" "}
         {!e.sharedAt && <><button type="button" className="sh-link" disabled={busy} onClick={onShare}>tell {him}</button> · </>}
@@ -128,8 +148,13 @@ function HardDay({ him }: { him: string }) {
       {rows.map((e) => (
         <div key={e._id} className="rc-entry">
           <p className="sh-hint">{new Date(e.day + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
-          <p className="rt-line" style={{ fontSize: "1.05rem" }}>{entryLine(e)}</p>
-          {e.evidenceAgainst && <p className="sh-hint">Evidence against: &ldquo;{e.evidenceAgainst}&rdquo;</p>}
+          <p className="rt-line" style={{ fontSize: "1.05rem" }}>{entryLine({ ...e, evidence: undefined, evidenceAgainst: undefined })}</p>
+          {evidenceOf(e).map((x) => (
+            <div key={x.line}>
+              <p className="sh-hint">Evidence against: &ldquo;{x.line}&rdquo;</p>
+              {x.note && <p><Rich text={x.note} /></p>}
+            </div>
+          ))}
         </div>
       ))}
     </Card>
@@ -150,7 +175,8 @@ function Month() {
         {data.rows.length === 0 ? <p className="sh-muted">Nothing noticed this month yet.</p> : [...data.rows].reverse().map((e) => (
           <div key={e._id} className="rc-entry">
             <p className="sh-hint">{new Date(e.day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
-            <p>{entryLine(e)}</p>
+            <p>{entryLine({ ...e, evidence: undefined, evidenceAgainst: undefined })}</p>
+            {evidenceOf(e).map((x) => <p key={x.line} className="sh-hint">Against &ldquo;{x.line}&rdquo;{x.note ? `: ${x.note}` : ""}</p>)}
           </div>
         ))}
       </Card>

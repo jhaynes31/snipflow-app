@@ -3,7 +3,7 @@ import { mutation, query } from "../_generated/server";
 import { optionalText, requireOwned } from "../lib";
 import { notifyPartner, who } from "../push/notify";
 import { requireRoom } from "./room";
-import { monthKey, pickHardDay, WAYS } from "./noticedPure";
+import { cleanEvidence, monthKey, pickHardDay, WAYS } from "./noticedPure";
 
 /**
  * Noticed (2026-11-16): a gratitude journal and evidence log about her
@@ -20,7 +20,7 @@ export const list = query({
 });
 
 export const add = mutation({
-  args: { ways: v.array(v.string()), didWell: v.optional(v.string()), grateful: v.optional(v.string()), evidenceAgainst: v.optional(v.string()), day: v.optional(v.string()) },
+  args: { ways: v.array(v.string()), didWell: v.optional(v.string()), grateful: v.optional(v.string()), evidence: v.optional(v.array(v.object({ line: v.string(), note: v.optional(v.string()) }))), day: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await requireRoom(ctx);
     const ways = args.ways.map((w) => w.trim().slice(0, 80)).filter(Boolean).slice(0, 20);
@@ -28,12 +28,12 @@ export const add = mutation({
     const grateful = optionalText(args.grateful, 2000, "What I'm grateful for");
     if (!ways.length && !didWell && !grateful) throw new ConvexError("Tap a way, or write a line.");
     const day = args.day && /^\d{4}-\d{2}-\d{2}$/.test(args.day) ? args.day : new Date().toISOString().slice(0, 10);
-    return await ctx.db.insert("rcNoticed", { ownerId: me.profile._id, visibility: "private", day, ways, didWell, grateful, evidenceAgainst: optionalText(args.evidenceAgainst, 300, "The old line"), createdAt: Date.now() });
+    return await ctx.db.insert("rcNoticed", { ownerId: me.profile._id, visibility: "private", day, ways, didWell, grateful, evidence: cleanEvidence(args.evidence), createdAt: Date.now() });
   },
 });
 
 export const edit = mutation({
-  args: { id: v.id("rcNoticed"), ways: v.optional(v.array(v.string())), didWell: v.optional(v.string()), grateful: v.optional(v.string()), evidenceAgainst: v.optional(v.string()) },
+  args: { id: v.id("rcNoticed"), ways: v.optional(v.array(v.string())), didWell: v.optional(v.string()), grateful: v.optional(v.string()), evidence: v.optional(v.array(v.object({ line: v.string(), note: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const me = await requireRoom(ctx);
     const row = await requireOwned(ctx, me, "rcNoticed", args.id);
@@ -41,7 +41,7 @@ export const edit = mutation({
       ...(args.ways ? { ways: args.ways.map((w) => w.trim().slice(0, 80)).filter(Boolean).slice(0, 20) } : {}),
       ...(args.didWell !== undefined ? { didWell: optionalText(args.didWell, 2000, "What he did well") } : {}),
       ...(args.grateful !== undefined ? { grateful: optionalText(args.grateful, 2000, "What I'm grateful for") } : {}),
-      ...(args.evidenceAgainst !== undefined ? { evidenceAgainst: optionalText(args.evidenceAgainst, 300, "The old line") } : {}),
+      ...(args.evidence !== undefined ? { evidence: cleanEvidence(args.evidence), evidenceAgainst: undefined } : {}),
     });
   },
 });

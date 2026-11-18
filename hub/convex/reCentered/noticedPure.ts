@@ -21,7 +21,30 @@ export const WAYS = [
   "Took a no well",
 ] as const;
 
-export interface NoticedLike { day: string; ways: string[]; didWell?: string; grateful?: string; evidenceAgainst?: string; createdAt: number }
+export interface Evidence { line: string; note?: string }
+export interface NoticedLike { day: string; ways: string[]; didWell?: string; grateful?: string; evidenceAgainst?: string; evidence?: Evidence[]; createdAt: number }
+
+/** The entry's old lines, folding in the one-line form from before 2026-11-18. */
+export function evidenceOf(e: Pick<NoticedLike, "evidenceAgainst" | "evidence">): Evidence[] {
+  const list = e.evidence ?? [];
+  if (e.evidenceAgainst && !list.some((x) => x.line === e.evidenceAgainst)) return [{ line: e.evidenceAgainst }, ...list];
+  return list;
+}
+
+/** Clean a submitted evidence list: trimmed, capped, no blanks, no repeats. */
+export function cleanEvidence(list: Evidence[] | undefined): Evidence[] | undefined {
+  if (!list) return undefined;
+  const seen = new Set<string>();
+  const out: Evidence[] = [];
+  for (const x of list) {
+    const line = x.line.trim().slice(0, 300);
+    if (!line || seen.has(line)) continue;
+    seen.add(line);
+    const note = x.note?.trim().slice(0, 3000);
+    out.push(note ? { line, note } : { line });
+  }
+  return out.slice(0, 12);
+}
 
 /** A handful of past entries for a hard day: steady for the day, spread across time, never the same five two days running. */
 export function pickHardDay<T extends NoticedLike>(rows: T[], dayKey: string, count = 5): T[] {
@@ -49,6 +72,7 @@ export function entryLine(e: NoticedLike): string {
   if (e.ways.length) bits.push(e.ways.join(", ").toLowerCase());
   if (e.didWell) bits.push(e.didWell);
   if (e.grateful) bits.push(e.grateful);
+  for (const x of evidenceOf(e)) if (x.note) bits.push(`Against "${x.line}": ${x.note}`);
   return bits.join(". ");
 }
 
