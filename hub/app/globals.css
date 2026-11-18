@@ -1114,3 +1114,17 @@ a.sh-chip {
 .sh-notify-row > span:not(:first-child) { text-align: center; }
 .sh-notify-row input[type="checkbox"] { width: 1.15rem; height: 1.15rem; }
 .sh-notify-row > span:first-child { padding: 0.35rem 0; border-top: 1px solid var(--border); }
+
+/* The two apps built on their own, framed under the toolbar (core/embed/EmbeddedApp.tsx). */
+.sh-embed {
+  height: 0;
+}
+.sh-embed-frame {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+  border: 0;
+  background: var(--background);
+  z-index: 10;
+}

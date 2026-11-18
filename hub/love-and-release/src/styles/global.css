@@ -136,6 +136,17 @@ textarea, input, select { font: inherit; color: inherit; }
 .mt { margin-top: 1rem; }
 .mb { margin-bottom: 1rem; }
 
+/* Sections as pills, under The Shire's toolbar (the usual case since 2026-11-18). */
+.subnav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 12px; }
+.subnav a {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 600;
+}
+.subnav a.active { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+.subnav svg { width: 16px; height: 16px; }
+html[data-framed='true'] .shell { padding-bottom: calc(24px + var(--safe-b)); min-height: 0; }
+
 /* Bottom nav */
 .nav {
   position: fixed; left: 0; right: 0; bottom: 0;

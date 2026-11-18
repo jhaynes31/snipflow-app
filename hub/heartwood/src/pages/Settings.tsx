@@ -48,7 +48,7 @@ export function SettingsPage() {
         <h2>This person</h2>
         <Field label="Name"><input className="input" value={profile.name} onChange={(e) => updateProfile({ name: e.target.value })} /></Field>
         <p className="muted text-sm">Body figure: {profile.bodyType === 'man' ? 'man' : 'woman'}.</p>
-        <Button variant="ghost" onClick={() => { setActiveUserId(null); window.location.replace(SHIRE_FITNESS); }}>Switch person</Button>
+        <Button variant="ghost" onClick={() => { setActiveUserId(null); (window.top ?? window).location.replace(SHIRE_FITNESS); }}>Switch person</Button>
       </Card>
 
       <Card className="stack-sm">

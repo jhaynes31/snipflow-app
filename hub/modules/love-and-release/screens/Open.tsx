@@ -73,12 +73,12 @@ export function Open() {
       )}
 
       <div className="sh-tiles">
-        <a href={appHref} className="sh-tile">
+        <Link href={appHref} className="sh-tile">
           <span className="sh-tile-name">Everyone, and me</span>
           <span className="sh-tile-tagline">
             Comfort, the fawn alarm, taking it personally, loops, circles, threads, truths, boundaries, the release journal.
           </span>
-        </a>
+        </Link>
         {room.state === "theirs" ? (
           <div className="sh-tile sh-tile-plain" aria-disabled>
             <span className="sh-tile-name">{partnerName}, and me</span>

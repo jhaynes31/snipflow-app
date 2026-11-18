@@ -137,9 +137,7 @@ function StageDetail({ theme, data, stage }: { theme: LoopTheme; data: Data; sta
       )}
       <div className="sh-choices mt-3">
         <Link href={`/talk?place=tend&about=${encodeURIComponent(`I'm looking at my loop "${data.loop.name}", at the stage called "${stage.name}".`)}`} className="sh-btn sh-btn-secondary">Talk this through</Link>
-        {/* The embedded app is served as static files, so a plain link is the right one. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        {data.loop.templateType === "pleasing" && theme === "shire" && <a href="/love-and-release/app/fawn?who=her" className="sh-btn sh-btn-secondary">Open in Re-Centered</a>}
+        {data.loop.templateType === "pleasing" && theme === "shire" && <Link href="/love-and-release/everyone/fawn" className="sh-btn sh-btn-secondary">Open in Re-Centered</Link>}
         <Link href={`${t.mount}/${data.loop._id}/check`} className="sh-btn sh-btn-primary">I&apos;m at this stage now</Link>
       </div>
     </div>

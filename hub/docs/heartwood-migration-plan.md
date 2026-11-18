@@ -113,3 +113,14 @@ haven't used it yet, there is nothing to move. The old address can be deleted af
 ## 2026-09-23: four therapists in the week
 
 Heartwood now has six guides: the Coach (strength), the PT (ankles, knees, balance), a Somatic guide, a Fascia guide, a Pelvic floor therapist and a Mobility therapist. The week runs six days: Strength, Somatic Movement, Strength, Fascia Release, Mobility Therapist, Pelvic Floor, with Strength A and B alternating weeks. The Mobility session folds in the ankle and knee PT work so the whole body is covered every week (a test in `src/data/templates.test.ts` proves every muscle region is reached). Every guide's lines and exercise notes are written for trauma, AuDHD, hypermobility (EDS/HSD), POTS, MCAS and CPTSD; the "Your guides" tab in Learn spells out what each one knows. Therapy exercises are one set, short rests, light pressure, no caution locks, and every step is optional.
+
+## Under the toolbar (2026-11-18)
+
+Jen: every app should keep The Shire's toolbar above it. Heartwood is unchanged and still
+served from `/fitness/app/`, but the Shire page `/fitness[/…]` now frames it
+(`modules/fitness/screens/Open.tsx` with `core/embed/EmbeddedApp.tsx`) as the signed-in
+person with the day's signals, so the one big "Open Heartwood" button is gone: the Fitness
+tab is the app. The one-time "who is this" question stays on that page. Inside the frame
+Heartwood shows its sections as pills (Today, Exercises, Learn, Tree, Settings) instead of
+its bottom bar, reports its screen to The Shire so the address follows, and sends itself to
+the framed address when opened on its own. "Switch person" leaves the frame to `/fitness`.

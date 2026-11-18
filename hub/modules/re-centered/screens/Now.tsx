@@ -23,7 +23,7 @@ export function Now() {
   if (!now) return <Spinner />;
   // The rest of Re-Centered (the app) keeps its data on this device, per person.
   const who = readPersonSetting(profile.moduleSettings, "love-and-release") ?? personFromName(profile.displayName) ?? "her";
-  const lr = (path: string) => `/love-and-release/app/${path}?who=${who}`;
+  const lr = (path: string) => `/love-and-release/everyone/${path}?who=${who}`;
   const wayBack = pickForDay(now.ownLife, now.today);
   return (
     <div className="sh-container sh-narrow">
@@ -80,10 +80,10 @@ export function Now() {
       <Card tone="alt">
         <p className="sh-eyebrow">In the rest of Re-Centered</p>
         <div className="sh-choices">
-          <a href={lr("fawn")} className="sh-btn sh-btn-secondary">Fawn alarm</a>
-          <a href={lr("unhooked/loop")} className="sh-btn sh-btn-secondary">I&apos;m in a loop</a>
-          <a href={lr("pause")} className="sh-btn sh-btn-secondary">A breathing pause</a>
-          <a href={lr("boundaries")} className="sh-btn sh-btn-ghost">Boundaries with anyone</a>
+          <Link href={lr("fawn")} className="sh-btn sh-btn-secondary">Fawn alarm</Link>
+          <Link href={lr("unhooked/loop")} className="sh-btn sh-btn-secondary">I&apos;m in a loop</Link>
+          <Link href={lr("pause")} className="sh-btn sh-btn-secondary">A breathing pause</Link>
+          <Link href={lr("boundaries")} className="sh-btn sh-btn-ghost">Boundaries with anyone</Link>
           <Link href="/renewed-mind/captive" className="sh-btn sh-btn-secondary">Take It Captive</Link>
           <Link href="/talk?place=love-and-release" className="sh-btn sh-btn-ghost">Talk it through</Link>
         </div>

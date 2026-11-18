@@ -69,7 +69,7 @@ export function TodayPage() {
     <div className="page stack fade-in">
       <header className="flex items-baseline justify-between gap-2">
         <h1>Today</h1>
-        <span className="muted text-right">{formatLongDate(state.today)}<br /><button type="button" className="underline text-sm" onClick={() => { setActiveUserId(null); window.location.replace(SHIRE_FITNESS); }}>{profile.name || USER_MAP[profile.userId ?? 'her'].label} · switch</button></span>
+        <span className="muted text-right">{formatLongDate(state.today)}<br /><button type="button" className="underline text-sm" onClick={() => { setActiveUserId(null); (window.top ?? window).location.replace(SHIRE_FITNESS); }}>{profile.name || USER_MAP[profile.userId ?? 'her'].label} · switch</button></span>
       </header>
 
       <WordForToday date={state.today} faith={cs.faithTrack} />

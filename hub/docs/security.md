@@ -50,7 +50,7 @@ was changed in this review, and what only she can do.
 
 `next.config.ts` sends on every response: a Content-Security-Policy (only this site,
 the Convex backend, and data/blob images; no framing; no other scripts), HSTS (two
-years, preload), nosniff, X-Frame-Options DENY, a strict referrer policy, a
+years, preload), nosniff, X-Frame-Options SAMEORIGIN (only The Shire itself may frame its pages; the two apps built on their own open inside a frame under the toolbar since 2026-11-18), a strict referrer policy, a
 Permissions-Policy that turns off camera, microphone, location, payment and ad
 topics, and Cross-Origin-Opener-Policy.
 

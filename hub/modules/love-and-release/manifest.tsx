@@ -6,13 +6,15 @@ import { hearth } from "@/modules/hearth/manifest";
 import { reCentered } from "@/modules/re-centered/manifest";
 import { Circle } from "./screens/Circle";
 import { LoopsScreen } from "@/modules/loops";
+import { Everyone } from "./screens/Everyone";
 import { Open } from "./screens/Open";
 
 /**
  * Re-Centered (named by Jen 2026-09-19; the id and route stay
  * `love-and-release`, the name of the app it grew from). Private by
  * default. Two doors: the app built on its own (hub/love-and-release, a
- * Vite app with its data on the device, served at /love-and-release/app/)
+ * Vite app with its data on the device, served at /love-and-release/app/ and
+ * framed under the toolbar at /love-and-release/everyone since 2026-11-18)
  * and the "{partner}, and me" room kept in The Shire's database
  * (modules/re-centered, module id "re-centered") at /love-and-release/john.
  * A third door since 2026-09-23: The Hearth (modules/hearth, module id
@@ -44,6 +46,7 @@ export const loveAndRelease: ModuleManifest = {
       const Room = reCentered.Screen;
       return <Room path={rest} />;
     }
+    if (first === "everyone") return <Everyone path={rest} />;
     if (first === "circle") return <Circle />;
     if (first === "loops") return <LoopsScreen path={rest} theme="shire" />;
     if (first === "hearth") {

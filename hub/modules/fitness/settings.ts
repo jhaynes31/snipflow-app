@@ -22,11 +22,11 @@ export function heartwoodDbName(who: HeartwoodPerson): string {
 
 export const HEARTWOOD_APP_PATH = "/fitness/app";
 
-/** The address that opens Heartwood as this person, with the day's signals. */
+/** The Shire address that opens Heartwood as this person, with the day's signals (framed under the toolbar since 2026-11-18). */
 export function heartwoodUrl(who: HeartwoodPerson, signals: { gentle: boolean; tender: boolean; weather?: string | null }): string {
   const p = new URLSearchParams({ who });
   if (signals.gentle) p.set("gentle", "1");
   if (signals.tender) p.set("tender", "1");
   if (signals.weather) p.set("weather", signals.weather);
-  return `${HEARTWOOD_APP_PATH}?${p.toString()}`;
+  return `/fitness?${p.toString()}`;
 }

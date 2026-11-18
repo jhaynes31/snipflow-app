@@ -71,7 +71,7 @@ export function Home() {
         </Speak>
 
         {drafts.length > 0 && <div className="notice notice-sage">You left {drafts[0].label}. <Link to={drafts[0].to}>Pick it back up</Link>, or leave it. Either is fine.</div>}
-        {plan && <div className="notice notice-sage">A word wasn't kept. The plan you wrote on a steady day is ready. <a href={SHIRE_ROOM}>Open it</a></div>}
+        {plan && <div className="notice notice-sage">A word wasn't kept. The plan you wrote on a steady day is ready. <a href={SHIRE_ROOM} target="_top">Open it</a></div>}
         {cycle?.inLowWindow && <div className="notice">It's the harder stretch of the month. Some of what stings this week will sting less next week. Be extra gentle with yourself. <Link to="/why/pmdd">Why</Link></div>}
 
         <div className="doors">
@@ -81,11 +81,11 @@ export function Home() {
             </button>
           ))}
           {roomDoor && (
-            <a href={SHIRE_ROOM} className="door door-sage" style={{ color: 'inherit' }}>
+            <a href={SHIRE_ROOM} target="_top" className="door door-sage" style={{ color: 'inherit' }}>
               <i aria-hidden="true">🏡</i>This is about John<span>Whose is this, the pause before rescuing, where I stand.</span>
             </a>
           )}
-          <a href={SHIRE_COACH} className="door door-gold" style={{ color: 'inherit' }}>
+          <a href={SHIRE_COACH} target="_top" className="door door-gold" style={{ color: 'inherit' }}>
             <i aria-hidden="true">💬</i>Talk it through<span>The Shire's coach, knowing you came from here.</span>
           </a>
         </div>

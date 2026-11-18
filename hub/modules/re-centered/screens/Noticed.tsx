@@ -96,7 +96,7 @@ export function Noticed() {
           )}
         </>
       )}
-      <Note>Private to you, in your room. The coach, Mom, and Dad can read a line back to you on a hard day, the way they use your mantel, and only sparingly. No totals, no streaks. This is noticing, not keeping score.</Note>
+      <Note>Private to you, in your room. The coach, Mom, and Dad can read a line back to you on a hard day, the way they use your mantel, and only sparingly. No totals, nothing to keep up. This is noticing, not keeping score.</Note>
     </div>
   );
 }

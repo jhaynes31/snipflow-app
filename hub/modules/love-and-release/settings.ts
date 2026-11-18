@@ -2,6 +2,8 @@ import { readPersonSetting, type EmbeddedPerson } from "@/core/person";
 
 export const LOVE_AND_RELEASE_MODULE_ID = "love-and-release";
 export const LOVE_AND_RELEASE_APP_PATH = "/love-and-release/app";
+/** The Shire page that frames the app under the toolbar (2026-11-18). */
+export const LOVE_AND_RELEASE_FRAME_PATH = "/love-and-release/everyone";
 
 export function readLoveAndReleaseSettings(moduleSettings: Record<string, unknown> | undefined): { who: EmbeddedPerson | null } {
   return { who: readPersonSetting(moduleSettings, LOVE_AND_RELEASE_MODULE_ID) };
@@ -12,8 +14,8 @@ export function readLoveAndReleaseSettings(moduleSettings: Record<string, unknow
  * signal that travels: a word wasn't kept recently, so the app's front door
  * can point at the plan in the room. Never what the word was.
  */
-export function loveAndReleaseUrl(who: EmbeddedPerson, signals: { plan?: boolean } = {}): string {
+export function loveAndReleaseUrl(who: EmbeddedPerson, signals: { plan?: boolean } = {}, inner = ""): string {
   const p = new URLSearchParams({ who });
   if (signals.plan) p.set("plan", "1");
-  return `${LOVE_AND_RELEASE_APP_PATH}?${p.toString()}`;
+  return `${LOVE_AND_RELEASE_FRAME_PATH}${inner ? `/${inner}` : ""}?${p.toString()}`;
 }
