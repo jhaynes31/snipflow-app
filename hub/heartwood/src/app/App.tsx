@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Navigate, NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { BookOpen, Dumbbell, Home, Settings as SettingsIcon, Tent, TreePine } from 'lucide-react';
-import { BASE } from '@/app/base';
+import { BASE, inShire, reportRoute } from '@/app/base';
 import { useProfile } from '@/hooks/useProfile';
 import { useApplyTheme } from '@/hooks/useTheme';
 import { loadMediaManifest } from '@/data/media';
@@ -21,13 +21,29 @@ import { WhoPage } from '@/pages/Who';
 import { FreestylePage } from '@/pages/Freestyle';
 import { getActiveUserId } from '@/db/users';
 
+/**
+ * Inside The Shire (the usual case since 2026-11-18) the toolbar above is
+ * The Shire's, and Heartwood's own sections sit in a row of pills like every
+ * other place in the village. On its own it keeps the bottom bar.
+ */
 function Shell() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const framed = inShire();
+  useEffect(() => { reportRoute(pathname + search); }, [pathname, search]);
   const hideNav = pathname.startsWith('/session') || pathname.startsWith('/onboarding') || pathname.startsWith('/reassess') || pathname.startsWith('/freestyle');
   return (
     <div className="min-h-screen flex flex-col">
+      {framed && !hideNav && (
+        <nav className="subnav" aria-label="Heartwood">
+          <NavLink to="/" end><Home size={16} />Today</NavLink>
+          <NavLink to="/library"><Dumbbell size={16} />Exercises</NavLink>
+          <NavLink to="/learn"><BookOpen size={16} />Learn</NavLink>
+          <NavLink to="/progress"><TreePine size={16} />Tree</NavLink>
+          <NavLink to="/settings"><SettingsIcon size={16} />Settings</NavLink>
+        </nav>
+      )}
       <main className="flex-1"><Outlet /></main>
-      {!hideNav && (
+      {!hideNav && !framed && (
         <nav className="nav" aria-label="Main">
           <NavLink to="/" end><Home size={22} />Today</NavLink>
           <NavLink to="/library"><Dumbbell size={22} />Exercises</NavLink>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 const Router = __PREVIEW__ ? HashRouter : BrowserRouter
 import { ensureSeeded } from '@/db/seed'
@@ -42,7 +42,14 @@ import { More } from '@/pages/More'
 import { NewPerson, PacePage } from '@/pages/Pacing'
 import { Personal } from '@/pages/Personal'
 import { ScrollToTop } from '@/components/ScrollToTop'
-import { BASE } from '@/app/person'
+import { BASE, reportRoute } from '@/app/person'
+
+/** Keeps The Shire's address bar in step with this app's screen. */
+function RouteReporter() {
+  const loc = useLocation()
+  useEffect(() => { reportRoute(loc.pathname + loc.search) }, [loc.pathname, loc.search])
+  return null
+}
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -73,6 +80,7 @@ export default function App() {
   return (
     <Router basename={__PREVIEW__ ? undefined : BASE}>
       <ScrollToTop />
+      <RouteReporter />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/pause" element={<Pause />} />

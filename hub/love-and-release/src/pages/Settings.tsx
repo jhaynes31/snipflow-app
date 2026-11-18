@@ -163,7 +163,7 @@ export function SettingsPage() {
       </div>
 
       <Confirm open={confirmRemovePin} title="Remove the passcode?" confirmLabel="Remove" onCancel={() => setConfirmRemovePin(false)} onConfirm={async () => { await updateSettings({ passcodeHash: undefined, passcodeSalt: undefined }); setConfirmRemovePin(false); setPinMsg('Passcode removed.') }} />
-      <Confirm open={confirmReset} title="Reset everything?" body="This removes all your data from this device and can't be undone." confirmLabel="Yes, reset" onCancel={() => setConfirmReset(false)} onConfirm={async () => { await resetEverything(); window.location.href = SHIRE_PAGE }} />
+      <Confirm open={confirmReset} title="Reset everything?" body="This removes all your data from this device and can't be undone." confirmLabel="Yes, reset" onCancel={() => setConfirmReset(false)} onConfirm={async () => { await resetEverything(); (window.top ?? window).location.href = SHIRE_PAGE }} />
       <span className="sr-only">{db.name}</span>
     </Shell>
   )

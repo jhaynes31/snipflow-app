@@ -12,8 +12,9 @@ import { FitnessToday } from "./widgets";
  * village palette.
  *
  * The app itself is Heartwood (hub/heartwood), a separate Vite app served at
- * /fitness/app/ with its data on the device. This module is the doorway:
- * it opens Heartwood as the signed-in person and shows today's plan.
+ * /fitness/app/ with its data on the device. Since 2026-11-18 this page
+ * frames it under the toolbar, opened as the signed-in person with the
+ * day's signals; the one-time "who is this" question stays here.
  */
 export const fitness: ModuleManifest = {
   id: "fitness",
@@ -36,7 +37,7 @@ export const fitness: ModuleManifest = {
   },
   usesAICoach: false,
   status: "ready",
-  Screen: function FitnessScreen() {
-    return <Open />;
+  Screen: function FitnessScreen({ path }: { path: string[] }) {
+    return <Open path={path} />;
   },
 };

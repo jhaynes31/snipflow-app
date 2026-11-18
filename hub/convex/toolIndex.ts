@@ -113,18 +113,18 @@ export const TOOL_INDEX: ToolEntry[] = [
   T("rc.boundaries", "My word to me", "Re-Centered, John and me", "/love-and-release/john/boundaries", "What you will and won't do, and your if-then plan.", ["boundary with john", "my word to me", "if then", "i won't", "what i will do"], "re-centered"),
 
   // Re-Centered: the app ("Everyone, and me"; one copy per person on the device)
-  T("lr.comfort", "I need comfort", "Re-Centered, everyone and me", "/love-and-release/app/comfort?who={who}", "No questions. Breath, a truth, Jesus, a flashback check.", ["comfort", "hold me", "just be here", "crying", "sad", "alone"]),
-  T("lr.fawn", "Fawn alarm", "Re-Centered, everyone and me", "/love-and-release/app/fawn?who={who}", "About to say yes when you mean no, apologize again, or shape-shift.", ["fawn", "say yes", "mean no", "people please", "people pleasing", "apologize again", "shape-shift", "can't say no"]),
-  T("lr.personal", "Taking it personally", "Re-Centered, everyone and me", "/love-and-release/app/personal?who={who}", "The fact, the story, their side, and the slice that's yours.", ["taking it personally", "personally", "about me", "their tone", "what did they mean"]),
-  T("lr.loop", "I'm in a loop", "Re-Centered, everyone and me", "/love-and-release/app/unhooked/loop?who={who}", "Breathe, name it, one tool, one true thing.", ["loop", "unhooked", "scrupulosity", "intrusive", "obsessing", "did i sin", "compulsion"]),
-  T("lr.pause", "Pause", "Re-Centered, everyone and me", "/love-and-release/app/pause?who={who}", "A breathing circle, 5-4-3-2-1, name what you feel.", ["pause", "breathe", "ground", "slow down", "5 4 3 2 1"]),
-  T("lr.boundary", "Say something hard", "Re-Centered, everyone and me", "/love-and-release/app/boundaries/new?who={who}", "A boundary draft: honest and kind is enough.", ["boundary", "say something hard", "tell them", "hard conversation", "no", "draft"]),
-  T("lr.someone", "Confused about someone", "Re-Centered, everyone and me", "/love-and-release/app/someone?who={who}", "Look at what's logged before deciding.", ["confused about", "friend", "someone", "is she", "is he", "mixed signals"]),
-  T("lr.newPerson", "I met someone", "Re-Centered, everyone and me", "/love-and-release/app/new-person?who={who}", "Set a pace before the attachment sets in.", ["met someone", "new friend", "excited", "new person", "too fast"]),
-  T("lr.release", "Release journal", "Re-Centered, everyone and me", "/love-and-release/app/release/new?who={who}", "Set something down, with Gethsemane prompts.", ["release", "let go", "set it down", "surrender", "journal", "gethsemane"]),
-  T("lr.circles", "Circles", "Re-Centered, everyone and me", "/love-and-release/app/circles?who={who}", "Who belongs where, and who moves closer or further out.", ["circles", "who to trust", "distance", "closer", "further", "red flag", "watch"]),
-  T("lr.morning", "Morning, sixty seconds", "Re-Centered, everyone and me", "/love-and-release/app/daily/morning?who={who}", "Start the day with whose you are.", ["morning", "start the day", "sixty seconds", "rhythm"]),
-  T("lr.evening", "Evening, sixty seconds", "Re-Centered, everyone and me", "/love-and-release/app/daily/evening?who={who}", "Set today down.", ["evening", "end of day", "bedtime", "set today down"]),
+  T("lr.comfort", "I need comfort", "Re-Centered, everyone and me", "/love-and-release/everyone/comfort?who={who}", "No questions. Breath, a truth, Jesus, a flashback check.", ["comfort", "hold me", "just be here", "crying", "sad", "alone"]),
+  T("lr.fawn", "Fawn alarm", "Re-Centered, everyone and me", "/love-and-release/everyone/fawn?who={who}", "About to say yes when you mean no, apologize again, or shape-shift.", ["fawn", "say yes", "mean no", "people please", "people pleasing", "apologize again", "shape-shift", "can't say no"]),
+  T("lr.personal", "Taking it personally", "Re-Centered, everyone and me", "/love-and-release/everyone/personal?who={who}", "The fact, the story, their side, and the slice that's yours.", ["taking it personally", "personally", "about me", "their tone", "what did they mean"]),
+  T("lr.loop", "I'm in a loop", "Re-Centered, everyone and me", "/love-and-release/everyone/unhooked/loop?who={who}", "Breathe, name it, one tool, one true thing.", ["loop", "unhooked", "scrupulosity", "intrusive", "obsessing", "did i sin", "compulsion"]),
+  T("lr.pause", "Pause", "Re-Centered, everyone and me", "/love-and-release/everyone/pause?who={who}", "A breathing circle, 5-4-3-2-1, name what you feel.", ["pause", "breathe", "ground", "slow down", "5 4 3 2 1"]),
+  T("lr.boundary", "Say something hard", "Re-Centered, everyone and me", "/love-and-release/everyone/boundaries/new?who={who}", "A boundary draft: honest and kind is enough.", ["boundary", "say something hard", "tell them", "hard conversation", "no", "draft"]),
+  T("lr.someone", "Confused about someone", "Re-Centered, everyone and me", "/love-and-release/everyone/someone?who={who}", "Look at what's logged before deciding.", ["confused about", "friend", "someone", "is she", "is he", "mixed signals"]),
+  T("lr.newPerson", "I met someone", "Re-Centered, everyone and me", "/love-and-release/everyone/new-person?who={who}", "Set a pace before the attachment sets in.", ["met someone", "new friend", "excited", "new person", "too fast"]),
+  T("lr.release", "Release journal", "Re-Centered, everyone and me", "/love-and-release/everyone/release/new?who={who}", "Set something down, with Gethsemane prompts.", ["release", "let go", "set it down", "surrender", "journal", "gethsemane"]),
+  T("lr.circles", "Circles", "Re-Centered, everyone and me", "/love-and-release/everyone/circles?who={who}", "Who belongs where, and who moves closer or further out.", ["circles", "who to trust", "distance", "closer", "further", "red flag", "watch"]),
+  T("lr.morning", "Morning, sixty seconds", "Re-Centered, everyone and me", "/love-and-release/everyone/daily/morning?who={who}", "Start the day with whose you are.", ["morning", "start the day", "sixty seconds", "rhythm"]),
+  T("lr.evening", "Evening, sixty seconds", "Re-Centered, everyone and me", "/love-and-release/everyone/daily/evening?who={who}", "Set today down.", ["evening", "end of day", "bedtime", "set today down"]),
 
   // Every Box
   T("everyBox.boxes", "Every Box", "Every Box", "/every-box", "Every part of life, and how recently each was tended.", ["box", "boxes", "forgot", "what needs tending", "neglected", "areas of life"]),
@@ -154,11 +154,11 @@ export const TOOL_INDEX: ToolEntry[] = [
 
   // Seasons, Heartwood
   T("seasons.mine", "Seasons", "Seasons", "/seasons", "What changed, in plain words, over a week, two, or a month.", ["season", "seasons", "report", "pattern", "what changed", "progress", "looking back"]),
-  T("fitness.somatic", "Somatic Movement", "Heartwood Fitness", "/fitness/app?who={who}&session=somatic", "Nervous system first: slow movement felt from the inside. Twenty minutes, every step optional.", ["somatic", "nervous system", "shake it out", "dysregulated", "body", "settle my body", "regulate"]),
-  T("fitness.fascia", "Fascia Release", "Heartwood Fitness", "/fitness/app?who={who}&session=fascia", "Feet to jaw, light pressure, slow.", ["fascia", "tight", "tension", "release", "sore", "knots"]),
-  T("fitness.pelvic", "Pelvic Floor", "Heartwood Fitness", "/fitness/app?who={who}&session=pelvicFloor", "Relax first, coordinate second. Breath-led, all external.", ["pelvic floor", "pelvic", "core breath"]),
-  T("fitness.mobility", "Mobility Therapist", "Heartwood Fitness", "/fitness/app?who={who}&session=ptMobility", "Controlled joint rotations, neck to ankle.", ["mobility", "joints", "stiff", "range of motion", "clicky"]),
-  T("fitness.five", "Five minutes of movement", "Heartwood Fitness", "/fitness/app?who={who}&five=1", "The five-minute version of today's session. Enough.", ["five minutes", "quick workout", "move a little", "short session", "just move"]),
+  T("fitness.somatic", "Somatic Movement", "Heartwood Fitness", "/fitness?who={who}&session=somatic", "Nervous system first: slow movement felt from the inside. Twenty minutes, every step optional.", ["somatic", "nervous system", "shake it out", "dysregulated", "body", "settle my body", "regulate"]),
+  T("fitness.fascia", "Fascia Release", "Heartwood Fitness", "/fitness?who={who}&session=fascia", "Feet to jaw, light pressure, slow.", ["fascia", "tight", "tension", "release", "sore", "knots"]),
+  T("fitness.pelvic", "Pelvic Floor", "Heartwood Fitness", "/fitness?who={who}&session=pelvicFloor", "Relax first, coordinate second. Breath-led, all external.", ["pelvic floor", "pelvic", "core breath"]),
+  T("fitness.mobility", "Mobility Therapist", "Heartwood Fitness", "/fitness?who={who}&session=ptMobility", "Controlled joint rotations, neck to ankle.", ["mobility", "joints", "stiff", "range of motion", "clicky"]),
+  T("fitness.five", "Five minutes of movement", "Heartwood Fitness", "/fitness?who={who}&five=1", "The five-minute version of today's session. Enough.", ["five minutes", "quick workout", "move a little", "short session", "just move"]),
   T("fitness.open", "Heartwood Fitness", "Heartwood Fitness", "/fitness", "Open the app, press Start, follow along.", ["workout", "exercise", "fitness", "move my body", "walk", "stretch", "pt", "physical therapy"]),
 
   // Metamorphosis (John's room)

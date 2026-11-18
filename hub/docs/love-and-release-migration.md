@@ -62,3 +62,17 @@ Kept Word. So Re-Centered's data did not move; its address did.
 Anything written at the app's old address stays in that browser. Its Settings has Export
 and Import: open the old address, Settings, Export, save the file; open it from The Shire,
 Settings, Import.
+
+## Under the toolbar (2026-11-18)
+
+Jen: every app should keep The Shire's toolbar above it. The app is unchanged and still
+served from `/love-and-release/app/`, but it now opens inside a frame on the Shire page
+`/love-and-release/everyone[/…]` (`modules/love-and-release/screens/Everyone.tsx`, using
+`core/embed/EmbeddedApp.tsx`), so the top bar, the phone's bottom bar, the path bar and the
+floating buttons stay. Inside the frame the app shows its sections as a row of pills (Home,
+Threads, Jesus, Me, Everything, Settings) instead of its own bottom bar, and reports each
+screen to The Shire (`postMessage` "shire:route") so the address bar follows and a refresh
+lands on the same screen. Opened on its own (an old link, the installed icon) it sends
+itself to the framed address with the hand-off intact. Links from the app to Shire pages
+use `target="_top"`. `X-Frame-Options` is `SAMEORIGIN` for this. Tool links and the
+cross-links from the room point at `/love-and-release/everyone/…`.
