@@ -2096,8 +2096,10 @@ export default defineSchema({
     ways: v.array(v.string()),
     didWell: v.optional(v.string()),
     grateful: v.optional(v.string()),
-    /** The old line this is evidence against, in her words. */
+    /** Legacy (before 2026-11-18): one old line this is evidence against. */
     evidenceAgainst: v.optional(v.string()),
+    /** The old lines this is evidence against, each with how the specifics went against it. */
+    evidence: v.optional(v.array(v.object({ line: v.string(), note: v.optional(v.string()) }))),
     sharedAt: v.optional(v.number()),
     createdAt: v.number(),
   }).index("by_owner_time", ["ownerId", "createdAt"]).index("by_owner_day", ["ownerId", "day"]),
