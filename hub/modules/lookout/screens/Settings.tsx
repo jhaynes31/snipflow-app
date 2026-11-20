@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_WEIGHTS, WEIGHT_LABEL, type Weights } from "@/convex/lookout/pure";
-import { EMPLOYER_KINDS, SOURCE_KIND_LABEL, type SourceKind } from "@/convex/lookout/sources";
+import { EMPLOYER_KINDS, SOURCE_KIND_LABEL, type SourceKind, RETIRED_KINDS } from "@/convex/lookout/sources";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
 import { download } from "../docx";
 
@@ -89,7 +89,7 @@ export function LookoutSettings() {
           return (
             <div key={group}>
               <h3 className="sh-h3">{group === "boards" ? `Job sites (${list.filter(({ x }) => x.enabled).length} on)` : `Companies followed (${list.filter(({ x }) => x.enabled).length} on)`}</h3>
-              {group === "boards" && <p className="sh-hint">Remote job sites with open listing feeds. Indeed, LinkedIn, Glassdoor, and ZipRecruiter don&apos;t allow automated reading; paste jobs from there with Add a job.</p>}
+              {group === "boards" && <p className="sh-hint">Remote job sites with open listing feeds, where every job links to the company&apos;s own listing or application page. Indeed, LinkedIn, Glassdoor, and ZipRecruiter don&apos;t allow automated reading; the Overview opens a search on Indeed and ZipRecruiter for you, and jobs from there are pasted in with Add a job. We Work Remotely is no longer searched (since 2026-11-20): applying there costs a monthly subscription, and its listings never give the company&apos;s own application page.</p>}
               {list.length === 0 && <p className="sh-muted">None yet.</p>}
               {list.map(({ x, i }) => (
                 <div key={`${x.kind}:${x.token}`} className="sh-row sh-wrap lo-entry">
@@ -104,7 +104,7 @@ export function LookoutSettings() {
           <summary className="sh-link">Add a source by hand</summary>
           <div className="sh-row sh-wrap mt-3">
             <select className="sh-input" value={src.kind} onChange={(e) => setSrc({ ...src, kind: e.target.value as SourceKind })} aria-label="Kind of source">
-              {(Object.keys(SOURCE_KIND_LABEL) as SourceKind[]).map((k) => <option key={k} value={k}>{SOURCE_KIND_LABEL[k]}</option>)}
+              {(Object.keys(SOURCE_KIND_LABEL) as SourceKind[]).filter((k) => !RETIRED_KINDS.includes(k)).map((k) => <option key={k} value={k}>{SOURCE_KIND_LABEL[k]}</option>)}
             </select>
             <input className="sh-input" value={src.token} maxLength={80} onChange={(e) => setSrc({ ...src, token: e.target.value })} placeholder={EMPLOYER_KINDS.includes(src.kind) ? "board name" : "category or search words"} aria-label="Board name or search" />
             <input className="sh-input" value={src.name} maxLength={80} onChange={(e) => setSrc({ ...src, name: e.target.value })} placeholder="What to call it" aria-label="Name" />

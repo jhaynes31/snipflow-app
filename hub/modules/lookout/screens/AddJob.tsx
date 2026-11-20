@@ -6,6 +6,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Btn, Card, ErrorNote, Field, PageTitle, useAction } from "@/core/ui";
 import { LOOKOUT } from "../Shell";
+import { Research } from "../Research";
 
 /**
  * A job found anywhere: Indeed, LinkedIn, an email, a friend. Those sites
@@ -21,6 +22,9 @@ export function AddJob() {
   return (
     <div className="sh-container sh-narrow">
       <PageTitle title="Add a job" subtitle="Paste the whole listing. It's checked the same way as everything else." />
+      <Card tone="alt">
+        <Research />
+      </Card>
       <Card>
         <div className="sh-stack">
           <Field label="Job title"><input className="sh-input" value={f.title} maxLength={200} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>

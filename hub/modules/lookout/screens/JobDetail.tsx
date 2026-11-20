@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { FACT_KEYS, FACT_LABEL, INTERACTION_KINDS, INTERACTION_LABEL, MANUAL_MOVES, SCHEDULE_KINDS, SCHEDULE_LABEL, STATUS_LABEL, verificationNote, type Fact, type FactKey, type Facts, type Status } from "@/convex/lookout/pure";
 import { Btn, Card, CopyButton, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
-import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, type SourceKind } from "@/convex/lookout/sources";
+import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, findAtEmployer, RETIRED_KINDS, type SourceKind } from "@/convex/lookout/sources";
 import { isOpenAnswer, joinAnswerPairs, parseAnswerPairs } from "@/convex/lookout/writing";
 import { download, fileName, textToDocx } from "../docx";
 import { ApplyLink, QuickApplied } from "../QuickApplied";
@@ -92,23 +92,33 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
   const { busy, error, run } = useAction();
   const [note, setNote] = useState<string | null>(null);
   const moves = MANUAL_MOVES[status] ?? [];
+  // Found on a site that charges to apply (We Work Remotely): never send him there to apply; point at the company.
+  const retired = RETIRED_KINDS.includes(job.sourceKind as SourceKind);
   return (
     <Card>
       <p><strong>{STATUS_LABEL[status]}</strong> <span className="sh-muted">since {timeAgo(job.statusAt)}</span></p>
       <p className="sh-hint">
         Found {day(job.discoveredAt)} via {job.sourceName}{job.postedAt ? ` · posted ${day(job.postedAt)}` : ""} · last verified {day(job.lastVerifiedAt)} · last checked {day(job.lastCheckedAt)}{job.deadline ? ` · apply by ${job.deadline}` : ""}{job.changedAt ? ` · the listing changed ${day(job.changedAt)}` : ""}
       </p>
-      {BEFORE.includes(status) && (
+      {retired ? (
+        <div className="lo-fail mt-3" style={{ padding: "0.6rem 0.8rem", borderRadius: "10px" }}>
+          <p><strong>Apply at {job.employer}, not at {BOARD_HOME[job.sourceKind as SourceKind]?.name ?? job.sourceName}.</strong> Applying there costs a monthly subscription, and that site is no longer searched. The same job is usually on the company&apos;s own careers page, or listed by name on Indeed or ZipRecruiter with a link to the company.</p>
+          <div className="sh-row sh-wrap">
+            {findAtEmployer(job.employer, job.title).map((l) => <a key={l.name} className="sh-btn sh-btn-secondary" href={l.url} target="_blank" rel="noopener noreferrer">{l.name}</a>)}
+          </div>
+          <p className="sh-hint">When you find it at the company, paste that link below under &ldquo;Follow&rdquo; or into Add a job, and apply there.</p>
+        </div>
+      ) : BEFORE.includes(status) && (
         <div className="sh-row sh-wrap">
           <ApplyLink jobId={job._id} href={job.applyUrl ?? job.url} />
         </div>
       )}
       <p className="mt-3">
-        <a className="sh-link" href={job.url} target="_blank" rel="noopener noreferrer" onClick={() => void opened({ jobId: job._id }).catch(() => undefined)}>The original listing</a>
-        {job.applyUrl && job.applyUrl !== job.url ? <> · <a className="sh-link" href={job.applyUrl} target="_blank" rel="noopener noreferrer" onClick={() => void opened({ jobId: job._id }).catch(() => undefined)}>The application page</a></> : null}
+        <a className="sh-link" href={job.url} target="_blank" rel="noopener noreferrer" onClick={() => void opened({ jobId: job._id }).catch(() => undefined)}>{retired ? "The listing where it was found (to read, not to apply)" : "The original listing"}</a>
+        {!retired && job.applyUrl && job.applyUrl !== job.url ? <> · <a className="sh-link" href={job.applyUrl} target="_blank" rel="noopener noreferrer" onClick={() => void opened({ jobId: job._id }).catch(() => undefined)}>The application page</a></> : null}
       </p>
       {job.alsoAt.length > 0 && <p className="sh-hint">Also seen at: {job.alsoAt.map((u) => <a key={u} className="sh-link" href={u} target="_blank" rel="noopener noreferrer">{new URL(u).hostname} </a>)}</p>}
-      {BOARD_HOME[job.sourceKind as SourceKind] && <p className="sh-hint">Found through <a className="sh-link" href={BOARD_HOME[job.sourceKind as SourceKind]!.url} target="_blank" rel="noopener noreferrer">{BOARD_HOME[job.sourceKind as SourceKind]!.name}</a>.</p>}
+      {!retired && BOARD_HOME[job.sourceKind as SourceKind] && <p className="sh-hint">Found through <a className="sh-link" href={BOARD_HOME[job.sourceKind as SourceKind]!.url} target="_blank" rel="noopener noreferrer">{BOARD_HOME[job.sourceKind as SourceKind]!.name}</a>.</p>}
       <FollowEmployer job={job} />
       <div className="sh-row sh-wrap">
         {moves.map((m) => <Btn key={m} variant={m === "passed" ? "ghost" : "secondary"} disabled={busy} onClick={() => void run(() => setStatus({ jobId: job._id, status: m }))}>{m === "passed" ? "Not for me" : m === "preparing" ? "Prepare an application" : STATUS_LABEL[m]}</Btn>)}
@@ -421,7 +431,7 @@ function Approval({ job, docs, application, status, verdict, owner }: { job: Doc
         <div className="lo-entry">
           <h3 className="sh-h3">Submit it on the employer&apos;s page</h3>
           <p>
-            <ApplyLink jobId={job._id} href={job.applyUrl ?? job.url} label="Open the application page" />
+            {RETIRED_KINDS.includes(job.sourceKind as SourceKind) ? findAtEmployer(job.employer, job.title).map((l) => <a key={l.name} className="sh-btn sh-btn-secondary" href={l.url} target="_blank" rel="noopener noreferrer">{l.name}</a>) : <ApplyLink jobId={job._id} href={job.applyUrl ?? job.url} label="Open the application page" />}
           </p>
           <p className="sh-hint">Fill it in with the documents above, then tap &quot;Yes, I applied&quot; at the top of this page. Don&apos;t give a Social Security number, bank details, or ID before an offer unless you&apos;re sure the page is the employer&apos;s own.</p>
         </div>

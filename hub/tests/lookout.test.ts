@@ -6,7 +6,7 @@ import { vetChange } from "../convex/lookout/adminPure.ts";
 import { AGENCIES, daysUntil, recruiterNote, searchLink } from "../convex/lookout/agencies.ts";
 import { chooseSearch, missingExperience, seniorInText, requiresDegree, rescanFacts, verificationNote, verificationQuestions, dedupeKey, FACT_KEYS, hardChecks, hourlyOf, MANUAL_MOVES, mergeFacts, normalizeUrl, parseHours, parsePay, rank, scanListing, STATUSES, type Facts } from "../convex/lookout/pure.ts";
 import { IMPORT_SYSTEM, importSchema, LETTER_SYSTEM, READABLE, readerSchema, RESUME_ANSWER_KEYS, RESUME_SYSTEM } from "../convex/lookout/prompts.ts";
-import { MANAGES_PEOPLE, workdayPosted, boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind } from "../convex/lookout/sources.ts";
+import { MANAGES_PEOPLE, workdayPosted, boardFromUrl, DEFAULT_SOURCES, defaultSources, feedItems, mergeNewDefaults, openFromPage, parseSource, sourceUrl, takeInTurns, titleFits, usFriendly, type SourceKind, RETIRED_KINDS, researchLinks, findAtEmployer } from "../convex/lookout/sources.ts";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, questionKey, renderResume, reviewDocument, scrubDashes } from "../convex/lookout/writing.ts";
 
 // Sample listings for the acceptance tests. Fictional employers; the shapes are what real postings look like.
@@ -397,6 +397,27 @@ describe("more places to look", () => {
     assert.ok(!merged.some((x) => x.kind === "remotive" && x.token === "customer-support"), "version 1 defaults he removed stay removed");
     assert.equal(mergeNewDefaults(merged, 2).length, merged.length);
   });
+  it("drops We Work Remotely from every search and never offers it again (applying there costs a subscription)", () => {
+    assert.deepEqual(RETIRED_KINDS, ["weworkremotely"]);
+    assert.ok(!DEFAULT_SOURCES.some((x) => x.kind === "weworkremotely"), "not in the defaults");
+    const old = [{ kind: "weworkremotely" as const, token: "remote-jobs", name: "WWR", enabled: true }, { kind: "himalayas" as const, token: "operations", name: "H", enabled: true }];
+    const merged = mergeNewDefaults(old, 7);
+    assert.ok(!merged.some((x) => x.kind === "weworkremotely"), "removed from a saved search");
+    assert.ok(merged.some((x) => x.kind === "himalayas"), "the rest stay");
+  });
+  it("opens a remote search on Indeed and ZipRecruiter, and points a paid-site find at the company", () => {
+    const r = researchLinks("remote claims processor");
+    assert.deepEqual(r.map((x) => x.name), ["Indeed", "ZipRecruiter"]);
+    assert.match(r[0].url, /^https:\/\/www\.indeed\.com\/jobs\?q=remote%20claims%20processor/);
+    assert.match(r[1].url, /^https:\/\/www\.ziprecruiter\.com\/jobs-search\?search=remote%20claims%20processor/);
+    assert.deepEqual(researchLinks("  "), []);
+    const f = findAtEmployer("Acme Inc", "Support Specialist");
+    assert.equal(f.length, 3);
+    assert.match(f[0].name, /Acme Inc careers page/);
+    assert.match(f[0].url, /duckduckgo\.com/);
+    assert.match(f[1].url, /indeed\.com.*Acme%20Inc%20Support%20Specialist/);
+    assert.deepEqual(findAtEmployer("", "x"), []);
+  });
   it("finds the employer's board from a careers page or job link", () => {
     assert.deepEqual(boardFromUrl("https://boards.greenhouse.io/acme/jobs/123"), { kind: "greenhouse", token: "acme" });
     assert.deepEqual(boardFromUrl("https://job-boards.greenhouse.io/embed/job_board?for=acme"), { kind: "greenhouse", token: "acme" });
@@ -418,7 +439,7 @@ describe("more places to look", () => {
     assert.equal(p[0].title, "Support Specialist");
     assert.match(p[0].payLine!, /50000/);
   });
-  it("reads We Work Remotely's feed, splitting company from title", () => {
+  it("still reads a We Work Remotely feed item for the finds from before it was retired", () => {
     const xml = `<rss><channel><item><title><![CDATA[Acme: Customer Support Specialist]]></title><link>https://weworkremotely.com/remote-jobs/acme-support</link><pubDate>Tue, 28 Oct 2026 10:00:00 +0000</pubDate><region>USA Only</region><description><![CDATA[<p>Email support, 30 hours per week.</p>]]></description></item></channel></rss>`;
     assert.equal(feedItems(xml).length, 1);
     const p = parseSource(src("weworkremotely"), xml);

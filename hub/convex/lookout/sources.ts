@@ -12,7 +12,13 @@
  * the once-a-day limit in discover.ts keeps it.
  *
  * Indeed, LinkedIn, Glassdoor, and ZipRecruiter don't allow automated
- * reading, so jobs from there are pasted in by hand and get every check.
+ * reading, so jobs from there are pasted in by hand and get every check;
+ * researchLinks opens a search on Indeed and ZipRecruiter for him.
+ *
+ * We Work Remotely was retired on 2026-11-20 (Jen): applying there costs a
+ * monthly subscription, and its feed names the company but never gives the
+ * company's own application page. Its finds from before point at the
+ * company instead (findAtEmployer).
  */
 
 export type SourceKind = "greenhouse" | "lever" | "ashby" | "workable" | "smartrecruiters" | "recruitee" | "remotive" | "himalayas" | "remoteok" | "weworkremotely" | "jobicy" | "workingnomads" | "themuse" | "rss" | "usajobs" | "adzuna" | "workday" | "bamboohr" | "breezy" | "jooble";
@@ -35,7 +41,7 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
   remotive: "Remotive (remote job board)",
   himalayas: "Himalayas (remote job board)",
   remoteok: "Remote OK (remote job board)",
-  weworkremotely: "We Work Remotely (remote job board)",
+  weworkremotely: "We Work Remotely (retired: applying there costs a subscription)",
   jobicy: "Jobicy (remote job board)",
   workingnomads: "Working Nomads (remote job board)",
   themuse: "The Muse (job board)",
@@ -50,6 +56,14 @@ export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
 
 /** Job boards that only list remote jobs (The Muse is searched for "Flexible / Remote" only). */
 export const REMOTE_ONLY: Partial<Record<string, string>> = { usajobs: "USAJOBS (remote search)", remotive: "Remotive", himalayas: "Himalayas", remoteok: "Remote OK", weworkremotely: "We Work Remotely", jobicy: "Jobicy", workingnomads: "Working Nomads", themuse: "The Muse (remote search)" };
+
+/**
+ * Sources no longer searched. Dropped from every search's list on the next
+ * version merge and never offered again. We Work Remotely (2026-11-20):
+ * applying there costs a monthly subscription, and the feed gives no way to
+ * the company's own posting.
+ */
+export const RETIRED_KINDS: SourceKind[] = ["weworkremotely"];
 
 /** Kinds that are one employer's own board, as opposed to a job board listing many employers. */
 export const EMPLOYER_KINDS: SourceKind[] = ["greenhouse", "lever", "ashby", "workable", "smartrecruiters", "recruitee", "workday", "bamboohr", "breezy"];
@@ -75,7 +89,7 @@ export const BOARD_HOME: Partial<Record<SourceKind, { name: string; url: string 
  * Example employer boards are off until turned on, because a board name can
  * change; the search note says when one doesn't answer.
  */
-export const SOURCES_VERSION = 7;
+export const SOURCES_VERSION = 8;
 export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "remotive", token: "customer-support", name: "Remotive: customer support", enabled: true, since: 1 },
   { kind: "remotive", token: "all-others", name: "Remotive: operations and other", enabled: true, since: 1 },
@@ -85,9 +99,6 @@ export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "himalayas", token: "data entry", name: "Himalayas: data entry and records", enabled: true, since: 2 },
   { kind: "himalayas", token: "claims", name: "Himalayas: claims and benefits", enabled: true, since: 2 },
   { kind: "remoteok", token: "all", name: "Remote OK: newest remote jobs", enabled: true, since: 2 },
-  { kind: "weworkremotely", token: "remote-customer-support-jobs", name: "We Work Remotely: customer support", enabled: true, since: 2 },
-  { kind: "weworkremotely", token: "remote-management-and-finance-jobs", name: "We Work Remotely: management and finance", enabled: true, since: 2 },
-  { kind: "weworkremotely", token: "all-other-remote-jobs", name: "We Work Remotely: everything else", enabled: true, since: 2 },
   { kind: "jobicy", token: "customer support", name: "Jobicy: customer support", enabled: true, since: 2 },
   { kind: "jobicy", token: "operations", name: "Jobicy: operations", enabled: true, since: 2 },
   { kind: "jobicy", token: "data entry", name: "Jobicy: data entry", enabled: true, since: 2 },
@@ -107,7 +118,6 @@ export const DEFAULT_SOURCES: (Source & { since: number })[] = [
   { kind: "jobicy", token: "claims", name: "Jobicy: claims", enabled: true, since: 3 },
   { kind: "jobicy", token: "billing", name: "Jobicy: billing", enabled: true, since: 3 },
   { kind: "jobicy", token: "administrative", name: "Jobicy: administrative", enabled: true, since: 3 },
-  { kind: "weworkremotely", token: "remote-jobs", name: "We Work Remotely: all newest jobs", enabled: true, since: 3 },
   { kind: "rss", token: "https://www.realworkfromanywhere.com/rss.xml", name: "Real Work From Anywhere", enabled: true, since: 3 },
   { kind: "usajobs", token: "claims", name: "USAJOBS: claims, remote", enabled: true, since: 4 },
   { kind: "usajobs", token: "customer service", name: "USAJOBS: customer service, remote", enabled: true, since: 4 },
@@ -154,11 +164,43 @@ export function defaultSources(): Source[] {
   return DEFAULT_SOURCES.map(({ since, ...src }) => (void since, src));
 }
 
-/** Add the defaults that arrived after a search was made, skipping any it already has. */
+/** Add the defaults that arrived after a search was made, skipping any it already has, and drop retired sites. */
 export function mergeNewDefaults(current: Source[], fromVersion: number): Source[] {
-  const has = new Set(current.map((x) => `${x.kind}:${x.token.toLowerCase()}`));
+  const kept = current.filter((x) => !RETIRED_KINDS.includes(x.kind));
+  const has = new Set(kept.map((x) => `${x.kind}:${x.token.toLowerCase()}`));
   const added = DEFAULT_SOURCES.filter((d) => d.since > fromVersion && !has.has(`${d.kind}:${d.token.toLowerCase()}`)).map(({ since, ...src }) => (void since, src));
-  return [...current, ...added];
+  return [...kept, ...added];
+}
+
+/**
+ * Research on the sites that don't allow automated reading (Jen, 2026-11-20:
+ * Indeed and ZipRecruiter). A remote search for the words, opened by hand;
+ * what he finds there is pasted into Add a job and gets every check.
+ */
+export function researchLinks(words: string): { name: string; url: string }[] {
+  const q = words.trim().replace(/\s+/g, " ");
+  if (!q) return [];
+  return [
+    { name: "Indeed", url: `https://www.indeed.com/jobs?q=${encodeURIComponent(q)}&l=Remote&sc=0kf%3Aattr%28DSQF7%29%3B` },
+    { name: "ZipRecruiter", url: `https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(q)}&location=Remote+%28USA%29` },
+  ];
+}
+
+/**
+ * The same job at the company itself, for a find from a site that charges
+ * to apply. The company's careers page first (a web search for it; the
+ * Lookout never guesses a company's address), then the job by name on
+ * Indeed and ZipRecruiter, where the listing usually links to the employer.
+ */
+export function findAtEmployer(employer: string, title: string): { name: string; url: string }[] {
+  const e = employer.trim();
+  const t = title.trim();
+  if (!e) return [];
+  const both = t ? `${e} ${t}` : e;
+  return [
+    { name: `${e} careers page`, url: `https://duckduckgo.com/?q=${encodeURIComponent(`"${e}" careers ${t}`)}` },
+    ...researchLinks(both).map((l) => ({ name: `${l.name}: this job at ${e}`, url: l.url })),
+  ];
 }
 
 /**
