@@ -29,6 +29,8 @@ export interface Source {
   token: string;
   name: string;
   enabled: boolean;
+  /** Which saved search preset this source belongs to ("insurance"); absent for his main search. */
+  preset?: string;
 }
 
 export const SOURCE_KIND_LABEL: Record<SourceKind, string> = {
@@ -372,6 +374,8 @@ export interface Posting {
   payLine?: string;
   /** The level the site itself gives the job ("Senior", "Mid-level", "GS-11"), when it gives one. */
   seniority?: string;
+  /** The preset whose source found it, if any. */
+  preset?: string;
 }
 
 /** HTML to readable text: block tags become line breaks, entities decoded, tags dropped. */
@@ -405,7 +409,7 @@ const time = (x: unknown): number | undefined => {
 
 /** Read one source's JSON into postings. Unknown shapes give an empty list, never a throw. */
 export function parseSource(source: Source, data: unknown): Posting[] {
-  const base = { sourceKind: source.kind, sourceName: source.name };
+  const base = { sourceKind: source.kind, sourceName: source.name, ...(source.preset ? { preset: source.preset } : {}) };
   const out: Posting[] = [];
   if (source.kind === "greenhouse") {
     for (const j of arr(obj(data).jobs).map(obj)) {

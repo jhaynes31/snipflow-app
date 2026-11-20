@@ -14,6 +14,8 @@ import { download, fileName, textToDocx } from "../docx";
 import { ApplyLink, QuickApplied } from "../QuickApplied";
 import { saveLabel, useAutosave } from "../useAutosave";
 import { LOOKOUT } from "../Shell";
+import { FitLine, Screening, type FitView } from "../Insurance";
+import { INSURANCE_NAME, type ScreeningAnswer } from "@/convex/lookout/insurance";
 
 const SOURCE_LABEL: Record<Fact["source"], string> = { none: "", listing: "from the listing", ai: "read by the assistant", verified: "verified" };
 const DOC_LABEL = { resume: "Resume", letter: "Cover letter", answers: "Application answers" } as const;
@@ -34,7 +36,7 @@ export function JobDetail({ id }: { id: string }) {
   }, [data?.job, markSeen]);
   if (data === undefined) return <Spinner />;
   if (data === null) return <div className="sh-container sh-narrow"><Card><p>That job isn&apos;t here.</p><Link href={`${LOOKOUT}/jobs`} className="sh-link">Back to jobs</Link></Card></div>;
-  const { job, rank, docs, application, events, role } = data;
+  const { job, rank, fit, docs, application, events, role } = data;
   const status = job.status as Status;
 
   return (
@@ -50,7 +52,10 @@ export function JobDetail({ id }: { id: string }) {
           <p className="sh-hint">Never pay to apply, never buy equipment with a check they send, never share banking logins, and never move to a chat app for an interview. If anything asks for money or sensitive details before an offer, stop.</p>
         </Card>
       )}
-      <Card>
+      {fit && <FitCard job={job} fit={fit} />}
+      {fit && !["new", "review"].includes(status) && <Screening key={job._id} jobId={job._id} answers={(job.screening ?? []) as ScreeningAnswer[]} />}
+      {!fit && <PresetSwitch job={job} />}
+      {!fit && <Card>
         <h2 className="sh-h2">{rank.verdict === "eligible" ? "Passes every requirement" : rank.verdict === "check" ? "Some requirements still need checking" : "Fails a requirement"}</h2>
         {rank.checks.map((c) => (
           <div key={c.key} className={`lo-check ${c.result === "pass" ? "lo-pass" : c.result === "fail" ? "lo-fail" : ""}`}>
@@ -59,7 +64,7 @@ export function JobDetail({ id }: { id: string }) {
           </div>
         ))}
         {rank.verdict === "rejected" && <p className="sh-hint mt-3">A failed requirement can&apos;t be outweighed by anything else. If a fact here is wrong, correct it below and this updates.</p>}
-      </Card>
+      </Card>}
       {rank.score !== null && (
         <Card>
           <h2 className="sh-h2">How well it fits: <span className="lo-score">{rank.score}</span></h2>
@@ -555,4 +560,30 @@ function Listing({ job }: { job: Doc<"loJobs"> }) {
       </details>
     </Card>
   );
+}
+
+
+/** The preset's verdict on an insurance sales job: the badge, every flag as a tag, state eligibility, and pay as listed. */
+function FitCard({ job, fit }: { job: Doc<"loJobs">; fit: FitView }) {
+  const setPreset = useMutation(api.lookout.data.setPreset);
+  const { busy, run } = useAction();
+  return (
+    <Card className={fit.badge === "avoid" ? "lo-fail" : undefined}>
+      <h2 className="sh-h2">{INSURANCE_NAME}: {fit.badge === "strong" ? "Strong fit" : fit.badge === "maybe" ? "Maybe" : "Avoid"}</h2>
+      <p><FitLine fit={fit} compact /></p>
+      <p>{fit.why}</p>
+      {fit.pay ? <p className="sh-hint">Pay, as the listing states it: {fit.pay}. Pay in a listing isn&apos;t a promise; confirm it in the interview.</p> : <p className="sh-hint">The listing doesn&apos;t state pay in a way that can be read. Ask what the hourly or base wage is, and whether it continues after training.</p>}
+      <p className="sh-hint">{fit.wv === "yes" ? "The listing says West Virginia (or every US state) is fine." : fit.wv === "no" ? "The listing names eligible states and West Virginia isn't one." : "The listing doesn&apos;t say which states it hires in. Check before applying."}</p>
+      {job.status === "new" || job.status === "review" ? <p className="sh-hint">Save the job and the screening checklist for the interview appears here.</p> : null}
+      <p className="sh-hint"><button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => setPreset({ jobId: job._id, preset: null }))}>Stop scoring this as an insurance sales job</button></p>
+    </Card>
+  );
+}
+
+/** For a job pasted in by hand (or found by the main search) that is really an insurance sales job: score it by the preset's flags instead. */
+function PresetSwitch({ job }: { job: Doc<"loJobs"> }) {
+  const setPreset = useMutation(api.lookout.data.setPreset);
+  const { busy, run } = useAction();
+  if (!/\b(?:insurance|life|medicare|final expense|annuit)/i.test(`${job.title} ${job.description.slice(0, 4000)}`)) return null;
+  return <p className="sh-hint">This looks like it could be an insurance sales job. <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => setPreset({ jobId: job._id, preset: "insurance" }))}>Score it with {INSURANCE_NAME}</button> instead of the main search&apos;s rules.</p>;
 }

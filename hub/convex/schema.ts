@@ -1565,6 +1565,14 @@ export default defineSchema({
     frequency: v.union(v.literal("off"), v.literal("daily"), v.literal("weekly")),
     keywords: v.array(v.string()),
     sources: v.array(v.object({ kind: v.string(), token: v.string(), name: v.string(), enabled: v.boolean() })),
+    /** The "Insurance Sales, Inbound/W-2" preset (2026-11-20): its words, blocklist, and company watchlist. Absent means off. */
+    insurance: v.optional(v.object({
+      enabled: v.boolean(),
+      keywords: v.array(v.string()),
+      blocklist: v.array(v.string()),
+      watchlist: v.array(v.object({ name: v.string(), url: v.string(), search: v.optional(v.string()), note: v.optional(v.string()), enabled: v.boolean() })),
+      showBlocked: v.boolean(),
+    })),
     allowHealthDisclosure: v.boolean(),
     /** The USAJOBS API key and the email it was requested with. Never sent to the browser. */
     usajobs: v.optional(v.object({ email: v.string(), key: v.string() })),
@@ -1663,6 +1671,10 @@ export default defineSchema({
     /** The employer's application questions as pasted, kept so they're never pasted twice. */
     applicationQuestions: v.optional(v.string()),
     notes: v.optional(v.string()),
+    /** Found by, or scored as, a preset ("insurance"). Such jobs get the preset's fit badge instead of the hard checks. */
+    preset: v.optional(v.string()),
+    /** The preset's screening checklist, filled in during interviews. */
+    screening: v.optional(v.array(v.object({ key: v.string(), asked: v.boolean(), answer: v.string(), note: v.string() }))),
   })
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_owner_dedupe", ["ownerId", "dedupeKey"])

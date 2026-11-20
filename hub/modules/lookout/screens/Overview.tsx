@@ -10,6 +10,8 @@ import { LOOKOUT } from "../Shell";
 import { VIEWS } from "../views";
 import { QuickApplied } from "../QuickApplied";
 import { Research } from "../Research";
+import { FitLine, Watchlist, type FitView } from "../Insurance";
+import { INSURANCE_NAME } from "@/convex/lookout/insurance";
 
 /** The Overview's grid: every stage group from the Jobs page, so the two always count the same jobs. */
 const GRID = VIEWS.filter((v) => v.key !== "best" && v.key !== "check");
@@ -103,6 +105,20 @@ export function Overview() {
         )}
       </Card>
 
+      {settings.insurance.enabled ? (
+        <Card>
+          <h2 className="sh-h2">{INSURANCE_NAME}</h2>
+          <p className="sh-hint">
+            {(() => { const ins = data.jobs.filter((j) => j.preset === "insurance" && !["rejected", "closed"].includes(j.status)); const n = (b: string) => ins.filter((j) => j.fit?.badge === b && !j.fit?.blocked).length; return `${n("strong")} strong fit, ${n("maybe")} maybe, ${n("avoid")} to avoid${ins.filter((j) => j.fit?.blocked).length ? `, ${ins.filter((j) => j.fit?.blocked).length} hidden (blocklist)` : ""}.`; })()}{" "}
+            <Link className="sh-link" href={`${LOOKOUT}/jobs?show=insurance`}>See them</Link>. Searched with every search, with the companies below.
+          </p>
+          <h3 className="sh-h3">Company watchlist</h3>
+          <Watchlist cfg={settings.insurance} />
+        </Card>
+      ) : (
+        <p className="sh-hint">Looking for insurance sales work too? Turn on <Link className="sh-link" href={`${LOOKOUT}/settings`}>{INSURANCE_NAME}</Link> under Settings.</p>
+      )}
+
       <Card>
         <h2 className="sh-h2">Top matches</h2>
         {top.length === 0 && <p className="sh-muted">None that pass every requirement yet. Jobs that still need a fact checked are below.</p>}
@@ -151,14 +167,15 @@ function describe(r: { note: string; fresh: number; skipped?: boolean; closed?: 
   return `${r.note} ${r.fresh ? `${r.fresh} new, each in the group below that fits it.` : "Nothing new this time."}${r.closed ? ` ${r.closed} saved or listed ${r.closed === 1 ? "job has" : "jobs have"} closed and moved to Closed.` : ""}`;
 }
 
-export function JobLine({ j }: { j: { _id: string; title: string; employer: string; score: number | null; verdict: string; uncertain: number; sourceName: string; discoveredAt: number; seen: boolean; changedAt?: number; warnings: string[]; fails: string[] } }) {
+export function JobLine({ j }: { j: { _id: string; title: string; employer: string; score: number | null; verdict: string; uncertain: number; sourceName: string; discoveredAt: number; seen: boolean; changedAt?: number; warnings: string[]; fails: string[]; preset?: string; fit?: FitView | null } }) {
   return (
     <Link href={`${LOOKOUT}/jobs/${j._id}`} className="lo-job lo-entry">
       <span className="lo-job-title">{j.title}</span> <span className="sh-muted">· {j.employer}</span>
       <br />
+      {j.fit && <><FitLine fit={j.fit} /><br /></>}
       <span className="sh-hint">
-        {j.score !== null ? <span className="lo-score" title="Match score out of 100">{j.score}</span> : null}{" "}
-        {j.verdict === "eligible" ? "Passes every requirement" : j.verdict === "check" ? `${j.uncertain} ${j.uncertain === 1 ? "thing" : "things"} to check` : `Set aside: ${j.fails[0] ?? "fails a requirement"}`}
+        {j.score !== null && !j.fit ? <span className="lo-score" title="Match score out of 100">{j.score}</span> : null}{" "}
+        {j.fit ? j.fit.why : j.verdict === "eligible" ? "Passes every requirement" : j.verdict === "check" ? `${j.uncertain} ${j.uncertain === 1 ? "thing" : "things"} to check` : `Set aside: ${j.fails[0] ?? "fails a requirement"}`}
         {" · "}found {timeAgo(j.discoveredAt)} via {j.sourceName}
         {!j.seen ? " · new to you" : ""}
         {j.changedAt ? " · the listing changed" : ""}

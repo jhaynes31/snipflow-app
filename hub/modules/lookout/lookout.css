@@ -144,3 +144,14 @@
     display: block;
   }
 }
+
+/* The insurance preset's fit badge and flag tags (2026-11-20). */
+.lo-fit { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; margin: 0.25rem 0; }
+.lo-badge { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700; border: 1px solid var(--border); }
+.lo-badge-strong { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.lo-badge-maybe { background: var(--surface-alt, var(--surface)); color: var(--text); }
+.lo-badge-avoid { background: var(--secondary); color: var(--on-secondary, #fff); border-color: transparent; }
+.lo-tag { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--border); color: var(--text-muted); }
+.lo-tag-green { border-color: var(--accent); color: var(--text); }
+.lo-tag-red { border-color: var(--secondary); color: var(--text); }
+.lo-chip-bad { background: var(--secondary) !important; color: var(--on-secondary, #fff) !important; border-color: transparent !important; }

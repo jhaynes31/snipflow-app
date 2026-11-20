@@ -1,6 +1,6 @@
 import type { Status } from "@/convex/lookout/pure";
 
-type Row = { status: Status; verdict: string; shelved?: boolean };
+type Row = { status: Status; verdict: string; shelved?: boolean; preset?: string; fit?: { blocked: string | null } | null };
 /** Moved out of the way by "Refresh the list" or "Hide": kept under Earlier finds. */
 const out = (j: Row) => !!j.shelved && ["new", "review", "passed"].includes(j.status);
 
@@ -20,3 +20,6 @@ export const VIEWS: { key: string; label: string; test: (j: Row) => boolean }[] 
   { key: "aside", label: "Set aside", test: (j) => !out(j) && ((j.verdict === "rejected" && ["new", "review", "saved"].includes(j.status)) || j.status === "passed") },
   { key: "earlier", label: "Earlier finds", test: (j) => out(j) },
 ];
+
+/** The insurance preset's own group: every job it found or scored, newest and best fit first. Blocklisted companies are hidden unless Settings says to show them. */
+export const INSURANCE_VIEW = { key: "insurance", label: "Insurance sales", test: (j: Row, showBlocked = false) => j.preset === "insurance" && !["rejected", "closed"].includes(j.status) && (showBlocked || !j.fit?.blocked) };
