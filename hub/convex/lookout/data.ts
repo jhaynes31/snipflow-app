@@ -6,7 +6,7 @@ import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
 import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
-import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source } from "./sources";
+import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, RETIRED_KINDS, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source, type SourceKind } from "./sources";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
 /**
@@ -246,6 +246,10 @@ export const refreshReadings = mutation({
     // Sources added to the defaults since this search was made join its list once.
     if (existing && (existing.sourcesVersion ?? 1) < SOURCES_VERSION) {
       await ctx.db.patch(existing._id, { sources: mergeNewDefaults(existing.sources as Source[], existing.sourcesVersion ?? 1), sourcesVersion: SOURCES_VERSION });
+      // Finds from a retired site that he hasn't saved move to Earlier finds; saved ones stay and point at the company.
+      for (const j of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect()) {
+        if (RETIRED_KINDS.includes(j.sourceKind as SourceKind) && UNSAVED.includes(j.status) && !j.shelvedAt) await ctx.db.patch(j._id, { shelvedAt: Date.now() });
+      }
     }
     // A search from before versions were kept has no number yet: read it again.
     const version = existing?.scanVersion ?? 1;

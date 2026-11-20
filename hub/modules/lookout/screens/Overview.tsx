@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { LOOKOUT } from "../Shell";
 import { VIEWS } from "../views";
 import { QuickApplied } from "../QuickApplied";
+import { Research } from "../Research";
 
 /** The Overview's grid: every stage group from the Jobs page, so the two always count the same jobs. */
 const GRID = VIEWS.filter((v) => v.key !== "best" && v.key !== "check");
@@ -83,6 +84,7 @@ export function Overview() {
         <p className="sh-hint">Refresh moves the finds you haven&apos;t saved out of the way, then looks for new ones. Anything saved, being prepared, or applied to stays put, and nothing is deleted.</p>
         <ErrorNote error={error} />
         {result && <Note>{result}</Note>}
+        <Research words={["remote customer service", "remote claims processor", "remote data entry", "remote administrative assistant", "remote billing specialist", "remote order processing", ...settings.keywords.map((k) => `remote ${k}`)]} />
         {settings.searchLog.length > 0 && (
           <details className="mt-3">
             <summary className="sh-link">Search log: what each site returned</summary>

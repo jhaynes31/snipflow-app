@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { fingerprint, missingExperience, parsePay, requiresDegree, seniorInText } from "./pure";
-import { htmlToText, isFeed, MANAGES_PEOPLE, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
+import { htmlToText, isFeed, MANAGES_PEOPLE, RETIRED_KINDS, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 
 /**
  * Finding and rechecking jobs. Only public posting APIs are called (see
@@ -155,7 +155,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna" || x.kind === "jooble")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null, jooble: null };
   const rules: Rules = { requirePay: s.requirePay, allowSenior: s.allowSenior, allowDegree: s.allowDegree, profile: plan.profile };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled) as Source[]).map((src) => readSource(src, s.keywords, rules, creds)));
+  const results = await Promise.all((s.sources.filter((x) => x.enabled && !RETIRED_KINDS.includes(x.kind as Source["kind"])) as Source[]).map((src) => readSource(src, s.keywords, rules, creds)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
