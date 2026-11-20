@@ -5,8 +5,9 @@ import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
-import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status } from "./pure";
+import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status, type Verdict } from "./pure";
 import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, RETIRED_KINDS, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source, type SourceKind } from "./sources";
+import { cleanConfig, cleanScreening, defaultInsurance, fitOf, INSURANCE_PRESET, insuranceSources, isBlocked, payAsListed, type InsuranceConfig, type ScreeningAnswer } from "./insurance";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
 /**
@@ -114,6 +115,7 @@ function settingsView(row: Doc<"loSettings"> | null) {
     requirePay: row?.requirePay ?? true,
     allowSenior: row?.allowSenior ?? false,
     allowDegree: row?.allowDegree ?? false,
+    insurance: (row?.insurance as InsuranceConfig | undefined) ?? defaultInsurance(),
     // Only whether it's connected and the email; the key itself never leaves the server.
     usajobsEmail: row?.usajobs?.email ?? null,
     adzunaAppId: row?.adzuna?.appId ?? null,
@@ -142,7 +144,20 @@ async function profileSource(ctx: Ctx, ownerId: Id<"profiles">): Promise<string>
 }
 
 function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile: string) {
+  // A preset job (insurance sales) is judged by the preset's flags, not by the main search's hard checks, which would fail every sales job.
+  if (job.preset === INSURANCE_PRESET) {
+    const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[]);
+    return { verdict: (f.badge === "strong" ? "eligible" : f.badge === "maybe" ? "check" : "rejected") as Verdict, checks: [], score: f.score, parts: [], strengths: f.green, gaps: f.red, uncertain: [] };
+  }
   return rank(job.facts as Facts, { req: { minHourly: s.minHourly, maxHours: s.maxHours, homeState: s.homeState, allowDegree: s.allowDegree }, weights: s.weights, jobText: `${job.title}\n${job.description}`, profileText: profile });
+}
+
+/** The preset's view of a job, for the cards: the badge, the tags, state eligibility, and pay as listed. Null for jobs outside the preset. */
+function presetView(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>) {
+  if (job.preset !== INSURANCE_PRESET) return null;
+  const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[]);
+  const wv = (job.facts as Facts).wvEligible?.state ?? "unknown";
+  return { badge: f.badge, green: f.green, red: f.red, blocked: f.blocked, why: f.why, wv, pay: payAsListed(job.description, job.discoveredAt) };
 }
 
 // ---------- Whose search ----------
@@ -554,7 +569,8 @@ export const jobs = query({
       jobs: rows.map((j) => {
         const r = rankJob(j, s, profile);
         const askApplied = BEFORE_APPLYING.includes(j.status) && !!j.applyOpenedAt && Date.now() - j.applyOpenedAt < 14 * 86400000 && (!j.applyAskDismissedAt || j.applyAskDismissedAt < j.applyOpenedAt);
-        return { _id: j._id, shelved: !!j.shelvedAt, askApplied, applyOpenedAt: j.applyOpenedAt, applyUrl: j.applyUrl, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
+        const fit = presetView(j, s);
+        return { _id: j._id, shelved: !!j.shelvedAt, askApplied, applyOpenedAt: j.applyOpenedAt, applyUrl: j.applyUrl, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, sourceKind: j.sourceKind, preset: j.preset, fit, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
       }),
       events: events.filter((e) => !e.done).map((e) => ({ ...e, jobTitle: rows.find((j) => j._id === e.jobId)?.title ?? "", employer: rows.find((j) => j._id === e.jobId)?.employer ?? "" })),
     };
@@ -572,7 +588,7 @@ export const job = query({
     const docs = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect();
     const application = await ctx.db.query("loApplications").withIndex("by_job", (q) => q.eq("jobId", j._id)).first();
     const events = await ctx.db.query("loEvents").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect();
-    return { job: j, rank: rankJob(j, s, profile), docs, application, events: events.sort((x, y) => (x.at ?? x.createdAt) - (y.at ?? y.createdAt)), role: a.role };
+    return { job: j, rank: rankJob(j, s, profile), fit: presetView(j, s), docs, application, events: events.sort((x, y) => (x.at ?? x.createdAt) - (y.at ?? y.createdAt)), role: a.role };
   },
 });
 
@@ -580,8 +596,9 @@ async function insertJob(
   ctx: MutationCtx,
   ownerId: Id<"profiles">,
   homeState: string,
-  p: { title: string; employer: string; url: string; applyUrl?: string; location?: string; description: string; sourceKind: string; sourceName: string; sourceId?: string; postedAt?: number; deadline?: string },
+  p: { title: string; employer: string; url: string; applyUrl?: string; location?: string; description: string; sourceKind: string; sourceName: string; sourceId?: string; postedAt?: number; deadline?: string; preset?: string },
   status: Status,
+  blocklist: string[] = [],
 ): Promise<{ id: Id<"loJobs">; duplicate: boolean }> {
   const key = dedupeKey(p.employer, p.title);
   const urlKey = normalizeUrl(p.url);
@@ -596,9 +613,14 @@ async function insertJob(
   const board = REMOTE_ONLY[p.sourceKind];
   if (board && !scan.facts.remote) scan.facts.remote = remoteBoardFact(board);
   const now = Date.now();
+  // A preset job from a blocklisted company is kept but hidden (Earlier finds), with the reason on it.
+  const blocked = p.preset ? isBlocked(p.employer, blocklist) : null;
+  if (blocked) scan.warnings = [...scan.warnings, `On your blocklist: ${blocked}. Hidden unless "show hidden" is on.`];
   const id = await ctx.db.insert("loJobs", {
     ownerId,
     visibility: "private",
+    preset: p.preset,
+    shelvedAt: blocked ? now : undefined,
     title: p.title.slice(0, 200),
     employer: p.employer.slice(0, 120) || "Unknown employer",
     url: p.url.slice(0, 1000),
@@ -1163,16 +1185,17 @@ export const scheduledOwners = internalQuery({
   },
 });
 
-const postingV = v.object({ title: v.string(), employer: v.string(), url: v.string(), applyUrl: v.optional(v.string()), location: v.optional(v.string()), description: v.string(), sourceKind: v.string(), sourceName: v.string(), sourceId: v.optional(v.string()), postedAt: v.optional(v.number()), deadline: v.optional(v.string()) });
+const postingV = v.object({ title: v.string(), employer: v.string(), url: v.string(), applyUrl: v.optional(v.string()), location: v.optional(v.string()), description: v.string(), sourceKind: v.string(), sourceName: v.string(), sourceId: v.optional(v.string()), postedAt: v.optional(v.number()), deadline: v.optional(v.string()), preset: v.optional(v.string()) });
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
   args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
+    const blocklist = (s.insurance as InsuranceConfig | undefined)?.blocklist ?? defaultInsurance().blocklist;
     let fresh = 0;
     for (const p of args.postings) {
-      const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new");
+      const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new", blocklist);
       if (!r.duplicate) fresh++;
     }
     const bySource = args.bySource?.slice(0, 60) ?? [];
@@ -1321,3 +1344,73 @@ export const saveImport = internalMutation({
     return { rolesAdded, answersAdded, notes };
   },
 });
+
+
+// ---------- The Insurance Sales, Inbound/W-2 preset (2026-11-20) ----------
+
+const watchV = v.object({ name: v.string(), url: v.string(), search: v.optional(v.string()), note: v.optional(v.string()), enabled: v.boolean() });
+
+/** Turn the preset on or off, or change its words, blocklist, or watchlist. The blocklist is applied to found jobs at once. */
+export const setInsurance = mutation({
+  args: { enabled: v.optional(v.boolean()), keywords: v.optional(v.array(v.string())), blocklist: v.optional(v.array(v.string())), watchlist: v.optional(v.array(watchV)), showBlocked: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const row = await ensureSettings(ctx, a.ownerId);
+    const current = (row.insurance as InsuranceConfig | undefined) ?? defaultInsurance();
+    const next = cleanConfig(args, current);
+    await ctx.db.patch(row._id, { insurance: next, updatedAt: Date.now() });
+    if (args.blocklist !== undefined) {
+      // Newly blocked companies' unsaved finds move out of the way; unblocked ones come back.
+      for (const j of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect()) {
+        if (j.preset !== INSURANCE_PRESET) continue;
+        const was = !!isBlocked(j.employer, current.blocklist);
+        const now = !!isBlocked(j.employer, next.blocklist);
+        if (was === now) continue;
+        const warnings = j.warnings.filter((w) => !w.startsWith("On your blocklist:"));
+        if (now) await ctx.db.patch(j._id, { warnings: [...warnings, `On your blocklist: ${isBlocked(j.employer, next.blocklist)}. Hidden unless "show hidden" is on.`], ...(UNSAVED.includes(j.status) ? { shelvedAt: Date.now() } : {}) });
+        else await ctx.db.patch(j._id, { warnings, ...(UNSAVED.includes(j.status) && j.shelvedAt ? { shelvedAt: undefined } : {}) });
+      }
+    }
+    return next;
+  },
+});
+
+/** The screening checklist on one job, filled in during interviews. A bad answer to a critical question marks the job Avoid. */
+export const setScreening = mutation({
+  args: { jobId: v.id("loJobs"), answers: v.array(v.object({ key: v.string(), asked: v.boolean(), answer: v.string(), note: v.string() })) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    await ctx.db.patch(j._id, { screening: cleanScreening(args.answers as ScreeningAnswer[]) });
+  },
+});
+
+/** Score a job by the preset's flags (for one pasted in by hand), or stop. */
+export const setPreset = mutation({
+  args: { jobId: v.id("loJobs"), preset: v.union(v.literal("insurance"), v.null()) },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    await ctx.db.patch(j._id, { preset: args.preset ?? undefined });
+  },
+});
+
+/** Store what a watchlist "Check now" found, without counting as a search. */
+export const storeWatch = internalMutation({
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV) },
+  handler: async (ctx, args) => {
+    const s = await ensureSettings(ctx, args.ownerId);
+    const blocklist = (s.insurance as InsuranceConfig | undefined)?.blocklist ?? defaultInsurance().blocklist;
+    let fresh = 0;
+    for (const p of args.postings) {
+      const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new", blocklist);
+      if (!r.duplicate) fresh++;
+    }
+    return fresh;
+  },
+});
+
+/** The preset's sources for this search, for the log and for the search itself. */
+export function presetSourcesOf(cfg: InsuranceConfig): Source[] {
+  return cfg.enabled ? insuranceSources(cfg) : [];
+}

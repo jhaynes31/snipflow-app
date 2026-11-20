@@ -94,6 +94,7 @@ import type * as lookout_agencyData from "../lookout/agencyData.js";
 import type * as lookout_ai from "../lookout/ai.js";
 import type * as lookout_data from "../lookout/data.js";
 import type * as lookout_discover from "../lookout/discover.js";
+import type * as lookout_insurance from "../lookout/insurance.js";
 import type * as lookout_intake from "../lookout/intake.js";
 import type * as lookout_prompts from "../lookout/prompts.js";
 import type * as lookout_pure from "../lookout/pure.js";
@@ -214,6 +215,7 @@ declare const fullApi: ApiFromModules<{
   "lookout/ai": typeof lookout_ai;
   "lookout/data": typeof lookout_data;
   "lookout/discover": typeof lookout_discover;
+  "lookout/insurance": typeof lookout_insurance;
   "lookout/intake": typeof lookout_intake;
   "lookout/prompts": typeof lookout_prompts;
   "lookout/pure": typeof lookout_pure;

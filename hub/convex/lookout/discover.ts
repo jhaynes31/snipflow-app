@@ -6,6 +6,7 @@ import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { fingerprint, missingExperience, parsePay, requiresDegree, seniorInText } from "./pure";
 import { htmlToText, isFeed, MANAGES_PEOPLE, RETIRED_KINDS, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
+import { INSURANCE_PRESET, insuranceSources, insuranceTitleFits, watchSource, type InsuranceConfig } from "./insurance";
 
 /**
  * Finding and rechecking jobs. Only public posting APIs are called (see
@@ -124,8 +125,10 @@ async function readSource(source: Source, keywords: string[], rules: Rules, cred
     if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${source.kind === "usajobs" && (res.status === 401 || res.status === 403) ? " (check the USAJOBS key and email in Settings)" : source.kind === "adzuna" && (res.status === 401 || res.status === 403) ? " (check the Adzuna app ID and key in Settings)" : source.kind === "jooble" && (res.status === 401 || res.status === 403 || res.status === 404) ? " (check the Jooble key in Settings)" : res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
     const postings = parseSource(source, res.data);
     const kept: Posting[] = [];
+    // The insurance preset keeps insurance sales titles, which the main search drops on purpose.
+    const insurance = source.preset === INSURANCE_PRESET;
     for (const p of postings) {
-      if (!titleFits(p.title, keywords, allowSenior)) continue;
+      if (insurance ? !insuranceTitleFits(p.title) : !titleFits(p.title, keywords, allowSenior)) continue;
       if (!usFriendly(p.location)) continue;
       if (p.postedAt && p.postedAt < recent) continue;
       kept.push(p);
@@ -136,10 +139,11 @@ async function readSource(source: Source, keywords: string[], rules: Rules, cred
     // Above his level: managing people, or marked senior by the site or the listing's own words.
     const level = filled.filter((p) => !MANAGES_PEOPLE.test(p.description) && (allowSenior || !seniorInText(p.description)));
     // Years of experience in something he hasn't done (Jen, 2026-11-13).
-    const able = level.filter((p) => !missingExperience(p.description, profile));
+    // The preset's fit badge reads experience asks and pay itself, so neither leaves a job out here.
+    const able = insurance ? level : level.filter((p) => !missingExperience(p.description, profile));
     // Jobs that require a bachelor's degree or higher are left out (Jen, 2026-11-12).
     const noDegree = allowDegree ? able : able.filter((p) => !requiresDegree(`${p.title}\n${p.description}`));
-    const paid = requirePay ? noDegree.filter((p) => parsePay(p.description)) : noDegree;
+    const paid = requirePay && !insurance ? noDegree.filter((p) => parsePay(p.description)) : noDegree;
     return { name: source.name, found: postings.length, kept: paid, noPay: noDegree.length - paid.length, senior: filled.length - level.length, experience: level.length - able.length, degree: able.length - noDegree.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
   } catch (err) {
     return { name: source.name, found: 0, kept: [], noPay: 0, problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
@@ -152,15 +156,18 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const s = plan.settings;
   const gap = manual ? MANUAL_GAP_MS : MIN_GAP_MS;
   if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
-  const creds: Creds = s.sources.some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna" || x.kind === "jooble")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null, jooble: null };
+  const creds: Creds = [...s.sources, ...((s.insurance as InsuranceConfig).enabled ? insuranceSources(s.insurance as InsuranceConfig) : [])].some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna" || x.kind === "jooble")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null, jooble: null };
   const rules: Rules = { requirePay: s.requirePay, allowSenior: s.allowSenior, allowDegree: s.allowDegree, profile: plan.profile };
   // Every source at once; each is a different site, asked once.
-  const results = await Promise.all((s.sources.filter((x) => x.enabled && !RETIRED_KINDS.includes(x.kind as Source["kind"])) as Source[]).map((src) => readSource(src, s.keywords, rules, creds)));
+  // The insurance preset's sources join the search while it's on (built from its words each time).
+  const cfg = s.insurance as InsuranceConfig;
+  const presetSources = cfg.enabled ? insuranceSources(cfg) : [];
+  const results = await Promise.all([...(s.sources.filter((x) => x.enabled && !RETIRED_KINDS.includes(x.kind as Source["kind"])) as Source[]), ...presetSources].map((src) => readSource(src, s.keywords, rules, creds)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
   const kept = takeInTurns(results.map((r) => [...r.kept].sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0))), 80);
-  const batch = kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline }));
+  const batch = kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline, preset: p.preset }));
   const answered = results.filter((r) => r.found > 0).length;
   const noPay = results.reduce((n, r) => n + r.noPay, 0);
   const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
@@ -238,5 +245,32 @@ export const tick = internalAction({
         console.error("Lookout: scheduled search failed", err instanceof Error ? err.message : err);
       }
     }
+  },
+});
+
+
+/**
+ * "Check now" on a watchlist company: read its own board when it's on one
+ * the Lookout can read (Greenhouse, Lever, and the rest), keep the
+ * insurance sales titles, and store them. Doesn't count as a search, so
+ * "Search now" stays available. Companies without a readable board get
+ * their careers link and the words to search for instead.
+ */
+export const checkWatch = action({
+  args: { index: v.number() },
+  handler: async (ctx, args): Promise<{ readable: boolean; found: number; kept: number; fresh: number; problem?: string }> => {
+    const who = await ctx.runQuery(internal.lookout.data.whoFor, {});
+    const plan = await ctx.runQuery(internal.lookout.data.searchPlan, { ownerId: who.ownerId });
+    if (!plan) return { readable: false, found: 0, kept: 0, fresh: 0, problem: "The Lookout isn't set up." };
+    const cfg = plan.settings.insurance as InsuranceConfig;
+    const entry = cfg.watchlist[Math.floor(args.index)];
+    if (!entry) return { readable: false, found: 0, kept: 0, fresh: 0, problem: "That company isn't on the list." };
+    const src = watchSource(entry);
+    if (!src) return { readable: false, found: 0, kept: 0, fresh: 0 };
+    const rules: Rules = { requirePay: false, allowSenior: plan.settings.allowSenior, allowDegree: plan.settings.allowDegree, profile: plan.profile };
+    const r = await readSource(src, [], rules, { usajobs: null, adzuna: null, jooble: null });
+    const batch = r.kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline, preset: INSURANCE_PRESET }));
+    const fresh: number = await ctx.runMutation(internal.lookout.data.storeWatch, { ownerId: who.ownerId, postings: batch });
+    return { readable: true, found: r.found, kept: r.kept.length, fresh, problem: r.problem };
   },
 });

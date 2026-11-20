@@ -8,6 +8,7 @@ import { DEFAULT_WEIGHTS, WEIGHT_LABEL, type Weights } from "@/convex/lookout/pu
 import { EMPLOYER_KINDS, SOURCE_KIND_LABEL, type SourceKind, RETIRED_KINDS } from "@/convex/lookout/sources";
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
 import { download } from "../docx";
+import { InsuranceSettings } from "../Insurance";
 
 /** Requirements, ranking, sources, helping, and his data. */
 export function LookoutSettings() {
@@ -112,6 +113,8 @@ export function LookoutSettings() {
           </div>
         </details>
       </Card>
+
+      <InsuranceSettings cfg={s.insurance} />
 
       <UsajobsCard email={s.usajobsEmail} />
       <AdzunaCard appId={s.adzunaAppId} />
