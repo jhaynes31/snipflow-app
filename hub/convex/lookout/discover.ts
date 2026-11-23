@@ -122,6 +122,18 @@ async function readSource(source: Source, keywords: string[], rules: Rules, cred
         : source.kind === "jooble" && jooble
           ? await getJson(`${url}${encodeURIComponent(jooble.key)}`, false, {}, { keywords: `remote ${source.token}`, location: "United States", page: "1" })
           : await getJson(url, isFeed(source.kind), headers);
+    // A preset source on a site that pages reads a second page too: more options (Jen, 2026-11-23).
+    if (res.ok && source.preset && (source.kind === "adzuna" || source.kind === "jooble" || source.kind === "themuse")) {
+      try {
+        const more =
+          source.kind === "jooble" && jooble
+            ? await getJson(`${url}${encodeURIComponent(jooble.key)}`, false, {}, { keywords: `remote ${source.token}`, location: "United States", page: "2" })
+            : await getJson(source.kind === "adzuna" ? url.replace("/search/1?", "/search/2?") : url.replace("page=0", "page=1"), false, headers);
+        if (more.ok) res.data = mergePages(source.kind, res.data, more.data);
+      } catch {
+        // The first page stands.
+      }
+    }
     if (!res.ok) return { name: source.name, found: 0, kept: [], noPay: 0, problem: `answered ${res.status}${source.kind === "usajobs" && (res.status === 401 || res.status === 403) ? " (check the USAJOBS key and email in Settings)" : source.kind === "adzuna" && (res.status === 401 || res.status === 403) ? " (check the Adzuna app ID and key in Settings)" : source.kind === "jooble" && (res.status === 401 || res.status === 403 || res.status === 404) ? " (check the Jooble key in Settings)" : res.status === 404 ? " (check the board name)" : res.status === 403 || res.status === 429 ? " (the site turned the request away; it may work next time)" : ""}` };
     const postings = parseSource(source, res.data);
     const kept: Posting[] = [];
@@ -150,6 +162,15 @@ async function readSource(source: Source, keywords: string[], rules: Rules, cred
   }
 }
 
+/** Two pages of one site's answer as one. */
+function mergePages(kind: Source["kind"], a: unknown, b: unknown): unknown {
+  const key = kind === "jooble" ? "jobs" : "results";
+  const first = (a as Record<string, unknown>)?.[key];
+  const second = (b as Record<string, unknown>)?.[key];
+  if (!Array.isArray(first) || !Array.isArray(second)) return a;
+  return { ...(a as Record<string, unknown>), [key]: [...first, ...second] };
+}
+
 async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean): Promise<{ found: number; kept: number; fresh: number; note: string; skipped?: boolean }> {
   const plan = await ctx.runQuery(internal.lookout.data.searchPlan, { ownerId });
   if (!plan) return { found: 0, kept: 0, fresh: 0, note: "The Lookout isn't set up." };
@@ -162,11 +183,14 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   // The insurance preset's sources join the search while it's on (built from its words each time).
   const cfg = s.insurance as InsuranceConfig;
   const presetSources = cfg.enabled ? insuranceSources(cfg) : [];
-  const results = await Promise.all([...(s.sources.filter((x) => x.enabled && !RETIRED_KINDS.includes(x.kind as Source["kind"])) as Source[]), ...presetSources].map((src) => readSource(src, s.keywords, rules, creds)));
+  const mainSources = s.sources.filter((x) => x.enabled && !RETIRED_KINDS.includes(x.kind as Source["kind"])) as Source[];
+  const results = await Promise.all([...mainSources, ...presetSources].map((src) => readSource(src, s.keywords, rules, creds)));
   const found = results.reduce((n, r) => n + r.found, 0);
   const notes = results.filter((r) => r.problem).map((r) => `${r.name}: ${r.problem}.`);
   // Newest first from each source, taken in turns so one busy site can't crowd out the rest, with a ceiling per search.
-  const kept = takeInTurns(results.map((r) => [...r.kept].sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0))), 80);
+  // The preset has its own ceiling, so insurance finds don't compete with the main search's (Jen, 2026-11-23: more options).
+  const newest = (r: SourceResult) => [...r.kept].sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
+  const kept = [...takeInTurns(results.slice(0, mainSources.length).map(newest), 80), ...takeInTurns(results.slice(mainSources.length).map(newest), 80)];
   const batch = kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline, preset: p.preset }));
   const answered = results.filter((r) => r.found > 0).length;
   const noPay = results.reduce((n, r) => n + r.noPay, 0);

@@ -566,6 +566,7 @@ function Listing({ job }: { job: Doc<"loJobs"> }) {
 /** The preset's verdict on an insurance sales job: the badge, every flag as a tag, state eligibility, and pay as listed. */
 function FitCard({ job, fit }: { job: Doc<"loJobs">; fit: FitView }) {
   const setPreset = useMutation(api.lookout.data.setPreset);
+  const block = useMutation(api.lookout.data.blockEmployer);
   const { busy, run } = useAction();
   return (
     <Card className={fit.badge === "avoid" ? "lo-fail" : undefined}>
@@ -575,6 +576,7 @@ function FitCard({ job, fit }: { job: Doc<"loJobs">; fit: FitView }) {
       {fit.pay ? <p className="sh-hint">Pay, as the listing states it: {fit.pay}. Pay in a listing isn&apos;t a promise; confirm it in the interview.</p> : <p className="sh-hint">The listing doesn&apos;t state pay in a way that can be read. Ask what the hourly or base wage is, and whether it continues after training.</p>}
       <p className="sh-hint">{fit.wv === "yes" ? "The listing says West Virginia (or every US state) is fine." : fit.wv === "no" ? "The listing names eligible states and West Virginia isn't one." : "The listing doesn&apos;t say which states it hires in. Check before applying."}</p>
       {job.status === "new" || job.status === "review" ? <p className="sh-hint">Save the job and the screening checklist for the interview appears here.</p> : null}
+      {!fit.blocked && <p className="sh-hint"><button type="button" className="sh-link" disabled={busy} onClick={() => { if (window.confirm(`Hide every job from ${job.employer} from now on? You can take them off the blocklist in Settings.`)) void run(() => block({ jobId: job._id })); }}>Block {job.employer}</button> so its jobs stop coming up.</p>}
       <p className="sh-hint"><button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => setPreset({ jobId: job._id, preset: null }))}>Stop scoring this as an insurance sales job</button></p>
     </Card>
   );
