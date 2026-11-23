@@ -45,7 +45,7 @@ export function Jobs() {
       {view === "earlier" && !words.length && <p className="sh-hint mt-3">Jobs moved out of the way by Refresh or Hide. Nothing here is deleted; bring any back, or save it, and it returns to the lists.</p>}
       {view === "insurance" && !words.length && (
         <div className="mt-3">
-          <p className="sh-hint">Insurance sales jobs, Strong fit first, then newest. Each card shows why, as tags. Jobs from blocklisted companies are hidden unless you show them.</p>
+          <p className="sh-hint">Insurance sales jobs, Strong fit first, then newest. Each card shows why, as tags. Jobs you hid or marked &ldquo;Not for me&rdquo; stay out of this list; a company you said &ldquo;Not for me&rdquo; to gets a tag on its later jobs and sorts lower; &ldquo;Block&rdquo; hides a company for good. Blocklisted companies are hidden unless you show them.</p>
           <Toggle checked={showBlocked} onChange={(on) => void setInsurance({ showBlocked: on })} label="Show hidden (blocklisted companies)" />
         </div>
       )}
@@ -63,8 +63,10 @@ function JobRow({ j }: { j: Parameters<typeof JobLine>[0]["j"] & { status: strin
   const [open, setOpen] = useState(j.askApplied);
   const shelve = useMutation(api.lookout.data.setShelved);
   const setStatus = useMutation(api.lookout.data.setStatus);
+  const block = useMutation(api.lookout.data.blockEmployer);
   const opened = useMutation(api.lookout.data.noteApplyOpened);
   const saveable = ["new", "review"].includes(j.status);
+  const insurance = j.preset === "insurance";
   const applyHref = RETIRED_KINDS.includes(j.sourceKind as SourceKind) ? null : (j.applyUrl ?? j.url);
   const { busy, error, run } = useAction();
   const before = ["new", "review", "saved", "preparing", "ready", "approved", "passed"].includes(j.status);
@@ -87,6 +89,8 @@ function JobRow({ j }: { j: Parameters<typeof JobLine>[0]["j"] & { status: strin
           {hideable && (j.shelved
             ? <Btn variant="ghost" disabled={busy} onClick={() => void run(() => shelve({ jobId: j._id as Id<"loJobs">, shelved: false }))}>Bring it back</Btn>
             : <Btn variant="ghost" disabled={busy} onClick={() => void run(() => shelve({ jobId: j._id as Id<"loJobs">, shelved: true }))}>Hide</Btn>)}
+          {insurance && saveable && <Btn variant="ghost" disabled={busy} onClick={() => void run(() => setStatus({ jobId: j._id as Id<"loJobs">, status: "passed" }))}>Not for me</Btn>}
+          {insurance && !j.fit?.blocked && <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Hide every job from ${j.employer} from now on? You can take them off the blocklist in Settings.`)) void run(() => block({ jobId: j._id as Id<"loJobs"> })); }}>Block {j.employer}</Btn>}
         </div>
       )}
       <ErrorNote error={error} />

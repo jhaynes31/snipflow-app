@@ -33,6 +33,8 @@ export interface InsuranceConfig {
   watchlist: WatchEntry[];
   /** Show jobs from blocklisted companies in the list. Off by default. */
   showBlocked: boolean;
+  /** Which version of the starting watchlist this config has been offered. */
+  version?: number;
 }
 
 /** Search words, combined as each site allows (Settings can change them). */
@@ -58,8 +60,31 @@ export const DEFAULT_WATCHLIST: WatchEntry[] = [
   { name: "Lifequotes.com", url: "https://www.lifequotes.com/careers", search: "Agent", note: "Part time, hourly base plus bonuses, paid training. License needed on day one (reimbursed).", enabled: true },
 ];
 
+/**
+ * More employers known for inbound or licensed phone sales (2026-11-23,
+ * Jen: "we need more options"). Careers addresses are the public ones and
+ * couldn't be checked from here; a wrong one is fixed by pasting the right
+ * link in Settings. Companies whose board the Lookout can read grow this
+ * list on their own as jobs are found (see storeFound).
+ */
+export const WATCHLIST_MORE: WatchEntry[] = [
+  { name: "GoHealth", url: "https://www.gohealth.com/careers/", search: "Licensed Sales Agent", note: "Medicare and health plans, inbound and transferred calls, W-2 with hourly base. Address unconfirmed.", enabled: true },
+  { name: "eHealth", url: "https://www.ehealthinsurance.com/careers", search: "Licensed Sales Agent", note: "Inbound Medicare and health sales, remote, W-2 hourly plus bonus. Address unconfirmed.", enabled: true },
+  { name: "Assurance IQ", url: "https://www.assurance.com/careers", search: "Licensed Sales Agent", note: "Life and health; some roles are W-2 inbound, some 1099. Read the listing. Address unconfirmed.", enabled: true },
+  { name: "Spring Venture Group", url: "https://www.springventuregroup.com/careers", search: "Inside Sales Agent", note: "Medicare supplement, inbound leads, paid training, remote. Address unconfirmed.", enabled: true },
+  { name: "Fidelity Life (eFinancial)", url: "https://www.fidelitylife.com/careers", search: "Sales Agent", note: "Direct-to-consumer life insurance, inbound and warm leads, hourly plus commission. Address unconfirmed.", enabled: true },
+];
+export const WATCHLIST_VERSION = 2;
+
 export function defaultInsurance(): InsuranceConfig {
-  return { enabled: false, keywords: [...DEFAULT_KEYWORDS], blocklist: [...DEFAULT_BLOCKLIST], watchlist: DEFAULT_WATCHLIST.map((w) => ({ ...w })), showBlocked: false };
+  return { enabled: false, keywords: [...DEFAULT_KEYWORDS], blocklist: [...DEFAULT_BLOCKLIST], watchlist: [...DEFAULT_WATCHLIST, ...WATCHLIST_MORE].map((w) => ({ ...w })), showBlocked: false, version: WATCHLIST_VERSION };
+}
+
+/** Watchlist entries that arrived after a config was saved join it once, by name. */
+export function mergeWatchlist(cfg: InsuranceConfig): InsuranceConfig {
+  if ((cfg.version ?? 1) >= WATCHLIST_VERSION) return cfg;
+  const names = new Set(cfg.watchlist.map((w) => w.name.toLowerCase()));
+  return { ...cfg, watchlist: [...cfg.watchlist, ...WATCHLIST_MORE.filter((w) => !names.has(w.name.toLowerCase())).map((w) => ({ ...w }))], version: WATCHLIST_VERSION };
 }
 
 // ---------- Flags ----------
@@ -152,7 +177,7 @@ export interface ScreeningAnswer {
  * calling" is a green flag, "never pay for leads" means leads are provided.
  * The company itself can be a flag too (established carrier, or blocked).
  */
-export function fitOf(job: { title: string; employer: string; description: string }, cfg: Pick<InsuranceConfig, "blocklist">, screening: ScreeningAnswer[] = []): Fit {
+export function fitOf(job: { title: string; employer: string; description: string }, cfg: Pick<InsuranceConfig, "blocklist">, screening: ScreeningAnswer[] = [], opts: { passedBefore?: boolean } = {}): Fit {
   const text = `${job.title}\n${job.description}`;
   const green = new Set<string>();
   const red = new Set<string>();
@@ -186,6 +211,11 @@ export function fitOf(job: { title: string; employer: string; description: strin
   const bad = screeningAvoid(screening);
   for (const b of bad) red.add(b);
   if (bad.length) level = "avoid";
+  // He said "not for me" to a job from this company before: never Strong again on its own, and sorted lower.
+  if (opts.passedBefore) {
+    red.add("Passed on this company before");
+    if (level === "ok") level = "maybe";
+  }
 
   const pay = ["W-2 employee", "Hourly wage", "Base pay"].some((t) => green.has(t));
   const support = ["Inbound calls", "Warm transfers", "Leads provided", "No cold calling", "Paid training"].some((t) => green.has(t));
@@ -260,6 +290,9 @@ export function payAsListed(description: string, discoveredAt: number): string |
   return `${p.quote.trim()} (as listed on ${day})`;
 }
 
+/** Short searches for the sites that search across many job boards (Adzuna, Jooble). */
+export const SHORT_SEARCHES = ["insurance sales", "inbound sales agent", "life insurance agent", "medicare sales agent", "licensed insurance agent", "insurance sales consultant", "final expense", "benefits enrollment"];
+
 /**
  * Where the preset looks, built from its words each search so a change in
  * Settings takes effect at once: the remote boards' search, the key-based
@@ -268,18 +301,28 @@ export function payAsListed(description: string, discoveredAt: number): string |
  */
 export function insuranceSources(cfg: Pick<InsuranceConfig, "keywords" | "watchlist">): Source[] {
   const preset = INSURANCE_PRESET;
-  const words = cfg.keywords.map((k) => k.replace(/["']/g, "").trim()).filter(Boolean).slice(0, 12);
+  // Short searches find more than long phrases on the aggregators; his own words are searched too.
+  const own = cfg.keywords.map((k) => k.replace(/["']/g, "").trim()).filter(Boolean);
+  const words = [...new Set([...SHORT_SEARCHES, ...own].map((w) => w.toLowerCase()))].slice(0, 16);
   const out: Source[] = [
-    { kind: "remotive", token: "search:insurance sales", name: "Remotive: insurance sales", enabled: true, preset },
+    { kind: "remotive", token: "search:insurance", name: "Remotive: insurance", enabled: true, preset },
     { kind: "remotive", token: "search:inbound sales", name: "Remotive: inbound sales", enabled: true, preset },
-    { kind: "remotive", token: "search:licensed insurance", name: "Remotive: licensed insurance", enabled: true, preset },
+    { kind: "remotive", token: "search:licensed", name: "Remotive: licensed", enabled: true, preset },
+    { kind: "remotive", token: "search:medicare", name: "Remotive: medicare", enabled: true, preset },
     { kind: "himalayas", token: "insurance sales", name: "Himalayas: insurance sales", enabled: true, preset },
-    { kind: "himalayas", token: "inbound sales agent", name: "Himalayas: inbound sales agent", enabled: true, preset },
-    { kind: "himalayas", token: "life insurance agent", name: "Himalayas: life insurance agent", enabled: true, preset },
+    { kind: "himalayas", token: "insurance agent", name: "Himalayas: insurance agent", enabled: true, preset },
+    { kind: "himalayas", token: "inbound sales", name: "Himalayas: inbound sales", enabled: true, preset },
+    { kind: "himalayas", token: "life insurance", name: "Himalayas: life insurance", enabled: true, preset },
+    { kind: "himalayas", token: "medicare", name: "Himalayas: medicare", enabled: true, preset },
+    { kind: "himalayas", token: "licensed agent", name: "Himalayas: licensed agent", enabled: true, preset },
     { kind: "jobicy", token: "insurance", name: "Jobicy: insurance", enabled: true, preset },
+    { kind: "jobicy", token: "sales", name: "Jobicy: sales", enabled: true, preset },
+    { kind: "remoteok", token: "all", name: "Remote OK: insurance sales titles", enabled: true, preset },
+    { kind: "workingnomads", token: "all", name: "Working Nomads: insurance sales titles", enabled: true, preset },
     { kind: "themuse", token: "Sales", name: "The Muse: sales, remote", enabled: true, preset },
+    { kind: "themuse", token: "Customer Service", name: "The Muse: customer service, remote (insurance titles)", enabled: true, preset },
     ...words.map((w) => ({ kind: "adzuna" as const, token: w, name: `Adzuna: ${w}`, enabled: true, preset })),
-    ...words.slice(0, 6).map((w) => ({ kind: "jooble" as const, token: w, name: `Jooble: ${w}`, enabled: true, preset })),
+    ...words.slice(0, 8).map((w) => ({ kind: "jooble" as const, token: w, name: `Jooble: ${w}`, enabled: true, preset })),
   ];
   for (const w of cfg.watchlist) {
     if (!w.enabled) continue;
@@ -301,7 +344,8 @@ export function cleanConfig(c: Partial<InsuranceConfig>, current: InsuranceConfi
     enabled: c.enabled ?? current.enabled,
     keywords: list(c.keywords, current.keywords, 30, 80),
     blocklist: list(c.blocklist, current.blocklist, 60, 80),
-    watchlist: (c.watchlist ?? current.watchlist).map((w) => ({ name: w.name.trim().slice(0, 80), url: w.url.trim().slice(0, 500), search: w.search?.trim().slice(0, 120) || undefined, note: w.note?.trim().slice(0, 400) || undefined, enabled: !!w.enabled })).filter((w) => w.name && /^https?:\/\//i.test(w.url)).slice(0, 40),
+    watchlist: (c.watchlist ?? current.watchlist).map((w) => ({ name: w.name.trim().slice(0, 80), url: w.url.trim().slice(0, 500), search: w.search?.trim().slice(0, 120) || undefined, note: w.note?.trim().slice(0, 400) || undefined, enabled: !!w.enabled })).filter((w) => w.name && /^https?:\/\//i.test(w.url)).slice(0, 60),
     showBlocked: c.showBlocked ?? current.showBlocked,
+    version: current.version ?? WATCHLIST_VERSION,
   };
 }

@@ -7,7 +7,7 @@ import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
 import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status, type Verdict } from "./pure";
 import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, RETIRED_KINDS, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source, type SourceKind } from "./sources";
-import { cleanConfig, cleanScreening, defaultInsurance, fitOf, INSURANCE_PRESET, insuranceSources, isBlocked, payAsListed, type InsuranceConfig, type ScreeningAnswer } from "./insurance";
+import { cleanConfig, cleanScreening, defaultInsurance, fitOf, INSURANCE_PRESET, insuranceSources, isBlocked, mergeWatchlist, payAsListed, type InsuranceConfig, type ScreeningAnswer } from "./insurance";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
 /**
@@ -115,7 +115,7 @@ function settingsView(row: Doc<"loSettings"> | null) {
     requirePay: row?.requirePay ?? true,
     allowSenior: row?.allowSenior ?? false,
     allowDegree: row?.allowDegree ?? false,
-    insurance: (row?.insurance as InsuranceConfig | undefined) ?? defaultInsurance(),
+    insurance: mergeWatchlist((row?.insurance as InsuranceConfig | undefined) ?? defaultInsurance()),
     // Only whether it's connected and the email; the key itself never leaves the server.
     usajobsEmail: row?.usajobs?.email ?? null,
     adzunaAppId: row?.adzuna?.appId ?? null,
@@ -143,19 +143,24 @@ async function profileSource(ctx: Ctx, ownerId: Id<"profiles">): Promise<string>
   });
 }
 
-function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile: string) {
+/** Companies he said "not for me" to on an insurance job: their later jobs are marked and sorted lower. */
+function passedEmployers(rows: Doc<"loJobs">[]): Set<string> {
+  return new Set(rows.filter((j) => j.preset === INSURANCE_PRESET && j.status === "passed").map((j) => j.employer.toLowerCase()));
+}
+
+function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile: string, passed: Set<string> = new Set()) {
   // A preset job (insurance sales) is judged by the preset's flags, not by the main search's hard checks, which would fail every sales job.
   if (job.preset === INSURANCE_PRESET) {
-    const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[]);
+    const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[], { passedBefore: job.status !== "passed" && passed.has(job.employer.toLowerCase()) });
     return { verdict: (f.badge === "strong" ? "eligible" : f.badge === "maybe" ? "check" : "rejected") as Verdict, checks: [], score: f.score, parts: [], strengths: f.green, gaps: f.red, uncertain: [] };
   }
   return rank(job.facts as Facts, { req: { minHourly: s.minHourly, maxHours: s.maxHours, homeState: s.homeState, allowDegree: s.allowDegree }, weights: s.weights, jobText: `${job.title}\n${job.description}`, profileText: profile });
 }
 
 /** The preset's view of a job, for the cards: the badge, the tags, state eligibility, and pay as listed. Null for jobs outside the preset. */
-function presetView(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>) {
+function presetView(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, passed: Set<string> = new Set()) {
   if (job.preset !== INSURANCE_PRESET) return null;
-  const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[]);
+  const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[], { passedBefore: job.status !== "passed" && passed.has(job.employer.toLowerCase()) });
   const wv = (job.facts as Facts).wvEligible?.state ?? "unknown";
   return { badge: f.badge, green: f.green, red: f.red, blocked: f.blocked, why: f.why, wv, pay: payAsListed(job.description, job.discoveredAt) };
 }
@@ -258,6 +263,10 @@ export const refreshReadings = mutation({
     const a = await lookoutAccess(ctx);
     if (!a) return 0;
     const existing = await settingsOf(ctx, a.ownerId);
+    // Watchlist companies added since the preset was saved join it once.
+    if (existing?.insurance && ((existing.insurance as InsuranceConfig).version ?? 1) < defaultInsurance().version!) {
+      await ctx.db.patch(existing._id, { insurance: mergeWatchlist(existing.insurance as InsuranceConfig) });
+    }
     // Sources added to the defaults since this search was made join its list once.
     if (existing && (existing.sourcesVersion ?? 1) < SOURCES_VERSION) {
       await ctx.db.patch(existing._id, { sources: mergeNewDefaults(existing.sources as Source[], existing.sourcesVersion ?? 1), sourcesVersion: SOURCES_VERSION });
@@ -565,11 +574,12 @@ export const jobs = query({
     const profile = await profileSource(ctx, a.ownerId);
     const rows = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect();
     const events = await ctx.db.query("loEvents").withIndex("by_owner_at", (q) => q.eq("ownerId", a.ownerId)).collect();
+    const passed = passedEmployers(rows);
     return {
       jobs: rows.map((j) => {
-        const r = rankJob(j, s, profile);
+        const r = rankJob(j, s, profile, passed);
         const askApplied = BEFORE_APPLYING.includes(j.status) && !!j.applyOpenedAt && Date.now() - j.applyOpenedAt < 14 * 86400000 && (!j.applyAskDismissedAt || j.applyAskDismissedAt < j.applyOpenedAt);
-        const fit = presetView(j, s);
+        const fit = presetView(j, s, passed);
         return { _id: j._id, shelved: !!j.shelvedAt, askApplied, applyOpenedAt: j.applyOpenedAt, applyUrl: j.applyUrl, title: j.title, employer: j.employer, url: j.url, status: j.status as Status, statusAt: j.statusAt, sourceName: j.sourceName, sourceKind: j.sourceKind, preset: j.preset, fit, discoveredAt: j.discoveredAt, postedAt: j.postedAt, lastVerifiedAt: j.lastVerifiedAt, lastCheckedAt: j.lastCheckedAt, changedAt: j.changedAt, seen: !!j.seenAt, deadline: j.deadline, warnings: j.warnings, facts: j.facts as Facts, verdict: r.verdict, score: r.score, uncertain: r.uncertain.length, fails: r.checks.filter((c) => c.result === "fail").map((c) => c.why) };
       }),
       events: events.filter((e) => !e.done).map((e) => ({ ...e, jobTitle: rows.find((j) => j._id === e.jobId)?.title ?? "", employer: rows.find((j) => j._id === e.jobId)?.employer ?? "" })),
@@ -588,7 +598,8 @@ export const job = query({
     const docs = await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect();
     const application = await ctx.db.query("loApplications").withIndex("by_job", (q) => q.eq("jobId", j._id)).first();
     const events = await ctx.db.query("loEvents").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect();
-    return { job: j, rank: rankJob(j, s, profile), fit: presetView(j, s), docs, application, events: events.sort((x, y) => (x.at ?? x.createdAt) - (y.at ?? y.createdAt)), role: a.role };
+    const passed = j.preset === INSURANCE_PRESET ? passedEmployers(await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId).eq("status", "passed")).collect()) : new Set<string>();
+    return { job: j, rank: rankJob(j, s, profile, passed), fit: presetView(j, s, passed), docs, application, events: events.sort((x, y) => (x.at ?? x.createdAt) - (y.at ?? y.createdAt)), role: a.role };
   },
 });
 
@@ -1198,6 +1209,7 @@ export const storeFound = internalMutation({
       const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new", blocklist);
       if (!r.duplicate) fresh++;
     }
+    await growWatchlist(ctx, s, args.postings);
     const bySource = args.bySource?.slice(0, 60) ?? [];
     const entry = { at: Date.now(), found: bySource.reduce((n, x) => n + x.found, 0), kept: args.postings.length, fresh, sources: bySource };
     await ctx.db.patch(s._id, { lastSearchAt: Date.now(), lastSearchNote: args.note.slice(0, 1000), lastSearchSources: bySource, searchLog: [entry, ...(s.searchLog ?? [])].slice(0, 10) });
@@ -1412,6 +1424,52 @@ export const storeWatch = internalMutation({
       if (!r.duplicate) fresh++;
     }
     return fresh;
+  },
+});
+
+/**
+ * The watchlist grows on its own: an insurance job whose link is on a board
+ * the Lookout can read (Greenhouse, Lever, and the rest) adds that company,
+ * so its other openings are read at every search from then on.
+ */
+async function growWatchlist(ctx: MutationCtx, s: Doc<"loSettings">, postings: { employer: string; url: string; applyUrl?: string; preset?: string }[]): Promise<number> {
+  const cfg = s.insurance as InsuranceConfig | undefined;
+  if (!cfg?.enabled) return 0;
+  const have = new Set(cfg.watchlist.map((w) => { const b = boardFromUrl(w.url); return b ? `${b.kind}:${b.token.toLowerCase()}` : `name:${w.name.toLowerCase()}`; }));
+  const names = new Set(cfg.watchlist.map((w) => w.name.toLowerCase()));
+  const added: InsuranceConfig["watchlist"] = [];
+  for (const p of postings) {
+    if (p.preset !== INSURANCE_PRESET || !p.employer) continue;
+    const link = [p.applyUrl, p.url].find((u) => u && boardFromUrl(u));
+    const b = link ? boardFromUrl(link) : null;
+    if (!b || !link) continue;
+    const key = `${b.kind}:${b.token.toLowerCase()}`;
+    if (have.has(key) || names.has(p.employer.toLowerCase()) || isBlocked(p.employer, cfg.blocklist)) continue;
+    have.add(key);
+    names.add(p.employer.toLowerCase());
+    added.push({ name: p.employer.slice(0, 80), url: link.slice(0, 500), note: `Added by the Lookout from a job found on ${new Date().toISOString().slice(0, 10)}; their board is readable.`, enabled: true });
+  }
+  if (!added.length) return 0;
+  await ctx.db.patch(s._id, { insurance: { ...cfg, watchlist: [...cfg.watchlist, ...added].slice(0, 60) } });
+  return added.length;
+}
+
+/** "Block this company": add the employer of one job to the blocklist, hiding its jobs. */
+export const blockEmployer = mutation({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    const row = await ensureSettings(ctx, a.ownerId);
+    const current = (row.insurance as InsuranceConfig | undefined) ?? defaultInsurance();
+    if (isBlocked(j.employer, current.blocklist)) return current.blocklist;
+    const next = cleanConfig({ blocklist: [...current.blocklist, j.employer] }, current);
+    await ctx.db.patch(row._id, { insurance: next, updatedAt: Date.now() });
+    for (const x of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", a.ownerId)).collect()) {
+      if (x.preset !== INSURANCE_PRESET || !isBlocked(x.employer, next.blocklist) || x.warnings.some((w) => w.startsWith("On your blocklist:"))) continue;
+      await ctx.db.patch(x._id, { warnings: [...x.warnings, `On your blocklist: ${isBlocked(x.employer, next.blocklist)}. Hidden unless "show hidden" is on.`], ...(UNSAVED.includes(x.status) ? { shelvedAt: Date.now() } : {}) });
+    }
+    return next.blocklist;
   },
 });
 

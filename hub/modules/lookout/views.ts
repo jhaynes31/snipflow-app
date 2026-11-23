@@ -22,4 +22,4 @@ export const VIEWS: { key: string; label: string; test: (j: Row) => boolean }[] 
 ];
 
 /** The insurance preset's own group: every job it found or scored, newest and best fit first. Blocklisted companies are hidden unless Settings says to show them. */
-export const INSURANCE_VIEW = { key: "insurance", label: "Insurance sales", test: (j: Row, showBlocked = false) => j.preset === "insurance" && !["rejected", "closed"].includes(j.status) && (showBlocked || !j.fit?.blocked) };
+export const INSURANCE_VIEW = { key: "insurance", label: "Insurance sales", test: (j: Row, showBlocked = false) => j.preset === "insurance" && !["rejected", "closed", "passed"].includes(j.status) && !out(j) && (showBlocked || !j.fit?.blocked) };

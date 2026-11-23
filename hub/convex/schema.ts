@@ -1572,6 +1572,7 @@ export default defineSchema({
       blocklist: v.array(v.string()),
       watchlist: v.array(v.object({ name: v.string(), url: v.string(), search: v.optional(v.string()), note: v.optional(v.string()), enabled: v.boolean() })),
       showBlocked: v.boolean(),
+      version: v.optional(v.number()),
     })),
     allowHealthDisclosure: v.boolean(),
     /** The USAJOBS API key and the email it was requested with. Never sent to the browser. */
