@@ -176,7 +176,10 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   return { found, kept: batch.length, fresh, note };
 }
 
-async function recheckOne(ctx: ActionCtx, job: { id: Id<"loJobs">; url: string }): Promise<"yes" | "no" | "unknown"> {
+type CheckResult = { jobId: Id<"loJobs">; open: "yes" | "no" | "unknown"; fingerprint?: string; note: string };
+
+/** Read one listing page and say whether it's still open. Saves nothing; the caller saves the answers together. */
+async function checkPage(job: { id: Id<"loJobs">; url: string }): Promise<CheckResult> {
   let open: "yes" | "no" | "unknown" = "unknown";
   let fp: string | undefined;
   let note = "Couldn't reach the listing.";
@@ -192,8 +195,19 @@ async function recheckOne(ctx: ActionCtx, job: { id: Id<"loJobs">; url: string }
   } catch {
     // Left unknown.
   }
-  await ctx.runMutation(internal.lookout.data.recordCheck, { jobId: job.id, open, fingerprint: fp, note });
-  return open;
+  return { jobId: job.id, open, fingerprint: fp, note };
+}
+
+/**
+ * Check several listings and save every answer in one write. Saving them one
+ * at a time made the live job list reload in full after each one (up to 40
+ * times per search), which was most of the Convex database reads.
+ */
+async function recheckMany(ctx: ActionCtx, jobs: { id: Id<"loJobs">; url: string }[]): Promise<number> {
+  const results: CheckResult[] = [];
+  for (let i = 0; i < jobs.length; i += 8) results.push(...(await Promise.all(jobs.slice(i, i + 8).map(checkPage))));
+  if (results.length) await ctx.runMutation(internal.lookout.data.recordChecks, { checks: results });
+  return results.filter((r) => r.open === "no").length;
 }
 
 /**
@@ -208,11 +222,7 @@ export const searchNow = action({
     const result = await search(ctx, who.ownerId, true);
     if (result.skipped) return result;
     const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId: who.ownerId });
-    let closed = 0;
-    for (let i = 0; i < jobs.length; i += 8) {
-      const answers = await Promise.all(jobs.slice(i, i + 8).map((j) => recheckOne(ctx, j)));
-      closed += answers.filter((x) => x === "no").length;
-    }
+    const closed = await recheckMany(ctx, jobs);
     return { ...result, closed };
   },
 });
@@ -222,7 +232,9 @@ export const recheck = action({
   args: { jobId: v.id("loJobs") },
   handler: async (ctx, args): Promise<"yes" | "no" | "unknown"> => {
     const job = await ctx.runQuery(internal.lookout.data.oneToCheck, { jobId: args.jobId });
-    return await recheckOne(ctx, job);
+    const result = await checkPage(job);
+    await ctx.runMutation(internal.lookout.data.recordChecks, { checks: [result] });
+    return result.open;
   },
 });
 
@@ -235,7 +247,7 @@ export const tick = internalAction({
       try {
         const result = await search(ctx, ownerId, false);
         const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId });
-        for (const j of jobs) await recheckOne(ctx, j);
+        await recheckMany(ctx, jobs);
         const strong: number = await ctx.runQuery(internal.lookout.data.strongNew, { ownerId });
         // One quiet note, only when there's something worth opening.
         if (result.fresh > 0 && strong > 0) {
