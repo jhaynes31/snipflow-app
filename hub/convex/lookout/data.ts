@@ -1215,24 +1215,29 @@ export const toRecheck = internalQuery({
   },
 });
 
-export const recordCheck = internalMutation({
-  args: { jobId: v.id("loJobs"), open: v.union(v.literal("yes"), v.literal("no"), v.literal("unknown")), fingerprint: v.optional(v.string()), note: v.string() },
+const checkV = v.object({ jobId: v.id("loJobs"), open: v.union(v.literal("yes"), v.literal("no"), v.literal("unknown")), fingerprint: v.optional(v.string()), note: v.string() });
+
+/** Save the "still open?" answers from one round of checks, all in one write so the live job list reloads once. */
+export const recordChecks = internalMutation({
+  args: { checks: v.array(checkV) },
   handler: async (ctx, args) => {
-    const j = await ctx.db.get(args.jobId);
-    if (!j) return;
     const now = Date.now();
-    const facts = { ...(j.facts as Facts) };
-    if (args.open !== "unknown" && facts.open?.source !== "verified") facts.open = { state: args.open, source: "listing", note: args.note };
-    const patch: Partial<Doc<"loJobs">> = { lastCheckedAt: now, facts };
-    if (args.fingerprint) {
-      if (j.pageFingerprint && args.fingerprint !== j.pageFingerprint) patch.changedAt = now;
-      patch.pageFingerprint = args.fingerprint;
+    for (const c of args.checks) {
+      const j = await ctx.db.get(c.jobId);
+      if (!j) continue;
+      const facts = { ...(j.facts as Facts) };
+      if (c.open !== "unknown" && facts.open?.source !== "verified") facts.open = { state: c.open, source: "listing", note: c.note };
+      const patch: Partial<Doc<"loJobs">> = { lastCheckedAt: now, facts };
+      if (c.fingerprint) {
+        if (j.pageFingerprint && c.fingerprint !== j.pageFingerprint) patch.changedAt = now;
+        patch.pageFingerprint = c.fingerprint;
+      }
+      if (c.open === "no" && ["new", "review", "saved", "preparing", "ready"].includes(j.status)) {
+        patch.status = "closed";
+        patch.statusAt = now;
+      }
+      await ctx.db.patch(j._id, patch);
     }
-    if (args.open === "no" && ["new", "review", "saved", "preparing", "ready"].includes(j.status)) {
-      patch.status = "closed";
-      patch.statusAt = now;
-    }
-    await ctx.db.patch(j._id, patch);
   },
 });
 
