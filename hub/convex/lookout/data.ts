@@ -5,8 +5,8 @@ import { cleanText, optionalText, requireMe, type Ctx, type Me } from "../lib";
 import { roomOwnerOf } from "../rooms";
 import { INTAKE } from "./intake";
 import { BEFORE_APPLYING } from "./adminPure";
-import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status, type Verdict } from "./pure";
-import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, RETIRED_KINDS, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source, type SourceKind } from "./sources";
+import { chooseSearch, missingExperience, remoteBoardFact, rescanFacts, seniorInText, SCAN_VERSION, dedupeKey, DEFAULT_REQUIREMENTS, DEFAULT_WEIGHTS, FACT_KEYS, FOLLOW_UP_DAYS, fingerprint, MANUAL_MOVES, mergeFacts, normalizeUrl, rank, scanListing, STATUSES, type FactKey, type Facts, type Status, type Verdict, employerLocationFacts } from "./pure";
+import { boardFromUrl, MANAGES_PEOPLE, REMOTE_ONLY, RETIRED_KINDS, titleFits, usFriendly, defaultSources, mergeNewDefaults, SOURCE_KIND_LABEL, SOURCES_VERSION, type Source, type SourceKind, postingFromUrl, EMPLOYER_KINDS } from "./sources";
 import { cleanConfig, cleanScreening, defaultInsurance, fitOf, INSURANCE_PRESET, insuranceSources, isBlocked, mergeWatchlist, payAsListed, type InsuranceConfig, type ScreeningAnswer } from "./insurance";
 import { blocking, fillFromSaved, findDashes, isOpenAnswer, jobSpecific, joinAnswerPairs, parseAnswerPairs, profileText, questionKey, reviewDocument, scrubDashes } from "./writing";
 
@@ -1523,3 +1523,88 @@ export const blockEmployer = mutation({
 export function presetSourcesOf(cfg: InsuranceConfig): Source[] {
   return cfg.enabled ? insuranceSources(cfg) : [];
 }
+
+
+// ---------- The employer's own posting (2026-11-24) ----------
+
+/** Found jobs still worth checking against the employer's own posting: live, not yet read, with an apply link on a readable board. */
+export const toReadFromEmployer = internalQuery({
+  args: { ownerId: v.id("profiles"), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", args.ownerId)).collect();
+    const live = ["new", "review", "saved", "preparing"];
+    const out: { id: Id<"loJobs">; link: string }[] = [];
+    for (const j of rows.sort((a, b) => b.discoveredAt - a.discoveredAt)) {
+      if (!live.includes(j.status) || j.shelvedAt || j.employerRead) continue;
+      // A job read straight from the employer's board already is the employer's posting.
+      if (EMPLOYER_KINDS.includes(j.sourceKind as SourceKind)) continue;
+      const link = [j.applyUrl, j.url, ...j.alsoAt].find((u) => u && postingFromUrl(u));
+      if (!link) continue;
+      out.push({ id: j._id, link });
+      if (out.length >= (args.limit ?? 25)) break;
+    }
+    return out;
+  },
+});
+
+const employerReadV = v.object({ at: v.number(), kind: v.string(), locations: v.array(v.string()), remoteType: v.optional(v.string()), summary: v.string(), problem: v.optional(v.string()) });
+
+/** Keep what the employer's posting said: its facts outrank the board's copy, and its text joins the listing so every reader sees it. */
+export const applyEmployerRead = internalMutation({
+  args: { jobId: v.id("loJobs"), read: employerReadV, description: v.optional(v.string()), title: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const j = await ctx.db.get(args.jobId);
+    if (!j) return { changed: false, nowFails: false };
+    const s = settingsView(await settingsOf(ctx, j.ownerId));
+    if (args.read.problem || !args.description) {
+      await ctx.db.patch(j._id, { employerRead: args.read });
+      return { changed: false, nowFails: false };
+    }
+    const marker = "From the employer's own posting";
+    const extra = `${marker} (${args.read.kind}, read ${new Date(args.read.at).toISOString().slice(0, 10)}):\nLocations: ${args.read.locations.join("; ") || "not listed"}${args.read.remoteType ? `\nThe employer's word: ${args.read.remoteType}` : ""}\n\n${args.description.slice(0, 30000)}`;
+    const description = j.description.includes(marker) ? j.description : `${j.description}\n\n${extra}`.slice(0, 40000);
+    const where = employerLocationFacts({ locations: args.read.locations, remoteType: args.read.remoteType, description: args.description, title: args.title }, s.homeState);
+    const wasRemote = (j.facts as Facts).remote?.state;
+    const wasWv = (j.facts as Facts).wvEligible?.state;
+    // The employer's words replace what the board's copy and the board's remote-only assumption said; a person's verified facts stay.
+    const base = { ...(j.facts as Facts) };
+    for (const k of ["remote", "noOffice", "wvEligible"] as const) if (base[k] && base[k]!.source !== "verified" && where.facts[k]) delete base[k];
+    const rescanned = rescanFacts(base, `${j.title}\n${args.read.locations.join("; ")}\n${description}`, s.homeState, REMOTE_ONLY[j.sourceKind]);
+    for (const k of ["remote", "noOffice", "wvEligible"] as const) if (rescanned.facts[k] && rescanned.facts[k]!.source !== "verified" && where.facts[k]) delete rescanned.facts[k];
+    const facts = mergeFacts(rescanned.facts, where.facts);
+    const nowFails = facts.remote?.state === "no" || facts.wvEligible?.state === "no";
+    const warnings = nowFails && !j.warnings.some((w) => w.startsWith(marker)) ? [...j.warnings, `${marker}: ${facts.remote?.state === "no" ? "this isn't a remote job" : `${s.homeState} isn't eligible`}. ${(facts.remote?.state === "no" ? facts.remote?.note : facts.wvEligible?.note) ?? ""}`.trim()] : j.warnings;
+    await ctx.db.patch(j._id, { employerRead: args.read, description, location: args.read.locations.length ? args.read.locations.join("; ").slice(0, 300) : j.location, facts, warnings, lastCheckedAt: Date.now() });
+    return { changed: wasRemote !== facts.remote?.state || wasWv !== facts.wvEligible?.state, nowFails };
+  },
+});
+
+/** For the job page's "Read the employer's posting" button. */
+export const employerLink = internalQuery({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    const link = [j.applyUrl, j.url, ...j.alsoAt].find((u) => u && postingFromUrl(u));
+    return { id: j._id, link: link ?? null };
+  },
+});
+
+/**
+ * "Not open to WV": he checked on the employer's site. The fact is recorded
+ * as verified, the job is marked "Not for me", and the listing won't come
+ * back from a later search.
+ */
+export const notOpenToState = mutation({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    const s = settingsView(await settingsOf(ctx, a.ownerId));
+    const facts = { ...(j.facts as Facts) };
+    facts.wvEligible = { state: "no", source: "verified", note: `Checked on the employer's site ${new Date().toISOString().slice(0, 10)}: they don't hire in ${s.homeState}.` };
+    const canPass = (MANUAL_MOVES[j.status as Status] ?? []).includes("passed");
+    await ctx.db.patch(j._id, { facts, lastVerifiedAt: Date.now(), ...(canPass ? { status: "passed", statusAt: Date.now() } : {}) });
+    if (j.sourceKind !== "manual") await forget(ctx, j, "passed");
+  },
+});

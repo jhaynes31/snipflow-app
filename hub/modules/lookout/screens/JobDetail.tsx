@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { FACT_KEYS, FACT_LABEL, INTERACTION_KINDS, INTERACTION_LABEL, MANUAL_MOVES, SCHEDULE_KINDS, SCHEDULE_LABEL, STATUS_LABEL, verificationNote, type Fact, type FactKey, type Facts, type Status } from "@/convex/lookout/pure";
 import { Btn, Card, CopyButton, ErrorNote, Field, Note, PageTitle, Spinner, timeAgo, useAction } from "@/core/ui";
-import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, findAtEmployer, RETIRED_KINDS, type SourceKind } from "@/convex/lookout/sources";
+import { BOARD_HOME, boardFromUrl, EMPLOYER_KINDS, findAtEmployer, postingFromUrl, RETIRED_KINDS, type SourceKind } from "@/convex/lookout/sources";
 import { isOpenAnswer, joinAnswerPairs, parseAnswerPairs } from "@/convex/lookout/writing";
 import { download, fileName, textToDocx } from "../docx";
 import { ApplyLink, QuickApplied } from "../QuickApplied";
@@ -92,7 +92,24 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
   const opened = useMutation(api.lookout.data.noteApplyOpened);
   const setStatus = useMutation(api.lookout.data.setStatus);
   const remove = useMutation(api.lookout.data.removeJob);
+  const notOpen = useMutation(api.lookout.data.notOpenToState);
   const recheck = useConvexAction(api.lookout.discover.recheck);
+  const readEmployer = useConvexAction(api.lookout.discover.readEmployer);
+  const settings = useQuery(api.lookout.data.settings);
+  const homeState = settings?.homeState ?? "West Virginia";
+  const readable = !EMPLOYER_KINDS.includes(job.sourceKind as SourceKind) && [job.applyUrl, job.url, ...job.alsoAt].some((u) => u && postingFromUrl(u));
+  const read = job.employerRead;
+  // "Prepare an application" reads the employer's own posting first when it hasn't been read yet, so no documents get written for a job he can't take.
+  const move = async (m: Status) => {
+    if (m === "preparing" && readable && !read) {
+      const r = await readEmployer({ jobId: job._id });
+      if (r.nowFails) {
+        setNote(`Stopped: the employer's own posting says this isn't remote or isn't open to ${homeState}. It's in Set aside now.`);
+        return;
+      }
+    }
+    await setStatus({ jobId: job._id, status: m });
+  };
   const router = useRouter();
   const { busy, error, run } = useAction();
   const [note, setNote] = useState<string | null>(null);
@@ -125,8 +142,19 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
       {job.alsoAt.length > 0 && <p className="sh-hint">Also seen at: {job.alsoAt.map((u) => <a key={u} className="sh-link" href={u} target="_blank" rel="noopener noreferrer">{new URL(u).hostname} </a>)}</p>}
       {!retired && BOARD_HOME[job.sourceKind as SourceKind] && <p className="sh-hint">Found through <a className="sh-link" href={BOARD_HOME[job.sourceKind as SourceKind]!.url} target="_blank" rel="noopener noreferrer">{BOARD_HOME[job.sourceKind as SourceKind]!.name}</a>.</p>}
       <FollowEmployer job={job} />
+      {EMPLOYER_KINDS.includes(job.sourceKind as SourceKind) ? null : read ? (
+        <p className={`sh-hint ${read.problem ? "" : "lo-pass"}`}>
+          {read.problem ? `Tried the employer's own posting (${read.kind}) ${day(read.at)}: ${read.problem}. Open "Apply on their site" and check the locations and states yourself before preparing anything.` : `Checked against the employer's own posting (${read.kind}) ${day(read.at)}: ${read.summary}.`}
+          {" "}<button type="button" className="sh-link" disabled={busy} onClick={() => void run(async () => { const r = await readEmployer({ jobId: job._id }); setNote(r.problem ? r.problem : r.nowFails ? `The employer's posting says this isn't remote or isn't open to ${homeState}.` : r.changed ? "Read again; the facts above changed." : "Read again; nothing changed."); })}>Read it again</button>
+        </p>
+      ) : readable ? (
+        <p className="sh-hint">Not yet checked against the employer&apos;s own posting. <button type="button" className="sh-link" disabled={busy} onClick={() => void run(async () => { const r = await readEmployer({ jobId: job._id }); setNote(r.problem ? r.problem : r.nowFails ? `The employer's posting says this isn't remote or isn't open to ${homeState}. It's in Set aside now.` : "Read. The locations and facts above now come from the employer."); })}>Read it now</button>, or it happens on its own before an application is prepared.</p>
+      ) : (
+        <p className="sh-hint">The employer&apos;s own posting can&apos;t be read automatically from this link. Before preparing anything, open &ldquo;Apply on their site&rdquo; and check the locations and the states it hires in.</p>
+      )}
       <div className="sh-row sh-wrap">
-        {moves.map((m) => <Btn key={m} variant={m === "passed" ? "ghost" : "secondary"} disabled={busy} onClick={() => void run(() => setStatus({ jobId: job._id, status: m }))}>{m === "passed" ? "Not for me" : m === "preparing" ? "Prepare an application" : STATUS_LABEL[m]}</Btn>)}
+        {moves.map((m) => <Btn key={m} variant={m === "passed" ? "ghost" : "secondary"} disabled={busy} onClick={() => void run(() => move(m))}>{m === "passed" ? "Not for me" : m === "preparing" ? "Prepare an application" : STATUS_LABEL[m]}</Btn>)}
+        {!LOCKED.includes(status) && status !== "passed" && (job.facts as Facts).wvEligible?.state !== "no" && <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Mark this job as not open to ${homeState} residents? It's recorded as checked by you, marked "Not for me", and won't come back.`)) void run(async () => { await notOpen({ jobId: job._id }); setNote(`Recorded: not open to ${homeState}. Marked "Not for me"; it won't come back.`); }); }}>Not open to {homeState === "West Virginia" ? "WV" : homeState}</Btn>}
         <Btn variant="ghost" disabled={busy} onClick={() => void run(async () => { const r = await recheck({ jobId: job._id }); setNote(r === "yes" ? "The listing page answered. That usually means it's still up; confirm on the page itself." : r === "no" ? "The listing looks closed." : "The listing page didn't give a clear answer. Open it to check."); })}>Is it still open?</Btn>
       </div>
       {note && <Note>{note}</Note>}

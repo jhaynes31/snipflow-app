@@ -1676,6 +1676,8 @@ export default defineSchema({
     preset: v.optional(v.string()),
     /** The preset's screening checklist, filled in during interviews. */
     screening: v.optional(v.array(v.object({ key: v.string(), asked: v.boolean(), answer: v.string(), note: v.string() }))),
+    /** What the employer's own posting said when the Lookout followed the apply link to it (2026-11-24). */
+    employerRead: v.optional(v.object({ at: v.number(), kind: v.string(), locations: v.array(v.string()), remoteType: v.optional(v.string()), summary: v.string(), problem: v.optional(v.string()) })),
   })
     .index("by_owner_status", ["ownerId", "status"])
     .index("by_owner_dedupe", ["ownerId", "dedupeKey"])

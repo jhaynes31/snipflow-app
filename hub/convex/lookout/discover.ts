@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
 import { fingerprint, missingExperience, parsePay, requiresDegree, seniorInText, stateEligibility } from "./pure";
-import { htmlToText, isFeed, MANAGES_PEOPLE, RETIRED_KINDS, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
+import { htmlToText, isFeed, MANAGES_PEOPLE, RETIRED_KINDS, takeInTurns, openFromPage, parseEmployerPosting, parseSource, postingFromUrl, postingUrl, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 import { INSURANCE_PRESET, insuranceSources, insuranceTitleFits, watchSource, type InsuranceConfig } from "./insurance";
 
 /**
@@ -240,19 +240,69 @@ async function recheckMany(ctx: ActionCtx, jobs: { id: Id<"loJobs">; url: string
 }
 
 /**
+ * Follow a job's apply link to the employer's own posting and keep what it
+ * says (Jen, 2026-11-24: a board's copy said "United States only"; the
+ * employer's Workday posting listed ten office cities). Workday's posting
+ * call is a plain GET; the rest are the boards' public posting APIs.
+ */
+async function readEmployerPosting(ctx: ActionCtx, job: { id: Id<"loJobs">; link: string }): Promise<{ changed: boolean; nowFails: boolean; problem?: string }> {
+  const ref = postingFromUrl(job.link);
+  if (!ref) return { changed: false, nowFails: false, problem: "not on a readable board" };
+  const at = Date.now();
+  try {
+    const res = await getJson(postingUrl(ref));
+    const posting = res.ok ? parseEmployerPosting(ref, res.data) : null;
+    if (!posting) {
+      const problem = res.ok ? "the board answered, but not with this posting" : res.status === 404 || res.status === 410 ? "the employer's posting is gone (404)" : `the employer's board answered ${res.status}`;
+      await ctx.runMutation(internal.lookout.data.applyEmployerRead, { jobId: job.id, read: { at, kind: ref.kind, locations: [], summary: problem, problem } });
+      return { changed: false, nowFails: false, problem };
+    }
+    const r: { changed: boolean; nowFails: boolean } = await ctx.runMutation(internal.lookout.data.applyEmployerRead, { jobId: job.id, read: { at, kind: ref.kind, locations: posting.locations.slice(0, 40), remoteType: posting.remoteType, summary: `${posting.locations.length ? `Locations: ${posting.locations.slice(0, 8).join("; ")}${posting.locations.length > 8 ? "; and more" : ""}` : "No location listed"}${posting.remoteType ? ` · ${posting.remoteType}` : ""}` }, description: posting.description, title: posting.title });
+    return r;
+  } catch (err) {
+    const problem = err instanceof Error && err.name === "AbortError" ? "the employer's board took too long" : "the employer's board couldn't be reached";
+    await ctx.runMutation(internal.lookout.data.applyEmployerRead, { jobId: job.id, read: { at, kind: ref.kind, locations: [], summary: problem, problem } });
+    return { changed: false, nowFails: false, problem };
+  }
+}
+
+/** After a search: the newest unread jobs with a readable employer link, a few at a time. */
+async function employerSweep(ctx: ActionCtx, ownerId: Id<"profiles">, limit = 25): Promise<{ read: number; failed: number }> {
+  const jobs: { id: Id<"loJobs">; link: string }[] = await ctx.runQuery(internal.lookout.data.toReadFromEmployer, { ownerId, limit });
+  let failed = 0;
+  for (let i = 0; i < jobs.length; i += 6) {
+    const answers = await Promise.all(jobs.slice(i, i + 6).map((j) => readEmployerPosting(ctx, j)));
+    failed += answers.filter((x) => x.nowFails).length;
+  }
+  return { read: jobs.length, failed };
+}
+
+/** "Read the employer's posting" on one job. */
+export const readEmployer = action({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args): Promise<{ changed: boolean; nowFails: boolean; problem?: string }> => {
+    const j: { id: Id<"loJobs">; link: string | null } = await ctx.runQuery(internal.lookout.data.employerLink, { jobId: args.jobId });
+    if (!j.link) return { changed: false, nowFails: false, problem: "The employer's own posting isn't on a board the Lookout can read. Open it and check the locations yourself." };
+    return await readEmployerPosting(ctx, { id: j.id, link: j.link });
+  },
+});
+
+/**
  * "Search now" and "Refresh", by hand: at most once every half hour. After
  * the search, the jobs being kept are checked to see they're still open,
  * so closed ones drop out on their own.
  */
 export const searchNow = action({
   args: { force: v.optional(v.boolean()) },
-  handler: async (ctx): Promise<{ found: number; kept: number; fresh: number; note: string; skipped?: boolean; closed?: number }> => {
+  handler: async (ctx): Promise<{ found: number; kept: number; fresh: number; note: string; skipped?: boolean; closed?: number; employerRead?: number; employerFailed?: number }> => {
     const who = await ctx.runQuery(internal.lookout.data.whoFor, {});
     const result = await search(ctx, who.ownerId, true);
     if (result.skipped) return result;
+    // Before anything else: what the employers' own postings say about where the job is and who it's open to.
+    const sweep = await employerSweep(ctx, who.ownerId);
     const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId: who.ownerId });
     const closed = await recheckMany(ctx, jobs);
-    return { ...result, closed };
+    return { ...result, closed, employerRead: sweep.read, employerFailed: sweep.failed };
   },
 });
 
@@ -275,6 +325,7 @@ export const tick = internalAction({
     for (const ownerId of owners) {
       try {
         const result = await search(ctx, ownerId, false);
+        await employerSweep(ctx, ownerId);
         const jobs = await ctx.runQuery(internal.lookout.data.toRecheck, { ownerId });
         await recheckMany(ctx, jobs);
         const strong: number = await ctx.runQuery(internal.lookout.data.strongNew, { ownerId });
