@@ -733,7 +733,7 @@ export const setNotes = mutation({
 });
 
 /** Remember a job he doesn't want, so a search that finds it again drops it. */
-async function forget(ctx: MutationCtx, j: Doc<"loJobs">, reason: "removed" | "passed"): Promise<void> {
+async function forget(ctx: MutationCtx, j: Doc<"loJobs">, reason: "removed" | "passed" | "unqualified"): Promise<void> {
   const seen = await ctx.db.query("loForgotten").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", j.ownerId).eq("dedupeKey", j.dedupeKey)).first();
   if (seen) return;
   await ctx.db.insert("loForgotten", { ownerId: j.ownerId, visibility: "private", dedupeKey: j.dedupeKey, urlKey: j.urlKey, employer: j.employer, title: j.title, reason, createdAt: Date.now() });
@@ -1606,5 +1606,21 @@ export const notOpenToState = mutation({
     const canPass = (MANUAL_MOVES[j.status as Status] ?? []).includes("passed");
     await ctx.db.patch(j._id, { facts, lastVerifiedAt: Date.now(), ...(canPass ? { status: "passed", statusAt: Date.now() } : {}) });
     if (j.sourceKind !== "manual") await forget(ctx, j, "passed");
+  },
+});
+
+/**
+ * "Not qualified" (Jen, 2026-11-24): the job is out of his league. Marked
+ * "Not for me", noted on the job, and kept from coming back.
+ */
+export const markUnqualified = mutation({
+  args: { jobId: v.id("loJobs") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const j = await loadJob(ctx, a, args.jobId);
+    const line = `Not qualified: marked ${new Date().toISOString().slice(0, 10)}.`;
+    const canPass = (MANUAL_MOVES[j.status as Status] ?? []).includes("passed");
+    await ctx.db.patch(j._id, { notes: j.notes?.includes("Not qualified:") ? j.notes : [line, j.notes ?? ""].filter(Boolean).join("\n"), ...(canPass ? { status: "passed", statusAt: Date.now() } : {}) });
+    if (j.sourceKind !== "manual") await forget(ctx, j, "unqualified");
   },
 });
