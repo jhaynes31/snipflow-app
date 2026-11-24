@@ -93,6 +93,7 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
   const setStatus = useMutation(api.lookout.data.setStatus);
   const remove = useMutation(api.lookout.data.removeJob);
   const notOpen = useMutation(api.lookout.data.notOpenToState);
+  const unqualified = useMutation(api.lookout.data.markUnqualified);
   const recheck = useConvexAction(api.lookout.discover.recheck);
   const readEmployer = useConvexAction(api.lookout.discover.readEmployer);
   const settings = useQuery(api.lookout.data.settings);
@@ -155,6 +156,7 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
       <div className="sh-row sh-wrap">
         {moves.map((m) => <Btn key={m} variant={m === "passed" ? "ghost" : "secondary"} disabled={busy} onClick={() => void run(() => move(m))}>{m === "passed" ? "Not for me" : m === "preparing" ? "Prepare an application" : STATUS_LABEL[m]}</Btn>)}
         {!LOCKED.includes(status) && status !== "passed" && (job.facts as Facts).wvEligible?.state !== "no" && <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Mark this job as not open to ${homeState} residents? It's recorded as checked by you, marked "Not for me", and won't come back.`)) void run(async () => { await notOpen({ jobId: job._id }); setNote(`Recorded: not open to ${homeState}. Marked "Not for me"; it won't come back.`); }); }}>Not open to {homeState === "West Virginia" ? "WV" : homeState}</Btn>}
+        {!LOCKED.includes(status) && status !== "passed" && <Btn variant="ghost" disabled={busy} onClick={() => { if (window.confirm("Mark this job as out of his league? It's marked \"Not for me\" and won't come back.")) void run(async () => { await unqualified({ jobId: job._id }); setNote("Recorded: not qualified. Marked \"Not for me\"; it won't come back."); }); }}>Not qualified</Btn>}
         <Btn variant="ghost" disabled={busy} onClick={() => void run(async () => { const r = await recheck({ jobId: job._id }); setNote(r === "yes" ? "The listing page answered. That usually means it's still up; confirm on the page itself." : r === "no" ? "The listing looks closed." : "The listing page didn't give a clear answer. Open it to check."); })}>Is it still open?</Btn>
       </div>
       {note && <Note>{note}</Note>}

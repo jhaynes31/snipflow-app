@@ -151,7 +151,7 @@ export function Forgotten() {
       <p className="sh-hint">Removing a job, or marking it &ldquo;Not for me&rdquo;, tells the Lookout to drop that listing if a search finds it again, by its link or by its employer and title. {rows.length === 0 ? "None yet." : `${rows.length} so far.`}</p>
       {rows.slice(0, 60).map((r) => (
         <div key={r._id} className="sh-row sh-wrap lo-entry">
-          <span><strong>{r.title}</strong> <span className="sh-muted">· {r.employer}</span> <span className="sh-hint">· {r.reason === "removed" ? "removed" : "not for me"} {timeAgo(r.createdAt)}</span></span>
+          <span><strong>{r.title}</strong> <span className="sh-muted">· {r.employer}</span> <span className="sh-hint">· {r.reason === "removed" ? "removed" : r.reason === "unqualified" ? "not qualified" : "not for me"} {timeAgo(r.createdAt)}</span></span>
           <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => unforget({ id: r._id }))}>Let it come back</button>
         </div>
       ))}
