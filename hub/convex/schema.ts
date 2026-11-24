@@ -1597,6 +1597,8 @@ export default defineSchema({
     scanVersion: v.optional(v.number()),
     /** Which version of the default sources this search has been offered. */
     sourcesVersion: v.optional(v.number()),
+    /** Which version of the employer-posting rules last judged this search's jobs (2026-11-25). */
+    employerReadVersion: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
 

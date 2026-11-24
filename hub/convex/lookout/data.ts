@@ -263,6 +263,11 @@ export const refreshReadings = mutation({
     const a = await lookoutAccess(ctx);
     if (!a) return 0;
     const existing = await settingsOf(ctx, a.ownerId);
+    // The employer-posting rules changed (2026-11-25: a country alone is not an office): judge those jobs again, once.
+    if (existing && (existing.employerReadVersion ?? 1) < EMPLOYER_READ_VERSION) {
+      await rejudgeEmployerReads(ctx, a.ownerId);
+      await ctx.db.patch(existing._id, { employerReadVersion: EMPLOYER_READ_VERSION });
+    }
     // Watchlist companies added since the preset was saved join it once.
     if (existing?.insurance && ((existing.insurance as InsuranceConfig).version ?? 1) < defaultInsurance().version!) {
       await ctx.db.patch(existing._id, { insurance: mergeWatchlist(existing.insurance as InsuranceConfig) });
@@ -1251,15 +1256,19 @@ export const storeFound = internalMutation({
     const s = await ensureSettings(ctx, args.ownerId);
     const blocklist = (s.insurance as InsuranceConfig | undefined)?.blocklist ?? defaultInsurance().blocklist;
     let fresh = 0;
+    let already = 0;
+    let forgotten = 0;
     for (const p of args.postings) {
       const r = await insertJob(ctx, args.ownerId, s.homeState, p, "new", blocklist);
       if (!r.duplicate) fresh++;
+      else if (r.forgotten) forgotten++;
+      else already++;
     }
     await growWatchlist(ctx, s, args.postings);
     const bySource = args.bySource?.slice(0, 60) ?? [];
     const entry = { at: Date.now(), found: bySource.reduce((n, x) => n + x.found, 0), kept: args.postings.length, fresh, sources: bySource };
     await ctx.db.patch(s._id, { lastSearchAt: Date.now(), lastSearchNote: args.note.slice(0, 1000), lastSearchSources: bySource, searchLog: [entry, ...(s.searchLog ?? [])].slice(0, 10) });
-    return fresh;
+    return { fresh, already, forgotten };
   },
 });
 
@@ -1563,21 +1572,46 @@ export const applyEmployerRead = internalMutation({
     const marker = "From the employer's own posting";
     const extra = `${marker} (${args.read.kind}, read ${new Date(args.read.at).toISOString().slice(0, 10)}):\nLocations: ${args.read.locations.join("; ") || "not listed"}${args.read.remoteType ? `\nThe employer's word: ${args.read.remoteType}` : ""}\n\n${args.description.slice(0, 30000)}`;
     const description = j.description.includes(marker) ? j.description : `${j.description}\n\n${extra}`.slice(0, 40000);
-    const where = employerLocationFacts({ locations: args.read.locations, remoteType: args.read.remoteType, description: args.description, title: args.title }, s.homeState);
-    const wasRemote = (j.facts as Facts).remote?.state;
-    const wasWv = (j.facts as Facts).wvEligible?.state;
-    // The employer's words replace what the board's copy and the board's remote-only assumption said; a person's verified facts stay.
-    const base = { ...(j.facts as Facts) };
-    for (const k of ["remote", "noOffice", "wvEligible"] as const) if (base[k] && base[k]!.source !== "verified" && where.facts[k]) delete base[k];
-    const rescanned = rescanFacts(base, `${j.title}\n${args.read.locations.join("; ")}\n${description}`, s.homeState, REMOTE_ONLY[j.sourceKind]);
-    for (const k of ["remote", "noOffice", "wvEligible"] as const) if (rescanned.facts[k] && rescanned.facts[k]!.source !== "verified" && where.facts[k]) delete rescanned.facts[k];
-    const facts = mergeFacts(rescanned.facts, where.facts);
-    const nowFails = facts.remote?.state === "no" || facts.wvEligible?.state === "no";
-    const warnings = nowFails && !j.warnings.some((w) => w.startsWith(marker)) ? [...j.warnings, `${marker}: ${facts.remote?.state === "no" ? "this isn't a remote job" : `${s.homeState} isn't eligible`}. ${(facts.remote?.state === "no" ? facts.remote?.note : facts.wvEligible?.note) ?? ""}`.trim()] : j.warnings;
-    await ctx.db.patch(j._id, { employerRead: args.read, description, location: args.read.locations.length ? args.read.locations.join("; ").slice(0, 300) : j.location, facts, warnings, lastCheckedAt: Date.now() });
-    return { changed: wasRemote !== facts.remote?.state || wasWv !== facts.wvEligible?.state, nowFails };
+    return await judgeByEmployer(ctx, j, s, args.read, description, args.description, args.title);
   },
 });
+
+const EMPLOYER_MARKER = "From the employer's own posting";
+
+/** The employer's words replace what the board's copy and the board's remote-only assumption said; a person's verified facts stay. */
+async function judgeByEmployer(ctx: MutationCtx, j: Doc<"loJobs">, s: ReturnType<typeof settingsView>, read: NonNullable<Doc<"loJobs">["employerRead"]>, description: string, employerText: string, title?: string): Promise<{ changed: boolean; nowFails: boolean }> {
+  const where = employerLocationFacts({ locations: read.locations, remoteType: read.remoteType, description: employerText, title }, s.homeState);
+  const wasRemote = (j.facts as Facts).remote?.state;
+  const wasWv = (j.facts as Facts).wvEligible?.state;
+  const base = { ...(j.facts as Facts) };
+  for (const k of ["remote", "noOffice", "wvEligible"] as const) if (base[k] && base[k]!.source !== "verified" && (where.facts[k] || base[k]!.note?.startsWith(EMPLOYER_MARKER))) delete base[k];
+  const rescanned = rescanFacts(base, `${j.title}\n${read.locations.join("; ")}\n${description}`, s.homeState, REMOTE_ONLY[j.sourceKind]);
+  for (const k of ["remote", "noOffice", "wvEligible"] as const) if (rescanned.facts[k] && rescanned.facts[k]!.source !== "verified" && where.facts[k]) delete rescanned.facts[k];
+  const facts = mergeFacts(rescanned.facts, where.facts);
+  const nowFails = facts.remote?.state === "no" || facts.wvEligible?.state === "no";
+  const kept = j.warnings.filter((w) => !w.startsWith(EMPLOYER_MARKER));
+  const warnings = nowFails ? [...kept, `${EMPLOYER_MARKER}: ${facts.remote?.state === "no" ? "this isn't a remote job" : `${s.homeState} isn't eligible`}. ${(facts.remote?.state === "no" ? facts.remote?.note : facts.wvEligible?.note) ?? ""}`.trim()] : kept;
+  await ctx.db.patch(j._id, { employerRead: read, description, location: read.locations.length ? read.locations.join("; ").slice(0, 300) : j.location, facts, warnings, lastCheckedAt: Date.now() });
+  return { changed: wasRemote !== facts.remote?.state || wasWv !== facts.wvEligible?.state, nowFails };
+}
+
+/** The rules that read an employer's posting; bumped when they change, so judged jobs are judged again. */
+export const EMPLOYER_READ_VERSION = 2;
+
+/** Judge every job read from its employer's posting again, with the rules as they are now. Returns how many changed. */
+async function rejudgeEmployerReads(ctx: MutationCtx, ownerId: Id<"profiles">): Promise<number> {
+  const s = settingsView(await settingsOf(ctx, ownerId));
+  let changed = 0;
+  for (const j of await ctx.db.query("loJobs").withIndex("by_owner_status", (q) => q.eq("ownerId", ownerId)).collect()) {
+    const read = j.employerRead;
+    if (!read || read.problem) continue;
+    const i = j.description.indexOf(EMPLOYER_MARKER);
+    const employerText = i >= 0 ? j.description.slice(j.description.indexOf("\n\n", i) + 2) : j.description;
+    const r = await judgeByEmployer(ctx, j, s, read, j.description, employerText, j.title);
+    if (r.changed) changed++;
+  }
+  return changed;
+}
 
 /** For the job page's "Read the employer's posting" button. */
 export const employerLink = internalQuery({

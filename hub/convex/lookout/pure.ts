@@ -913,7 +913,16 @@ export function employerLocationFacts(p: { locations: string[]; remoteType?: str
   const named = US_STATES.filter((st) => new RegExp(`\\b${st}\\b`, "i").test(where) && !(st === "Virginia" && /\bWest Virginia\b/i.test(where) && !/(?<!West )\bVirginia\b/i.test(where)));
   const abbrs = (where.match(/\b[A-Z]{2}\b/g) ?? []).filter((a) => STATE_ABBR.has(a));
 
-  const specific = p.locations.length > 0 && p.locations.every((l) => !remoteWord.test(l));
+  // A real place: a state (name or abbreviation), "City, Region", or Workday's "USA - Illinois - Chicago". A country alone ("United States", "US", "Anywhere") is not an office.
+  const country = /^(?:remote|united states|usa|u\.s\.a?\.?|us|north america|americas|anywhere|global|worldwide|nationwide|canada|united kingdom|uk|europe)(?:\s*(?:only|-|\(|,).*)?$/i;
+  const place = (l: string) => {
+    const t = l.trim();
+    if (US_STATES.some((st) => new RegExp(`\\b${st}\\b`, "i").test(t)) || (t.match(/\b[A-Z]{2}\b/g) ?? []).some((a) => a !== "US" && STATE_ABBR.has(a))) return true;
+    if (country.test(t)) return false;
+    return /^[^,]+,\s*[^,]+$/.test(t) || t.split(/\s[-\u2013]\s/).length >= 3;
+  };
+  const specific = p.locations.length > 0 && p.locations.every((l) => !remoteWord.test(l) && place(l));
+  const mentionsRemote = remoteWord.test(p.description);
   let remote: Fact["state"] = "unknown";
   let why = "";
   if (rt.includes("remote") || rt.includes("virtual")) {
@@ -925,12 +934,16 @@ export function employerLocationFacts(p: { locations: string[]; remoteType?: str
   } else if (remoteWord.test(where)) {
     remote = remoteSaid || !notRemoteSaid ? "yes" : "unknown";
     why = `the employer lists ${where}`;
-  } else if (specific && !remoteSaid) {
+  } else if (specific && !mentionsRemote) {
     remote = "no";
     why = `the employer lists only ${p.locations.length === 1 ? "one place" : "specific places"} (${p.locations.slice(0, 6).join("; ")}${p.locations.length > 6 ? "; and more" : ""}) and never says remote`;
-  } else if (specific && remoteSaid && notRemoteSaid) {
+  } else if (specific && notRemoteSaid && !remoteSaid) {
+    remote = "no";
+    why = `the employer lists ${p.locations.slice(0, 4).join("; ")} and the posting says hybrid or on site`;
+  } else if (specific) {
+    // Named places and a mention of remote work somewhere: not enough to say either way. Left for a person to check.
     remote = "unknown";
-    why = `the employer lists ${p.locations.slice(0, 4).join("; ")} and the posting mentions both remote and office work`;
+    why = `the employer lists ${p.locations.slice(0, 4).join("; ")} and mentions remote work; which it is isn't stated plainly`;
   } else if (remoteSaid) {
     remote = "yes";
     why = "the posting says it is remote";
@@ -938,6 +951,9 @@ export function employerLocationFacts(p: { locations: string[]; remoteType?: str
   if (remote !== "unknown") {
     facts.remote = { state: remote, source: "listing", note: `${from}: ${why}.` };
     facts.noOffice = { state: remote, source: "listing", note: `${from}: ${why}.` };
+  } else if (why) {
+    // Named places plus a mention of remote work: the board's assumption is replaced by an open question, with the reason.
+    facts.remote = { state: "unknown", source: "listing", note: `${from}: ${why}. Ask, or read the posting yourself.` };
   }
 
   // Which states, when the employer says.
@@ -948,7 +964,8 @@ export function employerLocationFacts(p: { locations: string[]; remoteType?: str
     facts.wvEligible = { state: "yes", source: "listing", note: `${from}: ${homeState} is among the locations (${where}).` };
   } else if (remote === "no") {
     facts.wvEligible = { state: "no", source: "listing", note: `${from}: it has to be done from ${p.locations.slice(0, 4).join("; ")}${p.locations.length > 4 ? " or another listed office" : ""}, none in ${homeState}.` };
-  } else if (remote === "yes" && (named.length + abbrs.length >= 2) && !/\b(?:united states|usa|us|anywhere|nationwide|all states)\b/i.test(where)) {
+  } else if (remote === "yes" && p.locations.length >= 2 && p.locations.every((l) => remoteWord.test(l) && place(l)) && (named.length + abbrs.length >= 2) && !/\b(?:united states|usa|us|anywhere|nationwide|all states)\b/i.test(where)) {
+    // Every location reads "Remote - Texas", "Remote - Florida": remote, but only from those states.
     facts.wvEligible = { state: "no", source: "listing", note: `${from}: remote only from ${where}; ${homeState} isn't listed.` };
   } else if (remote === "yes" && /\b(?:united states|usa|nationwide|anywhere in the us|all (?:50 )?states)\b/i.test(where)) {
     facts.wvEligible = { state: "yes", source: "listing", note: `${from}: ${where}.` };
