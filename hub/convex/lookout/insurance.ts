@@ -177,7 +177,7 @@ export interface ScreeningAnswer {
  * calling" is a green flag, "never pay for leads" means leads are provided.
  * The company itself can be a flag too (established carrier, or blocked).
  */
-export function fitOf(job: { title: string; employer: string; description: string }, cfg: Pick<InsuranceConfig, "blocklist">, screening: ScreeningAnswer[] = [], opts: { passedBefore?: boolean } = {}): Fit {
+export function fitOf(job: { title: string; employer: string; description: string }, cfg: Pick<InsuranceConfig, "blocklist">, screening: ScreeningAnswer[] = [], opts: { passedBefore?: boolean; wv?: "yes" | "no" | "unknown" } = {}): Fit {
   const text = `${job.title}\n${job.description}`;
   const green = new Set<string>();
   const red = new Set<string>();
@@ -211,6 +211,11 @@ export function fitOf(job: { title: string; employer: string; description: strin
   const bad = screeningAvoid(screening);
   for (const b of bad) red.add(b);
   if (bad.length) level = "avoid";
+  // Not open to West Virginia, by the listing or by what someone verified: Avoid. (Unknown is only "check state eligibility".)
+  if (opts.wv === "no") {
+    red.add("Not open to WV");
+    level = "avoid";
+  }
   // He said "not for me" to a job from this company before: never Strong again on its own, and sorted lower.
   if (opts.passedBefore) {
     red.add("Passed on this company before");

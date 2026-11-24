@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { action, internalAction, type ActionCtx } from "../_generated/server";
-import { fingerprint, missingExperience, parsePay, requiresDegree, seniorInText } from "./pure";
+import { fingerprint, missingExperience, parsePay, requiresDegree, seniorInText, stateEligibility } from "./pure";
 import { htmlToText, isFeed, MANAGES_PEOPLE, RETIRED_KINDS, takeInTurns, openFromPage, parseSource, sourceUrl, titleFits, usFriendly, type Posting, type Source } from "./sources";
 import { INSURANCE_PRESET, insuranceSources, insuranceTitleFits, watchSource, type InsuranceConfig } from "./insurance";
 
@@ -86,6 +86,8 @@ interface SourceResult {
   experience?: number;
   /** Listings left out because they require a bachelor's degree or higher. */
   degree?: number;
+  /** Listings left out because they say his state isn't eligible (preset sources). */
+  state?: number;
   problem?: string;
 }
 
@@ -102,11 +104,12 @@ interface Rules {
   allowDegree: boolean;
   /** His confirmed history and answers, for the experience check. */
   profile: string;
+  homeState: string;
 }
 
 async function readSource(source: Source, keywords: string[], rules: Rules, creds: Creds): Promise<SourceResult> {
   const { usajobs, adzuna, jooble } = creds;
-  const { requirePay, allowSenior, allowDegree, profile } = rules;
+  const { requirePay, allowSenior, allowDegree, profile, homeState } = rules;
   const recent = Date.now() - 45 * 86400000;
   try {
     // USAJOBS asks for its key and the email it was sent to on every request.
@@ -156,7 +159,9 @@ async function readSource(source: Source, keywords: string[], rules: Rules, cred
     // Jobs that require a bachelor's degree or higher are left out (Jen, 2026-11-12).
     const noDegree = allowDegree ? able : able.filter((p) => !requiresDegree(`${p.title}\n${p.description}`));
     const paid = requirePay && !insurance ? noDegree.filter((p) => parsePay(p.description)) : noDegree;
-    return { name: source.name, found: postings.length, kept: paid, noPay: noDegree.length - paid.length, senior: filled.length - level.length, experience: level.length - able.length, degree: able.length - noDegree.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
+    // An insurance job whose listing says his state isn't eligible is left out before it's stored (Jen, 2026-11-24).
+    const inState = insurance ? paid.filter((p) => stateEligibility(`${p.title}\n${p.location ?? ""}\n${p.description}`, homeState)?.fact?.state !== "no") : paid;
+    return { name: source.name, found: postings.length, kept: inState, noPay: noDegree.length - paid.length, senior: filled.length - level.length, experience: level.length - able.length, degree: able.length - noDegree.length, state: paid.length - inState.length, problem: postings.length === 0 ? "answered, but with no listings" : undefined };
   } catch (err) {
     return { name: source.name, found: 0, kept: [], noPay: 0, problem: err instanceof Error && err.name === "AbortError" ? "took too long to answer" : "couldn't be reached" };
   }
@@ -178,7 +183,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const gap = manual ? MANUAL_GAP_MS : MIN_GAP_MS;
   if (s.lastSearchAt && Date.now() - s.lastSearchAt < gap) return { found: 0, kept: 0, fresh: 0, skipped: true, note: manual ? "Searched less than half an hour ago, so the sites weren't asked again yet. Try again in a little while." : "Searched in the last day already." };
   const creds: Creds = [...s.sources, ...((s.insurance as InsuranceConfig).enabled ? insuranceSources(s.insurance as InsuranceConfig) : [])].some((x) => x.enabled && (x.kind === "usajobs" || x.kind === "adzuna" || x.kind === "jooble")) ? await ctx.runQuery(internal.lookout.data.apiCreds, { ownerId }) : { usajobs: null, adzuna: null, jooble: null };
-  const rules: Rules = { requirePay: s.requirePay, allowSenior: s.allowSenior, allowDegree: s.allowDegree, profile: plan.profile };
+  const rules: Rules = { requirePay: s.requirePay, allowSenior: s.allowSenior, allowDegree: s.allowDegree, profile: plan.profile, homeState: s.homeState };
   // Every source at once; each is a different site, asked once.
   // The insurance preset's sources join the search while it's on (built from its words each time).
   const cfg = s.insurance as InsuranceConfig;
@@ -195,7 +200,7 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const answered = results.filter((r) => r.found > 0).length;
   const noPay = results.reduce((n, r) => n + r.noPay, 0);
   const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
-  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, experience: r.experience, degree: r.degree, problem: r.problem }));
+  const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, experience: r.experience, degree: r.degree, state: r.state, problem: r.problem }));
   const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
   return { found, kept: batch.length, fresh, note };
 }
@@ -303,7 +308,7 @@ export const checkWatch = action({
     if (!entry) return { readable: false, found: 0, kept: 0, fresh: 0, problem: "That company isn't on the list." };
     const src = watchSource(entry);
     if (!src) return { readable: false, found: 0, kept: 0, fresh: 0 };
-    const rules: Rules = { requirePay: false, allowSenior: plan.settings.allowSenior, allowDegree: plan.settings.allowDegree, profile: plan.profile };
+    const rules: Rules = { requirePay: false, allowSenior: plan.settings.allowSenior, allowDegree: plan.settings.allowDegree, profile: plan.profile, homeState: plan.settings.homeState };
     const r = await readSource(src, [], rules, { usajobs: null, adzuna: null, jooble: null });
     const batch = r.kept.map((p) => ({ title: p.title, employer: p.employer, url: p.url, applyUrl: p.applyUrl, location: p.location, description: p.description.slice(0, 40000), sourceKind: p.sourceKind, sourceName: p.sourceName, sourceId: p.sourceId || undefined, postedAt: p.postedAt, deadline: p.deadline, preset: INSURANCE_PRESET }));
     const fresh: number = await ctx.runMutation(internal.lookout.data.storeWatch, { ownerId: who.ownerId, postings: batch });

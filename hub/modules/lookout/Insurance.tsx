@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useAction as useConvexAction, useMutation } from "convex/react";
+import { useAction as useConvexAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { BADGE_LABEL, INSURANCE_NAME, SCREENING, watchSource, type Badge, type InsuranceConfig, type ScreeningAnswer, type WatchEntry } from "@/convex/lookout/insurance";
-import { Btn, Card, ErrorNote, Field, Note, Toggle, useAction } from "@/core/ui";
+import { Btn, Card, ErrorNote, Field, Note, timeAgo, Toggle, useAction } from "@/core/ui";
 
 /** The fit badge and its reasons, shown on every insurance job card. */
 export type FitView = { badge: Badge; green: string[]; red: string[]; blocked: string | null; why: string; wv: string; pay: string | null };
@@ -134,6 +134,27 @@ export function InsuranceSettings({ cfg }: { cfg: InsuranceConfig }) {
           <div><Btn disabled={busy || !adding.name.trim() || !/^https?:\/\//i.test(adding.url.trim())} onClick={() => void run(async () => { await set({ watchlist: [...cfg.watchlist, { ...adding, enabled: true }] }); setAdding({ name: "", url: "", search: "", note: "", enabled: true }); done(); })}>Add to the watchlist</Btn></div>
         </div>
       </details>
+      <ErrorNote error={error} />
+    </Card>
+  );
+}
+
+/** Jobs he removed or said "not for me" to: the Lookout drops them when a search finds them again. Any can be let back. */
+export function Forgotten() {
+  const rows = useQuery(api.lookout.data.forgotten);
+  const unforget = useMutation(api.lookout.data.unforget);
+  const { busy, error, run } = useAction();
+  if (!rows) return null;
+  return (
+    <Card>
+      <h2 className="sh-h2">Jobs that won&apos;t come back</h2>
+      <p className="sh-hint">Removing a job, or marking it &ldquo;Not for me&rdquo;, tells the Lookout to drop that listing if a search finds it again, by its link or by its employer and title. {rows.length === 0 ? "None yet." : `${rows.length} so far.`}</p>
+      {rows.slice(0, 60).map((r) => (
+        <div key={r._id} className="sh-row sh-wrap lo-entry">
+          <span><strong>{r.title}</strong> <span className="sh-muted">· {r.employer}</span> <span className="sh-hint">· {r.reason === "removed" ? "removed" : "not for me"} {timeAgo(r.createdAt)}</span></span>
+          <button type="button" className="sh-link" disabled={busy} onClick={() => void run(() => unforget({ id: r._id }))}>Let it come back</button>
+        </div>
+      ))}
       <ErrorNote error={error} />
     </Card>
   );
