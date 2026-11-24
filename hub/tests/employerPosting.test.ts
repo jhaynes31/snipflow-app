@@ -52,7 +52,16 @@ describe("the employer's own posting", () => {
     const said = employerLocationFacts({ locations: [], description: "This is a fully remote position open to residents of all 50 states." });
     assert.equal(said.facts.remote?.state, "yes");
     assert.equal(said.facts.wvEligible?.state, "yes");
+    const countryOnly = employerLocationFacts({ locations: ["United States"], description: "Join our team. Great benefits." });
+    assert.equal(countryOnly.facts.remote, undefined, "a country isn't an office: nothing is claimed either way");
+    assert.equal(countryOnly.facts.wvEligible, undefined);
+    assert.equal(employerLocationFacts({ locations: ["US"], description: "Hi." }).facts.remote, undefined);
+    const cityMentions = employerLocationFacts({ locations: ["Chicago, IL"], description: "Remote-friendly team; we work remotely most days." });
+    assert.equal(cityMentions.facts.remote?.state, "unknown", "a city plus a mention of remote work is left for a person");
+    const offices = employerLocationFacts({ locations: ["Remote", "Austin, TX", "Denver, CO"], description: "Work from anywhere in the US." });
+    assert.equal(offices.facts.remote?.state, "yes");
+    assert.notEqual(offices.facts.wvEligible?.state, "no", "offices listed beside Remote don't restrict the states");
     const mixed = employerLocationFacts({ locations: ["Austin, TX"], description: "Remote position; hybrid for those near Austin." });
-    assert.equal(mixed.facts.remote, undefined, "says both remote and hybrid: nothing is claimed, so it stays a thing to check");
+    assert.equal(mixed.facts.remote?.state, "unknown", "says both remote and hybrid: left for a person to check");
   });
 });

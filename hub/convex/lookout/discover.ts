@@ -201,8 +201,9 @@ async function search(ctx: ActionCtx, ownerId: Id<"profiles">, manual: boolean):
   const noPay = results.reduce((n, r) => n + r.noPay, 0);
   const note = `Read ${results.length} sources (${answered} with listings), looked at ${found} listings, kept ${batch.length} that fit${noPay ? ` (${noPay} more fit but didn't state pay, so they were left out)` : ""}.${notes.length ? ` ${notes.join(" ")}` : ""}`;
   const bySource = results.map((r) => ({ name: r.name, found: r.found, kept: r.kept.length, noPay: r.noPay, senior: r.senior, experience: r.experience, degree: r.degree, state: r.state, problem: r.problem }));
-  const fresh: number = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
-  return { found, kept: batch.length, fresh, note };
+  const stored: { fresh: number; already: number; forgotten: number } = await ctx.runMutation(internal.lookout.data.storeFound, { ownerId, postings: batch, note, bySource });
+  const why = stored.already || stored.forgotten ? ` Of those, ${stored.already ? `${stored.already} ${stored.already === 1 ? "was" : "were"} already here from an earlier search (saved, hidden, set aside, or in Earlier finds)` : ""}${stored.already && stored.forgotten ? " and " : ""}${stored.forgotten ? `${stored.forgotten} ${stored.forgotten === 1 ? "was" : "were"} removed or marked not for me before, so ${stored.forgotten === 1 ? "it stays" : "they stay"} out` : ""}.` : "";
+  return { found, kept: batch.length, fresh: stored.fresh, note: `${note}${why}` };
 }
 
 type CheckResult = { jobId: Id<"loJobs">; open: "yes" | "no" | "unknown"; fingerprint?: string; note: string };
