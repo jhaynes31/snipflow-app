@@ -1590,9 +1590,9 @@ export default defineSchema({
     lastSearchAt: v.optional(v.number()),
     lastSearchNote: v.optional(v.string()),
     /** The last searches, newest first, each with what every site actually returned. */
-    searchLog: v.optional(v.array(v.object({ at: v.number(), found: v.number(), kept: v.number(), fresh: v.number(), sources: v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) })) }))),
+    searchLog: v.optional(v.array(v.object({ at: v.number(), found: v.number(), kept: v.number(), fresh: v.number(), sources: v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), state: v.optional(v.number()), problem: v.optional(v.string()) })) }))),
     /** What each source gave at the last search, for the Overview. */
-    lastSearchSources: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) }))),
+    lastSearchSources: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), state: v.optional(v.number()), problem: v.optional(v.string()) }))),
     /** Which version of the listing reader last read this search's jobs. */
     scanVersion: v.optional(v.number()),
     /** Which version of the default sources this search has been offered. */
@@ -1775,6 +1775,24 @@ export default defineSchema({
     hidden: v.boolean(),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
+
+  /**
+   * Jobs he removed or said "not for me" to (2026-11-24, Jen: the same job
+   * kept coming back after she removed it). A later find with the same
+   * link, or the same employer and title, is dropped before it's stored.
+   */
+  loForgotten: defineTable({
+    ownerId: v.id("profiles"),
+    visibility: visibilityValidator,
+    dedupeKey: v.string(),
+    urlKey: v.string(),
+    employer: v.string(),
+    title: v.string(),
+    reason: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_owner_dedupe", ["ownerId", "dedupeKey"])
+    .index("by_owner_url", ["ownerId", "urlKey"]),
 
   /** Interviews, follow ups, and notes on a job, with a date when there is one. */
   loEvents: defineTable({

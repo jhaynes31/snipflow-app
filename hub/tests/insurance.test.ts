@@ -91,6 +91,14 @@ describe("Insurance Sales, Inbound/W-2 preset", () => {
     assert.deepEqual(merged.blocklist, ["Mine"]);
     assert.equal(mergeWatchlist(merged), merged, "nothing to merge the second time");
   });
+  it("not open to West Virginia is Avoid; unknown is only a check", () => {
+    const strong = job("Inbound Insurance Sales", "W-2 hourly base pay, inbound calls, paid training.");
+    const no = fitOf(strong, cfg, [], { wv: "no" });
+    assert.equal(no.badge, "avoid");
+    assert.ok(no.red.includes("Not open to WV"));
+    assert.equal(fitOf(strong, cfg, [], { wv: "unknown" }).badge, "strong");
+    assert.equal(fitOf(strong, cfg, [], { wv: "yes" }).badge, "strong");
+  });
   it("keeps insurance sales titles and drops managers, recruiters, and other sales work", () => {
     assert.ok(insuranceTitleFits("Inbound Insurance Sales Consultant"));
     assert.ok(insuranceTitleFits("Licensed Life Insurance Agent (Remote)"));

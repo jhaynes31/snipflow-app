@@ -45,7 +45,7 @@ export function Jobs() {
       {view === "earlier" && !words.length && <p className="sh-hint mt-3">Jobs moved out of the way by Refresh or Hide. Nothing here is deleted; bring any back, or save it, and it returns to the lists.</p>}
       {view === "insurance" && !words.length && (
         <div className="mt-3">
-          <p className="sh-hint">Insurance sales jobs, Strong fit first, then newest. Each card shows why, as tags. Jobs you hid or marked &ldquo;Not for me&rdquo; stay out of this list; a company you said &ldquo;Not for me&rdquo; to gets a tag on its later jobs and sorts lower; &ldquo;Block&rdquo; hides a company for good. Blocklisted companies are hidden unless you show them.</p>
+          <p className="sh-hint">Insurance sales jobs, Strong fit first, then newest. Each card shows why, as tags. Jobs you hid, removed, or marked &ldquo;Not for me&rdquo; stay out of this list and don&apos;t come back when a search finds them again; a company you said &ldquo;Not for me&rdquo; to gets a tag on its later jobs and sorts lower; &ldquo;Block&rdquo; hides a company for good. Blocklisted companies are hidden unless you show them.</p>
           <Toggle checked={showBlocked} onChange={(on) => void setInsurance({ showBlocked: on })} label="Show hidden (blocklisted companies)" />
         </div>
       )}

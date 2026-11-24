@@ -131,7 +131,7 @@ function Header({ job, status }: { job: Doc<"loJobs">; status: Status }) {
       </div>
       {note && <Note>{note}</Note>}
       <ErrorNote error={error} />
-      {!LOCKED.includes(status) && <button type="button" className="sh-link mt-3" disabled={busy} onClick={() => { if (window.confirm("Remove this job and its drafts?")) void run(async () => { await remove({ jobId: job._id }); router.push(`${LOOKOUT}/jobs`); }); }}>Remove this job</button>}
+      {!LOCKED.includes(status) && <button type="button" className="sh-link mt-3" disabled={busy} onClick={() => { if (window.confirm("Remove this job and its drafts? It won't come back if a search finds it again.")) void run(async () => { await remove({ jobId: job._id }); router.push(`${LOOKOUT}/jobs`); }); }}>Remove this job</button>}
     </Card>
   );
 }

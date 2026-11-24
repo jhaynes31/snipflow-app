@@ -9,6 +9,7 @@ import { EMPLOYER_KINDS, SOURCE_KIND_LABEL, type SourceKind, RETIRED_KINDS } fro
 import { Btn, Card, ErrorNote, Field, Note, PageTitle, Spinner, Toggle, useAction } from "@/core/ui";
 import { download } from "../docx";
 import { InsuranceSettings } from "../Insurance";
+import { Forgotten } from "../Insurance";
 
 /** Requirements, ranking, sources, helping, and his data. */
 export function LookoutSettings() {
@@ -115,6 +116,8 @@ export function LookoutSettings() {
       </Card>
 
       <InsuranceSettings cfg={s.insurance} />
+
+      <Forgotten />
 
       <UsajobsCard email={s.usajobsEmail} />
       <AdzunaCard appId={s.adzunaAppId} />

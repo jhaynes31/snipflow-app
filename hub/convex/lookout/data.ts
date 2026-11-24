@@ -151,7 +151,7 @@ function passedEmployers(rows: Doc<"loJobs">[]): Set<string> {
 function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile: string, passed: Set<string> = new Set()) {
   // A preset job (insurance sales) is judged by the preset's flags, not by the main search's hard checks, which would fail every sales job.
   if (job.preset === INSURANCE_PRESET) {
-    const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[], { passedBefore: job.status !== "passed" && passed.has(job.employer.toLowerCase()) });
+    const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[], { passedBefore: job.status !== "passed" && passed.has(job.employer.toLowerCase()), wv: (job.facts as Facts).wvEligible?.state ?? "unknown" });
     return { verdict: (f.badge === "strong" ? "eligible" : f.badge === "maybe" ? "check" : "rejected") as Verdict, checks: [], score: f.score, parts: [], strengths: f.green, gaps: f.red, uncertain: [] };
   }
   return rank(job.facts as Facts, { req: { minHourly: s.minHourly, maxHours: s.maxHours, homeState: s.homeState, allowDegree: s.allowDegree }, weights: s.weights, jobText: `${job.title}\n${job.description}`, profileText: profile });
@@ -160,8 +160,8 @@ function rankJob(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, profile
 /** The preset's view of a job, for the cards: the badge, the tags, state eligibility, and pay as listed. Null for jobs outside the preset. */
 function presetView(job: Doc<"loJobs">, s: ReturnType<typeof settingsView>, passed: Set<string> = new Set()) {
   if (job.preset !== INSURANCE_PRESET) return null;
-  const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[], { passedBefore: job.status !== "passed" && passed.has(job.employer.toLowerCase()) });
   const wv = (job.facts as Facts).wvEligible?.state ?? "unknown";
+  const f = fitOf(job, s.insurance, (job.screening ?? []) as ScreeningAnswer[], { passedBefore: job.status !== "passed" && passed.has(job.employer.toLowerCase()), wv });
   return { badge: f.badge, green: f.green, red: f.red, blocked: f.blocked, why: f.why, wv, pay: payAsListed(job.description, job.discoveredAt) };
 }
 
@@ -215,7 +215,7 @@ export const setViewing = mutation({
 });
 
 /** Every Lookout table. Deleting a search clears its rows from all of them. */
-export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin", "loAgencies", "loSavedAnswers"] as const;
+export const LOOKOUT_TABLES = ["loSettings", "loAnswers", "loRoles", "loJobs", "loDocs", "loApplications", "loEvents", "loImports", "loNotes", "loAdmin", "loAgencies", "loSavedAnswers", "loForgotten"] as const;
 
 /** Delete the search you own and everything in it. Only its owner can. */
 export const deleteMySearch = mutation({
@@ -610,9 +610,14 @@ async function insertJob(
   p: { title: string; employer: string; url: string; applyUrl?: string; location?: string; description: string; sourceKind: string; sourceName: string; sourceId?: string; postedAt?: number; deadline?: string; preset?: string },
   status: Status,
   blocklist: string[] = [],
-): Promise<{ id: Id<"loJobs">; duplicate: boolean }> {
+): Promise<{ id: Id<"loJobs"> | null; duplicate: boolean; forgotten?: boolean }> {
   const key = dedupeKey(p.employer, p.title);
   const urlKey = normalizeUrl(p.url);
+  // A job he removed or said "not for me" to doesn't come back when a search finds it again. (A job pasted by hand is always added: he asked for it.)
+  if (p.sourceKind !== "manual") {
+    const gone = (await ctx.db.query("loForgotten").withIndex("by_owner_url", (q) => q.eq("ownerId", ownerId).eq("urlKey", urlKey)).first()) ?? (await ctx.db.query("loForgotten").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", ownerId).eq("dedupeKey", key)).first());
+    if (gone) return { id: null, duplicate: true, forgotten: true };
+  }
   const byUrl = await ctx.db.query("loJobs").withIndex("by_owner_url", (q) => q.eq("ownerId", ownerId).eq("urlKey", urlKey)).first();
   const same = byUrl ?? (await ctx.db.query("loJobs").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", ownerId).eq("dedupeKey", key)).first());
   if (same) {
@@ -671,7 +676,9 @@ export const addJob = mutation({
       throw new ConvexError("That link doesn't look like a web address.");
     }
     if (args.description.trim().length < 80) throw new ConvexError("Paste the whole listing so it can be checked properly.");
-    return await insertJob(ctx, a.ownerId, s.homeState, { title: cleanText(args.title, 200, "Job title"), employer: cleanText(args.employer, 120, "Employer"), url, applyUrl: optionalText(args.applyUrl, 1000, "Application link"), description: args.description.trim(), location: optionalText(args.location, 300, "Location"), deadline: optionalText(args.deadline, 40, "Deadline"), sourceKind: "manual", sourceName: "Added by hand" }, "review");
+    const r = await insertJob(ctx, a.ownerId, s.homeState, { title: cleanText(args.title, 200, "Job title"), employer: cleanText(args.employer, 120, "Employer"), url, applyUrl: optionalText(args.applyUrl, 1000, "Application link"), description: args.description.trim(), location: optionalText(args.location, 300, "Location"), deadline: optionalText(args.deadline, 40, "Deadline"), sourceKind: "manual", sourceName: "Added by hand" }, "review");
+    if (!r.id) throw new ConvexError("That job couldn't be added.");
+    return { id: r.id, duplicate: r.duplicate };
   },
 });
 
@@ -701,6 +708,9 @@ export const setStatus = mutation({
     if (!allowed.includes(args.status as Status)) throw new ConvexError("That step isn't available from here.");
     // Saving or working on a job brings it back from Earlier finds.
     await ctx.db.patch(j._id, { status: args.status, statusAt: Date.now(), ...(UNSAVED.includes(args.status) || args.status === "passed" ? {} : { shelvedAt: undefined }) });
+    // "Not for me" also keeps the same listing from coming back under a new link.
+    if (args.status === "passed") await forget(ctx, j, "passed");
+    else if (j.status === "passed") for (const x of await ctx.db.query("loForgotten").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", j.ownerId).eq("dedupeKey", j.dedupeKey)).collect()) if (x.reason === "passed") await ctx.db.delete(x._id);
   },
 });
 
@@ -722,6 +732,40 @@ export const setNotes = mutation({
   },
 });
 
+/** Remember a job he doesn't want, so a search that finds it again drops it. */
+async function forget(ctx: MutationCtx, j: Doc<"loJobs">, reason: "removed" | "passed"): Promise<void> {
+  const seen = await ctx.db.query("loForgotten").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", j.ownerId).eq("dedupeKey", j.dedupeKey)).first();
+  if (seen) return;
+  await ctx.db.insert("loForgotten", { ownerId: j.ownerId, visibility: "private", dedupeKey: j.dedupeKey, urlKey: j.urlKey, employer: j.employer, title: j.title, reason, createdAt: Date.now() });
+  for (const u of j.alsoAt) {
+    const k = normalizeUrl(u);
+    if (!(await ctx.db.query("loForgotten").withIndex("by_owner_url", (q) => q.eq("ownerId", j.ownerId).eq("urlKey", k)).first())) await ctx.db.insert("loForgotten", { ownerId: j.ownerId, visibility: "private", dedupeKey: j.dedupeKey, urlKey: k, employer: j.employer, title: j.title, reason, createdAt: Date.now() });
+  }
+}
+
+/** The jobs he's told the Lookout to stop bringing back, newest first. */
+export const forgotten = query({
+  args: {},
+  handler: async (ctx) => {
+    const a = await requireLookout(ctx);
+    const rows = await ctx.db.query("loForgotten").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", a.ownerId)).collect();
+    const byKey = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) if (!byKey.has(r.dedupeKey)) byKey.set(r.dedupeKey, r);
+    return [...byKey.values()].sort((x, y) => y.createdAt - x.createdAt).map((r) => ({ _id: r._id, employer: r.employer, title: r.title, reason: r.reason, createdAt: r.createdAt }));
+  },
+});
+
+/** Let one forgotten job come back if a search finds it again. */
+export const unforget = mutation({
+  args: { id: v.id("loForgotten") },
+  handler: async (ctx, args) => {
+    const a = await requireLookout(ctx);
+    const r = await ctx.db.get(args.id);
+    if (!r || r.ownerId !== a.ownerId) throw new ConvexError("That isn't here.");
+    for (const x of await ctx.db.query("loForgotten").withIndex("by_owner_dedupe", (q) => q.eq("ownerId", a.ownerId).eq("dedupeKey", r.dedupeKey)).collect()) await ctx.db.delete(x._id);
+  },
+});
+
 export const removeJob = mutation({
   args: { jobId: v.id("loJobs") },
   handler: async (ctx, args) => {
@@ -729,6 +773,8 @@ export const removeJob = mutation({
     const j = await loadJob(ctx, a, args.jobId);
     const app = await ctx.db.query("loApplications").withIndex("by_job", (q) => q.eq("jobId", j._id)).first();
     if (app) throw new ConvexError("This job has an approved application on record, so it stays. Mark it closed instead.");
+    // Removed means gone for good: a search that finds the same listing again drops it.
+    if (j.sourceKind !== "manual") await forget(ctx, j, "removed");
     for (const d of await ctx.db.query("loDocs").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect()) await ctx.db.delete(d._id);
     for (const e of await ctx.db.query("loEvents").withIndex("by_job", (q) => q.eq("jobId", j._id)).collect()) await ctx.db.delete(e._id);
     await ctx.db.delete(j._id);
@@ -1200,7 +1246,7 @@ const postingV = v.object({ title: v.string(), employer: v.string(), url: v.stri
 
 /** Store what a search found. Duplicates are folded into the job already here. Returns how many were new. */
 export const storeFound = internalMutation({
-  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), problem: v.optional(v.string()) }))) },
+  args: { ownerId: v.id("profiles"), postings: v.array(postingV), note: v.string(), bySource: v.optional(v.array(v.object({ name: v.string(), found: v.number(), kept: v.number(), noPay: v.optional(v.number()), senior: v.optional(v.number()), experience: v.optional(v.number()), degree: v.optional(v.number()), state: v.optional(v.number()), problem: v.optional(v.string()) }))) },
   handler: async (ctx, args) => {
     const s = await ensureSettings(ctx, args.ownerId);
     const blocklist = (s.insurance as InsuranceConfig | undefined)?.blocklist ?? defaultInsurance().blocklist;
