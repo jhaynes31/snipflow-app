@@ -162,9 +162,9 @@ export function Overview() {
   );
 }
 
-function describe(r: { note: string; fresh: number; skipped?: boolean; closed?: number }): string {
+function describe(r: { note: string; fresh: number; skipped?: boolean; closed?: number; employerRead?: number; employerFailed?: number }): string {
   if (r.skipped) return r.note;
-  return `${r.note} ${r.fresh ? `${r.fresh} new, each in the group below that fits it.` : "Nothing new this time."}${r.closed ? ` ${r.closed} saved or listed ${r.closed === 1 ? "job has" : "jobs have"} closed and moved to Closed.` : ""}`;
+  return `${r.note} ${r.fresh ? `${r.fresh} new, each in the group below that fits it.` : "Nothing new this time."}${r.employerRead ? ` Checked ${r.employerRead} against the employer's own ${r.employerRead === 1 ? "posting" : "postings"}${r.employerFailed ? `; ${r.employerFailed} turned out not remote or not open to his state and moved to Set aside` : ""}.` : ""}${r.closed ? ` ${r.closed} saved or listed ${r.closed === 1 ? "job has" : "jobs have"} closed and moved to Closed.` : ""}`;
 }
 
 export function JobLine({ j }: { j: { _id: string; title: string; employer: string; score: number | null; verdict: string; uncertain: number; sourceName: string; discoveredAt: number; seen: boolean; changedAt?: number; warnings: string[]; fails: string[]; preset?: string; fit?: FitView | null } }) {

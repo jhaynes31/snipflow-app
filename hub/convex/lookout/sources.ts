@@ -797,3 +797,140 @@ export function workdayPosted(text: string, now = Date.now()): number | undefine
   const m = /(\d+)\+?\s*days?/.exec(t);
   return m ? now - Number(m[1]) * 86400000 : undefined;
 }
+
+// ---------- The employer's own posting (2026-11-24) ----------
+
+/**
+ * Jen's catch: a job board's copy said "United States only" and the board
+ * is remote only, but the employer's own Workday posting listed ten office
+ * cities and never said remote. So a found job whose apply link is on a
+ * board the Lookout can read is followed to the employer's own posting,
+ * and what that says wins (discover.ts readEmployerPosting).
+ */
+export interface PostingRef {
+  kind: SourceKind;
+  token: string;
+  /** The posting's id, shortcode, slug, or (Workday) its path. */
+  id: string;
+}
+
+/** The employer's own posting behind a link, when it's on a board the Lookout can read. */
+export function postingFromUrl(input: string): PostingRef | null {
+  let u: URL;
+  try {
+    u = new URL(/^https?:\/\//i.test(input.trim()) ? input.trim() : `https://${input.trim()}`);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.toLowerCase().replace(/^www\./, "");
+  const seg = u.pathname.split("/").filter(Boolean).map((x) => decodeURIComponent(x));
+  const ok = (t: string) => /^[a-z0-9][a-z0-9._-]{0,79}$/i.test(t);
+  if ((host === "boards.greenhouse.io" || host === "job-boards.greenhouse.io") && seg[0] && seg[1] === "jobs" && /^\d+$/.test(seg[2] ?? "") && ok(seg[0])) return { kind: "greenhouse", token: seg[0].toLowerCase(), id: seg[2] };
+  if (host === "boards-api.greenhouse.io" && seg[2] && seg[3] === "jobs" && /^\d+$/.test(seg[4] ?? "")) return { kind: "greenhouse", token: seg[2].toLowerCase(), id: seg[4] };
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (host === "jobs.lever.co" && seg[0] && uuid.test(seg[1] ?? "") && ok(seg[0])) return { kind: "lever", token: seg[0], id: seg[1] };
+  if (host === "jobs.ashbyhq.com" && seg[0] && uuid.test(seg[1] ?? "") && ok(seg[0])) return { kind: "ashby", token: seg[0], id: seg[1] };
+  if (host === "apply.workable.com" && seg[0] && seg[1] === "j" && seg[2] && ok(seg[0]) && ok(seg[2])) return { kind: "workable", token: seg[0], id: seg[2] };
+  if ((host === "jobs.smartrecruiters.com" || host === "careers.smartrecruiters.com") && seg[0] && /^\d+/.test(seg[1] ?? "") && ok(seg[0])) return { kind: "smartrecruiters", token: seg[0], id: /^\d+/.exec(seg[1])![0] };
+  const wd = /^([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com$/.exec(host);
+  if (wd) {
+    const i = seg.findIndex((x) => x === "job");
+    const site = seg.slice(0, i).find((x) => !/^[a-z]{2}-[a-z]{2}$/i.test(x));
+    if (i > 0 && site && seg[i + 1] && ok(site)) return { kind: "workday", token: `${host}|${wd[1]}|${site}`, id: `/${seg.slice(i).map(encodeURIComponent).join("/")}` };
+  }
+  const bamboo = /^([a-z0-9-]+)\.bamboohr\.com$/.exec(host);
+  if (bamboo && bamboo[1] !== "www" && seg[0] === "careers" && /^\d+$/.test(seg[1] ?? "")) return { kind: "bamboohr", token: bamboo[1], id: seg[1] };
+  const rec = /^([a-z0-9-]+)\.recruitee\.com$/.exec(host);
+  if (rec && rec[1] !== "www" && seg[0] === "o" && seg[1] && ok(seg[1])) return { kind: "recruitee", token: rec[1], id: seg[1] };
+  return null;
+}
+
+/** Where to read that posting. Ashby has no single-posting call, so its whole board is read and the one job picked out. */
+export function postingUrl(ref: PostingRef): string {
+  const t = encodeURIComponent(ref.token);
+  const id = encodeURIComponent(ref.id);
+  switch (ref.kind) {
+    case "greenhouse":
+      return `https://boards-api.greenhouse.io/v1/boards/${t}/jobs/${id}`;
+    case "lever":
+      return `https://api.lever.co/v0/postings/${t}/${id}`;
+    case "ashby":
+      return `https://api.ashbyhq.com/posting-api/job-board/${t}?includeCompensation=true`;
+    case "workable":
+      return `https://apply.workable.com/api/v2/accounts/${t}/jobs/${id}`;
+    case "smartrecruiters":
+      return `https://api.smartrecruiters.com/v1/companies/${t}/postings/${id}`;
+    case "workday": {
+      const [host, tenant, site] = ref.token.split("|");
+      return `https://${host}/wday/cxs/${tenant}/${site}${ref.id}`;
+    }
+    case "bamboohr":
+      return `https://${t}.bamboohr.com/careers/${id}/detail`;
+    case "recruitee":
+      return `https://${t}.recruitee.com/api/offers/${id}`;
+    default:
+      return "";
+  }
+}
+
+export interface EmployerPosting {
+  title: string;
+  description: string;
+  /** Every location the employer lists, as written. */
+  locations: string[];
+  /** The employer's own word for it ("Remote", "Hybrid", "On-Site"), when the board has such a field. */
+  remoteType?: string;
+}
+
+/** The employer's posting as each board returns it. Null when the answer isn't a posting. */
+export function parseEmployerPosting(ref: PostingRef, data: unknown): EmployerPosting | null {
+  const d = obj(data);
+  const list = (xs: unknown[]) => xs.map(str).map((x) => x.trim()).filter(Boolean);
+  if (ref.kind === "greenhouse") {
+    if (!str(d.title)) return null;
+    const offices = arr(d.offices).map(obj).map((o) => str(o.location) || str(o.name));
+    return { title: str(d.title), description: htmlToText(str(d.content)), locations: [...new Set(list([str(obj(d.location).name), ...offices]))] };
+  }
+  if (ref.kind === "lever") {
+    if (!str(d.text)) return null;
+    const cat = obj(d.categories);
+    const lists = arr(d.lists).map(obj).map((l) => `${str(l.text)}\n${htmlToText(str(l.content))}`).join("\n\n");
+    return { title: str(d.text), description: [str(d.descriptionPlain), lists, str(d.additionalPlain)].filter(Boolean).join("\n\n"), locations: [...new Set(list([str(cat.location), ...arr(cat.allLocations)]))], remoteType: str(d.workplaceType) || undefined };
+  }
+  if (ref.kind === "ashby") {
+    const j = arr(d.jobs).map(obj).find((x) => str(x.id) === ref.id || str(x.jobUrl).includes(ref.id));
+    if (!j) return null;
+    return { title: str(j.title), description: str(j.descriptionPlain) || htmlToText(str(j.descriptionHtml)), locations: [...new Set(list([str(j.location), ...arr(j.secondaryLocations).map((x) => str(obj(x).location))]))], remoteType: j.isRemote === true ? "Remote" : j.isRemote === false ? "Not marked remote" : undefined };
+  }
+  if (ref.kind === "workday") {
+    const j = obj(d.jobPostingInfo);
+    if (!str(j.title)) return null;
+    return { title: str(j.title), description: [htmlToText(str(j.jobDescription)), str(j.timeType)].filter(Boolean).join("\n\n"), locations: [...new Set(list([str(j.location), ...arr(j.additionalLocations)]))], remoteType: str(j.remoteType) || undefined };
+  }
+  if (ref.kind === "workable") {
+    if (!str(d.title)) return null;
+    const loc = obj(d.location);
+    const where = [str(loc.city), str(loc.region), str(loc.country)].filter(Boolean).join(", ");
+    const wp = str(d.workplace);
+    return { title: str(d.title), description: [htmlToText(str(d.description)), htmlToText(str(d.requirements)), htmlToText(str(d.benefits))].filter(Boolean).join("\n\n"), locations: [...new Set(list([where, ...arr(d.locations).map((x) => { const o = obj(x); return [str(o.city), str(o.region), str(o.country)].filter(Boolean).join(", "); })]))], remoteType: wp ? wp.replace("_", " ") : d.telecommuting === true ? "Remote" : undefined };
+  }
+  if (ref.kind === "smartrecruiters") {
+    if (!str(d.name)) return null;
+    const loc = obj(d.location);
+    const sections = obj(obj(d.jobAd).sections);
+    const text = Object.values(sections).map((x) => htmlToText(str(obj(x).text))).filter(Boolean).join("\n\n");
+    return { title: str(d.name), description: text, locations: list([str(loc.fullLocation) || [str(loc.city), str(loc.region), str(loc.country)].filter(Boolean).join(", ")]), remoteType: loc.remote === true ? "Remote" : loc.remote === false ? "Not marked remote" : undefined };
+  }
+  if (ref.kind === "bamboohr") {
+    const j = obj(obj(d.result).jobOpening);
+    if (!str(j.jobOpeningName)) return null;
+    const loc = obj(j.location);
+    return { title: str(j.jobOpeningName), description: htmlToText(str(j.description)), locations: list([[str(loc.city), str(loc.state), str(loc.country)].filter(Boolean).join(", ")]), remoteType: j.isRemote === true || str(j.locationType) === "1" ? "Remote" : str(j.locationType) === "2" ? "Hybrid" : undefined };
+  }
+  if (ref.kind === "recruitee") {
+    const j = obj(d.offer);
+    if (!str(j.title)) return null;
+    return { title: str(j.title), description: [htmlToText(str(j.description)), htmlToText(str(j.requirements))].filter(Boolean).join("\n\n"), locations: list([str(j.location)]), remoteType: j.remote === true ? "Remote" : undefined };
+  }
+  return null;
+}

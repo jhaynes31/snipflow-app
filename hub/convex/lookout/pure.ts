@@ -884,3 +884,78 @@ export function missingExperience(text: string, profileText: string): string | n
   }
   return null;
 }
+
+
+// ---------- What the employer's own posting says about where (2026-11-24) ----------
+
+/**
+ * Facts from the employer's own posting, which outrank a job board's copy
+ * and a remote-only board's assumption. The locations are the employer's
+ * list as written ("USA - Illinois - Chicago", "Remote - US"); remoteType is
+ * the board's own field when it has one ("Remote", "Hybrid", "On-Site").
+ *
+ * Specific cities with no remote word anywhere means it isn't a remote job,
+ * whatever the board that relayed it assumed. A list of states that leaves
+ * his out means he can't be hired. The listing's own words are read too.
+ */
+export function employerLocationFacts(p: { locations: string[]; remoteType?: string; description: string; title?: string }, homeState = "West Virginia"): { facts: Facts; summary: string } {
+  const facts: Facts = {};
+  const where = p.locations.join("; ");
+  const rt = (p.remoteType ?? "").toLowerCase();
+  const text = `${p.title ?? ""}\n${where}\n${p.description}`;
+  const day = new Date().toISOString().slice(0, 10);
+  const from = `From the employer's own posting, read ${day}`;
+  const remoteWord = /\bremote\b|\banywhere\b|\bwork from home\b|\bwfh\b|\bvirtual\b|\btelecommut/i;
+  const remoteSaid = /\b(?:fully|100%|completely) remote\b|\bremote[\s-]first\b|\bwork from (?:home|anywhere)\b|\bthis (?:is a|position is) (?:fully )?remote\b|\bremote (?:position|role|job|opportunity)\b/i.test(p.description);
+  const notRemoteSaid = /\bhybrid\b|\bon[\s-]?site\b|\bin[\s-]office\b|\bin the office\b/i.test(p.description);
+  const abbrev = homeState === "West Virginia" ? "WV" : null;
+  const home = new RegExp(`\\b${homeState}\\b${abbrev ? `|\\b${abbrev}\\b` : ""}`, "i");
+  const named = US_STATES.filter((st) => new RegExp(`\\b${st}\\b`, "i").test(where) && !(st === "Virginia" && /\bWest Virginia\b/i.test(where) && !/(?<!West )\bVirginia\b/i.test(where)));
+  const abbrs = (where.match(/\b[A-Z]{2}\b/g) ?? []).filter((a) => STATE_ABBR.has(a));
+
+  const specific = p.locations.length > 0 && p.locations.every((l) => !remoteWord.test(l));
+  let remote: Fact["state"] = "unknown";
+  let why = "";
+  if (rt.includes("remote") || rt.includes("virtual")) {
+    remote = "yes";
+    why = `the employer marks it ${p.remoteType}`;
+  } else if (rt.includes("hybrid") || rt.includes("on-site") || rt.includes("onsite") || rt.includes("on site") || rt.includes("in office")) {
+    remote = "no";
+    why = `the employer marks it ${p.remoteType}`;
+  } else if (remoteWord.test(where)) {
+    remote = remoteSaid || !notRemoteSaid ? "yes" : "unknown";
+    why = `the employer lists ${where}`;
+  } else if (specific && !remoteSaid) {
+    remote = "no";
+    why = `the employer lists only ${p.locations.length === 1 ? "one place" : "specific places"} (${p.locations.slice(0, 6).join("; ")}${p.locations.length > 6 ? "; and more" : ""}) and never says remote`;
+  } else if (specific && remoteSaid && notRemoteSaid) {
+    remote = "unknown";
+    why = `the employer lists ${p.locations.slice(0, 4).join("; ")} and the posting mentions both remote and office work`;
+  } else if (remoteSaid) {
+    remote = "yes";
+    why = "the posting says it is remote";
+  }
+  if (remote !== "unknown") {
+    facts.remote = { state: remote, source: "listing", note: `${from}: ${why}.` };
+    facts.noOffice = { state: remote, source: "listing", note: `${from}: ${why}.` };
+  }
+
+  // Which states, when the employer says.
+  const st = stateEligibility(text, homeState);
+  if (st?.fact) {
+    facts.wvEligible = { ...st.fact, note: `${from}: ${st.fact.note ?? st.quote}` };
+  } else if (home.test(where)) {
+    facts.wvEligible = { state: "yes", source: "listing", note: `${from}: ${homeState} is among the locations (${where}).` };
+  } else if (remote === "no") {
+    facts.wvEligible = { state: "no", source: "listing", note: `${from}: it has to be done from ${p.locations.slice(0, 4).join("; ")}${p.locations.length > 4 ? " or another listed office" : ""}, none in ${homeState}.` };
+  } else if (remote === "yes" && (named.length + abbrs.length >= 2) && !/\b(?:united states|usa|us|anywhere|nationwide|all states)\b/i.test(where)) {
+    facts.wvEligible = { state: "no", source: "listing", note: `${from}: remote only from ${where}; ${homeState} isn't listed.` };
+  } else if (remote === "yes" && /\b(?:united states|usa|nationwide|anywhere in the us|all (?:50 )?states)\b/i.test(where)) {
+    facts.wvEligible = { state: "yes", source: "listing", note: `${from}: ${where}.` };
+  }
+
+  const summary = `${remote === "yes" ? "Remote" : remote === "no" ? "Not a remote job" : "Remote: not stated"}${where ? ` · locations: ${where}` : ""}${p.remoteType ? ` · the employer's word: ${p.remoteType}` : ""}${facts.wvEligible ? ` · ${homeState}: ${facts.wvEligible.state === "yes" ? "yes" : facts.wvEligible.state === "no" ? "not eligible" : "unknown"}` : ` · ${homeState}: not stated`}`;
+  return { facts, summary };
+}
+
+const STATE_ABBR = new Set(["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"]);
