@@ -12,6 +12,10 @@ export default defineConfig({
   base: BASE,
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [
+    // A build stamp in index.html (2026-11-26): the service worker only refreshes its cached start page when the page's content
+    // changes, and a cached page keeps the headers it was fetched with. Stamping every build means a deploy that changes headers
+    // (the frame policy, that day) reaches the browser on the next open instead of waiting for the app itself to change.
+    { name: 'shire-build-stamp', transformIndexHtml: (html: string) => html.replace('<head>', `<head>\n    <meta name="shire-build" content="${new Date().toISOString()}">`) },
     react(),
     tailwindcss(),
     VitePWA({
