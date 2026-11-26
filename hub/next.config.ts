@@ -5,7 +5,8 @@ import type { NextConfig } from "next";
  * site, the Convex backend (database, live updates, sign-in), and data/blob
  * URLs for images the app makes itself. Inline scripts and styles stay allowed
  * because Next and the two embedded Vite apps rely on them; no other origin can
- * run code here, frame the site, or receive a referrer with a path in it.
+ * run code here, frame the site (the site may frame itself, for the two apps
+ * built on their own), or receive a referrer with a path in it.
  */
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -17,8 +18,9 @@ const CONTENT_SECURITY_POLICY = [
   "media-src 'self' blob:",
   "worker-src 'self'",
   "manifest-src 'self'",
-  "frame-src 'none'",
-  "frame-ancestors 'none'",
+  // Only this site may frame, and be framed by, this site: the two apps built on their own open in a frame under the toolbar (2026-11-18).
+  "frame-src 'self'",
+  "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
